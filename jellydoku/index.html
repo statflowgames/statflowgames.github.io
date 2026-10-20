@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="/jellydoku/play/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="말랑말랑 젤리 블록을 놓고 뿅! 터뜨리는 귀여운 블록 스도쿠 퍼즐 (웹 체험판)">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#FF7FA8">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="젤리도쿠">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>젤리도쿠 - 웹 체험판</title>
+  <style>
+    html, body { margin:0; background:#FCE7EF; }
+    #loading { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      font-family:-apple-system,"Noto Sans KR","Malgun Gothic",sans-serif; color:#5B4560; gap:12px; }
+    #loading img { width:96px; height:96px; border-radius:24px; animation:bounce 1s ease-in-out infinite; }
+    @keyframes bounce { 50% { transform: translateY(-12px) scale(1.04, .96); } }
+  </style>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div id="loading"><img src="icons/Icon-192.png" alt=""><div>🍓 젤리를 불러오는 중…</div></div>
+  <script>window.addEventListener("flutter-first-frame", () => document.getElementById("loading")?.remove());</script>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
