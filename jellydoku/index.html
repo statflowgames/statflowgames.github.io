@@ -56,6 +56,26 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // 항상 최신 버전으로: 서버에 올라간 버전 번호가 지금 페이지와 다르면 딱 한 번 새로고침한다.
+    // (20261020213625 는 tools/finalize_web.py 가 업로드할 때마다 새 번호로 바꿔 넣는다)
+    (function () {
+      var BUILD = "20261020213625";
+      fetch("web_version.txt?t=" + Date.now(), { cache: "no-store" })
+        .then(function (r) { return r.ok ? r.text() : ""; })
+        .then(function (v) {
+          v = (v || "").trim();
+          if (!v || v === BUILD) return;
+          var key = "jd_reload_" + v;
+          try {
+            if (sessionStorage.getItem(key)) return; // 무한 새로고침 방지
+            sessionStorage.setItem(key, "1");
+          } catch (e) {}
+          location.replace(location.pathname + "?v=" + v);
+        })
+        .catch(function () {});
+    })();
+  </script>
+  <script src="flutter_bootstrap.js?v=20261020213625" async></script>
 </body>
 </html>
