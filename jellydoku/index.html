@@ -1,81 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="/jellydoku/">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="말랑말랑 젤리 블록을 놓고 뿅! 터뜨리는 귀여운 블록 스도쿠 퍼즐 (웹 체험판)">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#FF7FA8">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="젤리도쿠">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>젤리도쿠 - 웹 체험판</title>
-  <style>
-    html, body { margin:0; background:#FCE7EF; }
-    /* 아래로 당겨서 새로고침, 튕김 스크롤, 확대를 막아 게임 중에 화면이 바뀌지 않게 */
-    html, body { position:fixed; inset:0; width:100%; height:100%; overflow:hidden;
-      overscroll-behavior:none; touch-action:none; -webkit-user-select:none; user-select:none;
-      -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
-    #loading { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-      font-family:-apple-system,"Noto Sans KR","Malgun Gothic",sans-serif; color:#5B4560; gap:12px; }
-    #loading img { width:96px; height:96px; border-radius:24px; animation:bounce 1s ease-in-out infinite; }
-    @keyframes bounce { 50% { transform: translateY(-12px) scale(1.04, .96); } }
-  </style>
-  <link rel="manifest" href="manifest.json">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>statflow</title>
+<style>
+  :root { --text:#4a3b47; --sub:#7a6a78; --accent:#ff7fa8; --bg:#fff7f2; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Noto Sans KR","Malgun Gothic",sans-serif; line-height:1.7; }
+  main { max-width:720px; margin:0 auto; padding:48px 16px; }
+  h1 { font-size:2rem; margin:0; }
+  .sub { color:var(--sub); margin-top:4px; }
+  .app { display:flex; gap:16px; align-items:center; background:#fff; border-radius:20px; padding:20px; margin-top:32px; }
+  .app img { width:88px; height:88px; border-radius:22px; }
+  .app h2 { margin:0; font-size:1.25rem; }
+  a { color:var(--accent); }
+  a.play { display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:8px 16px; border-radius:999px; font-weight:bold; }
+  footer { margin-top:48px; color:var(--sub); font-size:.9rem; }
+</style>
 </head>
 <body>
-  <div id="loading"><img src="icons/Icon-192.png" alt=""><div>🍓 젤리를 불러오는 중…</div></div>
-  <script>window.addEventListener("flutter-first-frame", () => document.getElementById("loading")?.remove());</script>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+<main>
+  <h1>statflow</h1>
+  <p class="sub">귀엽고 즐거운 모바일 게임을 만듭니다.</p>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script>
-    // 항상 최신 버전으로: 서버에 올라간 버전 번호가 지금 페이지와 다르면 딱 한 번 새로고침한다.
-    // (20261020213625 는 tools/finalize_web.py 가 업로드할 때마다 새 번호로 바꿔 넣는다)
-    (function () {
-      var BUILD = "20261020213625";
-      fetch("web_version.txt?t=" + Date.now(), { cache: "no-store" })
-        .then(function (r) { return r.ok ? r.text() : ""; })
-        .then(function (v) {
-          v = (v || "").trim();
-          if (!v || v === BUILD) return;
-          var key = "jd_reload_" + v;
-          try {
-            if (sessionStorage.getItem(key)) return; // 무한 새로고침 방지
-            sessionStorage.setItem(key, "1");
-          } catch (e) {}
-          location.replace(location.pathname + "?v=" + v);
-        })
-        .catch(function () {});
-    })();
-  </script>
-  <script src="flutter_bootstrap.js?v=20261020213625" async></script>
+  <section class="app">
+    <img src="jellydoku/icon.png" alt="젤리도쿠 아이콘">
+    <div>
+      <h2>🍓 젤리도쿠 - 말랑 블록 퍼즐</h2>
+      <p>말랑말랑 젤리 블록을 놓고 뿅! 터뜨리는 귀여운 블록 스도쿠 퍼즐</p>
+      <p><a class="play" href="jellydoku/">🎮 웹에서 바로 해보기</a></p>
+      <a href="jellydoku/privacy.html">개인정보처리방침 (Privacy Policy)</a>
+    </div>
+  </section>
+
+  <footer>문의: <a href="mailto:statflow.games@gmail.com">statflow.games@gmail.com</a></footer>
+</main>
 </body>
 </html>
