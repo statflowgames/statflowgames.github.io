@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<title>은하 방역대</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap">
+<style>
+  /* 레이아웃: 화면 가운데 세로형 게임 스테이지 하나, 모든 UI는 스테이지 위에 겹침 */
+  :root {
+    --void: #0b0618; --ink: #f4f0ff; --dim: #a99bc9;
+    --pollen: #c6ff4d; --spray: #2de2a6; --sting: #ff2d75; --honey: #ffd23f;
+    --panel: rgba(16, 9, 34, 0.86);
+    --f-display: 'Black Han Sans', 'Jua', system-ui, sans-serif;
+    --f-body: 'Jua', system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--void); color: var(--ink); font-family: var(--f-body); overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  #stage { position: relative; overflow: hidden; box-shadow: 0 0 60px rgba(198, 255, 77, 0.08); }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+  button { font-family: var(--f-body); color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+  button:focus-visible { outline: 2px solid var(--pollen); outline-offset: 3px; }
+
+  .hudbtn { position: absolute; z-index: 5; display: flex; align-items: center; justify-content: center; }
+  #pauseBtn { top: 8px; left: 50%; transform: translateX(-50%); width: 34px; height: 30px; border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08); font-size: 13px; letter-spacing: 1px; }
+  #bombBtn { right: 14px; bottom: 16px; width: 64px; height: 64px; border-radius: 50%; flex-direction: column;
+    background: radial-gradient(circle at 35% 30%, #6fffd0, var(--spray) 45%, #0d6b52);
+    box-shadow: 0 0 0 3px rgba(45, 226, 166, 0.25), 0 6px 18px rgba(0, 0, 0, 0.5); color: #052b20; }
+  #bombBtn b { font-family: var(--f-display); font-size: 13px; line-height: 1; }
+  #bombBtn span { font-size: 22px; line-height: 1.1; font-weight: bold; }
+  #bombBtn:active { transform: scale(0.92); }
+  #bombBtn.empty { filter: grayscale(1) brightness(0.6); }
+
+  .screen { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 14px; padding: 24px 20px; text-align: center; }
+  .dim { background: rgba(5, 3, 15, 0.72); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+
+  .eyebrow { font-size: 12px; letter-spacing: 0.3em; color: var(--pollen); }
+  .logo h1 { margin: 2px 0 0; font-family: var(--f-display); font-weight: 400; font-size: 58px; line-height: 1;
+    letter-spacing: -0.02em; background: linear-gradient(180deg, #fff 10%, var(--pollen) 55%, var(--spray));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 4px 0 #3b1466) drop-shadow(0 0 18px rgba(198, 255, 77, 0.35)); }
+  .logo p { margin: 8px 0 0; color: var(--dim); font-size: 14px; }
+  #heroArt { width: 300px; height: 190px; max-width: 100%; }
+
+  .big { min-width: 220px; padding: 14px 26px; border-radius: 14px; font-family: var(--f-display); font-size: 24px;
+    background: linear-gradient(180deg, #e4ff8a, var(--pollen)); color: #1a2a00;
+    box-shadow: 0 5px 0 #6b8f12, 0 10px 24px rgba(198, 255, 77, 0.25); }
+  .big:active { transform: translateY(3px); box-shadow: 0 2px 0 #6b8f12; }
+  .ghost { padding: 10px 20px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); font-size: 16px;
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.15); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .meta { font-size: 13px; color: var(--dim); line-height: 1.6; }
+  .meta b { color: var(--honey); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+  /* 레벨업 카드 */
+  #lv h2, #over h2, #pause h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 40px; }
+  #lv h2 { color: var(--pollen); }
+  .cards { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; }
+  .card { display: grid; grid-template-columns: 48px 1fr; gap: 4px 12px; align-items: center; text-align: left;
+    padding: 12px 14px; border-radius: 14px; background: var(--panel); box-shadow: inset 0 0 0 2px rgba(198, 255, 77, 0.25);
+    animation: pop 0.35s backwards; }
+  .card:nth-child(2) { animation-delay: 0.07s; } .card:nth-child(3) { animation-delay: 0.14s; }
+  .card:active, .card:focus-visible { box-shadow: inset 0 0 0 2px var(--pollen); background: rgba(40, 60, 10, 0.9); }
+  .card .ic { grid-row: span 2; font-size: 30px; width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center;
+    background: rgba(255, 255, 255, 0.07); }
+  .card .nm { font-size: 18px; color: var(--ink); min-width: 0; }
+  .card .nm small { font-size: 12px; color: var(--honey); margin-left: 6px; }
+  .card .ds { font-size: 13px; color: var(--dim); min-width: 0; }
+  @keyframes pop { from { transform: translateY(16px) scale(0.96); opacity: 0; } }
+
+  /* 결과 */
+  #over h2 { color: var(--sting); }
+  .score { font-family: var(--f-display); font-size: 46px; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
+  .newbest { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 99px; background: var(--honey); color: #3a2a00; font-size: 13px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 300px; }
+  .stats div { padding: 10px; border-radius: 12px; background: var(--panel); }
+  .stats small { display: block; font-size: 11px; color: var(--dim); }
+  .stats span { font-size: 20px; font-variant-numeric: tabular-nums; }
+
+  /* 도감 */
+  #dex { justify-content: flex-start; overflow-y: auto; padding-top: 28px; }
+  #dex h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; }
+  .dexgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 330px; }
+  .dexcard { padding: 8px 8px 10px; border-radius: 12px; background: var(--panel); text-align: center; min-width: 0; }
+  .dexcard:nth-child(7) { grid-column: span 2; }
+  .dexcard.boss { grid-column: span 2; box-shadow: inset 0 0 0 1.5px rgba(255, 45, 117, 0.4); }
+  .dexcard canvas { width: 100%; height: 76px; display: block; }
+  .dexcard.boss canvas { height: 120px; }
+  .dexcard b { display: block; font-weight: 400; font-size: 15px; }
+  .dexcard em { font-style: normal; font-size: 11px; color: var(--pollen); }
+  .dexcard p { margin: 4px 0 0; font-size: 12px; color: var(--dim); line-height: 1.4; }
+  .tag { font-size: 10px; letter-spacing: 0.15em; color: var(--sting); }
+  @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+</style>
+
+<div id="wrap">
+  <div id="stage">
+    <canvas id="game"></canvas>
+    <button id="pauseBtn" class="hudbtn" aria-label="일시정지" hidden>II</button>
+    <button id="bombBtn" class="hudbtn" aria-label="살충 폭탄" hidden><span>💣</span><b id="bombN">2</b></button>
+
+    <section id="title" class="screen">
+      <div class="logo">
+        <div class="eyebrow">GALAXY PEST CONTROL</div>
+        <h1>은하 방역대</h1>
+        <p>우주를 뒤덮은 해충 떼를 박멸하라!</p>
+      </div>
+      <canvas id="heroArt" width="600" height="380"></canvas>
+      <button id="startBtn" class="big">출동!</button>
+      <div class="row">
+        <button id="dexBtn" class="ghost">해충 도감</button>
+        <button id="muteBtn" class="ghost">소리 켜짐</button>
+      </div>
+      <div class="meta">최고 기록 <b id="bestT">0</b><br>드래그로 이동 · 사격 자동 · 💣로 탄막 제거</div>
+    </section>
+
+    <section id="dex" class="screen dim" hidden>
+      <h2>해충 도감</h2>
+      <div class="dexgrid" id="dexGrid"></div>
+      <button id="dexClose" class="ghost">닫기</button>
+    </section>
+
+    <section id="lv" class="screen dim" hidden>
+      <div class="eyebrow" id="lvNum">LEVEL 2</div>
+      <h2>LEVEL UP!</h2>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <section id="pause" class="screen dim" hidden>
+      <h2>일시정지</h2>
+      <button id="resumeBtn" class="big">계속하기</button>
+      <div class="row">
+        <button id="muteBtn2" class="ghost">소리 켜짐</button>
+        <button id="quitBtn" class="ghost">타이틀로</button>
+      </div>
+    </section>
+
+    <section id="over" class="screen dim" hidden>
+      <div class="eyebrow">MISSION FAILED</div>
+      <h2>방역 실패</h2>
+      <div><div class="score" id="ovScore">0</div><span class="newbest" id="ovBest" hidden>신기록!</span></div>
+      <div class="stats">
+        <div><small>도달 지역</small><span id="ovStage">-</span></div>
+        <div><small>처치한 해충</small><span id="ovKills">0</span></div>
+        <div><small>최대 콤보</small><span id="ovCombo">0</span></div>
+        <div><small>최종 레벨</small><span id="ovLv">1</span></div>
+      </div>
+      <button id="retryBtn" class="big">다시 출동</button>
+      <button id="homeBtn" class="ghost">타이틀로</button>
+    </section>
+  </div>
+</div>
+
+<script charset="utf-8" src="audio.js"></script>
+<script charset="utf-8" src="art.js"></script>
+<script charset="utf-8" src="data.js"></script>
+<script charset="utf-8" src="game.js"></script>
+<script charset="utf-8" src="render.js"></script>
+<script charset="utf-8" src="main.js"></script>
