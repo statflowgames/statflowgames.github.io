@@ -3,13 +3,26 @@ const G = { W: 360, H: 640, state: 'title', time: 0, shake: 0, flash: 0, enemies
 const rand = (a, b) => a + Math.random() * (b - a);
 const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 const aim = e => Math.atan2(G.p.y - e.y, G.p.x - e.x);
-let BEST = 0;
-try { BEST = +localStorage.getItem('bugbuster.best') || 0; } catch (e) {}
+// 난이도: 적 체력, 적 탄 속도, 적 공격 빈도, 시작 체력 보너스, 점수 배율
+const DIFFS = {
+  easy: { hp: 0.7, bspd: 0.85, fire: 0.7, lives: 2, score: 0.5 },
+  normal: { hp: 1, bspd: 1, fire: 1, lives: 0, score: 1 },
+  hard: { hp: 1.35, bspd: 1.15, fire: 1.35, lives: 0, score: 2 },
+};
+let DIFF = 'normal';
+try { const d = localStorage.getItem('bugbuster.diff'); if (DIFFS[d]) DIFF = d; } catch (e) {}
+function setDiff(d) { DIFF = d; try { localStorage.setItem('bugbuster.diff', d); } catch (e) {} }
+const D = () => DIFFS[G.diff || DIFF];
+// 최고 기록은 난이도별로 따로 (예전 기록은 보통으로)
+const Best = {
+  get(d = DIFF) { try { return +localStorage.getItem('bugbuster.best.' + d) || (d === 'normal' ? +localStorage.getItem('bugbuster.best') || 0 : 0); } catch (e) { return 0; } },
+  set(d, v) { try { localStorage.setItem('bugbuster.best.' + d, v); } catch (e) {} },
+};
 
 function spawnEnemy(type, x, y, opts) {
   const d = ENEMIES[type], mul = 1 + G.loop * 0.7 + G.stage * 0.22;
   const e = Object.assign({ type, def: d, x, y, vx: 0, vy: 0, t: 0, r: d.r, flash: 0, rotate: d.rotate }, opts);
-  e.hp = e.maxHp = d.hp * mul;
+  e.hp = e.maxHp = d.hp * mul * D().hp;
   if (d.init) d.init(e);
   Save.see(type);
   G.enemies.push(e); return e;
@@ -37,7 +50,9 @@ const COLORS = { mosquito: '#ff5d73', fly: '#2de2a6', ladybug: '#e63946', firefl
 
 // start: 0부터 시작하는 스테이지 번호. 중간부터 시작하면 업그레이드 자동 보급
 function newGame(start = 0) {
-  G.p = { x: G.W / 2, y: G.H - 110, hp: 3, hpMax: 3, dmg: 1, rate: 6, spread: 0, pierce: 0, homing: 0, drones: 0,
+  G.diff = DIFF;
+  const lives = 3 + D().lives;
+  G.p = { x: G.W / 2, y: G.H - 110, hp: lives, hpMax: lives, dmg: 1, rate: 6, spread: 0, pierce: 0, homing: 0, drones: 0,
     magnet: 70, shield: 0, shieldMax: 0, shieldT: 0, bombs: 2, inv: 0, fireT: 0, missT: 0, droneT: 0,
     lv: {}, level: 1, xp: 0, xpNext: 6 };
   Object.assign(G, { score: 0, combo: 0, comboT: 0, maxCombo: 0, kills: 0, loop: 0, pendingLv: 0, time: 0, startStage: start });
@@ -50,13 +65,13 @@ function newGame(start = 0) {
 function startStage(i) {
   const S = STAGES[i], k = i + G.loop * STAGES.length;
   Object.assign(G, { stage: i, stageT: 0, waveT: 2.2, phase: 'waves', boss: null, prog: 0, vacuum: false,
-    enemies: [], eb: [], fire: 1 + i * 0.035 + G.loop * 0.35, bspd: 1 + i * 0.01 + G.loop * 0.12, xpMul: 1 + Math.floor(k / 6) });
+    enemies: [], eb: [], fire: (1 + i * 0.035 + G.loop * 0.35) * D().fire, bspd: (1 + i * 0.01 + G.loop * 0.12) * D().bspd, xpMul: 1 + Math.floor(k / 6) });
   const isNew = !Save.seen(S.featured);
   const gim = S.gimmick != null ? GIMMICKS[S.gimmick] : null;
-  G.banner = { t: 0, label: `STAGE ${i + 1}  ·  ${S.area}` + (G.loop ? `  ·  ${G.loop + 1}회차` : ''), title: S.title,
-    sub: isNew ? `NEW! 새 해충 '${INFO[S.featured][0]}' 출현` : S.sub, newBug: isNew,
-    gim: gim ? `⚠ ${gim.name}: ${gim.desc}` : null };
-  if (G.supply) { text(G.W / 2, G.H * 0.55, `보급 지원: 업그레이드 ${G.supply}개 적용`, '#c6ff4d', 14); G.supply = 0; }
+  G.banner = { t: 0, label: `STAGE ${i + 1}  ·  ${S.area}` + (G.loop ? `  ·  ${t('loopN', { n: G.loop + 1 })}` : ''), title: S.title,
+    sub: isNew ? t('newBug', { name: INFO[S.featured][0] }) : S.sub, newBug: isNew,
+    gim: gim ? t('gimmickBanner', { name: gim.name, desc: gim.desc }) : null };
+  if (G.supply) { text(G.W / 2, G.H * 0.55, t('supply', { n: G.supply }), '#c6ff4d', 14); G.supply = 0; }
   Save.see(S.featured); Save.flush();
   Render.makeSky(S);
   Gimmick.start(S);
@@ -70,7 +85,7 @@ function pickWave() {
 
 function spawnBoss() {
   const key = STAGES[G.stage].boss, d = BOSSES[key];
-  const hp = d.hp * (1 + G.loop * 0.8);
+  const hp = d.hp * (1 + G.loop * 0.8) * D().hp;
   G.boss = { boss: true, key, def: d, x: G.W / 2, y: -90, t: 0, hp, maxHp: hp, r: d.r, cd: 1, flash: 0, entering: true };
   if (d.init) d.init(G.boss);
   Save.see(key); Save.flush();
@@ -80,7 +95,7 @@ function spawnBoss() {
 
 // 1·2번째 스테이지 끝: 그 스테이지 해충의 대장
 function spawnChief() {
-  const key = STAGES[G.stage].featured, d = makeChief(key, G.stage), hp = d.hp * (1 + G.loop * 0.8);
+  const key = STAGES[G.stage].featured, d = makeChief(key, G.stage), hp = d.hp * (1 + G.loop * 0.8) * D().hp;
   G.boss = { boss: true, key, def: d, x: G.W / 2, y: -90, t: 0, hp, maxHp: hp, r: d.r, cd: 1, flash: 0, entering: true, col: COLORS[key] };
   G.phase = 'boss';
 }
@@ -189,7 +204,7 @@ function mult() { return 1 + Math.min(G.combo, 100) * 0.02; }
 function kill(e) {
   e.dead = true; G.kills++;
   G.combo++; G.comboT = 2.2; G.maxCombo = Math.max(G.maxCombo, G.combo);
-  const pts = Math.round(e.def.score * mult() * (1 + G.loop));
+  const pts = Math.round(e.def.score * mult() * (1 + G.loop) * D().score);
   G.score += pts;
   const c = COLORS[e.type];
   part(e.x, e.y, c, e.def.elite ? 26 : 12, e.def.elite ? 200 : 140, e.def.elite ? 4 : 3);
@@ -202,7 +217,7 @@ function kill(e) {
 }
 function killBoss(b) {
   b.dead = true; G.boss = null; stageCleared(); G.vacuum = true;
-  const pts = Math.round(b.def.score * (1 + G.loop)); G.score += pts;
+  const pts = Math.round(b.def.score * (1 + G.loop) * D().score); G.score += pts;
   text(b.x, b.y, `+${pts}`, '#ffd23f', 22);
   clearBullets(b.x, b.y, 2000);
   for (const e of G.enemies) if (!e.dead) kill(e);
@@ -241,10 +256,10 @@ function applyUpgrade(u) {
 function gameOver() {
   G.state = 'over';
   G.shake = 20; part(G.p.x, G.p.y, '#5ef2ff', 60, 260, 5, 1.2); Sound.play('boom');
-  const isBest = G.score > BEST;
-  if (isBest) { BEST = G.score; try { localStorage.setItem('bugbuster.best', BEST); } catch (e) {} }
+  const isBest = G.score > Best.get(G.diff);
+  if (isBest) Best.set(G.diff, G.score);
   Save.flush();
-  if (RANKING_ENABLED) Ranking.submit(G.score);
+  if (RANKING_ENABLED) Ranking.submit(G.score, G.diff);
   Share.prepare(isBest);
   Sound.music('over');
   setTimeout(() => { if (G.state === 'over') UI.showOver(isBest); }, 1100);
@@ -276,7 +291,9 @@ function update(dt) {
     }
     if ((G.clearT -= dt) <= 0) {
       if (S.boss) p.hp = Math.min(p.hpMax, p.hp + 1);
-      if (G.stage === STAGES.length - 1) { G.loop++; startStage(0); } else startStage(G.stage + 1);
+      G.phase = 'next';
+      // 스테이지 사이 광고 → 다음 스테이지
+      Ads.between(() => { if (G.stage === STAGES.length - 1) { G.loop++; startStage(0); } else startStage(G.stage + 1); });
     }
   }
 
@@ -355,7 +372,7 @@ function update(dt) {
       it.gone = true;
       if (it.kind === 'xp' || it.kind === 'xpBig') { gainXp((it.kind === 'xp' ? 1 : 4) * G.xpMul); G.score += 10; Sound.play('pickup'); }
       else if (it.kind === 'heart') { if (p.hp < p.hpMax) p.hp++; else G.score += 2000; text(p.x, p.y - 24, p.hp < p.hpMax ? '+1 ❤' : '+2000', '#ff4d6d', 14); Sound.play('heart'); }
-      else if (it.kind === 'bomb') { p.bombs = Math.min(9, p.bombs + 1); text(p.x, p.y - 24, '+1 폭탄', '#2de2a6', 14); Sound.play('heart'); }
+      else if (it.kind === 'bomb') { p.bombs = Math.min(9, p.bombs + 1); text(p.x, p.y - 24, t('plusBomb'), '#2de2a6', 14); Sound.play('heart'); }
     }
     if (it.y > G.H + 20) it.gone = true;
   }

@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 
 const UI = {
-  screens: ['title', 'dex', 'sel', 'rank', 'lv', 'pause', 'over'],
+  screens: ['title', 'dex', 'sel', 'rank', 'langSel', 'lv', 'pause', 'over'],
   show(id) { this.screens.forEach(s => { $(s).hidden = s !== id; }); },
   hud(on) { $('pauseBtn').hidden = !on; $('bombBtn').hidden = !on; },
   showLevelUp(choices) {
@@ -26,18 +26,19 @@ const UI = {
     else if (G.state === 'paused') { G.state = 'play'; Sound.resume(); $('pause').hidden = true; }
   },
   showOver(isBest) {
-    $('ovScore').textContent = G.score.toLocaleString();
+    $('ovScore').textContent = fmt(G.score);
     $('ovBest').hidden = !isBest;
-    $('ovStage').textContent = `${G.loop ? G.loop + 1 + '회차 ' : ''}${G.stage + 1}. ${STAGES[G.stage].title}`;
-    $('ovKills').textContent = G.kills.toLocaleString();
+    $('ovStage').textContent = `${G.loop ? t('loopN', { n: G.loop + 1 }) + ' ' : ''}${G.stage + 1}. ${STAGES[G.stage].title}`;
+    $('ovKills').textContent = fmt(G.kills);
     $('ovCombo').textContent = G.maxCombo;
     $('ovLv').textContent = G.p.level;
-    $('retryBtn').textContent = G.stage > 0 && !G.loop ? `STAGE ${G.stage + 1}부터 다시` : '다시 출동';
+    $('retryBtn').textContent = G.stage > 0 && !G.loop ? t('retryFrom', { n: G.stage + 1 }) : t('retry');
     $('restartBtn').hidden = G.stage === 0 && !G.loop;
     $('ovRankBtn').hidden = !RANKING_ENABLED;
+    $('ovDiff').textContent = t('diff_' + G.diff); $('ovDiff').className = 'difftag ' + G.diff;
     this.hud(false); this.show('over');
   },
-  syncMute() { const t = Sound.muted ? '소리 꺼짐' : '소리 켜짐'; $('muteBtn').textContent = t; $('muteBtn2').textContent = t; },
+  syncMute() { const label = Sound.muted ? t('soundOff') : t('soundOn'); $('muteBtn').textContent = label; $('muteBtn2').textContent = label; },
 };
 
 function startGame(stage = 0) {
@@ -49,7 +50,7 @@ function startGame(stage = 0) {
 function toTitle() {
   G.state = 'title'; G.p = null; G.boss = null; G.phase = 'waves';
   Sound.resume(); Render.makeSky(STAGES[0]); Sound.music('title');
-  $('bestT').textContent = BEST.toLocaleString();
+  syncDiff();
   $('progT').textContent = Save.unlocked;
   $('rankBtn').hidden = !RANKING_ENABLED;
   UI.hud(false); UI.show('title');
@@ -88,7 +89,7 @@ function openSelect() {
       b.className = 'stg' + (STAGES[i].boss ? ' boss' : '');
       b.disabled = i + 1 > Save.unlocked;
       b.textContent = b.disabled ? '🔒' : STAGES[i].boss ? `👑${i + 1}` : i + 1;
-      b.setAttribute('aria-label', `STAGE ${i + 1}${STAGES[i].boss ? ' 보스' : ''}${b.disabled ? ' 잠김' : ''}`);
+      b.setAttribute('aria-label', t('stageAria', { n: i + 1, boss: STAGES[i].boss ? t('bossTag') : '', locked: b.disabled ? t('locked') : '' }));
       b.onclick = () => { $('sel').hidden = true; startGame(i); };
       row.appendChild(b);
     }
@@ -104,7 +105,7 @@ function openDex() {
     const [nm, kind, desc] = INFO[key], boss = !!BOSSES[key], seen = Save.seen(key), d = document.createElement('div');
     d.className = 'dexcard' + (boss ? ' boss' : '') + (seen ? '' : ' unknown');
     d.innerHTML = `${boss ? '<div class="tag">BOSS</div>' : ''}<canvas data-k="${key}" data-seen="${seen ? 1 : 0}"></canvas>` +
-      `<b>${seen ? nm : '???'}</b><em>${seen ? kind : `STAGE ${firstStage(key)}`}</em><p>${seen ? desc : `STAGE ${firstStage(key)}에서 만날 수 있어요.`}</p>`;
+      `<b>${seen ? nm : '???'}</b><em>${seen ? kind : `STAGE ${firstStage(key)}`}</em><p>${seen ? desc : t('unknownWhere', { n: firstStage(key) })}</p>`;
     g.appendChild(d);
   });
   $('dexCount').textContent = Save.count();
@@ -125,8 +126,33 @@ function drawDex(t) {
   });
 }
 
+// ---- 언어 ----
+function syncLang() { $('langBtn').textContent = '🌐 ' + LANGS[I18n.lang]; UI.syncMute(); syncDiff(); }
+
+// ---- 난이도 ----
+function syncDiff() {
+  document.querySelectorAll('#diffSel button').forEach(b => b.setAttribute('aria-checked', b.dataset.d === DIFF));
+  $('diffDesc').textContent = t('diffDesc_' + DIFF);
+  $('bestT').textContent = fmt(Best.get());
+}
+function openLang() {
+  const box = $('langs'); box.innerHTML = '';
+  for (const [code, label] of Object.entries(LANGS)) {
+    const b = document.createElement('button');
+    b.textContent = label; b.lang = code; b.setAttribute('aria-pressed', code === I18n.lang);
+    b.onclick = () => { I18n.set(code, true); loadFonts(); syncLang(); $('langSel').hidden = true; Sound.play('select'); };
+    box.appendChild(b);
+  }
+  $('langSel').hidden = false;
+}
+function loadFonts() {
+  if (!document.fonts) return;
+  const f = I18n.font();
+  document.fonts.load('20px ' + f.display).then(() => document.fonts.load('20px ' + f.body)).catch(() => {});
+}
+
 // ---- 랭킹 ----
-function openRank(period) { Ranking.open(period); }
+function openRank(period, diff) { Ranking.open(period, diff); }
 
 // ---- 이벤트 ----
 $('startBtn').onclick = () => startGame(0);
@@ -141,12 +167,16 @@ $('selBtn').onclick = () => { Sound.init(); Sound.play('select'); openSelect(); 
 $('selClose').onclick = () => { $('sel').hidden = true; };
 $('dexBtn').onclick = () => { Sound.init(); Sound.play('select'); openDex(); };
 $('dexClose').onclick = () => { $('dex').hidden = true; };
-$('rankBtn').onclick = () => { Sound.init(); Sound.play('select'); openRank('daily'); };
-$('ovRankBtn').onclick = () => openRank('daily');
+$('rankBtn').onclick = () => { Sound.init(); Sound.play('select'); openRank('daily', DIFF); };
+$('ovRankBtn').onclick = () => openRank('daily', G.diff);
+document.querySelectorAll('#rankDiff button').forEach(b => { b.onclick = () => openRank(null, b.dataset.d); });
+document.querySelectorAll('#diffSel button').forEach(b => { b.onclick = () => { setDiff(b.dataset.d); syncDiff(); Sound.init(); Sound.play('select'); }; });
 $('rankClose').onclick = () => { $('rank').hidden = true; };
 document.querySelectorAll('#rankTabs button').forEach(b => { b.onclick = () => openRank(b.dataset.p); });
 $('bragBtn').onclick = () => Share.brag();
 $('inviteBtn').onclick = () => Share.invite();
+$('langBtn').onclick = () => { Sound.init(); Sound.play('select'); openLang(); };
+$('langClose').onclick = () => { $('langSel').hidden = true; };
 $('muteBtn').onclick = $('muteBtn2').onclick = () => { Sound.init(); Sound.toggleMute(); UI.syncMute(); };
 addEventListener('pointerdown', () => { Sound.init(); if (G.state === 'title') Sound.music('title'); }, { once: true });
 document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play') UI.togglePause(); });
@@ -163,8 +193,12 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+I18n.bind();
 Render.init();
+I18n.set(I18n.detect());
 setupInput($('game'));
 toTitle();
-if (document.fonts) document.fonts.load("20px 'Black Han Sans'").then(() => document.fonts.load("20px 'Jua'"));
+syncLang();
+Ads.init();
+loadFonts();
 requestAnimationFrame(frame);

@@ -3,7 +3,7 @@ const drift = (b, dt, speed = 0.5, k = 2) => { b.x += (G.W / 2 + Math.sin(b.t * 
 const lob = (x, y, tx, ty, f, o) => { const d = Math.hypot(tx - x, ty - y); eShoot(x, y, Math.atan2(ty - y, tx - x), d / f / G.bspd, { fuse: f, ...o }); };
 
 Object.assign(BOSSES, {
-  waterbug: { name: '물장군 아쿠아 자이언트', hp: 4500, r: 40, score: 120000, draw: Art.waterbug, scale: 1,
+  waterbug: { hp: 4500, r: 40, score: 120000, draw: Art.waterbug, scale: 1,
     update(b, dt) {
       const { mode, lt, rage } = bossMode(b, 4);
       if (mode !== 2) { b.ghost = false; drift(b, dt); }
@@ -24,7 +24,7 @@ Object.assign(BOSSES, {
       }
     } },
 
-  lunamoth: { name: '나방 여제 루나', hp: 6500, r: 40, score: 160000, draw: Art.lunamoth, scale: 1,
+  lunamoth: { hp: 6500, r: 40, score: 160000, draw: Art.lunamoth, scale: 1,
     update(b, dt) {
       const { mode, lt, rage } = bossMode(b, 4);
       b.x = G.W / 2 + Math.sin(b.t * 0.4) * (G.W / 2 - 80); b.y = 150 + Math.sin(b.t * 0.8) * 12;
@@ -45,7 +45,7 @@ Object.assign(BOSSES, {
       }
     } },
 
-  kingcentipede: { name: '왕지네 킹 센티피드', hp: 9000, r: 22, score: 200000, draw: Art.kingcentipede, scale: 1,
+  kingcentipede: { hp: 9000, r: 22, score: 200000, draw: Art.kingcentipede, scale: 1,
     init(b) { b.trail = []; b.segs = 16; b.gap = 7; },
     absorb(b, bul) {
       for (let i = 1; i <= b.segs; i++) { const p = b.trail[i * b.gap]; if (p && (p.x - bul.x) ** 2 + (p.y - bul.y) ** 2 < 13 * 13) return true; }
@@ -67,7 +67,7 @@ Object.assign(BOSSES, {
       else { for (let i = 3; i <= b.segs; i += 4) { const p = b.trail[i * b.gap]; if (p) ringShot(p.x, p.y, 6, 95, { c: '#ff8c42' }, b.t); } b.cd = rage ? 0.9 : 1.2; }
     } },
 
-  mantisboss: { name: '사마귀 검객 만티스 블레이드', hp: 12000, r: 36, score: 260000, draw: Art.mantisboss, scale: 1,
+  mantisboss: { hp: 12000, r: 36, score: 260000, draw: Art.mantisboss, scale: 1,
     update(b, dt) {
       const { mode, lt, rage } = bossMode(b, 4);
       if (mode !== 1) { b.ghost = false; drift(b, dt, 0.6); }
@@ -93,7 +93,7 @@ Object.assign(BOSSES, {
       }
     } },
 
-  termitequeen: { name: '흰개미 여왕 테르미나', hp: 15000, r: 40, score: 320000, draw: Art.termitequeen, scale: 1,
+  termitequeen: { hp: 15000, r: 40, score: 320000, draw: Art.termitequeen, scale: 1,
     update(b, dt) {
       const { mode, rage } = bossMode(b, 4);
       b.x = G.W / 2 + Math.sin(b.t * 0.35) * (G.W / 2 - 90); b.y = 145;
@@ -105,7 +105,7 @@ Object.assign(BOSSES, {
       else { eShoot(b.x, b.y, b.t * 2.5, 115, { c: '#c8743a' }); eShoot(b.x, b.y, b.t * 2.5 + Math.PI, 115, { c: '#c8743a' }); b.cd = rage ? 0.06 : 0.09; }
     } },
 
-  scorpionking: { name: '전갈 군주 스콜피오', hp: 19000, r: 40, score: 400000, draw: Art.scorpionking, scale: 1,
+  scorpionking: { hp: 19000, r: 40, score: 400000, draw: Art.scorpionking, scale: 1,
     update(b, dt) {
       const { mode, lt, rage } = bossMode(b, 4);
       drift(b, dt, 0.5); b.y = 150;
@@ -131,7 +131,7 @@ Object.assign(BOSSES, {
       }
     } },
 
-  mother: { name: '마더 버그', hp: 26000, r: 42, score: 1000000, draw: Art.mother, scale: 1.1,
+  mother: { hp: 26000, r: 42, score: 1000000, draw: Art.mother, scale: 1.1,
     seq: [['queen', 'waterbug', 'lunamoth'], ['tarantula', 'termitequeen', 'lunamoth'], ['emperor', 'mantisboss', 'scorpionking']],
     update(b, dt) {
       const k = b.hp / b.maxHp, ph = k > 0.66 ? 0 : k > 0.33 ? 1 : 2;

@@ -2,20 +2,20 @@
 // game.js의 G, spawnEnemy, eShoot, aim, rand 사용
 
 const ENEMIES = {
-  mosquito: { name: '삐용이', hp: 2, r: 11, score: 100, xp: 1, draw: Art.mosquito,
+  mosquito: { hp: 2, r: 11, score: 100, xp: 1, draw: Art.mosquito,
     init(e) { e.vy = e.vy || rand(80, 120); e.ph = rand(0, 6); },
     update(e, dt) {
       e.y += e.vy * dt; e.x += Math.cos(e.t * 3 + e.ph) * 70 * dt;
       if (e.t > 0.6 && Math.random() < dt * 0.3 * G.fire) eShoot(e.x, e.y + 10, aim(e), 150);
     } },
-  fly: { name: '윙윙', hp: 3, r: 11, score: 120, xp: 1, draw: Art.fly,
+  fly: { hp: 3, r: 11, score: 120, xp: 1, draw: Art.fly,
     init(e) { e.x0 = e.x; e.vx = e.vx || 0; e.vy = e.vy || 110; },
     update(e, dt) {
       if (e.sine) { e.x = e.x0 + Math.sin(e.t * 2.2 + e.sine) * 90; e.y += e.vy * dt; }
       else { e.x += e.vx * dt; e.y += e.vy * dt; }
       if (e.t > 0.8 && Math.random() < dt * 0.25 * G.fire) eShoot(e.x, e.y + 10, aim(e), 160);
     } },
-  ladybug: { name: '점박이 탱크', hp: 22, r: 15, score: 500, xp: 4, elite: true, draw: Art.ladybug,
+  ladybug: { hp: 22, r: 15, score: 500, xp: 4, elite: true, draw: Art.ladybug,
     init(e) { e.ty = rand(90, 220); e.cd = 1; e.hover = 0; },
     update(e, dt) {
       if (e.y < e.ty && e.hover === 0) { e.y += 90 * dt; return; }
@@ -29,14 +29,14 @@ const ENEMIES = {
         Sound.play('hit');
       }
     } },
-  firefly: { name: '번쩍이', hp: 3, r: 10, score: 150, xp: 1, draw: Art.firefly,
+  firefly: { hp: 3, r: 10, score: 150, xp: 1, draw: Art.firefly,
     init(e) { e.ty = rand(70, 260); },
     update(e, dt) {
       if (!e.wait && !e.dashing) { e.y += 120 * dt; if (e.y > e.ty) e.wait = 0.6; return; }
       if (e.wait > 0) { e.wait -= dt; if (e.wait <= 0) { e.dashing = true; const a = aim(e); e.vx = Math.cos(a) * 340; e.vy = Math.sin(a) * 340; e.rotate = true; } return; }
       e.x += e.vx * dt; e.y += e.vy * dt;
     } },
-  spider: { name: '실타래', hp: 14, r: 14, score: 400, xp: 3, elite: true, draw: Art.spider, thread: true,
+  spider: { hp: 14, r: 14, score: 400, xp: 3, elite: true, draw: Art.spider, thread: true,
     init(e) { e.ty = rand(80, 210); e.cd = 0.8; e.hover = 0; },
     update(e, dt) {
       if (e.hover === 0 && e.y < e.ty) { e.y += 100 * dt; return; }
@@ -49,13 +49,13 @@ const ENEMIES = {
         for (let i = 0; i < n; i++) eShoot(e.x, e.y, e.rot + i * Math.PI * 2 / n, 105, { c: '#c77dff' });
       }
     } },
-  roach: { name: '쌩쌩이', hp: 4, r: 10, score: 150, xp: 1, draw: Art.roach, rotate: true,
+  roach: { hp: 4, r: 10, score: 150, xp: 1, draw: Art.roach, rotate: true,
     init(e) { e.vx = e.vx || rand(-60, 60); e.vy = e.vy || 220; e.bounces = 2; },
     update(e, dt) {
       e.x += e.vx * dt; e.y += e.vy * dt;
       if ((e.x < 12 && e.vx < 0) || (e.x > G.W - 12 && e.vx > 0)) { if (e.bounces-- > 0) e.vx *= -1; }
     } },
-  beetle: { name: '뿔돌이', hp: 40, r: 16, score: 800, xp: 6, elite: true, draw: Art.beetle,
+  beetle: { hp: 40, r: 16, score: 800, xp: 6, elite: true, draw: Art.beetle,
     init(e) { e.cd = 1.2; e.burst = 0; },
     update(e, dt) {
       e.y += 38 * dt; e.x += Math.sin(e.t * 0.8) * 30 * dt;
@@ -75,7 +75,7 @@ function bossMode(b, n, win = 5) {
 }
 
 const BOSSES = {
-  queen: { name: '여왕벌 비비 퀸', hp: 700, r: 36, score: 20000, draw: Art.queen, scale: 1,
+  queen: { hp: 700, r: 36, score: 20000, draw: Art.queen, scale: 1,
     update(b, dt) {
       const { mode, rage } = bossMode(b, 3);
       b.x = G.W / 2 + Math.sin(b.t * 0.6) * (G.W / 2 - 60);
@@ -94,7 +94,7 @@ const BOSSES = {
         b.cd = rage ? 0.8 : 1.2;
       }
     } },
-  tarantula: { name: '왕거미 타란툴라 마담', hp: 1500, r: 40, score: 40000, draw: Art.tarantula, scale: 1.05,
+  tarantula: { hp: 1500, r: 40, score: 40000, draw: Art.tarantula, scale: 1.05,
     update(b, dt) {
       const { mode, rage } = bossMode(b, 4);
       b.x = G.W / 2 + Math.sin(b.t * 0.45) * (G.W / 2 - 70);
@@ -119,7 +119,7 @@ const BOSSES = {
         b.cd = rage ? 1.6 : 2.4;
       }
     } },
-  emperor: { name: '바퀴 황제 로치 엠퍼러', hp: 2800, r: 42, score: 80000, draw: Art.emperor, scale: 1.1,
+  emperor: { hp: 2800, r: 42, score: 80000, draw: Art.emperor, scale: 1.1,
     update(b, dt) {
       const { mode, lt, rage } = bossMode(b, 4);
       if (mode === 3) { // 돌진: 경고선 → 아래로 돌진 → 원형 폭발 → 복귀
@@ -169,15 +169,15 @@ const F = {
 };
 
 const UPGRADES = [
-  { id: 'dmg', icon: '💥', name: '고농축 살충제', desc: '공격력 +25%', max: 10, apply: p => p.dmg *= 1.25 },
-  { id: 'rate', icon: '⚡', name: '터보 분사기', desc: '연사 속도 +18%', max: 8, apply: p => p.rate *= 1.18 },
-  { id: 'spread', icon: '🔱', name: '확산 노즐', desc: '탄 줄기 +1', max: 4, apply: p => p.spread++ },
-  { id: 'pierce', icon: '🗡️', name: '관통 침', desc: '탄이 적 1마리 더 관통', max: 3, apply: p => p.pierce++ },
-  { id: 'homing', icon: '🚀', name: '추적 벌침 미사일', desc: '유도 미사일 +1', max: 4, apply: p => p.homing++ },
-  { id: 'drone', icon: '🐝', name: '꿀벌 드론', desc: '주위를 돌며 함께 쏘는 드론 +1', max: 3, apply: p => p.drones++ },
-  { id: 'magnet', icon: '🧲', name: '꽃가루 자석', desc: '꽃가루 흡수 범위 +50%', max: 4, apply: p => p.magnet *= 1.5 },
-  { id: 'shield', icon: '🛡️', name: '방충망 쉴드', desc: '피격 1회 방어, 8초마다 재충전', max: 2, apply: p => { p.shieldMax++; p.shield = p.shieldMax; } },
-  { id: 'hpmax', icon: '❤️', name: '강화 장갑', desc: '최대 체력 +1, 체력 +1', max: 3, apply: p => { p.hpMax++; p.hp++; } },
-  { id: 'heal', icon: '🩹', name: '응급 수리', desc: '체력을 모두 회복', max: 99, cond: p => p.hp < p.hpMax, apply: p => p.hp = p.hpMax },
-  { id: 'bomb', icon: '💣', name: '살충 폭탄 보급', desc: '폭탄 +2', max: 99, cond: p => p.bombs < 6, apply: p => p.bombs = Math.min(9, p.bombs + 2) },
+  { id: 'dmg', icon: '💥', max: 10, apply: p => p.dmg *= 1.25 },
+  { id: 'rate', icon: '⚡', max: 8, apply: p => p.rate *= 1.18 },
+  { id: 'spread', icon: '🔱', max: 4, apply: p => p.spread++ },
+  { id: 'pierce', icon: '🗡️', max: 3, apply: p => p.pierce++ },
+  { id: 'homing', icon: '🚀', max: 4, apply: p => p.homing++ },
+  { id: 'drone', icon: '🐝', max: 3, apply: p => p.drones++ },
+  { id: 'magnet', icon: '🧲', max: 4, apply: p => p.magnet *= 1.5 },
+  { id: 'shield', icon: '🛡️', max: 2, apply: p => { p.shieldMax++; p.shield = p.shieldMax; } },
+  { id: 'hpmax', icon: '❤️', max: 3, apply: p => { p.hpMax++; p.hp++; } },
+  { id: 'heal', icon: '🩹', max: 99, cond: p => p.hp < p.hpMax, apply: p => p.hp = p.hpMax },
+  { id: 'bomb', icon: '💣', max: 99, cond: p => p.bombs < 6, apply: p => p.bombs = Math.min(9, p.bombs + 2) },
 ];

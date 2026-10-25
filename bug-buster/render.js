@@ -3,7 +3,8 @@ const Render = (() => {
   const R = { scale: 1 };
   let cv, c, wrap, stage, dpr = 1, sky = null, skyS = null;
   const blobs = [];
-  const FD = "'Black Han Sans', 'Jua', sans-serif", FB = "'Jua', sans-serif";
+  let FD = "'Black Han Sans', sans-serif", FB = "'Jua', sans-serif";
+  R.setFonts = (d, b) => { FD = d; FB = b; };
 
   R.init = function () {
     cv = document.getElementById('game'); c = cv.getContext('2d');
@@ -77,6 +78,8 @@ const Render = (() => {
 
   function txt(s, x, y, size, color, align = 'left', font = FD) {
     c.font = `${size}px ${font}`; c.textAlign = align; c.textBaseline = 'middle';
+    const w = c.measureText(s).width, max = align === 'center' ? G.W - 20 : G.W * 0.6;
+    if (w > max) { size *= max / w; c.font = `${size}px ${font}`; }
     c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillText(s, x + 1.5, y + 2);
     c.fillStyle = color; c.fillText(s, x, y);
   }
@@ -221,8 +224,11 @@ const Render = (() => {
     // 경험치 바
     c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(0, 0, W, 5);
     c.fillStyle = '#c6ff4d'; c.fillRect(0, 0, W * (p.xp / p.xpNext), 5);
-    txt(G.score.toLocaleString(), 12, 22, 20, '#fff');
+    txt(fmt(G.score), 12, 22, 20, '#fff');
     txt(`LV ${p.level}   STAGE ${G.stage + 1}${G.loop ? '-' + (G.loop + 1) : ''}`, 12, 42, 11, '#c6ff4d', 'left', FB);
+    c.font = `11px ${FB}`;
+    const lw = c.measureText(`LV ${p.level}   STAGE ${G.stage + 1}${G.loop ? '-' + (G.loop + 1) : ''}`).width;
+    txt(t('diff_' + G.diff), 12 + lw + 8, 42, 11, { easy: '#2de2a6', normal: '#ffd23f', hard: '#ff2d55' }[G.diff], 'left', FB);
     for (let i = 0; i < p.hpMax; i++) {
       c.save(); c.translate(W - 20 - i * 16, 21);
       c.globalAlpha = i < p.hp ? 1 : 0.22; Art.heart(c, G.time, 1); c.restore();
@@ -234,7 +240,7 @@ const Render = (() => {
     if (G.combo >= 5) {
       const s = 14 + Math.min(10, G.combo / 10);
       txt(`${G.combo} COMBO`, W - 12, 46, s, G.combo >= 50 ? '#ff8c42' : '#ffd23f', 'right');
-      txt(`점수 x${mult().toFixed(2)}`, W - 12, 46 + s * 0.9, 10, 'rgba(255,255,255,0.7)', 'right', FB);
+      txt(t('comboMult', { m: mult().toFixed(2) }), W - 12, 46 + s * 0.9, 10, 'rgba(255,255,255,0.7)', 'right', FB);
     }
     const B = G.boss;
     if (B) {
@@ -253,7 +259,7 @@ const Render = (() => {
       c.fillStyle = `rgba(255,45,85,${0.12 * a})`; c.fillRect(0, 0, W, H);
       c.fillStyle = `rgba(255,45,85,${0.7 * a})`; c.fillRect(0, H * 0.4 - 26, W, 3); c.fillRect(0, H * 0.4 + 26, W, 3);
       txt(G.warnChief ? 'CAUTION' : 'WARNING', W / 2, H * 0.4 - 4, 40, G.warnChief ? `rgba(255,210,63,${0.6 + 0.4 * a})` : `rgba(255,80,110,${0.6 + 0.4 * a})`, 'center');
-      txt(G.warnChief ? `해충 대장 '${INFO[STAGES[G.stage].featured][0]}' 출현!` : `거대 해충 ${BOSSES[STAGES[G.stage].boss].name} 접근 중`, W / 2, H * 0.4 + 46, 13, '#fff', 'center', FB);
+      txt(G.warnChief ? t('cautionChief', { name: INFO[STAGES[G.stage].featured][0] }) : t('warnBoss', { name: BOSSES[STAGES[G.stage].boss].name }), W / 2, H * 0.4 + 46, 13, '#fff', 'center', FB);
     }
     if (G.banner) {
       const t = G.banner.t, a = t < 0.4 ? t / 0.4 : t > 2.4 ? Math.max(0, (3 - t) / 0.6) : 1;
@@ -270,14 +276,14 @@ const Render = (() => {
       const a = Math.min(1, (3.8 - G.clearT) * 2);
       c.globalAlpha = a;
       const last = G.stage === STAGES.length - 1;
-      txt(last ? '은하 방역 완료!' : 'STAGE CLEAR!', W / 2, H * 0.4, 36, '#ffd23f', 'center');
-      txt(last ? '해충들이 더 강해져서 돌아온다…' : STAGES[G.stage].boss ? '체력 +1 회복' : `다음: STAGE ${G.stage + 2}`, W / 2, H * 0.4 + 34, 13, '#fff', 'center', FB);
+      txt(last ? t('allClear') : 'STAGE CLEAR!', W / 2, H * 0.4, 36, '#ffd23f', 'center');
+      txt(last ? t('strongerBack') : STAGES[G.stage].boss ? t('healed') : t('nextStage', { n: G.stage + 2 }), W / 2, H * 0.4 + 34, 13, '#fff', 'center', FB);
       c.globalAlpha = 1;
     }
     if (G.tutorial > 0 && G.state === 'play') {
       c.globalAlpha = Math.min(1, G.tutorial);
-      txt('화면 어디든 드래그해서 이동 · 사격은 자동', W / 2, H - 70, 13, '#fff', 'center', FB);
-      txt('적 탄을 아슬아슬하게 스치면 보너스 점수!', W / 2, H - 50, 11, '#c6ff4d', 'center', FB);
+      txt(t('tut1'), W / 2, H - 70, 13, '#fff', 'center', FB);
+      txt(t('tut2'), W / 2, H - 50, 11, '#c6ff4d', 'center', FB);
       c.globalAlpha = 1;
     }
     if (G.flash > 0) { c.fillStyle = `rgba(255,255,255,${Math.min(0.7, G.flash)})`; c.fillRect(0, 0, W, H); }

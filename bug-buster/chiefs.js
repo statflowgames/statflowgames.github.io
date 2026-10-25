@@ -80,7 +80,7 @@ const CHIEF_SET = {
 function makeChief(key, si) {
   const d = ENEMIES[key], sc = d.r <= 12 ? 2.6 : 2.1, moves = CHIEF_SET[key] || ['fan', 'ring', 'spiral'];
   return {
-    name: `대장 ${INFO[key][0]}`, chief: true, key, hp: 180 + si * 110, r: d.r * sc * 0.85, score: 3000 + si * 1500, draw: d.draw, scale: sc,
+    get name() { return t('chiefName', { name: INFO[key][0] }); }, chief: true, key, hp: 180 + si * 110, r: d.r * sc * 0.85, score: 3000 + si * 1500, draw: d.draw, scale: sc,
     update(b, dt) {
       const { mode, lt, rage } = bossMode(b, moves.length), m = moves[mode];
       if (m !== 'roll') b.rolled = b.invul = false;
