@@ -218,5 +218,5 @@ const Art = (() => {
     if (Math.sin(t * 20) > 0) ell(c, 3.5, -12.5, 1.6, 1.6, 0, '#ff8c42');
   }
 
-  return { mosquito, fly, ladybug, firefly, spider, roach, beetle, queen, tarantula, emperor, player, drone, pollen, heart, bombItem, ell };
+  return { mosquito, fly, ladybug, firefly, spider, roach, beetle, queen, tarantula, emperor, player, drone, pollen, heart, bombItem, ell, line, wings, legs, eyes };
 })();

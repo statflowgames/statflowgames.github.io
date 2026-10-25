@@ -168,18 +168,6 @@ const F = {
   roachWall() { for (let i = 0; i < 9; i++) spawnEnemy('roach', (i + 0.5) * G.W / 9, -20, { vx: 0, vy: 160 }); },
 };
 
-const STAGES = [
-  { title: '벌집 성운', sub: 'HIVE NEBULA', song: 's1', boss: 'queen', len: 70,
-    sky: ['#1a0b2e', '#4a1d5c', '#ff9f43'],
-    pool: [[F.mosqLine, 3, 0], [F.mosqRain, 2, 0.15], [F.flyV, 3, 0], [F.flySnake, 2, 0.2], [F.ladybug, 2, 0.3], [F.fireflies, 2, 0.45], [F.flyCross, 1, 0.6]] },
-  { title: '거미줄 소행성대', sub: 'WEB BELT', song: 's2', boss: 'tarantula', len: 75,
-    sky: ['#06131f', '#0f3a4a', '#2de2a6'],
-    pool: [[F.spiders, 3, 0], [F.flySnake, 2, 0], [F.mosqRain, 2, 0], [F.fireflies, 2, 0.1], [F.beetle, 2, 0.3], [F.ladyPair, 1, 0.45], [F.flyCross, 2, 0.2]] },
-  { title: '바퀴 행성', sub: 'ROACH PRIME', song: 's3', boss: 'emperor', len: 80,
-    sky: ['#1a0804', '#4a1a0a', '#ff6b35'],
-    pool: [[F.roachRush, 3, 0], [F.roachWall, 2, 0.1], [F.beetle, 2, 0.15], [F.fireflies, 2, 0], [F.spiders, 1, 0.3], [F.flyV, 2, 0], [F.ladyPair, 1, 0.4]] },
-];
-
 const UPGRADES = [
   { id: 'dmg', icon: '💥', name: '고농축 살충제', desc: '공격력 +25%', max: 10, apply: p => p.dmg *= 1.25 },
   { id: 'rate', icon: '⚡', name: '터보 분사기', desc: '연사 속도 +18%', max: 8, apply: p => p.rate *= 1.18 },

@@ -13,7 +13,7 @@ const Render = (() => {
     addEventListener('resize', R.resize); R.resize();
   };
   R.resize = function () {
-    const w = wrap.clientWidth, h = wrap.clientHeight;
+    const w = wrap.clientWidth || 360, h = wrap.clientHeight || 640;
     G.H = Math.round(Math.max(560, Math.min(800, G.W * h / w)));
     R.scale = Math.min(w / G.W, h / G.H);
     const cw = Math.round(G.W * R.scale), ch = Math.round(G.H * R.scale);
@@ -66,9 +66,25 @@ const Render = (() => {
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
   }
 
+  // 공격 예고: 조준선, 다시 나타날 자리
+  function drawTells(e) {
+    const lines = e.aimLines || (e.aimLine != null ? [e.aimLine] : null);
+    if (lines) {
+      c.strokeStyle = `rgba(255,60,90,${0.35 + 0.3 * Math.sin(G.time * 30)})`; c.lineWidth = 2; c.setLineDash([8, 6]);
+      for (const a of lines) { c.beginPath(); c.moveTo(e.x, e.y); c.lineTo(e.x + Math.cos(a) * 900, e.y + Math.sin(a) * 900); c.stroke(); }
+      c.setLineDash([]);
+    }
+    if (e.warnAt) {
+      const k = 0.5 + 0.5 * Math.sin(G.time * 20);
+      c.strokeStyle = `rgba(255,140,66,${0.5 + 0.4 * k})`; c.lineWidth = 2;
+      c.beginPath(); c.arc(e.warnAt.x, e.warnAt.y, 10 + k * 4, 0, Math.PI * 2); c.stroke();
+    }
+  }
   function drawEnemy(e) {
     if (e.def.thread) { c.strokeStyle = 'rgba(230,220,255,0.35)'; c.lineWidth = 1; c.beginPath(); c.moveTo(e.x, -10); c.lineTo(e.x, e.y - 8); c.stroke(); }
+    drawTells(e);
     c.save(); c.translate(e.x, e.y);
+    if (e.ghost) c.globalAlpha = 0.25;
     if (e.rotate && (e.vx || e.vy)) c.rotate(Math.atan2(e.vy, e.vx) - Math.PI / 2);
     if (e.flash > 0) c.scale(1.15, 1.15);
     e.def.draw(c, G.time + e.x * 0.01, e);
@@ -84,9 +100,12 @@ const Render = (() => {
       c.globalAlpha = 0.18 + 0.12 * Math.sin(G.time * 30); c.fillStyle = '#ff2d55';
       c.fillRect(b.x - b.r, b.y, b.r * 2, G.H); c.globalAlpha = 1;
     }
+    drawTells(b);
     c.save(); c.translate(b.x, b.y); c.scale(b.def.scale, b.def.scale);
     if (b.flash > 0) c.scale(1.04, 1.04);
-    b.def.draw(c, G.time);
+    if (b.ghost) c.globalAlpha = 0.3;
+    b.def.draw(c, G.time, b);
+    c.globalAlpha = 1;
     if (b.flash > 0) { c.globalAlpha = 0.35; Art.ell(c, 0, 0, b.r, b.r * 1.1, 0, '#fff'); c.globalAlpha = 1; }
     c.restore();
   }
@@ -110,6 +129,19 @@ const Render = (() => {
         c.strokeStyle = '#f2ecff'; c.lineWidth = 1; c.beginPath();
         for (let i = 0; i < 4; i++) { const a = i * Math.PI / 4 + G.time; c.moveTo(b.x + Math.cos(a) * b.r, b.y + Math.sin(a) * b.r); c.lineTo(b.x - Math.cos(a) * b.r, b.y - Math.sin(a) * b.r); }
         c.stroke(); c.beginPath(); c.arc(b.x, b.y, b.r * 0.55, 0, Math.PI * 2); c.stroke();
+      } else if (b.shape === 'gas') {
+        const k = b.life !== undefined ? Math.min(1, b.life) : 1;
+        c.globalAlpha = 0.7 * k; Art.ell(c, b.x, b.y, b.r + 3, b.r + 1, 0, b.c); Art.ell(c, b.x - 3, b.y - 2, b.r * 0.6, b.r * 0.5, 0, 'rgba(220,255,180,0.6)'); c.globalAlpha = 1;
+      } else if (b.shape === 'dust') {
+        Art.ell(c, b.x, b.y, b.r + 1.5, b.r + 1.5, 0, 'rgba(224,200,240,0.35)'); Art.ell(c, b.x, b.y, b.r * 0.7, b.r * 0.7, 0, b.c);
+      } else if (b.shape === 'blade') {
+        c.save(); c.translate(b.x, b.y); c.rotate(Math.atan2(b.vy, b.vx));
+        c.fillStyle = b.c; c.beginPath(); c.moveTo(8, 0); c.quadraticCurveTo(0, -6, -7, -2); c.quadraticCurveTo(-2, 0, -7, 2); c.quadraticCurveTo(0, 6, 8, 0); c.fill();
+        c.fillStyle = '#fff'; c.fillRect(-2, -0.8, 7, 1.6); c.restore();
+      } else if (b.shape === 'dung' || b.shape === 'egg' || b.shape === 'bubble') {
+        const blink = b.fuse !== undefined && b.fuse < 0.4 && Math.sin(G.time * 40) > 0;
+        if (b.shape === 'bubble') { c.strokeStyle = b.c; c.lineWidth = 2; c.beginPath(); c.arc(b.x, b.y, b.r, 0, Math.PI * 2); c.stroke(); Art.ell(c, b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.3, b.r * 0.3, 0, '#fff'); }
+        else { Art.ell(c, b.x, b.y, b.r + 1.5, b.r + 1.5, 0, blink ? '#ffffff' : '#2a1a0a'); Art.ell(c, b.x, b.y, b.r, b.r, 0, b.c); Art.ell(c, b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.3, b.r * 0.3, 0, 'rgba(255,255,255,0.5)'); }
       } else {
         Art.ell(c, b.x, b.y, b.r + 2, b.r + 2, 0, b.c);
         Art.ell(c, b.x, b.y, b.r * 0.55, b.r * 0.55, 0, '#fff');
@@ -159,12 +191,12 @@ const Render = (() => {
     txt(G.score.toLocaleString(), 12, 22, 20, '#fff');
     txt(`LV ${p.level}   STAGE ${G.stage + 1}${G.loop ? '-' + (G.loop + 1) : ''}`, 12, 42, 11, '#c6ff4d', 'left', FB);
     for (let i = 0; i < p.hpMax; i++) {
-      c.save(); c.translate(W - 58 - i * 18, 21);
+      c.save(); c.translate(W - 20 - i * 16, 21);
       c.globalAlpha = i < p.hp ? 1 : 0.22; Art.heart(c, G.time, 1); c.restore();
     }
     for (let i = 0; i < p.shieldMax; i++) {
       c.strokeStyle = i < p.shield ? '#5ef2ff' : 'rgba(94,242,255,0.25)'; c.lineWidth = 2;
-      c.beginPath(); c.arc(W - 58 - (p.hpMax + i) * 18, 21, 6, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.arc(W - 20 - (p.hpMax + i) * 16, 21, 6, 0, Math.PI * 2); c.stroke();
     }
     if (G.combo >= 5) {
       const s = 14 + Math.min(10, G.combo / 10);
@@ -197,14 +229,15 @@ const Render = (() => {
       c.fillStyle = 'rgba(5,3,15,0.55)'; c.fillRect(0, y - 46, W, 96);
       txt(G.banner.label, W / 2 - slide, y - 24, 13, '#c6ff4d', 'center', FB);
       txt(G.banner.title, W / 2 + slide, y + 6, 34, '#fff', 'center');
-      txt(G.banner.sub, W / 2, y + 34, 11, 'rgba(255,255,255,0.6)', 'center', FB);
+      txt(G.banner.sub, W / 2, y + 34, G.banner.newBug ? 13 : 11, G.banner.newBug ? '#ffd23f' : 'rgba(255,255,255,0.6)', 'center', FB);
       c.globalAlpha = 1;
     }
     if (G.phase === 'cleared' && G.clearT < 3.8) {
       const a = Math.min(1, (3.8 - G.clearT) * 2);
       c.globalAlpha = a;
-      txt('STAGE CLEAR!', W / 2, H * 0.4, 36, '#ffd23f', 'center');
-      txt(G.stage === STAGES.length - 1 ? '해충들이 더 강해져서 돌아온다…' : '체력 +1 회복', W / 2, H * 0.4 + 34, 13, '#fff', 'center', FB);
+      const last = G.stage === STAGES.length - 1;
+      txt(last ? '은하 방역 완료!' : 'STAGE CLEAR!', W / 2, H * 0.4, 36, '#ffd23f', 'center');
+      txt(last ? '해충들이 더 강해져서 돌아온다…' : STAGES[G.stage].boss ? '체력 +1 회복' : `다음: STAGE ${G.stage + 2}`, W / 2, H * 0.4 + 34, 13, '#fff', 'center', FB);
       c.globalAlpha = 1;
     }
     if (G.tutorial > 0 && G.state === 'play') {

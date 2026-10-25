@@ -89,7 +89,6 @@
   #dex h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; }
   .dexgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 330px; }
   .dexcard { padding: 8px 8px 10px; border-radius: 12px; background: var(--panel); text-align: center; min-width: 0; }
-  .dexcard:nth-child(7) { grid-column: span 2; }
   .dexcard.boss { grid-column: span 2; box-shadow: inset 0 0 0 1.5px rgba(255, 45, 117, 0.4); }
   .dexcard canvas { width: 100%; height: 76px; display: block; }
   .dexcard.boss canvas { height: 120px; }
@@ -97,6 +96,50 @@
   .dexcard em { font-style: normal; font-size: 11px; color: var(--pollen); }
   .dexcard p { margin: 4px 0 0; font-size: 12px; color: var(--dim); line-height: 1.4; }
   .tag { font-size: 10px; letter-spacing: 0.15em; color: var(--sting); }
+  .ghost.small { padding: 7px 14px; font-size: 14px; }
+  #sel h2, #rank h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; }
+  #sel, #rank { justify-content: flex-start; padding-top: 28px; }
+  #sel { overflow-y: auto; }
+
+  /* 스테이지 선택: 월드 한 줄에 스테이지 3개 */
+  .worlds { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 330px; }
+  .world { display: grid; grid-template-columns: 1fr repeat(3, 52px); gap: 6px; align-items: center; padding: 8px 10px;
+    border-radius: 12px; background: var(--panel); text-align: left; }
+  .world b { display: block; font-weight: 400; font-size: 15px; min-width: 0; }
+  .world small { font-size: 10px; letter-spacing: 0.12em; color: var(--dim); }
+  .stg { height: 44px; padding: 0; white-space: nowrap; border-radius: 10px; background: rgba(198, 255, 77, 0.14); font-size: 16px; font-variant-numeric: tabular-nums;
+    box-shadow: inset 0 0 0 1.5px rgba(198, 255, 77, 0.35); }
+  .stg.boss { background: rgba(255, 45, 117, 0.16); box-shadow: inset 0 0 0 1.5px rgba(255, 45, 117, 0.45); }
+  .stg:disabled { opacity: 0.3; cursor: default; }
+  .stg:not(:disabled):active { transform: scale(0.94); }
+
+  /* 랭킹 */
+  .tabs { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--panel); }
+  .tabs button { padding: 8px 16px; border-radius: 9px; background: transparent; font-size: 15px; color: var(--dim); }
+  .tabs button[aria-selected="true"] { background: var(--pollen); color: #1a2a00; }
+  .fakebar { font-size: 12px; padding: 4px 12px; border-radius: 99px; background: rgba(255, 210, 63, 0.16); color: var(--honey); }
+  .rankbody { flex: 1; min-height: 0; overflow-y: auto; width: 100%; max-width: 330px; }
+  .podium { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-items: end; margin-bottom: 10px; }
+  .pod { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+  .pod i { font-style: normal; font-size: 26px; }
+  .pod span { font-size: 13px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pod em { font-style: normal; font-size: 12px; color: var(--honey); font-variant-numeric: tabular-nums; }
+  .pod .step { width: 100%; border-radius: 10px 10px 0 0; background: rgba(198, 255, 77, 0.18); font-family: var(--f-display); font-size: 22px;
+    display: grid; place-items: center; }
+  .pod.p1 .step { height: 70px; background: rgba(255, 210, 63, 0.3); } .pod.p2 .step { height: 52px; } .pod.p3 .step { height: 40px; }
+  .pod.me span { color: var(--pollen); }
+  .ranklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .ranklist li { display: grid; grid-template-columns: 36px 1fr auto; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 10px; background: var(--panel); }
+  .ranklist b { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .ranklist span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ranklist em { font-style: normal; color: var(--honey); font-variant-numeric: tabular-nums; }
+  .ranklist li.me { background: rgba(198, 255, 77, 0.18); box-shadow: inset 0 0 0 1.5px var(--pollen); }
+  .rankme { width: 100%; max-width: 330px; }
+  .dexcard.unknown b, .dexcard.unknown em { color: var(--dim); }
+
+  #toast { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 30; max-width: 86%;
+    padding: 10px 16px; border-radius: 12px; background: rgba(20, 12, 40, 0.95); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    font-size: 14px; text-align: center; }
   @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
 </style>
 
@@ -115,14 +158,38 @@
       <canvas id="heroArt" width="600" height="380"></canvas>
       <button id="startBtn" class="big">출동!</button>
       <div class="row">
+        <button id="selBtn" class="ghost">스테이지 선택</button>
         <button id="dexBtn" class="ghost">해충 도감</button>
-        <button id="muteBtn" class="ghost">소리 켜짐</button>
+        <button id="rankBtn" class="ghost">🏆 랭킹</button>
       </div>
-      <div class="meta">최고 기록 <b id="bestT">0</b><br>드래그로 이동 · 사격 자동 · 💣로 탄막 제거</div>
+      <div class="row">
+        <button id="inviteBtn" class="ghost small">친구에게 추천</button>
+        <button id="muteBtn" class="ghost small">소리 켜짐</button>
+      </div>
+      <div class="meta">최고 기록 <b id="bestT">0</b> · 진행 <b id="progT">1</b>/30<br>드래그로 이동 · 사격 자동 · 💣로 탄막 제거</div>
+    </section>
+
+    <section id="sel" class="screen dim" hidden>
+      <h2>스테이지 선택</h2>
+      <p class="meta">중간부터 시작하면 그만큼 업그레이드를 보급받아요</p>
+      <div class="worlds" id="worlds"></div>
+      <button id="selClose" class="ghost">닫기</button>
+    </section>
+
+    <section id="rank" class="screen dim" hidden>
+      <h2>🏆 랭킹</h2>
+      <div class="tabs" id="rankTabs" role="tablist">
+        <button data-p="daily" role="tab">오늘</button><button data-p="weekly" role="tab">이번 주</button><button data-p="allTime" role="tab">전체</button>
+      </div>
+      <div class="fakebar" id="rankFake">🧪 테스트용 가상 랭킹이에요</div>
+      <div class="rankbody" id="rankBody"></div>
+      <div class="rankme" id="rankMe"></div>
+      <button id="rankClose" class="ghost">닫기</button>
     </section>
 
     <section id="dex" class="screen dim" hidden>
       <h2>해충 도감</h2>
+      <p class="meta">발견 <b id="dexCount">0</b> / 40</p>
       <div class="dexgrid" id="dexGrid"></div>
       <button id="dexClose" class="ghost">닫기</button>
     </section>
@@ -153,14 +220,29 @@
         <div><small>최종 레벨</small><span id="ovLv">1</span></div>
       </div>
       <button id="retryBtn" class="big">다시 출동</button>
-      <button id="homeBtn" class="ghost">타이틀로</button>
+      <div class="row">
+        <button id="bragBtn" class="ghost">📣 자랑하기</button>
+        <button id="ovRankBtn" class="ghost">🏆 랭킹</button>
+      </div>
+      <div class="row">
+        <button id="restartBtn" class="ghost small">STAGE 1부터</button>
+        <button id="homeBtn" class="ghost small">타이틀로</button>
+      </div>
     </section>
+    <div id="toast" role="status" hidden></div>
   </div>
 </div>
 
 <script charset="utf-8" src="audio.js"></script>
 <script charset="utf-8" src="art.js"></script>
+<script charset="utf-8" src="art2.js"></script>
+<script charset="utf-8" src="art3.js"></script>
 <script charset="utf-8" src="data.js"></script>
+<script charset="utf-8" src="enemies2.js"></script>
+<script charset="utf-8" src="bosses2.js"></script>
+<script charset="utf-8" src="stages.js"></script>
+<script charset="utf-8" src="ranking.js"></script>
+<script charset="utf-8" src="share.js"></script>
 <script charset="utf-8" src="game.js"></script>
 <script charset="utf-8" src="render.js"></script>
 <script charset="utf-8" src="main.js"></script>
