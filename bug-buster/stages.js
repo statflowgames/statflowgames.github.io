@@ -24,8 +24,10 @@ const WORLDS = [
 const STAGES = [];
 WORLDS.forEach((w, wi) => w.bugs.forEach((bug, k) => {
   const i = STAGES.length;
-  STAGES.push({ i, world: wi, title: w.title, sub: w.sub, sky: w.sky, song: w.song, featured: bug,
-    boss: k === 2 ? w.boss : null, len: i < 3 ? 40 : k === 2 ? 50 : 55 });
+  // k: 월드 안 순서 (0 외곽 → 1 중심부, 환경 기믹 → 2 보스 둥지). 1·2번째 스테이지 끝에는 대장이 나옴
+  STAGES.push({ i, k, world: wi, title: w.title, sub: w.sub, sky: w.sky, song: w.song, featured: bug,
+    boss: k === 2 ? w.boss : null, gimmick: k === 1 ? wi : null, len: i < 3 ? 38 : k === 2 ? 50 : 45,
+    area: ['외곽', '중심부', '보스 둥지'][k] });
 }));
 
 // 스테이지에 나올 편대 고르기: 이번 스테이지 새 해충 위주 + 최근 해충 + 가끔 옛날 해충
@@ -40,11 +42,6 @@ function stageWave(si) {
   let r = Math.random() * list.reduce((a, x) => a + x[1], 0);
   for (const [key, w] of list) if ((r -= w) <= 0) { const ws = ENEMIES[key].waves; return ws[(Math.random() * ws.length) | 0](); }
 }
-function stageRush(si) {
-  const ws = ENEMIES[STAGES[si].featured].waves;
-  ws[0](); setTimeout(() => { if (G.state === 'play' && G.stage === si) ws[ws.length - 1](); }, 1500);
-}
-
 // 도감: [이름, 종류, 설명]
 const INFO = {
   mosquito: ['삐용이', '모기', '지그재그로 날아다니며 가끔 침을 쏜다. 가장 흔한 해충.'],

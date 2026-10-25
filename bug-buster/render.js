@@ -36,12 +36,44 @@ const Render = (() => {
     k.globalAlpha = 0.25; k.strokeStyle = S.sky[2]; k.lineWidth = 2;
     k.beginPath(); k.ellipse(px, py, pr * 1.6, pr * 0.35, -0.3, 0, Math.PI * 2); k.stroke();
     k.globalAlpha = 1;
+    // 중심부: 아래쪽이 월드 색으로 물듦 / 보스 둥지: 위가 어둡고 가장자리가 붉게
+    const depth = S.k || 0;
+    if (depth >= 1) {
+      const d = k.createLinearGradient(0, G.H * 0.4, 0, G.H); d.addColorStop(0, S.sky[2] + '00'); d.addColorStop(1, S.sky[2] + '40');
+      k.fillStyle = d; k.fillRect(0, 0, G.W, G.H);
+    }
+    if (depth >= 2) {
+      const v = k.createRadialGradient(G.W / 2, G.H / 2, G.H * 0.3, G.W / 2, G.H / 2, G.H * 0.75);
+      v.addColorStop(0, 'rgba(120,0,30,0)'); v.addColorStop(1, 'rgba(120,0,30,0.45)');
+      k.fillStyle = v; k.fillRect(0, 0, G.W, G.H);
+    }
+    props.length = 0;
+    for (let i = 0; i < 3 + depth * 3; i++) props.push({ x: rand(0, G.W), y: rand(-G.H, G.H), s: rand(0.6, 1.4), rot: rand(0, 6), v: rand(25, 60), w: S.world || 0 });
   };
   R.updateStars = function (dt) {
     const sp = G.state === 'play' && G.phase === 'warn' ? 3 : 1;
     for (const s of G.stars) { s.y += (20 + s.z * 140) * dt * sp; if (s.y > G.H) { s.y = -2; s.x = rand(0, G.W); } }
     for (const b of blobs) { b.y += b.v * dt; if (b.y - b.r > G.H) { b.y = -b.r; b.x = rand(0, G.W); } }
+    for (const p of props) { p.y += p.v * p.s * dt * sp; p.rot += dt * 0.3; if (p.y > G.H + 60) { p.y = -60; p.x = rand(0, G.W); } }
   };
+
+  // 월드별 배경 소품 (뒤로 흘러가는 장식, 판정 없음)
+  const props = [];
+  const PROP = [
+    p => { c.strokeStyle = 'rgba(255,201,60,0.28)'; c.lineWidth = 2; c.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; c.lineTo(Math.cos(a) * 18, Math.sin(a) * 18); } c.closePath(); c.stroke(); },
+    p => { c.strokeStyle = 'rgba(230,225,255,0.08)'; c.lineWidth = 1; c.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; c.moveTo(0, 0); c.lineTo(Math.cos(a) * 30, Math.sin(a) * 30); } c.arc(0, 0, 14, 0, 6.3); c.moveTo(24, 0); c.arc(0, 0, 24, 0, 6.3); c.stroke(); },
+    p => { c.fillStyle = 'rgba(90,50,30,0.55)'; c.beginPath(); c.moveTo(-16, -6); c.lineTo(-6, -15); c.lineTo(12, -11); c.lineTo(17, 4); c.lineTo(4, 15); c.lineTo(-13, 10); c.closePath(); c.fill(); Art.ell(c, -3, -2, 3, 2, 0, 'rgba(40,20,10,0.6)'); },
+    p => { c.strokeStyle = 'rgba(127,224,255,0.3)'; c.lineWidth = 1.5; c.beginPath(); c.ellipse(0, 0, 22, 9, 0, 0, 6.3); c.stroke(); c.beginPath(); c.ellipse(0, 0, 12, 5, 0, 0, 6.3); c.stroke(); },
+    p => { Art.ell(c, 0, 0, 14, 9, 0, 'rgba(160,150,180,0.25)'); Art.ell(c, 8, -3, 9, 7, 0, 'rgba(160,150,180,0.2)'); },
+    p => { c.fillStyle = 'rgba(80,160,60,0.4)'; c.beginPath(); c.moveTo(0, -20); c.quadraticCurveTo(14, 0, 0, 20); c.quadraticCurveTo(-14, 0, 0, -20); c.fill(); c.strokeStyle = 'rgba(30,80,20,0.5)'; c.beginPath(); c.moveTo(0, -18); c.lineTo(0, 18); c.stroke(); },
+    p => { c.strokeStyle = 'rgba(255,215,140,0.25)'; c.lineWidth = 2; c.beginPath(); c.moveTo(-30, 0); c.quadraticCurveTo(-15, -8, 0, 0); c.quadraticCurveTo(15, 8, 30, 0); c.stroke(); },
+    p => { for (let i = 0; i < 5; i++) { const a = i * Math.PI * 0.4; Art.ell(c, Math.cos(a) * 7, Math.sin(a) * 7, 6, 3.5, a, 'rgba(255,154,216,0.35)'); } Art.ell(c, 0, 0, 3, 3, 0, 'rgba(255,224,102,0.5)'); },
+    p => { c.fillStyle = 'rgba(40,10,6,0.7)'; c.beginPath(); c.moveTo(-14, -8); c.lineTo(2, -14); c.lineTo(15, -2); c.lineTo(8, 13); c.lineTo(-10, 10); c.closePath(); c.fill(); c.strokeStyle = 'rgba(255,106,42,0.7)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-8, -4); c.lineTo(2, 2); c.lineTo(8, -6); c.stroke(); },
+    p => { const k = 0.6 + 0.4 * Math.sin(G.time * 3 + p.x); Art.ell(c, 0, 0, 10, 10, 0, `rgba(255,45,85,${0.15 * k})`); Art.ell(c, 0, 0, 4, 4, 0, `rgba(255,120,150,${0.5 * k})`); c.strokeStyle = 'rgba(199,125,255,0.25)'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, 16, 0, 6.3); c.stroke(); },
+  ];
+  function drawProps() {
+    for (const p of props) { c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.scale(p.s, p.s); PROP[p.w](p); c.restore(); }
+  }
 
   function txt(s, x, y, size, color, align = 'left', font = FD) {
     c.font = `${size}px ${font}`; c.textAlign = align; c.textBaseline = 'middle';
@@ -64,6 +96,7 @@ const Render = (() => {
       c.fillRect(s.x, s.y, 1.4 * s.z + 0.4, len);
     }
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+    drawProps();
   }
 
   // 공격 예고: 조준선, 다시 나타날 자리
@@ -219,17 +252,18 @@ const Render = (() => {
       const a = 0.5 + 0.5 * Math.sin(G.time * 10);
       c.fillStyle = `rgba(255,45,85,${0.12 * a})`; c.fillRect(0, 0, W, H);
       c.fillStyle = `rgba(255,45,85,${0.7 * a})`; c.fillRect(0, H * 0.4 - 26, W, 3); c.fillRect(0, H * 0.4 + 26, W, 3);
-      txt('WARNING', W / 2, H * 0.4 - 4, 40, `rgba(255,80,110,${0.6 + 0.4 * a})`, 'center');
-      txt(`거대 해충 ${BOSSES[STAGES[G.stage].boss].name} 접근 중`, W / 2, H * 0.4 + 46, 13, '#fff', 'center', FB);
+      txt(G.warnChief ? 'CAUTION' : 'WARNING', W / 2, H * 0.4 - 4, 40, G.warnChief ? `rgba(255,210,63,${0.6 + 0.4 * a})` : `rgba(255,80,110,${0.6 + 0.4 * a})`, 'center');
+      txt(G.warnChief ? `해충 대장 '${INFO[STAGES[G.stage].featured][0]}' 출현!` : `거대 해충 ${BOSSES[STAGES[G.stage].boss].name} 접근 중`, W / 2, H * 0.4 + 46, 13, '#fff', 'center', FB);
     }
     if (G.banner) {
       const t = G.banner.t, a = t < 0.4 ? t / 0.4 : t > 2.4 ? Math.max(0, (3 - t) / 0.6) : 1;
       c.globalAlpha = a;
       const y = H * 0.36, slide = (1 - Math.min(1, t / 0.4)) * 40;
-      c.fillStyle = 'rgba(5,3,15,0.55)'; c.fillRect(0, y - 46, W, 96);
+      c.fillStyle = 'rgba(5,3,15,0.55)'; c.fillRect(0, y - 46, W, G.banner.gim ? 118 : 96);
       txt(G.banner.label, W / 2 - slide, y - 24, 13, '#c6ff4d', 'center', FB);
       txt(G.banner.title, W / 2 + slide, y + 6, 34, '#fff', 'center');
       txt(G.banner.sub, W / 2, y + 34, G.banner.newBug ? 13 : 11, G.banner.newBug ? '#ffd23f' : 'rgba(255,255,255,0.6)', 'center', FB);
+      if (G.banner.gim) txt(G.banner.gim, W / 2, y + 56, 12, '#ff8c42', 'center', FB);
       c.globalAlpha = 1;
     }
     if (G.phase === 'cleared' && G.clearT < 3.8) {
@@ -255,12 +289,14 @@ const Render = (() => {
     if (G.shake > 0) c.translate(rand(-1, 1) * G.shake * 0.5, rand(-1, 1) * G.shake * 0.5);
     drawBg();
     if (!G.p || G.state === 'title') return;
+    Gimmick.under(c);
     drawItems();
     for (const e of G.enemies) drawEnemy(e);
     if (G.boss) drawBoss(G.boss);
     drawBullets();
     drawPlayer();
     drawParts();
+    Gimmick.over(c);
     drawHud();
     drawOverlays();
   };

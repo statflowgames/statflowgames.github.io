@@ -1,7 +1,7 @@
 ﻿// 은하 방역대 - 사운드 엔진 (Web Audio로 직접 합성: 음원 파일 없음)
 const Sound = (() => {
   let ctx = null, master, musicGain, sfxGain, noiseBuf;
-  let muted = false, song = null, songName = '', step = 0, nextTime = 0, timer = null;
+  let muted = false, song = null, songName = '', tr = 0, bpm = 120, step = 0, nextTime = 0, timer = null;
   const last = {};
   const mtof = n => 440 * Math.pow(2, (n - 69) / 12);
 
@@ -109,8 +109,8 @@ const Sound = (() => {
   }
 
   function playStep(i, t) {
-    const s = song, sd = 60 / s.bpm / 4, bar = Math.floor(i / 16) % 4, st = i % 16;
-    const root = s.chords[bar][0];
+    const s = song, sd = 60 / bpm / 4, bar = Math.floor(i / 16) % 4, st = i % 16;
+    const root = s.chords[bar][0] + tr;
     if (s.kick[st] === 'x') tone(musicGain, 'sine', 160, t, 0.16, 0.9, 38);
     if (s.snare[st] === 'x') { noise(musicGain, t, 0.14, 0.35, 'highpass', 1500); tone(musicGain, 'triangle', 220, t, 0.08, 0.25, 120); }
     if (s.hat[st] === 'x') noise(musicGain, t, 0.03, 0.12, 'highpass', 8000);
@@ -123,22 +123,23 @@ const Sound = (() => {
       g.gain.setValueAtTime(0.32, t); g.gain.exponentialRampToValueAtTime(0.0001, t + sd * 0.95);
       o.connect(fl); fl.connect(g); g.connect(musicGain); o.start(t); o.stop(t + sd);
     }
-    const m = s.mel[i % s.mel.length];
+    const m0 = s.mel[i % s.mel.length], m = m0 && m0 + tr;
     if (m) { tone(musicGain, 'square', mtof(m), t, sd * 1.6, s.lead); tone(musicGain, 'triangle', mtof(m + 12), t, sd * 1.2, s.lead * 0.4); }
-    if (st % 4 === 0 && songName === 'title') s.chords[bar].forEach(n => tone(musicGain, 'triangle', mtof(n + 12), t, sd * 4, 0.05, null, 0.05));
+    if (st % 4 === 0 && song === SONGS.title) s.chords[bar].forEach(n => tone(musicGain, 'triangle', mtof(n + 12), t, sd * 4, 0.05, null, 0.05));
   }
 
   function schedule() {
     if (!ctx || !song) return;
     while (nextTime < ctx.currentTime + 0.12) {
       playStep(step, nextTime);
-      nextTime += 60 / song.bpm / 4; step = (step + 1) % 64;
+      nextTime += 60 / bpm / 4; step = (step + 1) % 64;
     }
   }
 
-  function music(name) {
-    if (!ctx || songName === name) return;
-    songName = name; song = SONGS[name] || null; step = 0;
+  function music(name, t = 0) {
+    const key = name + ':' + t;
+    if (!ctx || songName === key) return;
+    songName = key; song = SONGS[name] || null; tr = t; bpm = song ? song.bpm + t * 3 : 120; step = 0;
     nextTime = ctx.currentTime + 0.05;
   }
 

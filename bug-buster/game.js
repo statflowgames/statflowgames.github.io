@@ -52,12 +52,15 @@ function startStage(i) {
   Object.assign(G, { stage: i, stageT: 0, waveT: 2.2, phase: 'waves', boss: null, prog: 0, vacuum: false,
     enemies: [], eb: [], fire: 1 + i * 0.035 + G.loop * 0.35, bspd: 1 + i * 0.01 + G.loop * 0.12, xpMul: 1 + Math.floor(k / 6) });
   const isNew = !Save.seen(S.featured);
-  G.banner = { t: 0, label: `STAGE ${i + 1}` + (G.loop ? `  ·  ${G.loop + 1}회차` : '') + (S.boss ? '  ·  BOSS' : ''), title: S.title,
-    sub: isNew ? `NEW! 새 해충 '${INFO[S.featured][0]}' 출현` : S.sub, newBug: isNew };
+  const gim = S.gimmick != null ? GIMMICKS[S.gimmick] : null;
+  G.banner = { t: 0, label: `STAGE ${i + 1}  ·  ${S.area}` + (G.loop ? `  ·  ${G.loop + 1}회차` : ''), title: S.title,
+    sub: isNew ? `NEW! 새 해충 '${INFO[S.featured][0]}' 출현` : S.sub, newBug: isNew,
+    gim: gim ? `⚠ ${gim.name}: ${gim.desc}` : null };
   if (G.supply) { text(G.W / 2, G.H * 0.55, `보급 지원: 업그레이드 ${G.supply}개 적용`, '#c6ff4d', 14); G.supply = 0; }
   Save.see(S.featured); Save.flush();
   Render.makeSky(S);
-  Sound.music(S.song);
+  Gimmick.start(S);
+  Sound.music(S.song, S.k * 2);
 }
 
 function pickWave() {
@@ -75,8 +78,16 @@ function spawnBoss() {
   Sound.music(key === 'mother' ? 'final' : 'boss');
 }
 
+// 1·2번째 스테이지 끝: 그 스테이지 해충의 대장
+function spawnChief() {
+  const key = STAGES[G.stage].featured, d = makeChief(key, G.stage), hp = d.hp * (1 + G.loop * 0.8);
+  G.boss = { boss: true, key, def: d, x: G.W / 2, y: -90, t: 0, hp, maxHp: hp, r: d.r, cd: 1, flash: 0, entering: true, col: COLORS[key] };
+  G.phase = 'boss';
+}
+
 function stageCleared() {
-  G.phase = 'cleared'; G.clearT = G.boss || STAGES[G.stage].boss ? 5 : 2.6;
+  G.phase = 'cleared'; G.clearT = STAGES[G.stage].boss ? 5 : 3.2;
+  Gimmick.cur = null;
   Save.unlock(G.stage + 2); Save.flush();
 }
 
@@ -86,7 +97,7 @@ function setupInput(canvas) {
   canvas.addEventListener('pointerdown', e => { Input.ptr = { id: e.pointerId, x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', e => {
     const q = Input.ptr; if (!q || q.id !== e.pointerId || G.state !== 'play') { if (q) { q.x = e.clientX; q.y = e.clientY; } return; }
-    const k = 1.3 / Render.scale;
+    const k = 1.3 / Render.scale * (G.slowMul || 1);
     G.p.x += (e.clientX - q.x) * k; G.p.y += (e.clientY - q.y) * k;
     q.x = e.clientX; q.y = e.clientY;
   });
@@ -102,7 +113,7 @@ function setupInput(canvas) {
 
 // ---------- 플레이어 ----------
 function updatePlayer(dt) {
-  const p = G.p, K = Input.keys, sp = 260 * dt;
+  const p = G.p, K = Input.keys, sp = 260 * dt * (G.slowMul || 1);
   if (K.ArrowLeft || K.KeyA) p.x -= sp; if (K.ArrowRight || K.KeyD) p.x += sp;
   if (K.ArrowUp || K.KeyW) p.y -= sp; if (K.ArrowDown || K.KeyS) p.y += sp;
   p.x = Math.max(14, Math.min(G.W - 14, p.x)); p.y = Math.max(60, Math.min(G.H - 30, p.y));
@@ -197,8 +208,10 @@ function killBoss(b) {
   for (const e of G.enemies) if (!e.dead) kill(e);
   G.deathFx = { x: b.x, y: b.y, t: 1.6 };
   G.shake = 26; G.flash = 0.8; Sound.play('boom');
-  for (let i = 0; i < 30; i++) dropItem(b.x + rand(-30, 30), b.y + rand(-30, 30), i < 8 ? 'xpBig' : 'xp');
-  dropItem(b.x, b.y, 'heart'); dropItem(b.x, b.y, 'bomb');
+  const chief = b.def.chief;
+  for (let i = 0; i < (chief ? 14 : 30); i++) dropItem(b.x + rand(-30, 30), b.y + rand(-30, 30), i < (chief ? 4 : 8) ? 'xpBig' : 'xp');
+  if (!chief || Math.random() < 0.5) dropItem(b.x, b.y, 'heart');
+  if (!chief || Math.random() < 0.25) dropItem(b.x, b.y, 'bomb');
   setTimeout(() => Sound.play('clear'), 900);
 }
 function dropItem(x, y, kind) {
@@ -253,13 +266,10 @@ function update(dt) {
   if (G.phase === 'waves') {
     if ((G.waveT -= dt) <= 0) { pickWave(); G.waveT = (2.6 - 1.3 * G.prog) / (1 + G.stage * 0.015 + G.loop * 0.25); }
     if (G.stageT >= S.len) {
-      if (S.boss) { G.phase = 'warn'; G.warnT = 3.2; Sound.play('warn'); }
-      else { G.phase = 'mop'; G.mopT = 12; stageRush(G.stage); }
+      G.phase = 'warn'; G.warnChief = !S.boss; G.warnT = S.boss ? 3.2 : 2.2; Sound.play('warn');
     }
   } else if (G.phase === 'warn') {
-    if ((G.warnT -= dt) <= 0) spawnBoss();
-  } else if (G.phase === 'mop') {
-    if (((G.mopT -= dt) < 10 && G.enemies.length === 0) || G.mopT <= 0) { stageCleared(); Sound.play('clear'); }
+    if ((G.warnT -= dt) <= 0) G.warnChief ? spawnChief() : spawnBoss();
   } else if (G.phase === 'cleared') {
     if (G.deathFx && (G.deathFx.t -= dt) > 0 && Math.random() < 0.5) {
       const d = G.deathFx; part(d.x + rand(-40, 40), d.y + rand(-40, 40), ['#ffd23f', '#ff8c42', '#fff'][Math.random() * 3 | 0], 10, 180, 4); Sound.play('pop');
@@ -271,6 +281,7 @@ function update(dt) {
   }
 
   updatePlayer(dt);
+  Gimmick.update(dt);
 
   // 플레이어 탄
   for (const b of G.pb) {
