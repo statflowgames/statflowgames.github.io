@@ -47,7 +47,7 @@
   <!-- 빨리 뜨게: 게임 엔진(구글 서버)·한글 글꼴 서버에 미리 연결하고, 게임 파일을 바로 받기 시작 -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" href="main.dart.js?v=20261024194131" as="script">
+  <link rel="preload" href="main.dart.js?v=20261026184041" as="script">
 </head>
 <body>
   <div id="loading"><img src="icons/Icon-192.png" alt=""><div>🍓 젤리를 불러오는 중…</div></div>
@@ -62,12 +62,12 @@
   -->
   <script>
     // 항상 최신 버전으로: 서버에 올라간 버전 번호가 지금 페이지와 다르면 딱 한 번 새로고침한다.
-    // (20261024194131 는 tools/finalize_web.py 가 업로드할 때마다 새 번호로 바꿔 넣는다)
+    // (20261026184041 는 tools/finalize_web.py 가 업로드할 때마다 새 번호로 바꿔 넣는다)
     // 아이폰 무음 모드에서도 효과음이 배경음악처럼 나오게 (사파리 17 이상)
     try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
 
     (function () {
-      var BUILD = "20261024194131";
+      var BUILD = "20261026184041";
       fetch("web_version.txt?t=" + Date.now(), { cache: "no-store" })
         .then(function (r) { return r.ok ? r.text() : ""; })
         .then(function (v) {
@@ -83,6 +83,6 @@
         .catch(function () {});
     })();
   </script>
-  <script src="flutter_bootstrap.js?v=20261024194131" async></script>
+  <script src="flutter_bootstrap.js?v=20261026184041" async></script>
 </body>
 </html>
