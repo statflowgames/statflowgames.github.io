@@ -71,7 +71,8 @@ const ENEMIES = {
 function bossMode(b, n, win = 5) {
   const mode = Math.floor(b.t / win) % n;
   if (mode !== b.mode) { b.mode = mode; b.cd = 0.6; b.cx = b.x; b.sub = 0; }
-  return { mode, lt: b.t % win, rage: b.hp < b.maxHp * 0.5 };
+  // 무한 모드 보스(remix)는 처음부터 분노 패턴
+  return { mode, lt: b.t % win, rage: b.remix || b.hp < b.maxHp * 0.5 };
 }
 
 const BOSSES = {

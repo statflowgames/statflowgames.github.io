@@ -3,11 +3,11 @@ const G = { W: 360, H: 640, state: 'title', time: 0, shake: 0, flash: 0, enemies
 const rand = (a, b) => a + Math.random() * (b - a);
 const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 const aim = e => Math.atan2(G.p.y - e.y, G.p.x - e.x);
-// 난이도: 적 체력, 적 탄 속도, 적 공격 빈도, 시작 체력 보너스, 점수 배율
+// 난이도: 적 체력, 적 탄 속도, 적 공격 빈도, 시작 체력 보너스, 점수 배율, 쉴드 재충전(초)
 const DIFFS = {
-  easy: { hp: 0.7, bspd: 0.85, fire: 0.7, lives: 2, score: 0.5 },
-  normal: { hp: 1, bspd: 1, fire: 1, lives: 0, score: 1 },
-  hard: { hp: 1.35, bspd: 1.15, fire: 1.35, lives: 0, score: 2 },
+  easy: { hp: 0.7, bspd: 0.85, fire: 0.7, lives: 2, score: 0.5, shieldT: 12 },
+  normal: { hp: 1, bspd: 1, fire: 1, lives: 0, score: 1, shieldT: 18 },
+  hard: { hp: 1.35, bspd: 1.15, fire: 1.35, lives: 0, score: 2, shieldT: 25 },
 };
 let DIFF = 'normal';
 try { const d = localStorage.getItem('bugbuster.diff'); if (DIFFS[d]) DIFF = d; } catch (e) {}
@@ -20,7 +20,7 @@ const Best = {
 };
 
 function spawnEnemy(type, x, y, opts) {
-  const d = ENEMIES[type], mul = 1 + G.loop * 0.7 + G.stage * 0.22;
+  const d = ENEMIES[type], mul = 1 + G.stage * 0.22;
   const e = Object.assign({ type, def: d, x, y, vx: 0, vy: 0, t: 0, r: d.r, flash: 0, rotate: d.rotate }, opts);
   e.hp = e.maxHp = d.hp * mul * D().hp;
   if (d.init) d.init(e);
@@ -55,7 +55,9 @@ function newGame(start = 0) {
   G.p = { x: G.W / 2, y: G.H - 110, hp: lives, hpMax: lives, dmg: 1, rate: 6, spread: 0, pierce: 0, homing: 0, drones: 0,
     magnet: 70, shield: 0, shieldMax: 0, shieldT: 0, bombs: 2, inv: 0, fireT: 0, missT: 0, droneT: 0,
     lv: {}, level: 1, xp: 0, xpNext: 6 };
-  Object.assign(G, { score: 0, combo: 0, comboT: 0, maxCombo: 0, kills: 0, loop: 0, pendingLv: 0, time: 0, startStage: start });
+  Object.assign(G, { score: 0, combo: 0, comboT: 0, maxCombo: 0, kills: 0, loop: 0, pendingLv: 0, time: 0, startStage: start,
+    revived: false, endless: start >= STORY });
+  stageAt(start);
   G.supply = start > 0 ? autoBuild(G.p, Math.round(start * 1.1)) : 0;
   startStage(start);
   G.state = 'play';
@@ -63,12 +65,13 @@ function newGame(start = 0) {
 }
 
 function startStage(i) {
-  const S = STAGES[i], k = i + G.loop * STAGES.length;
-  Object.assign(G, { stage: i, stageT: 0, waveT: 2.2, phase: 'waves', boss: null, prog: 0, vacuum: false,
-    enemies: [], eb: [], fire: (1 + i * 0.035 + G.loop * 0.35) * D().fire, bspd: (1 + i * 0.01 + G.loop * 0.12) * D().bspd, xpMul: 1 + Math.floor(k / 6) });
+  const S = stageAt(i);
+  // G.loop: 무한 모드면 1 (해충 패턴의 탄 수가 늘어남)
+  Object.assign(G, { stage: i, loop: S.endless ? 1 : 0, stageT: 0, waveT: 2.2, phase: 'waves', boss: null, prog: 0, vacuum: false,
+    enemies: [], eb: [], fire: Math.min(3, 1 + i * 0.035) * D().fire, bspd: Math.min(1.6, 1 + i * 0.01) * D().bspd, xpMul: 1 + Math.floor(i / 6) });
   const isNew = !Save.seen(S.featured);
   const gim = S.gimmick != null ? GIMMICKS[S.gimmick] : null;
-  G.banner = { t: 0, label: `STAGE ${i + 1}  ·  ${S.area}` + (G.loop ? `  ·  ${t('loopN', { n: G.loop + 1 })}` : ''), title: S.title,
+  G.banner = { t: 0, label: (S.endless ? '∞  ' : '') + `STAGE ${i + 1}  ·  ${S.area}`, title: S.title,
     sub: isNew ? t('newBug', { name: INFO[S.featured][0] }) : S.sub, newBug: isNew,
     gim: gim ? t('gimmickBanner', { name: gim.name, desc: gim.desc }) : null };
   if (G.supply) { text(G.W / 2, G.H * 0.55, t('supply', { n: G.supply }), '#c6ff4d', 14); G.supply = 0; }
@@ -85,8 +88,9 @@ function pickWave() {
 
 function spawnBoss() {
   const key = STAGES[G.stage].boss, d = BOSSES[key];
-  const hp = d.hp * (1 + G.loop * 0.8) * D().hp;
-  G.boss = { boss: true, key, def: d, x: G.W / 2, y: -90, t: 0, hp, maxHp: hp, r: d.r, cd: 1, flash: 0, entering: true };
+  // 무한 모드 보스(remix): 마지막 보스 체력의 70%에서 시작해 스테이지마다 5%씩 늘고, 처음부터 분노 패턴
+  const S = STAGES[G.stage], remix = !!S.endless, hp = (remix ? BOSSES.mother.hp * 0.7 * (1 + (G.stage - STORY) * 0.05) : d.hp) * D().hp;
+  G.boss = { boss: true, key, def: d, x: G.W / 2, y: -90, t: 0, hp, maxHp: hp, r: d.r, cd: 1, flash: 0, entering: true, remix };
   if (d.init) d.init(G.boss);
   Save.see(key); Save.flush();
   G.phase = 'boss';
@@ -95,7 +99,7 @@ function spawnBoss() {
 
 // 1·2번째 스테이지 끝: 그 스테이지 해충의 대장
 function spawnChief() {
-  const key = STAGES[G.stage].featured, d = makeChief(key, G.stage), hp = d.hp * (1 + G.loop * 0.8) * D().hp;
+  const key = STAGES[G.stage].featured, d = makeChief(key, G.stage), hp = d.hp * D().hp;
   G.boss = { boss: true, key, def: d, x: G.W / 2, y: -90, t: 0, hp, maxHp: hp, r: d.r, cd: 1, flash: 0, entering: true, col: COLORS[key] };
   G.phase = 'boss';
 }
@@ -104,6 +108,19 @@ function stageCleared() {
   G.phase = 'cleared'; G.clearT = STAGES[G.stage].boss ? 5 : 3.2;
   Gimmick.cur = null;
   Save.unlock(G.stage + 2); Save.flush();
+}
+
+// 30스테이지 클리어: 엔딩. 기록은 이 시점에 한 번 저장하고, 무한 모드를 이어 하면 게임오버 때 다시 저장
+function showEnding() {
+  G.state = 'ending';
+  Save.clear(G.diff);
+  const isBest = recordRun(true);
+  Sound.music('title'); Sound.play('clear');
+  UI.showEnding(isBest);
+}
+function continueEndless() {
+  G.endless = true;
+  Ads.atBreak(() => { G.state = 'play'; UI.show(null); UI.hud(true); startStage(STORY); });
 }
 
 // ---------- 입력 ----------
@@ -133,7 +150,7 @@ function updatePlayer(dt) {
   if (K.ArrowUp || K.KeyW) p.y -= sp; if (K.ArrowDown || K.KeyS) p.y += sp;
   p.x = Math.max(14, Math.min(G.W - 14, p.x)); p.y = Math.max(60, Math.min(G.H - 30, p.y));
   p.inv -= dt;
-  if (p.shield < p.shieldMax && (p.shieldT += dt) >= 8) { p.shield++; p.shieldT = 0; }
+  if (p.shield < p.shieldMax && (p.shieldT += dt) >= D().shieldT) { p.shield++; p.shieldT = 0; }
 
   if ((p.fireT -= dt) <= 0) {
     p.fireT = 1 / p.rate;
@@ -204,7 +221,7 @@ function mult() { return 1 + Math.min(G.combo, 100) * 0.02; }
 function kill(e) {
   e.dead = true; G.kills++;
   G.combo++; G.comboT = 2.2; G.maxCombo = Math.max(G.maxCombo, G.combo);
-  const pts = Math.round(e.def.score * mult() * (1 + G.loop) * D().score);
+  const pts = Math.round(e.def.score * mult() * D().score);
   G.score += pts;
   const c = COLORS[e.type];
   part(e.x, e.y, c, e.def.elite ? 26 : 12, e.def.elite ? 200 : 140, e.def.elite ? 4 : 3);
@@ -217,7 +234,7 @@ function kill(e) {
 }
 function killBoss(b) {
   b.dead = true; G.boss = null; stageCleared(); G.vacuum = true;
-  const pts = Math.round(b.def.score * (1 + G.loop) * D().score); G.score += pts;
+  const pts = Math.round(b.def.score * (b.remix ? 1.5 : 1) * D().score); G.score += pts;
   text(b.x, b.y, `+${pts}`, '#ffd23f', 22);
   clearBullets(b.x, b.y, 2000);
   for (const e of G.enemies) if (!e.dead) kill(e);
@@ -256,13 +273,33 @@ function applyUpgrade(u) {
 function gameOver() {
   G.state = 'over';
   G.shake = 20; part(G.p.x, G.p.y, '#5ef2ff', 60, 260, 5, 1.2); Sound.play('boom');
+  const isBest = recordRun(false);
+  Sound.music('over');
+  setTimeout(() => { if (G.state === 'over') UI.showOver(isBest); }, 1100);
+}
+
+// 한 판의 기록 저장: 최고 기록, 랭킹, 자랑하기 그림. 새 최고 기록이면 true
+function recordRun(cleared) {
   const isBest = G.score > Best.get(G.diff);
   if (isBest) Best.set(G.diff, G.score);
   Save.flush();
   if (RANKING_ENABLED) Ranking.submit(G.score, G.diff);
-  Share.prepare(isBest);
-  Sound.music('over');
-  setTimeout(() => { if (G.state === 'over') UI.showOver(isBest); }, 1100);
+  Share.prepare(isBest, cleared);
+  return isBest;
+}
+
+// 광고 보고 부활: 게임당 1번. 체력을 다 채우고 잠깐 무적, 주변 탄은 지운다
+function revive() {
+  const p = G.p, S = STAGES[G.stage];
+  G.revived = true;
+  p.hp = p.hpMax; p.inv = 3;
+  G.eb = []; G.shake = 0;
+  ring(p.x, p.y, '#5ef2ff', 90); part(p.x, p.y, '#c6ff4d', 40, 220, 4);
+  text(p.x, p.y - 40, t('revived'), '#c6ff4d', 20);
+  Sound.play('heart');
+  if (G.boss) Sound.music(G.boss.key === 'mother' ? 'final' : 'boss');
+  else Sound.music(S.song, S.k * 2);
+  G.state = 'play';
 }
 
 // ---------- 메인 업데이트 ----------
@@ -279,7 +316,7 @@ function update(dt) {
   G.shake = Math.max(0, G.shake - dt * 40); G.flash = Math.max(0, G.flash - dt);
 
   if (G.phase === 'waves') {
-    if ((G.waveT -= dt) <= 0) { pickWave(); G.waveT = (2.6 - 1.3 * G.prog) / (1 + G.stage * 0.015 + G.loop * 0.25); }
+    if ((G.waveT -= dt) <= 0) { pickWave(); G.waveT = (2.6 - 1.3 * G.prog) / (1 + Math.min(G.stage, 60) * 0.015); }
     if (G.stageT >= S.len) {
       G.phase = 'warn'; G.warnChief = !S.boss; G.warnT = S.boss ? 3.2 : 2.2; Sound.play('warn');
     }
@@ -292,8 +329,11 @@ function update(dt) {
     if ((G.clearT -= dt) <= 0) {
       if (S.boss) p.hp = Math.min(p.hpMax, p.hp + 1);
       G.phase = 'next';
-      // 스테이지 사이 광고 → 다음 스테이지
-      Ads.between(() => { if (G.stage === STAGES.length - 1) { G.loop++; startStage(0); } else startStage(G.stage + 1); });
+      // 마지막 보스(30스테이지)를 잡으면 엔딩 (엔딩 앞에는 광고 없음)
+      if (G.stage === STORY - 1 && !G.endless) { showEnding(); return; }
+      const next = () => startStage(G.stage + 1);
+      // 월드 클리어(보스 처치)는 쉬는 지점이라 광고 차례면 광고 → 다음 월드
+      if (S.boss) Ads.atBreak(next); else next();
     }
   }
 

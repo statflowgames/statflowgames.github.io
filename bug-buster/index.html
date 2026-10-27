@@ -53,6 +53,12 @@
     background: linear-gradient(180deg, #e4ff8a, var(--pollen)); color: #1a2a00;
     box-shadow: 0 5px 0 #6b8f12, 0 10px 24px rgba(198, 255, 77, 0.25); }
   .big:active { transform: translateY(3px); box-shadow: 0 2px 0 #6b8f12; }
+  /* 광고 보고 부활: 다시 출동보다 눈에 띄는 분홍 버튼 */
+  .revive { min-width: 220px; padding: 12px 22px; border-radius: 14px; font-family: var(--f-display); font-size: 19px;
+    background: linear-gradient(180deg, #ff9bb3, #ff5d8f); color: #2a0010;
+    box-shadow: 0 5px 0 #a3264f, 0 10px 24px rgba(255, 93, 143, 0.3); }
+  .revive:active { transform: translateY(3px); box-shadow: 0 2px 0 #a3264f; }
+  .revive:disabled { opacity: 0.6; }
   .ghost { padding: 10px 20px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); font-size: 16px;
     box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.15); }
   .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
@@ -107,6 +113,19 @@
   .seg button[data-d="hard"][aria-checked="true"], .seg button[data-d="hard"][aria-selected="true"] { background: var(--sting); color: #fff; }
   .difftag { padding: 3px 12px; border-radius: 99px; font-size: 13px; box-shadow: inset 0 0 0 1.5px currentColor; }
   .difftag.easy { color: var(--spray); } .difftag.normal { color: var(--honey); } .difftag.hard { color: var(--sting); }
+  /* 엔딩 */
+  #ending { gap: 10px; }
+  #ending h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 40px; color: var(--honey); text-wrap: balance;
+    text-shadow: 0 0 24px rgba(255, 210, 63, 0.45); }
+  #ending .endstory { margin: 0; max-width: 300px; font-size: 14px; line-height: 1.6; color: var(--ink); }
+  #ending .meta { margin: -4px 0 0; }
+  #ending .credits { margin: 4px 0 0; font-size: 11px; letter-spacing: 0.12em; color: var(--dim); }
+  #ending > * { animation: rise 0.6s backwards; }
+  #ending > *:nth-child(2) { animation-delay: 0.15s; } #ending > *:nth-child(3) { animation-delay: 0.3s; } #ending > *:nth-child(4) { animation-delay: 0.45s; }
+  #ending > *:nth-child(5) { animation-delay: 0.6s; } #ending > *:nth-child(6) { animation-delay: 0.75s; } #ending > *:nth-child(n+7) { animation-delay: 0.9s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+  @media (prefers-reduced-motion: reduce) { #ending > * { animation: none; } }
+  .stg.endless { grid-column: 1 / -1; height: 48px; font-size: 17px; background: rgba(255, 210, 63, 0.16); box-shadow: inset 0 0 0 1.5px rgba(255, 210, 63, 0.5); }
   /* 테스트 광고 */
   #ad { z-index: 40; background: #050309; }
   .adlabel { position: absolute; top: 12px; left: 12px; padding: 2px 8px; border-radius: 4px; background: var(--honey); color: #3a2a00; font-size: 12px; }
@@ -260,6 +279,7 @@
         <div><small data-i18n="stCombo">최대 콤보</small><span id="ovCombo">0</span></div>
         <div><small data-i18n="stLevel">최종 레벨</small><span id="ovLv">1</span></div>
       </div>
+      <button id="reviveBtn" class="revive" hidden>📺 광고 보고 부활 (1번)</button>
       <button id="retryBtn" class="big">다시 출동</button>
       <div class="row">
         <button id="bragBtn" class="ghost" data-i18n="brag">📣 자랑하기</button>
@@ -270,31 +290,58 @@
         <button id="homeBtn" class="ghost small" data-i18n="toTitle">타이틀로</button>
       </div>
     </section>
+    <section id="ending" class="screen dim" hidden>
+      <div class="eyebrow" data-i18n="endEyebrow">MISSION COMPLETE</div>
+      <h2 data-i18n="endTitle">은하 방역 완료!</h2>
+      <span class="difftag" id="endDiff"></span>
+      <p class="endstory" data-i18n="endStory"></p>
+      <div><div class="score" id="endScore">0</div><span class="newbest" id="endBest" data-i18n="newBest" hidden>신기록!</span></div>
+      <div class="stats">
+        <div><small data-i18n="stKills">처치한 해충</small><span id="endKills">0</span></div>
+        <div><small data-i18n="stCombo">최대 콤보</small><span id="endCombo">0</span></div>
+        <div><small data-i18n="stLevel">최종 레벨</small><span id="endLv">1</span></div>
+        <div><small data-i18n="dex">해충 도감</small><span id="endDex">0</span></div>
+      </div>
+      <button id="endlessBtn" class="big" data-i18n="endless">계속 방역하기 ∞</button>
+      <p class="meta" data-i18n="endlessDesc"></p>
+      <div class="row">
+        <button id="endBragBtn" class="ghost" data-i18n="brag">📣 자랑하기</button>
+        <button id="endHomeBtn" class="ghost" data-i18n="toTitle">타이틀로</button>
+      </div>
+      <p class="credits" data-i18n="endCredits"></p>
+    </section>
+
     <section id="ad" class="screen" hidden>
       <div class="adlabel" data-i18n="adLabel">AD</div>
-      <div class="adbox"><b data-i18n="adTest">테스트 광고 자리</b><p class="meta" data-i18n="adTestDesc">앱에서는 여기에 전면 광고가 나와요</p></div>
+      <div class="adbox"><b data-i18n="adTest">테스트 광고 자리</b><p class="meta" id="adDesc" data-i18n="adTestDesc">앱에서는 여기에 전면 광고가 나와요</p></div>
       <button id="adClose" class="ghost">닫기</button>
     </section>
     <div id="toast" role="status" hidden></div>
   </div>
 </div>
 
-<script charset="utf-8" src="i18n.js"></script>
-<script charset="utf-8" src="lang-ko.js"></script>
-<script charset="utf-8" src="lang-en.js"></script>
-<script charset="utf-8" src="audio.js"></script>
-<script charset="utf-8" src="art.js"></script>
-<script charset="utf-8" src="art2.js"></script>
-<script charset="utf-8" src="art3.js"></script>
-<script charset="utf-8" src="data.js"></script>
-<script charset="utf-8" src="enemies2.js"></script>
-<script charset="utf-8" src="bosses2.js"></script>
-<script charset="utf-8" src="stages.js"></script>
-<script charset="utf-8" src="chiefs.js"></script>
-<script charset="utf-8" src="gimmicks.js"></script>
-<script charset="utf-8" src="ranking.js"></script>
-<script charset="utf-8" src="share.js"></script>
-<script charset="utf-8" src="ads.js"></script>
-<script charset="utf-8" src="game.js"></script>
-<script charset="utf-8" src="render.js"></script>
-<script charset="utf-8" src="main.js"></script>
+<script charset="utf-8" src="i18n.js?v=20261027102628"></script>
+<script charset="utf-8" src="lang-ko.js?v=20261027102628"></script>
+<script charset="utf-8" src="lang-en.js?v=20261027102628"></script>
+<script charset="utf-8" src="lang-ja.js?v=20261027102628"></script>
+<script charset="utf-8" src="lang-zh.js?v=20261027102628"></script>
+<script charset="utf-8" src="lang-zh-Hant.js?v=20261027102628"></script>
+<script charset="utf-8" src="lang-es.js?v=20261027102628"></script>
+<script charset="utf-8" src="lang-de.js?v=20261027102628"></script>
+<script charset="utf-8" src="lang-vi.js?v=20261027102628"></script>
+<script charset="utf-8" src="audio.js?v=20261027102628"></script>
+<script charset="utf-8" src="art.js?v=20261027102628"></script>
+<script charset="utf-8" src="art2.js?v=20261027102628"></script>
+<script charset="utf-8" src="art3.js?v=20261027102628"></script>
+<script charset="utf-8" src="data.js?v=20261027102628"></script>
+<script charset="utf-8" src="enemies2.js?v=20261027102628"></script>
+<script charset="utf-8" src="bosses2.js?v=20261027102628"></script>
+<script charset="utf-8" src="stages.js?v=20261027102628"></script>
+<script charset="utf-8" src="chiefs.js?v=20261027102628"></script>
+<script charset="utf-8" src="gimmicks.js?v=20261027102628"></script>
+<script charset="utf-8" src="ranking.js?v=20261027102628"></script>
+<script charset="utf-8" src="share.js?v=20261027102628"></script>
+<script charset="utf-8" src="ads.js?v=20261027102628"></script>
+<script charset="utf-8" src="game.js?v=20261027102628"></script>
+<script charset="utf-8" src="render.js?v=20261027102628"></script>
+<script charset="utf-8" src="main.js?v=20261027102628"></script>

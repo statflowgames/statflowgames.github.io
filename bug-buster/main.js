@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 
 const UI = {
-  screens: ['title', 'dex', 'sel', 'rank', 'langSel', 'lv', 'pause', 'over'],
+  screens: ['title', 'dex', 'sel', 'rank', 'langSel', 'lv', 'pause', 'over', 'ending'],
   show(id) { this.screens.forEach(s => { $(s).hidden = s !== id; }); },
   hud(on) { $('pauseBtn').hidden = !on; $('bombBtn').hidden = !on; },
   showLevelUp(choices) {
@@ -28,15 +28,28 @@ const UI = {
   showOver(isBest) {
     $('ovScore').textContent = fmt(G.score);
     $('ovBest').hidden = !isBest;
-    $('ovStage').textContent = `${G.loop ? t('loopN', { n: G.loop + 1 }) + ' ' : ''}${G.stage + 1}. ${STAGES[G.stage].title}`;
+    $('ovStage').textContent = `${G.endless ? '∞ ' : ''}${G.stage + 1}. ${STAGES[G.stage].title}`;
     $('ovKills').textContent = fmt(G.kills);
     $('ovCombo').textContent = G.maxCombo;
     $('ovLv').textContent = G.p.level;
-    $('retryBtn').textContent = G.stage > 0 && !G.loop ? t('retryFrom', { n: G.stage + 1 }) : t('retry');
-    $('restartBtn').hidden = G.stage === 0 && !G.loop;
+    $('retryBtn').textContent = G.endless ? t('retryEndless') : G.stage > 0 ? t('retryFrom', { n: G.stage + 1 }) : t('retry');
+    $('restartBtn').hidden = G.stage === 0;
+    // 부활은 게임당 1번, 보상형 광고가 준비됐을 때만
+    $('reviveBtn').hidden = G.revived || !Ads.canRevive();
+    $('reviveBtn').disabled = false; $('reviveBtn').textContent = t('revive');
     $('ovRankBtn').hidden = !RANKING_ENABLED;
     $('ovDiff').textContent = t('diff_' + G.diff); $('ovDiff').className = 'difftag ' + G.diff;
     this.hud(false); this.show('over');
+  },
+  showEnding(isBest) {
+    $('endScore').textContent = fmt(G.score);
+    $('endBest').hidden = !isBest;
+    $('endDiff').textContent = t('diff_' + G.diff); $('endDiff').className = 'difftag ' + G.diff;
+    $('endKills').textContent = fmt(G.kills);
+    $('endCombo').textContent = G.maxCombo;
+    $('endLv').textContent = G.p.level;
+    $('endDex').textContent = Save.count() + ' / 40';
+    this.hud(false); this.show('ending');
   },
   syncMute() { const label = Sound.muted ? t('soundOff') : t('soundOn'); $('muteBtn').textContent = label; $('muteBtn2').textContent = label; },
 };
@@ -95,6 +108,13 @@ function openSelect() {
     }
     box.appendChild(row);
   });
+  // 엔딩을 본 적이 있으면 무한 모드로 바로 시작 (31스테이지, 업그레이드 자동 보급)
+  if (Save.anyCleared()) {
+    const b = document.createElement('button');
+    b.className = 'stg endless'; b.textContent = t('selEndless');
+    b.onclick = () => { $('sel').hidden = true; startGame(STORY); };
+    const row = document.createElement('div'); row.className = 'world'; row.appendChild(b); box.appendChild(row);
+  }
   $('sel').hidden = false;
 }
 
@@ -131,7 +151,8 @@ function syncLang() { $('langBtn').textContent = '🌐 ' + LANGS[I18n.lang]; UI.
 
 // ---- 난이도 ----
 function syncDiff() {
-  document.querySelectorAll('#diffSel button').forEach(b => b.setAttribute('aria-checked', b.dataset.d === DIFF));
+  // 엔딩까지 깬 난이도에는 👑
+  document.querySelectorAll('#diffSel button').forEach(b => { b.setAttribute('aria-checked', b.dataset.d === DIFF); b.textContent = t('diff_' + b.dataset.d) + (Save.isCleared(b.dataset.d) ? ' 👑' : ''); });
   $('diffDesc').textContent = t('diffDesc_' + DIFF);
   $('bestT').textContent = fmt(Best.get());
 }
@@ -156,9 +177,24 @@ function openRank(period, diff) { Ranking.open(period, diff); }
 
 // ---- 이벤트 ----
 $('startBtn').onclick = () => startGame(0);
-$('retryBtn').onclick = () => startGame(G.loop ? 0 : G.stage);
-$('restartBtn').onclick = () => startGame(0);
+// 게임 오버 뒤 다시 시작은 쉬는 지점이라 전면 광고 차례인지 확인한다 (ads.js AdPolicy)
+$('retryBtn').onclick = () => Ads.atBreak(() => startGame(G.endless ? STORY : G.stage));
+$('restartBtn').onclick = () => Ads.atBreak(() => startGame(0));
+// 광고 보고 부활: 끝까지 보면 그 자리에서 이어서
+$('reviveBtn').onclick = async () => {
+  const btn = $('reviveBtn');
+  btn.disabled = true;
+  if (await Ads.rewarded()) {
+    UI.show(null); UI.hud(true);
+    revive();
+  } else {
+    btn.textContent = t('reviveFail');
+  }
+};
 $('homeBtn').onclick = toTitle;
+$('endlessBtn').onclick = () => { Sound.play('select'); continueEndless(); };
+$('endBragBtn').onclick = () => Share.brag();
+$('endHomeBtn').onclick = toTitle;
 $('quitBtn').onclick = () => { $('pause').hidden = true; toTitle(); };
 $('resumeBtn').onclick = () => UI.togglePause();
 $('pauseBtn').onclick = () => UI.togglePause();

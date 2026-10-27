@@ -29,6 +29,19 @@ WORLDS.forEach((w, wi) => w.bugs.forEach((bug, k) => {
     boss: k === 2 ? w.boss : null, gimmick: k === 1 ? wi : null, len: i < 3 ? 38 : k === 2 ? 50 : 45,
     get area() { return tl('areas')[k]; } });
 }));
+// 이야기 모드는 30스테이지. 마지막 보스를 잡으면 엔딩, 그 뒤로는 무한 모드
+const STORY = STAGES.length;
+
+// 무한 모드(31스테이지~): 월드를 차례로 돌며 30종을 섞어 내보내고, 3스테이지마다 강화된 보스
+function stageAt(i) {
+  while (STAGES.length <= i) {
+    const n = STAGES.length, e = n - STORY, k = e % 3, wi = Math.floor(e / 3) % WORLDS.length, w = WORLDS[wi];
+    STAGES.push({ i: n, k, world: wi, endless: true, get title() { return WORLDS[wi].title; }, get sub() { return t('endlessSub'); },
+      sky: w.sky, song: w.song, featured: BUG_ORDER[(Math.random() * BUG_ORDER.length) | 0],
+      boss: k === 2 ? w.boss : null, gimmick: k === 1 ? wi : null, len: k === 2 ? 45 : 40, get area() { return tl('areas')[k]; } });
+  }
+  return STAGES[i];
+}
 
 // 스테이지에 나올 편대 고르기: 이번 스테이지 새 해충 위주 + 최근 해충 + 가끔 옛날 해충
 function stageWave(si) {
@@ -48,11 +61,15 @@ const firstStage = key => { const s = STAGES.find(s => s.featured === key || s.b
 
 // 진행 저장: 열린 스테이지, 만난 해충
 const Save = (() => {
-  const d = { unlocked: 1, seen: {} };
+  const d = { unlocked: 1, seen: {}, cleared: {} };
   try { Object.assign(d, JSON.parse(localStorage.getItem('bugbuster.save') || '{}')); } catch (e) {}
   return {
     get unlocked() { return d.unlocked; },
-    unlock(n) { if (n > d.unlocked) { d.unlocked = Math.min(STAGES.length, n); this.flush(); } },
+    unlock(n) { if (n > d.unlocked) { d.unlocked = Math.min(STORY, n); this.flush(); } },
+    // 30스테이지(엔딩)까지 깬 난이도
+    clear(diff) { d.cleared[diff] = 1; this.flush(); },
+    isCleared: diff => !!d.cleared[diff],
+    anyCleared: () => Object.keys(d.cleared).length > 0,
     see(k) { if (INFO[k] && !d.seen[k]) d.seen[k] = 1; },
     seen: k => !!d.seen[k],
     count: () => Object.keys(d.seen).filter(k => INFO[k]).length,

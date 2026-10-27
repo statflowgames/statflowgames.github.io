@@ -225,9 +225,9 @@ const Render = (() => {
     c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(0, 0, W, 5);
     c.fillStyle = '#c6ff4d'; c.fillRect(0, 0, W * (p.xp / p.xpNext), 5);
     txt(fmt(G.score), 12, 22, 20, '#fff');
-    txt(`LV ${p.level}   STAGE ${G.stage + 1}${G.loop ? '-' + (G.loop + 1) : ''}`, 12, 42, 11, '#c6ff4d', 'left', FB);
+    txt(`LV ${p.level}   STAGE ${G.stage + 1}${G.endless ? ' ∞' : ''}`, 12, 42, 11, '#c6ff4d', 'left', FB);
     c.font = `11px ${FB}`;
-    const lw = c.measureText(`LV ${p.level}   STAGE ${G.stage + 1}${G.loop ? '-' + (G.loop + 1) : ''}`).width;
+    const lw = c.measureText(`LV ${p.level}   STAGE ${G.stage + 1}${G.endless ? ' ∞' : ''}`).width;
     txt(t('diff_' + G.diff), 12 + lw + 8, 42, 11, { easy: '#2de2a6', normal: '#ffd23f', hard: '#ff2d55' }[G.diff], 'left', FB);
     for (let i = 0; i < p.hpMax; i++) {
       c.save(); c.translate(W - 20 - i * 16, 21);
@@ -275,9 +275,9 @@ const Render = (() => {
     if (G.phase === 'cleared' && G.clearT < 3.8) {
       const a = Math.min(1, (3.8 - G.clearT) * 2);
       c.globalAlpha = a;
-      const last = G.stage === STAGES.length - 1;
+      const last = G.stage === STORY - 1 && !G.endless;
       txt(last ? t('allClear') : 'STAGE CLEAR!', W / 2, H * 0.4, 36, '#ffd23f', 'center');
-      txt(last ? t('strongerBack') : STAGES[G.stage].boss ? t('healed') : t('nextStage', { n: G.stage + 2 }), W / 2, H * 0.4 + 34, 13, '#fff', 'center', FB);
+      txt(STAGES[G.stage].boss ? t('healed') : t('nextStage', { n: G.stage + 2 }), W / 2, H * 0.4 + 34, 13, '#fff', 'center', FB);
       c.globalAlpha = 1;
     }
     if (G.tutorial > 0 && G.state === 'play') {

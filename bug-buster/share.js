@@ -6,16 +6,16 @@ const SHARE_URL = 'https://statflowgames.github.io/bug-buster/';
 const Share = {
   card: null, text: '',
   comma: n => fmt(n),
-  scoreText(score, newBest, where) {
-    const head = t(newBest ? 'shareBest' : 'shareScore', { score: this.comma(score), diff: t('diff_' + G.diff) });
+  scoreText(score, newBest, where, cleared) {
+    const head = t(cleared ? 'shareClear' : newBest ? 'shareBest' : 'shareScore', { score: this.comma(score), diff: t('diff_' + G.diff) });
     return `${head}\n${t('shareWhere', { where })}\n${t('shareDare', { url: SHARE_URL })}`;
   },
   get inviteText() { return t('inviteText', { url: SHARE_URL }); },
 
   // 게임이 끝나면 자랑하기용 그림을 미리 만들어 둔다 (누르는 순간 바로 공유 창이 뜨도록)
-  prepare(newBest) {
+  prepare(newBest, cleared) {
     const where = `STAGE ${G.stage + 1} ${STAGES[G.stage].title}`;
-    this.text = this.scoreText(G.score, newBest, where);
+    this.text = this.scoreText(G.score, newBest, where, cleared);
     this.card = null;
     try {
       const W = 540, H = 720, cv = document.createElement('canvas'); cv.width = W * 2; cv.height = H * 2;
