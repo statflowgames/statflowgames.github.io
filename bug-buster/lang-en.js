@@ -3,7 +3,7 @@ I18N.en = {
   ui: {
     title: 'Galaxy Pest Control', eyebrow: 'SPACE BUG SHOOTER', tagline: 'Wipe out the bug swarm invading space!',
     start: 'Launch!', stageSelect: 'Stages', dex: 'Bugdex', rank: '🏆 Ranking', invite: 'Invite friends',
-    soundOn: 'Sound on', soundOff: 'Sound off', best: 'Best', progress: 'Progress',
+    soundOn: 'Sound on', soundOff: 'Sound off', privacy: '🔒 Privacy settings', best: 'Best', progress: 'Progress',
     hint: 'Drag to move · Auto-fire · 💣 clears bullets', language: 'Language',
     selHint: 'Start further in and you get upgrades to match', close: 'Close', found: 'Found',
     pause: 'Pause', bombAria: 'Bug bomb', paused: 'Paused', resume: 'Resume', toTitle: 'Title',
@@ -53,7 +53,7 @@ I18N.en = {
     dmg: ['Concentrated Spray', 'Damage +25%'], rate: ['Turbo Sprayer', 'Fire rate +18%'], spread: ['Spread Nozzle', '+1 shot stream'],
     pierce: ['Piercing Stinger', 'Shots pierce 1 more bug'], homing: ['Homing Stingers', '+1 homing missile'], drone: ['Bee Drone', '+1 drone that orbits and fires'],
     magnet: ['Pollen Magnet', 'Pickup range +50%'], shield: ['Bug Net Shield', 'Blocks 1 hit, recharges every {s}s'], hpmax: ['Armor Plating', 'Max HP +1, HP +1'],
-    heal: ['Emergency Repair', 'Restore all HP'], bomb: ['Bomb Supply', '+2 bombs'],
+    heal: ['Emergency Repair', 'Restore all HP'], bomb: ['Bomb Supply', '+2 bombs'], bonus: ['Pest Bonus', '+{n} points'],
   },
   rankNames: ['BugBuster', 'SprayKing', 'SkeeterSlayer', 'ZapMaster', 'NetNinja', 'SpaceSweeper', 'RoachRider', 'LadybugFan', 'BuzzKill', 'FlySwatter',
     'GlowHunter', 'BeeDrone', 'WebEscaper', 'PestPatrol', 'PuffPuff', 'CitronellaX', 'ScreenDoor', 'ButterflyFX', 'BeetleHunter', 'DragonNet',

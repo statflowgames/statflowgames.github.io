@@ -43,12 +43,15 @@ const I18n = {
     document.title = t('title');
     document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
     document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
+    // 타이틀 로고가 두 줄이 될 때 끊을 자리 (titleWrap 의 | 위치에서만 줄바꿈. 예: ギャラクシー|虫駆除隊)
+    const wrap = I18N[this.lang] && I18N[this.lang].ui.titleWrap, h1 = document.querySelector('.logo h1');
+    if (h1) { h1.classList.toggle('keep', !!wrap); if (wrap) { h1.textContent = ''; wrap.split('|').forEach((part, i) => { if (i) h1.append(document.createElement('wbr')); h1.append(part); }); } }
   },
   // 게임 데이터의 이름·설명을 현재 언어에서 읽도록 연결
   bind() {
     const get = (obj, prop, fn) => Object.defineProperty(obj, prop, { get: fn, configurable: true });
     WORLDS.forEach((w, i) => { get(w, 'title', () => tl('worlds')[i]); get(w, 'sub', () => tl('worldSubs')[i]); });
-    UPGRADES.forEach(u => { get(u, 'name', () => tl('upgrades')[u.id][0]); get(u, 'desc', () => tl('upgrades')[u.id][1].replace('{s}', DIFFS[G.diff || DIFF].shieldT)); });
+    UPGRADES.forEach(u => { get(u, 'name', () => tl('upgrades')[u.id][0]); get(u, 'desc', () => tl('upgrades')[u.id][1].replace('{s}', DIFFS[G.diff || DIFF].shieldT).replace('{n}', G.p ? fmt(bonusPts()) : '')); });
     GIMMICKS.forEach((g, i) => { get(g, 'name', () => tl('gimmicks')[i][0]); get(g, 'desc', () => tl('gimmicks')[i][1]); });
     for (const k in BOSSES) get(BOSSES[k], 'name', () => t('bossTitle', { name: INFO[k][0], kind: INFO[k][1] }));
   },

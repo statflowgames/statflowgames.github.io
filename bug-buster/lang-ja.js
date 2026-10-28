@@ -1,9 +1,9 @@
-﻿// 銀河害虫駆除隊 - 日本語
+﻿// ギャラクシー虫駆除隊 - 日本語
 I18N.ja = {
   ui: {
-    title: '銀河害虫駆除隊', eyebrow: 'GALAXY PEST CONTROL', tagline: '宇宙を埋めつくす害虫の群れを駆除せよ！',
+    title: 'ギャラクシー虫駆除隊', titleWrap: 'ギャラクシー|虫駆除隊', eyebrow: 'GALAXY PEST CONTROL', tagline: '宇宙を埋めつくす害虫の群れを駆除せよ！',
     start: '出動！', stageSelect: 'ステージ選択', dex: '害虫図鑑', rank: '🏆 ランキング', invite: '友だちにすすめる',
-    soundOn: 'サウンド ON', soundOff: 'サウンド OFF', best: 'ベスト', progress: '進行度',
+    soundOn: 'サウンド ON', soundOff: 'サウンド OFF', privacy: '🔒 プライバシー設定', best: 'ベスト', progress: '進行度',
     hint: 'ドラッグで移動・ショットは自動・💣で弾幕を消す', language: '言語',
     selHint: '途中から始めると、そのぶん強化アイテムが支給されます', close: '閉じる', found: '発見',
     pause: '一時停止', bombAria: '殺虫ボム', paused: '一時停止', resume: '続ける', toTitle: 'タイトルへ',
@@ -21,9 +21,9 @@ I18N.ja = {
     allClear: '銀河の駆除完了！', strongerBack: '害虫たちがさらに強くなって戻ってくる…', healed: '体力 +1 回復', nextStage: '次：STAGE {n}',
     tut1: '画面のどこでもドラッグで移動・ショットは自動', tut2: '敵の弾をギリギリでかすめるとボーナス！',
     chiefName: '隊長{name}', bossTitle: '{kind} {name}', windR: '風 →', windL: '← 風',
-    shareBest: '銀河害虫駆除隊［{diff}］で最高記録更新！{score}点 🎉', shareScore: '銀河害虫駆除隊［{diff}］で{score}点をとったよ！🪲',
+    shareBest: 'ギャラクシー虫駆除隊［{diff}］で最高記録更新！{score}点 🎉', shareScore: 'ギャラクシー虫駆除隊［{diff}］で{score}点をとったよ！🪲',
     shareWhere: '{where}まで駆除成功 🚀', shareDare: 'わたしに勝てる？👉 {url}',
-    inviteText: '宇宙の害虫をやっつけるシューティング「銀河害虫駆除隊」いっしょにやろう！🚀🪲\n👉 {url}', cardBest: '最高記録！',
+    inviteText: '宇宙の害虫をやっつけるシューティング「ギャラクシー虫駆除隊」いっしょにやろう！🚀🪲\n👉 {url}', cardBest: '最高記録！',
     difficulty: '難易度', diff_easy: 'かんたん', diff_normal: 'ふつう', diff_hard: 'むずかしい',
     diffDesc_easy: '体力 +2・敵が弱い・スコア ×0.5', diffDesc_normal: '標準の難易度・スコア ×1', diffDesc_hard: '敵が強く弾が速い・スコア ×2',
     adLabel: 'AD', adTest: 'テスト広告枠', adTestDesc: 'アプリではここに全画面広告が表示されます', adTestRewardDesc: 'アプリではここにリワード広告が表示されます（最後まで見ると復活）', adWait: '{n}秒後に閉じる', adClose: '閉じる ✕',
@@ -36,7 +36,7 @@ I18N.ja = {
     endlessSub: 'エンドレス',
     retryEndless: 'エンドレスからやり直す',
     selEndless: '∞ エンドレスモード',
-    shareClear: '銀河害虫駆除隊［{diff}］で30ステージをクリア！{score}点 👑',
+    shareClear: 'ギャラクシー虫駆除隊［{diff}］で30ステージをクリア！{score}点 👑',
     copied: 'シェア用の文章をコピーしました。好きな場所に貼り付けてください！', shareFail: 'シェアできませんでした。この端末ではシェア機能を使えません。',
   },
   areas: ['外縁部', '中心部', 'ボスの巣'],
@@ -53,7 +53,7 @@ I18N.ja = {
     dmg: ['高濃度殺虫剤', '攻撃力 +25%'], rate: ['ターボ噴射機', '連射速度 +18%'], spread: ['拡散ノズル', '弾の本数 +1'],
     pierce: ['貫通針', '弾が敵をもう1体貫通'], homing: ['追尾ハチ針ミサイル', '誘導ミサイル +1'], drone: ['ミツバチドローン', 'まわりを回って一緒に撃つドローン +1'],
     magnet: ['花粉マグネット', '花粉の吸い寄せ範囲 +50%'], shield: ['防虫ネットシールド', '被弾を1回防ぐ、{s}秒ごとに再充電'], hpmax: ['強化装甲', '最大体力 +1、体力 +1'],
-    heal: ['緊急修理', '体力を全回復'], bomb: ['殺虫ボム補給', 'ボム +2'],
+    heal: ['緊急修理', '体力を全回復'], bomb: ['殺虫ボム補給', 'ボム +2'], bonus: ['駆除ボーナス', 'スコア +{n}'],
   },
   rankNames: ['駆除マスター', '蚊ハンター', 'キンチョール', '殺虫隊長', '虫取り名人', '宇宙そうじ係', 'ゴキ退治', 'テントウ推し', 'スプレー王', '銀河ハエたたき',
     'ホタル', 'ハチドローン', 'クモの巣脱出', '害虫退治団', 'シュッシュッ', '蚊取り線香', '網戸', 'バタフライ効果', 'カナブンハンター', 'トンボ網',

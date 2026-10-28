@@ -1,7 +1,6 @@
 ﻿// 은하 방역대 - SNS 공유 (젤리도쿠와 같은 방식)
-// 자랑하기·추천하기에 붙는 주소. 지금은 웹 체험판.
-// 출시 후 플레이 스토어 주소로 바꾸려면: https://play.google.com/store/apps/details?id=com.statflow.bugbuster
-const SHARE_URL = 'https://statflowgames.github.io/bug-buster/';
+// 자랑하기·추천하기에 붙는 주소: Google Play 스토어
+const SHARE_URL = 'https://play.google.com/store/apps/details?id=com.statflow.galaxypest';
 
 const Share = {
   card: null, text: '',
@@ -24,7 +23,7 @@ const Share = {
       c.fillStyle = g; c.fillRect(0, 0, W, H);
       for (let i = 0; i < 90; i++) { c.globalAlpha = Math.random() * 0.8 + 0.2; c.fillStyle = '#fff'; c.fillRect(Math.random() * W, Math.random() * H, 2, 2); }
       c.globalAlpha = 1;
-      const F = I18n.font(), tx = (s, y, size, color, font = F.display) => { c.font = `${size}px ${font}`; c.textAlign = 'center'; c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillText(s, W / 2 + 2, y + 3); c.fillStyle = color; c.fillText(s, W / 2, y); };
+      const F = I18n.font(), tx = (s, y, size, color, font = F.display) => { c.font = `${size}px ${font}`; c.textAlign = 'center'; c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillText(s, W / 2 + 2, y + 3, W - 40); c.fillStyle = color; c.fillText(s, W / 2, y, W - 40); };
       tx(t('eyebrow'), 70, 18, '#c6ff4d', F.body);
       tx(t('title'), 130, 64, '#ffffff');
       const boss = WORLDS[STAGES[G.stage].world].boss;
@@ -38,13 +37,28 @@ const Share = {
       const dc = { easy: '#2de2a6', normal: '#ffd23f', hard: '#ff2d55' }[G.diff];
       c.strokeStyle = dc; c.lineWidth = 2; c.beginPath(); c.roundRect(W / 2 - 60, 148, 120, 30, 15); c.stroke();
       tx(t('diff_' + G.diff), 170, 18, dc, F.body);
-      tx('statflowgames.github.io/bug-buster', 690, 15, 'rgba(255,255,255,0.6)', F.body);
+      tx('Google Play', 690, 15, 'rgba(255,255,255,0.6)', F.body);
       cv.toBlob(b => { this.card = b; }, 'image/png');
     } catch (e) { console.warn('자랑하기 그림 만들기 실패:', e); this.card = null; }
   },
 
   // 공유 창을 연다. 그림을 못 보내는 곳이면 글만, 그것도 안 되면 글을 복사해 둔다.
   async share(text, image) {
+    // 앱: 안드로이드 웹뷰에는 navigator.share 가 없어서 Capacitor Share 플러그인을 쓴다.
+    // 그림은 앱 캐시 폴더에 파일로 저장한 뒤 그 파일을 넘긴다 (Filesystem 플러그인)
+    const P = window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.Plugins;
+    if (P && P.Share) {
+      let files;
+      if (image && P.Filesystem) {
+        try {
+          const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(image); });
+          files = [(await P.Filesystem.writeFile({ path: 'galaxy-pest-control.png', data, directory: 'CACHE' })).uri];
+        } catch (e) { files = undefined; }
+      }
+      try { await P.Share.share({ text, files, dialogTitle: t('title') }); }
+      catch (e) { if (!/cancel/i.test((e && e.message) || '')) toast(t('shareFail')); }
+      return;
+    }
     if (navigator.share) {
       if (image) {
         try {

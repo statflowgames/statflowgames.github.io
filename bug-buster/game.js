@@ -254,14 +254,18 @@ function gainXp(v) {
   const p = G.p; p.xp += v;
   while (p.xp >= p.xpNext) { p.xp -= p.xpNext; p.level++; p.xpNext = nextXp(p.xpNext); G.pendingLv++; }
 }
+const bonusPts = () => Math.round((1000 + G.stage * 200) * D().score);
 function upgradeChoices() {
-  const p = G.p;
-  const ok = UPGRADES.filter(u => (p.lv[u.id] || 0) < u.max && (!u.cond || u.cond(p)));
+  const p = G.p, bonus = UPGRADES.find(u => u.id === 'bonus');
+  const ok = UPGRADES.filter(u => u !== bonus && (p.lv[u.id] || 0) < u.max && (!u.cond || u.cond(p)));
   const main = ok.filter(u => u.id !== 'heal' && u.id !== 'bomb'), extra = ok.filter(u => u.id === 'heal' || u.id === 'bomb');
   const picks = [];
   while (picks.length < 3 && main.length) picks.push(main.splice(Math.floor(Math.random() * main.length), 1)[0]);
   while (picks.length < 3 && extra.length) picks.push(extra.splice(Math.floor(Math.random() * extra.length), 1)[0]);
-  if (p.hp === 1 && picks.indexOf(UPGRADES.find(u => u.id === 'heal')) < 0) picks[2] = UPGRADES.find(u => u.id === 'heal');
+  const heal = UPGRADES.find(u => u.id === 'heal');
+  if (p.hp === 1 && !picks.includes(heal)) { if (picks.length < 3) picks.push(heal); else picks[2] = heal; }
+  // 업그레이드를 거의 다 채워 고를 게 3개보다 적으면 보너스 점수 카드로 채운다 (빈 레벨업 화면 방지)
+  if (picks.length < 3) picks.push(bonus);
   return picks;
 }
 function applyUpgrade(u) {
@@ -419,7 +423,12 @@ function update(dt) {
   G.items = G.items.filter(i => !i.gone);
   updateParts(dt);
 
-  if (G.pendingLv > 0 && G.state === 'play') { G.state = 'levelup'; Sound.play('levelup'); UI.showLevelUp(upgradeChoices()); }
+  if (G.pendingLv > 0 && G.state === 'play') {
+    const ch = upgradeChoices();
+    // 고를 게 보너스뿐이면 화면을 띄우지 않고 바로 지급 (업그레이드를 다 채운 뒤)
+    if (ch.length === 1) { applyUpgrade(ch[0]); Sound.play('pickup'); }
+    else { G.state = 'levelup'; Sound.play('levelup'); UI.showLevelUp(ch); }
+  }
 }
 function updateParts(dt) {
   for (const q of G.parts) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.92; q.vy *= 0.92; q.life -= dt; }

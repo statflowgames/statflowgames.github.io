@@ -3,7 +3,7 @@ I18N.vi = {
   ui: {
     title: 'Galaxy Pest Control', eyebrow: 'BẮN BỌ VŨ TRỤ', tagline: 'Tiêu diệt bầy côn trùng đang xâm chiếm vũ trụ!',
     start: 'Xuất kích!', stageSelect: 'Chọn màn', dex: 'Từ điển bọ', rank: '🏆 Xếp hạng', invite: 'Mời bạn bè',
-    soundOn: 'Âm thanh: bật', soundOff: 'Âm thanh: tắt', best: 'Kỷ lục', progress: 'Tiến độ',
+    soundOn: 'Âm thanh: bật', soundOff: 'Âm thanh: tắt', privacy: '🔒 Quyền riêng tư', best: 'Kỷ lục', progress: 'Tiến độ',
     hint: 'Kéo để di chuyển · Tự động bắn · 💣 xóa đạn', language: 'Ngôn ngữ',
     selHint: 'Bắt đầu từ màn sau sẽ được tiếp tế nâng cấp tương ứng', close: 'Đóng', found: 'Đã gặp',
     pause: 'Tạm dừng', bombAria: 'Bom diệt côn trùng', paused: 'Đang tạm dừng', resume: 'Tiếp tục', toTitle: 'Màn hình chính',
@@ -53,7 +53,7 @@ I18N.vi = {
     dmg: ['Thuốc xịt đậm đặc', 'Sát thương +25%'], rate: ['Bình xịt turbo', 'Tốc độ bắn +18%'], spread: ['Vòi phun tỏa', '+1 luồng đạn'],
     pierce: ['Ngòi xuyên thấu', 'Đạn xuyên thêm 1 con bọ'], homing: ['Ngòi ong tầm nhiệt', '+1 tên lửa đuổi'], drone: ['Drone ong', '+1 drone bay quanh và cùng bắn'],
     magnet: ['Nam châm phấn hoa', 'Tầm hút phấn hoa +50%'], shield: ['Khiên lưới chống côn trùng', 'Chặn 1 đòn, nạp lại sau {s} giây'], hpmax: ['Giáp tăng cường', 'Máu tối đa +1, máu +1'],
-    heal: ['Sửa chữa khẩn cấp', 'Hồi đầy máu'], bomb: ['Tiếp tế bom', '+2 bom'],
+    heal: ['Sửa chữa khẩn cấp', 'Hồi đầy máu'], bomb: ['Tiếp tế bom', '+2 bom'], bonus: ['Thưởng diệt bọ', '+{n} điểm'],
   },
   rankNames: ['VuaDiệtBọ', 'SănMuỗi', 'VuaBìnhXịt', 'DiệtCônTrùng', 'NinjaLưới', 'DọnVũTrụ', 'CưỡiGián', 'FanBọRùa', 'HếtVoVe', 'VợtMuỗi',
     'SănĐomĐóm', 'DroneOng', 'ThoátMạngNhện', 'ĐộiDiệtBọ', 'XịtXịt', 'NhangMuỗi', 'CửaLưới', 'HiệuỨngBướm', 'SănBọCánhCứng', 'LướiChuồnChuồn',

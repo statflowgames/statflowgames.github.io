@@ -1,7 +1,7 @@
 ﻿// 은하 방역대 - 랭킹 (젤리도쿠와 같은 구조)
 // 랭킹 기능 켜기. 지금은 가상 데이터라서 출시 빌드에서는 false로 끈다
 // (가짜 플레이어를 실제처럼 보여 주면 안 됨). Google Play 게임즈 리더보드를 연결하면 다시 true.
-const RANKING_ENABLED = true;
+const RANKING_ENABLED = false;
 
 // 랭킹 기간 (Google Play 게임즈 리더보드가 제공하는 세 가지)
 const PERIODS = [{ id: 'daily' }, { id: 'weekly' }, { id: 'allTime' }];

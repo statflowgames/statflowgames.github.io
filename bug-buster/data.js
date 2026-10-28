@@ -181,4 +181,6 @@ const UPGRADES = [
   { id: 'hpmax', icon: '❤️', max: 3, apply: p => { p.hpMax++; p.hp++; } },
   { id: 'heal', icon: '🩹', max: 99, cond: p => p.hp < p.hpMax, apply: p => p.hp = p.hpMax },
   { id: 'bomb', icon: '💣', max: 99, cond: p => p.bombs < 6, apply: p => p.bombs = Math.min(9, p.bombs + 2) },
+  // 고를 업그레이드가 모자랄 때 채우는 카드 (다 채운 뒤에는 화면 없이 바로 지급)
+  { id: 'bonus', icon: '⭐', max: Infinity, apply: p => { const n = bonusPts(); G.score += n; text(p.x, p.y - 30, '+' + fmt(n), '#ffd23f', 14); } },
 ];

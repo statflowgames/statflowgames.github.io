@@ -215,17 +215,33 @@ $('langBtn').onclick = () => { Sound.init(); Sound.play('select'); openLang(); }
 $('langClose').onclick = () => { $('langSel').hidden = true; };
 $('muteBtn').onclick = $('muteBtn2').onclick = () => { Sound.init(); Sound.toggleMute(); UI.syncMute(); };
 addEventListener('pointerdown', () => { Sound.init(); if (G.state === 'title') Sound.music('title'); }, { once: true });
-document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play') UI.togglePause(); });
+// 다른 앱으로 나가면 게임은 일시정지, 소리는 멈춤 (광고 화면이 떠 있을 때는 ads.js 가 소리를 다시 켬)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (G.state === 'play') UI.togglePause(); else Sound.suspend(); }
+  else if (G.state !== 'paused' && G.state !== 'ad') Sound.resume();
+});
+// 안드로이드 뒤로 가기 (앱에서만): 열린 창 닫기 → 게임 중이면 일시정지/계속 → 결과 화면이면 타이틀 → 타이틀이면 앱 종료
+const NativeApp = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App;
+if (NativeApp) NativeApp.addListener('backButton', () => {
+  const open = ['dex', 'sel', 'rank', 'langSel'].find(id => !$(id).hidden);
+  if (open) $(open).hidden = true;
+  else if (G.state === 'play' || G.state === 'paused') UI.togglePause();
+  else if (G.state === 'over' || G.state === 'ending') toTitle();
+  else if (G.state === 'title') NativeApp.exitApp();
+});
 
 // ---- 메인 루프 ----
 let lastT = performance.now(), bombShown = -1;
 function frame(now) {
   const dt = Math.min(0.033, (now - lastT) / 1000); lastT = now;
-  if (G.state === 'play' || G.state === 'over' || G.state === 'title') update(dt);
-  Render.draw();
-  if (!$('title').hidden) drawHero(now / 1000);
-  if (!$('dex').hidden) drawDex(now / 1000);
-  if (G.p && G.p.bombs !== bombShown) { bombShown = G.p.bombs; $('bombN').textContent = bombShown; $('bombBtn').classList.toggle('empty', bombShown <= 0); }
+  // 오류가 하나 나도 게임 루프가 멈추지 않게 (멈추면 화면이 얼어붙음)
+  try {
+    if (G.state === 'play' || G.state === 'over' || G.state === 'title') update(dt);
+    Render.draw();
+    if (!$('title').hidden) drawHero(now / 1000);
+    if (!$('dex').hidden) drawDex(now / 1000);
+    if (G.p && G.p.bombs !== bombShown) { bombShown = G.p.bombs; $('bombN').textContent = bombShown; $('bombBtn').classList.toggle('empty', bombShown <= 0); }
+  } catch (e) { console.error('frame error', e); }
   requestAnimationFrame(frame);
 }
 

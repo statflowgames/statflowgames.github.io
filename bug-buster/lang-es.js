@@ -3,7 +3,7 @@ I18N.es = {
   ui: {
     title: 'Galaxy Pest Control', eyebrow: 'SHOOTER DE BICHOS ESPACIALES', tagline: '¡Acaba con el enjambre de bichos que invade el espacio!',
     start: '¡Despegar!', stageSelect: 'Fases', dex: 'Bichodex', rank: '🏆 Ranking', invite: 'Invitar amigos',
-    soundOn: 'Sonido: sí', soundOff: 'Sonido: no', best: 'Récord', progress: 'Progreso',
+    soundOn: 'Sonido: sí', soundOff: 'Sonido: no', privacy: '🔒 Privacidad', best: 'Récord', progress: 'Progreso',
     hint: 'Arrastra para moverte · Disparo automático · 💣 borra las balas', language: 'Idioma',
     selHint: 'Si empiezas más adelante, recibes mejoras acordes', close: 'Cerrar', found: 'Descubiertos',
     pause: 'Pausa', bombAria: 'Bomba insecticida', paused: 'En pausa', resume: 'Continuar', toTitle: 'Inicio',
@@ -53,7 +53,7 @@ I18N.es = {
     dmg: ['Spray concentrado', 'Daño +25%'], rate: ['Pulverizador turbo', 'Cadencia +18%'], spread: ['Boquilla abierta', '+1 chorro de disparo'],
     pierce: ['Aguijón perforante', 'Los disparos atraviesan 1 bicho más'], homing: ['Aguijones teledirigidos', '+1 misil teledirigido'], drone: ['Dron abeja', '+1 dron que orbita y dispara'],
     magnet: ['Imán de polen', 'Alcance de recogida +50%'], shield: ['Escudo mosquitera', 'Bloquea 1 golpe, se recarga cada {s} s'], hpmax: ['Blindaje', 'Vida máx. +1, vida +1'],
-    heal: ['Reparación urgente', 'Recupera toda la vida'], bomb: ['Reserva de bombas', '+2 bombas'],
+    heal: ['Reparación urgente', 'Recupera toda la vida'], bomb: ['Reserva de bombas', '+2 bombas'], bonus: ['Bonus de fumigación', '+{n} puntos'],
   },
   rankNames: ['Fumigador', 'CazaMosquitos', 'ReyDelSpray', 'MataBichos', 'RedNinja', 'BarrendEspacial', 'JineteCucaracha', 'FanMariquita', 'Zumbido0', 'Matamoscas',
     'CazaLuciérnagas', 'DronAbeja', 'SinTelarañas', 'PatrullaPlaga', 'PsstPsst', 'Citronela', 'Mosquitera', 'EfectoMariposa', 'CazaEscarabajos', 'RedLibélula',

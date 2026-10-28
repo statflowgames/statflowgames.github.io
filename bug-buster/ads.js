@@ -36,25 +36,40 @@ const WebTestAds = {
 
 // 앱(Capacitor + @capacitor-community/admob)용 AdMob 전면·보상형 광고.
 // ADS_LIVE=false(개발 중)면 Google 공식 테스트 광고, true 면 실제 광고 (본인 광고를 누르면 계정 정지 위험).
-// ⚠ 출시용 빌드(.aab)를 만들 때만 true 로 바꾸고, 다시 개발할 때는 false 로 돌려 놓을 것.
-// AdMob 앱 ID(ca-app-pub-4276944921483964~9363013291)는 Capacitor 안드로이드 AndroidManifest.xml 에 넣는다.
-// 앱으로 감싼 뒤 실제 기기에서 동작을 꼭 확인할 것 (웹에서는 이 코드가 실행되지 않음)
+// ⚠ 원본은 늘 false. 출시 빌드는 scripts/build-www.mjs --release 가 www/ 사본에서만 true 로 바꾼다.
+// AdMob 앱 ID 는 안드로이드 AndroidManifest.xml (~9363013291), iOS Info.plist 의 GADApplicationIdentifier 에 넣는다.
 const ADS_LIVE = false;
+const IS_IOS = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
+const AD_UNITS = {
+  // Galaxy Pest Control (ca-app-pub-4276944921483964)
+  android: { inter: 'ca-app-pub-4276944921483964/5262444199', reward: 'ca-app-pub-4276944921483964/1268900853' },
+  ios: { inter: 'ca-app-pub-4276944921483964/8303077480', reward: 'ca-app-pub-4276944921483964/5206140850' }, // iOS 앱 ~3137099450
+  // Google 공식 테스트 광고 단위
+  testAndroid: { inter: 'ca-app-pub-3940256099942544/1033173712', reward: 'ca-app-pub-3940256099942544/5224354917' },
+  testIos: { inter: 'ca-app-pub-3940256099942544/4411468910', reward: 'ca-app-pub-3940256099942544/1712485313' },
+};
+const AD_UNIT = ADS_LIVE ? (IS_IOS ? AD_UNITS.ios : AD_UNITS.android) : (IS_IOS ? AD_UNITS.testIos : AD_UNITS.testAndroid);
 const AdMobAds = {
-  adId: ADS_LIVE
-    ? 'ca-app-pub-4276944921483964/5262444199' // 실제: Galaxy Pest Control 전면 interstitial_break
-    : 'ca-app-pub-3940256099942544/1033173712', // 전면, 테스트용
-  rewardId: ADS_LIVE
-    ? 'ca-app-pub-4276944921483964/1268900853' // 실제: Galaxy Pest Control 보상형 rewarded_revive
-    : 'ca-app-pub-3940256099942544/5224354917', // 보상형(부활), 테스트용
+  adId: AD_UNIT.inter,
+  rewardId: AD_UNIT.reward,
   ready: false,
   rewardLoaded: false,
   plugin: () => window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob,
   async init() {
     const A = this.plugin(); if (!A) return;
     await A.initialize({});
-    // 유럽 등 동의가 필요한 지역에서만 Google 동의 창(UMP)이 뜬다
-    try { const info = await A.requestConsentInfo(); if (info.isConsentFormAvailable && info.status === 'REQUIRED') await A.showConsentForm(); } catch (e) {}
+    // 유럽 등 동의가 필요한 지역에서만 Google 동의 창(UMP)이 뜬다.
+    // 그런 지역에서는 나중에 동의를 바꿀 수 있게 타이틀에 '개인정보 설정' 버튼을 보여 준다 (Google 정책)
+    try {
+      let info = await A.requestConsentInfo();
+      if (info.isConsentFormAvailable && info.status === 'REQUIRED') info = await A.showConsentForm();
+      if (info.privacyOptionsRequirementStatus === 'REQUIRED') {
+        const b = $('privacyBtn'); b.hidden = false;
+        b.onclick = () => A.showPrivacyOptionsForm().catch(() => {});
+      }
+    } catch (e) {}
+    // iOS: 앱 추적 허용(ATT) 창. AdMob 'IDFA 설명 메시지'(UMP)가 이미 띄웠으면 건너뛴다
+    if (IS_IOS) try { if ((await A.trackingAuthorizationStatus()).status === 'notDetermined') await A.requestTrackingAuthorization(); } catch (e) {}
     this.prepare();
     this.prepareReward();
   },

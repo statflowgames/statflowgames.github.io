@@ -3,7 +3,7 @@ I18N.de = {
   ui: {
     title: 'Galaxy Pest Control', eyebrow: 'WELTRAUM-KÄFER-SHOOTER', tagline: 'Vernichte den Insektenschwarm, der das All überfällt!',
     start: 'Los geht’s!', stageSelect: 'Level', dex: 'Käferdex', rank: '🏆 Rangliste', invite: 'Freunde einladen',
-    soundOn: 'Ton an', soundOff: 'Ton aus', best: 'Rekord', progress: 'Fortschritt',
+    soundOn: 'Ton an', soundOff: 'Ton aus', privacy: '🔒 Datenschutz', best: 'Rekord', progress: 'Fortschritt',
     hint: 'Ziehen zum Bewegen · Automatisches Feuer · 💣 löscht Kugeln', language: 'Sprache',
     selHint: 'Startest du später, bekommst du passende Upgrades', close: 'Schließen', found: 'Entdeckt',
     pause: 'Pause', bombAria: 'Insektenbombe', paused: 'Pausiert', resume: 'Weiter', toTitle: 'Titel',
@@ -53,7 +53,7 @@ I18N.de = {
     dmg: ['Konzentrat-Spray', 'Schaden +25%'], rate: ['Turbo-Sprüher', 'Feuerrate +18%'], spread: ['Streudüse', '+1 Schussbahn'],
     pierce: ['Durchbohrstachel', 'Schüsse durchdringen 1 Käfer mehr'], homing: ['Zielsuch-Stacheln', '+1 Lenkrakete'], drone: ['Bienendrohne', '+1 Drohne, die kreist und mitschießt'],
     magnet: ['Pollenmagnet', 'Sammelradius +50%'], shield: ['Fliegengitter-Schild', 'Blockt 1 Treffer, lädt alle {s} s nach'], hpmax: ['Panzerplatten', 'Max. Leben +1, Leben +1'],
-    heal: ['Notreparatur', 'Alle Leben auffüllen'], bomb: ['Bombennachschub', '+2 Bomben'],
+    heal: ['Notreparatur', 'Alle Leben auffüllen'], bomb: ['Bombennachschub', '+2 Bomben'], bonus: ['Bekämpfungsbonus', '+{n} Punkte'],
   },
   rankNames: ['Kammerjäger', 'Mückenjäger', 'SprayKönig', 'Käferschreck', 'NetzNinja', 'Weltraumfeger', 'Schabenreiter', 'MarienkäferFan', 'Summstopp', 'Fliegenklatsche',
     'Glühwürmchen', 'Bienendrohne', 'Netzflüchtling', 'SchädlingsTrupp', 'PffPff', 'Zitronella', 'Fliegengitter', 'Schmetterling', 'Käferjäger', 'Libellennetz',
