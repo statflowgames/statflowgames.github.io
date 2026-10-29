@@ -16,6 +16,7 @@ function resize() {
   VW = PORTRAIT ? 560 : clamp(Math.round((VH * w) / h), 480, 880);
   SCALE = Math.min((h * DPR) / VH, (w * DPR) / VW);
   OFFX = (w * DPR - VW * SCALE) / 2; OFFY = (h * DPR - VH * SCALE) / 2;
+  setCacheScale(SCALE);
 }
 window.addEventListener('resize', resize);
 resize();
@@ -146,13 +147,11 @@ function drawTitle(dt) {
   const W = WORLDS[0];
   drawBackdrop(W, titleCam, 0, time);
   const gy = VH - 52;
-  ctx.fillStyle = W.ground; ctx.fillRect(0, gy, VW, VH - gy);
-  ctx.fillStyle = W.topDark; ctx.fillRect(0, gy, VW, 12);
-  ctx.fillStyle = W.top; ctx.fillRect(0, gy, VW, 8);
+  drawGroundStrip(0, gy, titleCam * 1.6);
   const px = ((time * 160) % (VW + 200)) - 100;
   const bounce = Math.abs(Math.sin(time * 5)) * 26;
   drawArmadillo(px, gy - bounce, { dir: 1, ball: true, rot: time * 14, skin: Save.data.skin }, time);
-  for (let i = 0; i < 6; i++) drawAcorn(((i * 150 - titleCam * 1.0) % (VW + 100) + VW + 100) % (VW + 100) - 50, gy - 40 - (i % 2) * 20, Math.abs(Math.cos(time * 3 + i)));
+  for (let i = 0; i < 6; i++) drawAcorn(((i * 150 - titleCam * 1.6) % (VW + 100) + VW + 100) % (VW + 100) - 50, gy - 40 - (i % 2) * 20, Math.abs(Math.cos(time * 3 + i)));
   // 로고
   const ly = 78 + Math.sin(time * 2) * 4;
   ctx.save(); ctx.translate(VW / 2, ly); ctx.rotate(Math.sin(time * 1.4) * 0.02);
@@ -255,12 +254,12 @@ function drawShop() {
 
 // ===== 오버레이 =====
 function drawPause() {
-  const { x, y } = panel(260, 220);
+  const { x, y } = panel(260, 250);
   text(t('paused'), VW / 2, y + 32, 24, '#3b2a63', 'center', false);
   button(x + 30, y + 58, 200, 40, t('resume'), () => { G.state = 'play'; }, { size: 17 });
   button(x + 30, y + 106, 200, 36, t('retry'), () => (G.mode === 'stage' ? playStage(G.world, G.stage) : playEndless()), { color: '#5b7cff', dark: '#3446b8', size: 15 });
   button(x + 30, y + 150, 200, 36, t('quit'), () => { Sound.stopMusic(); G.mode === 'stage' ? openMap() : toTitle(); Sound.playMusic(0); }, { color: '#8a7ab8', dark: '#5a4a88', size: 15 });
-  ctx.save(); ctx.translate(0, 0); soundToggles(x + 236 - 42 - 14, y + 30); ctx.restore();
+  soundToggles(VW / 2 - 21, y + 222);
 }
 function drawResult() {
   const R = G.result, k = Math.min(1, G.stateT * 3);
