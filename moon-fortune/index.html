@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#120b2e">
+<title>달토끼 운세</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=20261029b">
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="app">
+  <div class="top">
+    <button class="back" id="backBtn" aria-label="뒤로">‹</button>
+    <div class="title" id="topTitle"></div>
+    <button class="chip" id="profileChip"></button>
+  </div>
+
+  <section class="screen" id="home">
+    <div class="hero">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <defs><radialGradient id="moonG" cx="40%" cy="35%"><stop offset="0" stop-color="#fff6d6"/><stop offset=".7" stop-color="#ffd36e"/><stop offset="1" stop-color="#f0a83c"/></radialGradient></defs>
+        <circle cx="60" cy="60" r="52" fill="url(#moonG)"/>
+        <circle cx="34" cy="40" r="6" fill="#f3b955" opacity=".5"/><circle cx="86" cy="80" r="8" fill="#f3b955" opacity=".45"/><circle cx="80" cy="34" r="4" fill="#f3b955" opacity=".5"/>
+        <g fill="#fff" stroke="#3a2580" stroke-width="2.2" stroke-linejoin="round">
+          <ellipse cx="49" cy="30" rx="6" ry="17" transform="rotate(-12 49 30)"/>
+          <ellipse cx="66" cy="29" rx="6" ry="17" transform="rotate(10 66 29)"/>
+          <ellipse cx="60" cy="86" rx="23" ry="17"/>
+          <circle cx="58" cy="58" r="20"/>
+        </g>
+        <ellipse cx="49" cy="30" rx="2.5" ry="11" fill="#ffb3cf" transform="rotate(-12 49 30)"/>
+        <ellipse cx="66" cy="29" rx="2.5" ry="11" fill="#ffb3cf" transform="rotate(10 66 29)"/>
+        <circle cx="51" cy="57" r="2.6" fill="#3a2580"/><circle cx="65" cy="57" r="2.6" fill="#3a2580"/>
+        <circle cx="46" cy="64" r="3.5" fill="#ffb3cf" opacity=".8"/><circle cx="70" cy="64" r="3.5" fill="#ffb3cf" opacity=".8"/>
+        <path d="M55 63 q3 3 6 0" fill="none" stroke="#3a2580" stroke-width="2" stroke-linecap="round"/>
+        <path d="M94 18 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#fff"/>
+      </svg>
+      <h1 class="serif">달토끼 운세</h1>
+      <p>달에서 온 토끼가 읽어 주는 나의 운명</p>
+    </div>
+    <div class="today-card" id="todayCard"></div>
+    <div class="grid" id="grid"></div>
+    <div class="foot">달토끼 운세는 재미로 보는 콘텐츠입니다 · 양력·음력 생일 지원</div>
+  </section>
+
+  <section class="screen" id="profile">
+    <div class="form">
+      <label>이름</label>
+      <input id="pfName" maxlength="12" placeholder="이름 또는 별명">
+      <label>성별</label>
+      <div class="seg" id="pfGender"><button data-v="f">여성</button><button data-v="m">남성</button></div>
+      <label>생년월일</label>
+      <div id="pfBirth"></div>
+      <label>태어난 시간</label>
+      <input id="pfTime" type="time">
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--text)"><input type="checkbox" id="pfNoTime" style="width:20px;height:20px">태어난 시간을 몰라요</label>
+      <div class="hint">시간을 넣으면 사주의 시주(時柱)까지 정확하게 볼 수 있어요. 입력한 정보는 이 기기에만 저장됩니다.</div>
+    </div>
+    <button class="btn" id="pfSave">저장하고 운세 보기 🐰</button>
+  </section>
+
+  <section class="screen gate" id="gate"></section>
+  <section class="screen" id="result"></section>
+</div>
+
+<div class="adlayer" id="adlayer">
+  <span class="tag">광고 · 테스트</span>
+  <button class="cnt">5</button>
+  <div class="box"><div style="font-size:54px">📺</div><b>여기에 광고가 나옵니다</b><p style="opacity:.8;font-size:14px">앱에서는 AdMob 보상형 광고로 바뀌어요</p></div>
+  <div class="prog"><i></i></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="js/saju.js?v=20261029b"></script>
+<script src="js/lunar.js?v=20261029b"></script>
+<script src="js/data.js?v=20261029b"></script>
+<script src="js/fortune.js?v=20261029b"></script>
+<script src="js/ads.js?v=20261029b"></script>
+<script src="js/app.js?v=20261029b"></script>
+</body>
+</html>
