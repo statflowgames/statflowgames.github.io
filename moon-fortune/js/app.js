@@ -13,7 +13,7 @@ const MENU = [
   { id: 'daily', ic: '☀️', nm: '오늘의 운세', ds: '하루 총운 · 행운 아이템', build: p => buildDaily(p, today()) },
   { id: 'weekly', ic: '📅', nm: '주간 운세', ds: '요일별 운세 흐름', build: p => buildWeekly(p, today()) },
   { id: 'monthly', ic: '🌙', nm: '월간 운세', ds: '이달의 운세와 시기별 흐름', build: p => buildMonthly(p, today()) },
-  { id: 'saju', ic: '🔮', nm: '사주팔자', ds: '타고난 기운 · 오행 분석', build: p => buildSaju(p) },
+  { id: 'saju', ic: '🔮', nm: '사주팔자', ds: '타고난 기운 · 오행 분석', build: p => buildSaju(p, today()) },
   { id: 'zodiac', ic: '✨', nm: '별자리 운세', ds: '오늘 나의 별점', build: p => buildZodiac(p, today()) },
   { id: 'compat', ic: '💞', nm: '궁합', ds: '사주 · 띠 · 별자리 궁합', build: p => buildCompat(p, partner) },
   { id: 'tarot', ic: '🃏', nm: '오늘의 타로', ds: '카드 한 장의 메시지' },
