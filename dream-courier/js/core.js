@@ -31,13 +31,15 @@ const FONT = '"Jua","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-
 
 const Save = {
   key: 'dreamcourier.v1',
-  data: { best: 0, bestDist: 0, frags: 0, deliv: 0, plays: 0, sfx: 0, music: 0 },
+  data: { best: 0, bestDist: 0, frags: 0, deliv: 0, plays: 0, sfx: 1, music: 1 },
   load() { try { const s = JSON.parse(localStorage.getItem(this.key) || 'null'); if (s) Object.assign(this.data, s); } catch (e) {} },
   save() { try { localStorage.setItem(this.key, JSON.stringify(this.data)); } catch (e) {} }
 };
 Save.load();
-// 2026-10-29: 소리 기본값을 끔. 이미 켜진 채 저장된 기록도 한 번 끈다.
-if (!Save.data.quiet) { Save.data.sfx = 0; Save.data.music = 0; Save.data.quiet = 1; Save.save(); }
+// 소리는 기본으로 켠다. 잠깐 '기본 꺼짐'이던 때 꺼진 채 저장된 기록도 한 번 다시 켠다.
+if (!Save.data.soundOn2) { Save.data.sfx = 1; Save.data.music = 1; Save.data.soundOn2 = 1; delete Save.data.quiet; Save.save(); }
+// 개발용: 주소에 ?mute 를 붙이면 저장값은 그대로 두고 소리만 끈다 (테스트할 때 PC에서 소리가 나지 않게)
+const MUTE = new URLSearchParams(location.search).has("mute");
 
 const midi = n => 440 * Math.pow(2, (n - 69) / 12);
 
@@ -49,7 +51,7 @@ const Sound = {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return;
         this.ctx = new AC();
-        this.out = this.ctx.createGain(); this.out.gain.value = 0.7; this.out.connect(this.ctx.destination);
+        this.out = this.ctx.createGain(); this.out.gain.value = MUTE ? 0 : 0.7; this.out.connect(this.ctx.destination);
         this.sfxBus = this.ctx.createGain(); this.sfxBus.connect(this.out);
         this.mus = this.ctx.createGain(); this.mus.connect(this.out);
         this.apply();
