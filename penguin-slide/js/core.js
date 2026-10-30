@@ -48,6 +48,15 @@ const STR = {
     tut3: '공중에서 누르면 빨리 내려와요. 내리막에 맞춰 착지하면 완벽!',
     tutDone: '좋아요! 이제 눈사태보다 빨리 달려요!',
     tipUp: '오르막에서는 손을 떼야 덜 느려져요!',
+    flip: '공중제비!', flipN: '공중제비 x{n}!', tipFlip: '올라가는 중에 꾹 누르면 빙글! 공중제비', flips: '공중제비',
+    magnet: '자석! 생선이 끌려와요', shield: '방패! 한 번 지켜줘요', rocket: '로켓! 슝~', shieldUsed: '방패가 막아줬다!',
+    shieldAva: '방패가 눈사태를 밀어냈다!', bump: '쾅!', smash: '와장창!', ice: '얼음길!',
+    shop: '꾸미기', back: '뒤로', equip: '착용', equipped: '착용 중', needFish: '생선이 부족해요', bought: '샀어요!',
+    sleds: '썰매', hats: '모자', missions: '미션', mDone: '미션 완료!', earned: '획득', bank: '모은 생선',
+    m_dist: '한 판에 {n}m 가기', m_fish: '한 판에 생선 {n}마리', m_perfect: '한 판에 완벽 착지 {n}번', m_flip: '한 판에 공중제비 {n}번',
+    m_item: '한 판에 아이템 {n}개', m_fever: '한 판에 피버 {n}번', m_golden: '한 판에 황금 생선 {n}마리',
+    sl_red: '빨간 썰매', sl_blue: '파란 썰매', sl_mint: '민트 썰매', sl_gold: '황금 썰매', sl_rainbow: '무지개 썰매',
+    ht_beanie: '털모자', ht_santa: '산타 모자', ht_party: '고깔모자', ht_crown: '왕관', ht_tophat: '신사 모자',
     ph0: '한낮의 설산', ph1: '노을 지는 언덕', ph2: '별이 빛나는 밤', ph3: '오로라 설원',
     langBtn: 'EN', avalanche: '눈사태',
   },
@@ -63,12 +72,22 @@ const STR = {
     tut3: 'Hold in the air to drop faster. Land along a downhill for a Perfect!',
     tutDone: 'Nice! Now outrun the avalanche!',
     tipUp: 'Let go on uphills to keep your speed!',
+    flip: 'Flip!', flipN: 'Flip x{n}!', tipFlip: 'Hold while rising to do a flip!', flips: 'Flips',
+    magnet: 'Magnet! Fish come to you', shield: 'Shield! Saves you once', rocket: 'Rocket! Zoom!', shieldUsed: 'Shield saved you!',
+    shieldAva: 'Shield pushed the avalanche back!', bump: 'Bonk!', smash: 'Smash!', ice: 'Ice path!',
+    shop: 'Style', back: 'Back', equip: 'Equip', equipped: 'Equipped', needFish: 'Not enough fish', bought: 'Bought!',
+    sleds: 'Sleds', hats: 'Hats', missions: 'Missions', mDone: 'Mission complete!', earned: 'Earned', bank: 'Fish',
+    m_dist: 'Go {n}m in one run', m_fish: 'Grab {n} fish in one run', m_perfect: '{n} perfect landings in one run', m_flip: '{n} flips in one run',
+    m_item: 'Grab {n} power-ups in one run', m_fever: 'Hit Fever {n} times in one run', m_golden: 'Grab {n} golden fish in one run',
+    sl_red: 'Red Sled', sl_blue: 'Blue Sled', sl_mint: 'Mint Sled', sl_gold: 'Golden Sled', sl_rainbow: 'Rainbow Sled',
+    ht_beanie: 'Beanie', ht_santa: 'Santa Hat', ht_party: 'Party Hat', ht_crown: 'Crown', ht_tophat: 'Top Hat',
     ph0: 'Noon Peaks', ph1: 'Sunset Slopes', ph2: 'Starry Night', ph3: 'Aurora Fields',
     langBtn: '한', avalanche: 'Avalanche',
   },
 };
 let LANG = (navigator.language || 'en').toLowerCase().startsWith('ko') ? 'ko' : 'en';
 const t = k => (STR[LANG] && STR[LANG][k] != null ? STR[LANG][k] : STR.en[k] != null ? STR.en[k] : k);
+const tn = (k, n) => t(k).replace('{n}', n);
 
 // ===== 저장 =====
 const Save = {
@@ -77,7 +96,9 @@ const Save = {
   load() {
     let d = null;
     try { d = JSON.parse(localStorage.getItem(this.key)); } catch (e) { d = null; }
-    this.data = Object.assign({ bestDist: 0, bestScore: 0, fishTotal: 0, plays: 0, music: true, sfx: true, lang: null, tut: false }, d || {});
+    this.data = Object.assign({ bestDist: 0, bestScore: 0, fishTotal: 0, plays: 0, music: true, sfx: true, lang: null, tut: false,
+      bank: null, owned: ['sled:red', 'hat:beanie'], sled: 'red', hat: 'beanie', missions: null, mIdx: 0, tipFlip: false }, d || {});
+    if (this.data.bank == null) this.data.bank = this.data.fishTotal; // 예전 기록의 생선은 지갑으로 옮긴다
     // 소리는 기본으로 켠다. 잠깐 '기본 꺼짐'이던 때 꺼진 채 저장된 기록도 한 번 다시 켠다.
     if (!this.data.soundOn2) { this.data.music = true; this.data.sfx = true; this.data.soundOn2 = true; delete this.data.quiet; this.save(); }
     if (this.data.lang && STR[this.data.lang]) LANG = this.data.lang;
@@ -195,6 +216,16 @@ const Sound = {
       case 'phase': seq([784, 988, 1175, 1568], 0.25, 'sine', 0.09, 0.12); break;
       case 'click': this.tone(760, 0.05, 'triangle', 0.1); break;
       case 'start': seq([523, 784, 1047], 0.1, 'triangle', 0.12, 0.07); break;
+      case 'flip': this.tone(400, 0.3, 'sine', 0.08, 900); this.noise(0.25, 0.08, 2500, 0, null, 'bandpass'); break;
+      case 'flipLand': seq([784, 988, 1319, 1568, 1976], 0.1, 'square', 0.07, 0.04); break;
+      case 'item': seq([660, 990, 1320], 0.09, 'square', 0.09, 0.05); this.tone(1760, 0.3, 'sine', 0.06, 0, 0.15); break;
+      case 'shield': this.tone(900, 0.4, 'sine', 0.14, 300); this.noise(0.3, 0.15, 3000, 0, null, 'highpass'); break;
+      case 'bump': this.noise(0.25, 0.3, 400); this.tone(90, 0.2, 'square', 0.1, 50); break;
+      case 'smash': this.noise(0.35, 0.28, 1600); this.tone(300, 0.15, 'triangle', 0.1, 120); break;
+      case 'rocket': this.noise(1.2, 0.18, 900, 0, null, 'bandpass'); this.tone(200, 1.0, 'sawtooth', 0.05, 600); break;
+      case 'mission': seq([659, 784, 1047, 0, 1319, 1568], 0.14, 'triangle', 0.13, 0.08); break;
+      case 'buy': seq([660, 880, 1320], 0.1, 'triangle', 0.15, 0.07); break;
+      case 'deny': this.tone(220, 0.15, 'square', 0.08, 180); break;
     }
   },
   // ----- 배경음악: 부드러운 오음 음계 선율을 자동으로 만든다 -----

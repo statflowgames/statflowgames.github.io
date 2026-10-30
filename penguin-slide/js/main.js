@@ -46,6 +46,7 @@ window.addEventListener('keydown', e => {
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (e.repeat) return;
   if (e.code === 'Escape' || e.code === 'KeyP') {
+    if (screen === 'shop') { toTitle(); return; }
     if (playing()) pauseGame();
     else if (screen === 'play' && G.state === 'paused') resumeGame();
     return;
@@ -120,30 +121,38 @@ function startRun() {
 }
 function pauseGame() { G.state = 'paused'; Input.clearAll(); }
 function resumeGame() { G.state = 'play'; Input.clearAll(); }
-function toTitle() { Input.clearAll(); newGame(true); screen = 'title'; }
+function toTitle() { Input.clearAll(); if (screen !== 'shop') newGame(true); screen = 'title'; }
+function openShop() { Input.clearAll(); shopSel = null; screen = 'shop'; }
 
 // ===== 타이틀 =====
 function drawTitle() {
   ctx.fillStyle = 'rgba(10,20,60,0.12)'; ctx.fillRect(0, 0, VW, VH);
-  const ly = 92 + Math.sin(time * 2) * 4;
+  const ly = 74 + Math.sin(time * 2) * 3;
   ctx.save(); ctx.translate(VW / 2, ly); ctx.rotate(Math.sin(time * 1.3) * 0.02);
-  const sz = LANG === 'ko' ? 50 : 54;
+  const sz = LANG === 'ko' ? 46 : 50;
   text(t('title'), 0, 5, sz, '#1d3a78', 'center', '#1d3a78', 16);
   text(t('title'), 0, 0, sz, '#ffffff', 'center', '#3a7bd5', 10);
   ctx.restore();
-  text(t('tagline'), VW / 2, ly + 46, 16, '#fff', 'center', 'rgba(20,40,90,0.85)', 5);
+  text(t('tagline'), VW / 2, 118, 15, '#fff', 'center', 'rgba(20,40,90,0.85)', 5);
   if (Save.data.bestDist > 0) {
-    ctx.fillStyle = 'rgba(20,30,70,0.45)'; rrect(VW / 2 - 110, ly + 70, 220, 30, 15); ctx.fill();
-    text(`🏔 ${t('bestDist')} ${Save.data.bestDist} m · 🐟 ${Save.data.fishTotal}`, VW / 2, ly + 85, 13, '#fff', 'center', false);
+    ctx.fillStyle = 'rgba(20,30,70,0.45)'; rrect(VW / 2 - 90, 134, 180, 24, 12); ctx.fill();
+    text(`🏔 ${t('bestDist')} ${Save.data.bestDist} m`, VW / 2, 146, 12, '#fff', 'center', false);
   }
+  // 미션
+  ensureMissions();
+  const mw = Math.min(330, VW - 60), mx = VW / 2 - mw / 2;
+  text('🎯 ' + t('missions'), mx + 4, 180, 13, '#ffe066', 'left', 'rgba(20,30,70,0.85)', 3);
+  drawMissionList(mx, 200, mw);
   const pulse = 0.6 + 0.4 * Math.sin(time * 4);
   ctx.globalAlpha = pulse;
-  text('▶ ' + t('tapStart'), VW / 2, VH - 46, 20, '#ffe066', 'center', 'rgba(20,30,70,0.9)', 5);
+  text('▶ ' + t('tapStart'), VW / 2, VH - 34, 20, '#ffe066', 'center', 'rgba(20,30,70,0.9)', 5);
   ctx.globalAlpha = 1;
+  button(14, VH - 58, 104, 40, '🛷 ' + t('shop'), openShop, { color: '#ff6b9a', dark: '#c23f6c', size: 15 });
   soundToggles(30, 28);
   roundIcon(114, 28, 17, (x, y) => text(t('langBtn'), x, y + 1, 12, '#fff', 'center', false), () => {
     LANG = LANG === 'ko' ? 'en' : 'ko'; Save.data.lang = LANG; Save.save();
   });
+  bankChip(VW - 14, 28);
 }
 
 function drawPause() {
@@ -158,19 +167,27 @@ function drawOver() {
   const k = smooth01(G.stateT / 0.35);
   ctx.save();
   ctx.globalAlpha = k;
-  const { x, y } = panel(380, 262);
-  text(t('caught'), VW / 2, y + 30, 19, '#2b4a86', 'center', false);
-  text(`${G.dist} m`, VW / 2, y + 78, 46, '#ff7a3d', 'center', '#fff', 6);
-  if (G.newBest) text('★ ' + t('newBest') + ' ★', VW / 2, y + 116, 16, '#ff4d6a', 'center', false);
-  else text(`${t('bestDist')} ${Save.data.bestDist} m`, VW / 2, y + 116, 14, '#5a6a90', 'center', false);
-  const cy = y + 150;
-  drawFish(VW / 2 - 132, cy, 1, false, 0);
-  text(`${G.fish}`, VW / 2 - 116, cy, 16, '#22335a', 'left', false);
-  text(`${t('perfects')} ${G.perfects}`, VW / 2, cy, 14, '#22335a', 'center', false);
-  text(`${t('score')} ${G.score}`, VW / 2 + 128, cy, 14, '#22335a', 'center', false);
+  const pw = Math.min(400, VW - 24), { x, y } = panel(pw, 312);
+  const cx = VW / 2;
+  text(t('caught'), cx, y + 24, 16, '#2b4a86', 'center', false);
+  text(`${G.dist} m`, cx, y + 60, 40, '#ff7a3d', 'center', '#fff', 6);
+  if (G.newBest) text('★ ' + t('newBest') + ' ★', cx, y + 93, 15, '#ff4d6a', 'center', false);
+  else text(`${t('bestDist')} ${Save.data.bestDist} m`, cx, y + 93, 13, '#5a6a90', 'center', false);
+  const sy = y + 120, col = pw / 4;
+  drawFish(x + col * 0.5 - 16, sy, 0.9, false, 0);
+  text(`${G.fish}`, x + col * 0.5 - 2, sy, 15, '#22335a', 'left', false);
+  text(`${t('perfects')} ${G.st.perfect}`, x + col * 1.5, sy, 12, '#22335a', 'center', false);
+  text(`${t('flips')} ${G.st.flip}`, x + col * 2.5, sy, 12, '#22335a', 'center', false);
+  text(`${t('score')} ${G.score}`, x + col * 3.5, sy, 12, '#22335a', 'center', false);
+  // 이번 판에 번 생선 (미션 보상 포함)
+  ctx.fillStyle = 'rgba(255,214,90,0.35)'; rrect(cx - 90, y + 136, 180, 24, 12); ctx.fill();
+  text(`${t('earned')} +${G.earned}`, cx - 6, y + 148, 13, '#8a5a00', 'center', false);
+  drawFish(cx + 56, y + 148, 0.7, false, 0);
+  drawMissionList(x + 16, y + 180, pw - 32, { list: G.mList, done: G.mDone, prog: G.mList.map(missionProg), dark: true });
   if (G.stateT > 0.5) {
-    button(x + 24, y + 186, 200, 50, t('retry'), startRun, { size: 20 });
-    button(x + 236, y + 186, 120, 50, t('home'), toTitle, { color: '#8a9ab8', dark: '#5a6a88', size: 16 });
+    const bw = pw - 48 - 130;
+    button(x + 24, y + 250, bw, 46, t('retry'), startRun, { size: 20 });
+    button(x + 36 + bw, y + 250, 118, 46, t('home'), toTitle, { color: '#8a9ab8', dark: '#5a6a88', size: 16 });
   }
   ctx.restore();
 }
@@ -181,13 +198,13 @@ function frame(now) {
   const dt = clamp((now - last) / 1000, 0, 0.05);
   last = now; time += dt;
   G.inp.held = Input.held;
-  const run = screen === 'title' || (screen === 'play' && (G.state === 'play' || G.state === 'caught'));
+  const run = screen === 'title' || screen === 'shop' || (screen === 'play' && (G.state === 'play' || G.state === 'caught'));
   if (run) {
     acc += dt;
     while (acc >= PH.DT) {
       stepGame(PH.DT);
       acc -= PH.DT;
-      if (screen === 'title' && G.P.x > 60000) newGame(true);
+      if (screen !== 'play' && G.P.x > 60000) newGame(true);
     }
   } else if (G.state === 'over') { G.stateT += dt; stepParts(dt); }
   updateLoops();
@@ -212,6 +229,7 @@ function render(dt) {
   UIB = [];
   drawWorld(time, dt);
   if (screen === 'title') drawTitle();
+  else if (screen === 'shop') drawShop();
   else {
     drawHUD(time);
     if (G.state === 'play') roundIcon(VW - 30, 28, 17, iconPause, pauseGame);
