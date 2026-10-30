@@ -77,9 +77,9 @@ const Save = {
   load() {
     let d = null;
     try { d = JSON.parse(localStorage.getItem(this.key)); } catch (e) { d = null; }
-    this.data = Object.assign({ bestDist: 0, bestScore: 0, fishTotal: 0, plays: 0, music: false, sfx: false, lang: null, tut: false }, d || {});
-    // 2026-10-29: 소리 기본값을 끔. 이미 켜진 채 저장된 기록도 한 번 끈다.
-    if (!this.data.quiet) { this.data.music = false; this.data.sfx = false; this.data.quiet = true; this.save(); }
+    this.data = Object.assign({ bestDist: 0, bestScore: 0, fishTotal: 0, plays: 0, music: true, sfx: true, lang: null, tut: false }, d || {});
+    // 소리는 기본으로 켠다. 잠깐 '기본 꺼짐'이던 때 꺼진 채 저장된 기록도 한 번 다시 켠다.
+    if (!this.data.soundOn2) { this.data.music = true; this.data.sfx = true; this.data.soundOn2 = true; delete this.data.quiet; this.save(); }
     if (this.data.lang && STR[this.data.lang]) LANG = this.data.lang;
   },
   save() { try { localStorage.setItem(this.key, JSON.stringify(this.data)); } catch (e) { /* 저장할 수 없는 환경 */ } },
