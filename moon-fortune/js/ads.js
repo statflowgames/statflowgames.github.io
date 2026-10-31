@@ -62,7 +62,7 @@ const Ads = {
       const tick = setInterval(() => {
         left--;
         if (left > 0) { cnt.textContent = left; return; }
-        clearInterval(tick); done = true; cnt.textContent = '✕ 닫기';
+        clearInterval(tick); done = true; cnt.textContent = typeof lang === 'function' ? lang().ui.close : '✕ 닫기';
       }, 1000);
       cnt.onclick = () => {
         if (!done) return;

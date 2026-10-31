@@ -14,12 +14,50 @@ const HOUR_NAMES = ['자시 (23:30~01:29)', '축시 (01:30~03:29)', '인시 (03:
   '진시 (07:30~09:29)', '사시 (09:30~11:29)', '오시 (11:30~13:29)', '미시 (13:30~15:29)',
   '신시 (15:30~17:29)', '유시 (17:30~19:29)', '술시 (19:30~21:29)', '해시 (21:30~23:29)'];
 
+// 대한민국 주요 지역 경도. 저장된 예전 프로필은 서울을 기본값으로 사용한다.
+const BIRTH_PLACES = {
+  seoul: { name: '서울·경기', lon: 126.9780 }, incheon: { name: '인천', lon: 126.7052 },
+  gangneung: { name: '강원·강릉', lon: 128.8761 }, daejeon: { name: '대전·충청', lon: 127.3845 },
+  daegu: { name: '대구·경북', lon: 128.6014 }, busan: { name: '부산·경남', lon: 129.0756 },
+  ulsan: { name: '울산', lon: 129.3114 }, gwangju: { name: '광주·전라', lon: 126.8526 },
+  jeju: { name: '제주', lon: 126.5312 },
+};
+
 function mod(n, m) { return ((n % m) + m) % m; }
 
 function jdn(y, m, d) {
   const a = Math.floor((14 - m) / 12);
   const yy = y + 4800 - a, mm = m + 12 * a - 3;
   return d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045;
+}
+
+// IANA Asia/Seoul 자료를 이용해 과거 UTC+8:30 및 서머타임까지 반영한다.
+function offsetAtUtc(utcMs) {
+  try {
+    const z = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', timeZoneName: 'longOffset' })
+      .formatToParts(new Date(utcMs)).find(x => x.type === 'timeZoneName').value;
+    const m = z.match(/GMT([+-])(\d{2}):(\d{2})/);
+    if (m) return (m[1] === '-' ? -1 : 1) * (+m[2] * 60 + +m[3]);
+  } catch (e) { }
+  return 540;
+}
+
+function koreaOffsetMinutes(y, m, d, hour = 12, min = 0) {
+  const wall = Date.UTC(y, m - 1, d, hour, min);
+  let off = 540;
+  for (let i = 0; i < 2; i++) off = offsetAtUtc(wall - off * 60000);
+  return off;
+}
+
+function localCivilJD(y, m, d, hour = 12, min = 0) {
+  return jdn(y, m, d) - 0.5 + (hour * 60 + min - koreaOffsetMinutes(y, m, d, hour, min)) / 1440;
+}
+
+function solarClock(p) {
+  const place = BIRTH_PLACES[p.loc] || BIRTH_PLACES.seoul;
+  const offset = koreaOffsetMinutes(p.y, p.m, p.d, p.hour || 0, p.min || 0);
+  const correction = place.lon * 4 - offset;
+  return { place, correction, minutes: (p.hour || 0) * 60 + (p.min || 0) + correction };
 }
 
 // 태양의 겉보기 황경 (Meeus 저정밀 공식, 오차 약 0.01°)
@@ -43,7 +81,7 @@ function dayPillar(y, m, d) { return pillarIdx(mod(jdn(y, m, d) + 49, 60)); }
 
 // 해당 시각(한국 표준시)의 년주·월주
 function yearMonthPillars(y, m, d, hour = 12, min = 0) {
-  const jd = jdn(y, m, d) - 0.5 + (hour * 60 + min) / 1440 - 9 / 24;
+  const jd = localCivilJD(y, m, d, hour, min);
   const lon = sunLongitude(jd);
   const k = Math.floor(mod(lon - 315, 360) / 30); // 0 = 인월(입춘) … 11 = 축월(소한)
   const sy = (m <= 2 && k >= 10) ? y - 1 : y;
@@ -62,20 +100,35 @@ function computeSaju(p) {
   const hasTime = p.hour !== null && p.hour !== undefined;
   const h = hasTime ? p.hour : 12, mi = hasTime ? (p.min || 0) : 0;
   const ym = yearMonthPillars(p.y, p.m, p.d, h, mi);
-  // 23:30 이후(야자시)는 다음 날 일진으로 본다
-  const late = hasTime && h * 60 + mi >= 23 * 60 + 30;
-  const dd = late ? addDays(p.y, p.m, p.d, 1) : [p.y, p.m, p.d];
+  // 출생지 경도·당시 표준시를 반영한 진태양시. 야자시는 진태양시 23:00부터 다음 날 일진으로 본다.
+  const sc = hasTime ? solarClock(p) : null;
+  const solarDayShift = sc ? Math.floor(sc.minutes / 1440) : 0;
+  const solarMin = sc ? mod(sc.minutes, 1440) : h * 60 + mi;
+  const solarDate = solarDayShift ? addDays(p.y, p.m, p.d, solarDayShift) : [p.y, p.m, p.d];
+  const late = hasTime && solarMin >= 23 * 60;
+  const dd = late ? addDays(solarDate[0], solarDate[1], solarDate[2], 1) : solarDate;
   const day = dayPillar(dd[0], dd[1], dd[2]);
   let hourP = null;
   if (hasTime) {
-    const t = h * 60 + mi - 30;
-    const hb = Math.floor(mod(t + 60, 1440) / 120);
+    const hb = Math.floor(mod(solarMin + 60, 1440) / 120);
     hourP = pillar(mod((day.s % 5) * 2 + hb, 10), hb);
   }
   const pillars = [hourP, day, ym.month, ym.year];
   const count = [0, 0, 0, 0, 0];
   pillars.forEach(pp => { if (pp) { count[STEM_EL[pp.s]]++; count[BRANCH_EL[pp.b]]++; } });
-  return { year: ym.year, month: ym.month, day, hour: hourP, count, me: day.s, meEl: STEM_EL[day.s], animal: ym.year.b };
+  return { year: ym.year, month: ym.month, day, hour: hourP, count, me: day.s, meEl: STEM_EL[day.s], animal: ym.year.b, solarClock: sc };
+}
+
+// 월주가 바뀌는 절입(315°부터 30° 간격)과의 대략적인 거리. 경계 오차 안내에만 사용한다.
+function sajuBoundaryWarning(p) {
+  const hasTime = p.hour !== null && p.hour !== undefined;
+  const h = hasTime ? p.hour : 12, mi = hasTime ? (p.min || 0) : 0;
+  const lon = sunLongitude(localCivilJD(p.y, p.m, p.d, h, mi));
+  const rem = mod(lon - 315, 30);
+  const minutes = Math.min(rem, 30 - rem) / 0.98564736 * 1440;
+  if (!hasTime && minutes <= 12 * 60) return '태어난 시간이 없는 절기 경계일이라 연주·월주가 달라질 수 있어요.';
+  if (hasTime && minutes <= 30) return '절기 전환 시각과 가까워 전문 만세력과 연주·월주가 다를 수 있어요.';
+  return '';
 }
 
 // 나(일간 오행) 기준으로 상대 오행과의 관계
