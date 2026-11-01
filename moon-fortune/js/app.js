@@ -321,35 +321,66 @@ async function requestPremiumAccess(btn, freeKey = null) {
   else if (free) Store.set('mf_free_day', dayKey());
   return true;
 }
+// 궁합: 두 사람을 각각 저장된 사람 중에서 고르거나 직접 입력
+let compatPair = null;
+function compatSlotHTML(k, label) {
+  const U = lang().ui, C = compatText();
+  return `<div class="form cp" id="cp${k}" style="text-align:left;margin-bottom:12px">
+    <label>${label}</label><select class="cpSel">${profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}<option value="__manual">${C[2]}</option></select>
+    <div class="cpManual"><label>${U.name}</label><input class="cpName" maxlength="12" placeholder="${U.nameHint}">
+      <label>${U.birth}</label><div class="cpBirth"></div>
+      <label>${U.gender}</label><div class="seg cpGender"><button data-v="f">${U.female}</button><button data-v="m">${U.male}</button></div></div></div>`;
+}
+function setupCompatSlot(k, sel, manual) {
+  const box = $(`#cp${k}`), select = box.querySelector('.cpSel');
+  select.value = sel && (sel === '__manual' || profiles.some(p => p.id === sel)) ? sel : '__manual';
+  box.querySelector('.cpName').value = manual.name || '';
+  birthPicker(box.querySelector('.cpBirth'), manual);
+  const seg = box.querySelector('.cpGender');
+  seg.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('on', b.dataset.v === (manual.gender || 'f'));
+    b.onclick = () => seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  });
+  const sync = () => { box.querySelector('.cpManual').style.display = select.value === '__manual' ? '' : 'none'; };
+  select.onchange = sync; sync();
+}
+function readCompatSlot(k) {
+  const box = $(`#cp${k}`), v = box.querySelector('.cpSel').value;
+  if (v !== '__manual') return { person: profiles.find(p => p.id === v), sel: v };
+  const person = readPerson(box.querySelector('.cpName'), box.querySelector('.cpBirth'), null, null, `#cp${k} .cpGender`);
+  return person ? { person, sel: v, manual: true } : null;
+}
+
 function renderGate(id) {
   const it = findItem(id);
   const U = lang().ui;
   setActiveTab(id);
   show('gate', it.nm);
   const isCompat = id === 'compat';
-  const q = partner || { name: '', y: 1995, m: 1, d: 1 };
   const free = (id === 'daily' && firstFreeLeft('daily')) || hasDailyFreeView();
+  const C = compatText();
   $('#gate').innerHTML = `<div class="big">${it.ic}</div>
-    <h2 class="serif">${esc(profile.name)} · ${it.nm}</h2><p>${it.ds}</p>
-    ${isCompat ? `<div class="form" style="text-align:left;margin-bottom:14px">
-        <label>${U.partnerName}</label><input id="ptName" maxlength="12" placeholder="${U.nameHint}" value="${esc(q.name)}">
-        <label>${U.partnerBirth}</label><div id="ptBirth"></div>
-        <label>${U.partnerGender}</label><div class="seg" id="ptGender"><button data-v="f">${U.female}</button><button data-v="m">${U.male}</button></div></div>`
+    <h2 class="serif">${isCompat ? it.nm : `${esc(profile.name)} · ${it.nm}`}</h2><p>${it.ds}</p>
+    ${isCompat ? `${compatSlotHTML('A', C[0])}<div style="font-size:26px;margin:-4px 0 8px">💞</div>${compatSlotHTML('B', C[1])}`
       : `<div class="teaser"><div class="bar" style="width:60%"></div><div class="bar"></div><div class="bar" style="width:85%"></div><div class="bar" style="width:70%"></div><div class="bar" style="width:92%"></div>
         <div class="lock"><b>🔒</b>${U.prepared}</div></div>`}
     <button class="btn" id="watchBtn">${free ? U.freeResult : U.adResult}<span class="sub">${free ? U.freeSub : U.adSub}</span></button>
     <p class="hint" style="margin-top:12px">${U.disclaimer}</p>`;
   if (isCompat) {
-    const seg = $('#ptGender');
-    seg.querySelectorAll('button').forEach(b => b.onclick = () => seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)));
-    setSeg('#ptGender', q.gender || (profile.gender === 'f' ? 'm' : 'f'));
-    birthPicker($('#ptBirth'), q);
+    const last = Store.get('mf_compat_sel') || {};
+    const blank = g => ({ name: '', gender: g, y: 1995, m: 1, d: 1 });
+    setupCompatSlot('A', last.a || activeProfileId, Store.get('mf_compat_a') || blank(profile.gender));
+    setupCompatSlot('B', last.b || '__manual', partner || blank(profile.gender === 'f' ? 'm' : 'f'));
   }
   $('#watchBtn').onclick = async () => {
     if (isCompat) {
-      const pt = readPerson($('#ptName'), $('#ptBirth'), null, null, '#ptGender');
-      if (!pt) return;
-      partner = pt; Store.set('mf_partner', pt);
+      const a = readCompatSlot('A'); if (!a) return;
+      const b = readCompatSlot('B'); if (!b) return;
+      if (!a.manual && !b.manual && a.sel === b.sel) { toast(C[3]); return; }
+      if (a.manual) Store.set('mf_compat_a', a.person);
+      if (b.manual) { partner = b.person; Store.set('mf_partner', b.person); }
+      Store.set('mf_compat_sel', { a: a.sel, b: b.sel });
+      compatPair = [a.person, b.person];
     }
     const btn = $('#watchBtn');
     if (!await requestPremiumAccess(btn, id === 'daily' ? 'daily' : null)) return;
@@ -368,8 +399,9 @@ function loadingThen(fn) {
 function renderResult(it) {
   setActiveTab(it.id);
   loadingThen(() => {
-    const source = it.build(profile);
-    const res = localizedDetailedResult(it.id, profile, partner, source);
+    const [P, Q] = it.id === 'compat' && compatPair ? compatPair : [profile, partner];
+    const source = it.id === 'compat' ? buildCompat(P, Q) : it.build(profile);
+    const res = localizedDetailedResult(it.id, P, Q, source);
     $('#result').innerHTML = res.html + resultFooter();
     bindFooter(res.share);
     animateResult();

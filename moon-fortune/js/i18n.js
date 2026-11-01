@@ -112,6 +112,16 @@ const NAV_I18N = {
   es: { home: 'Inicio', saju: 'Pilares', zodiac: 'Zodiaco', tarot: 'Tarot' },
   de: { home: 'Start', saju: 'Säulen', zodiac: 'Sternzeichen', tarot: 'Tarot' },
 };
+const COMPAT_PICK_I18N = {
+  ko: ['첫 번째 사람', '두 번째 사람', '직접 입력', '서로 다른 두 사람을 골라 주세요'],
+  en: ['First person', 'Second person', 'Enter manually', 'Please choose two different people'],
+  ja: ['1人目', '2人目', '直接入力', '別々の2人を選んでください'],
+  zh: ['第一个人', '第二个人', '手动输入', '请选择两个不同的人'],
+  vi: ['Người thứ nhất', 'Người thứ hai', 'Nhập trực tiếp', 'Hãy chọn hai người khác nhau'],
+  es: ['Primera persona', 'Segunda persona', 'Introducir manualmente', 'Elige dos personas distintas'],
+  de: ['Erste Person', 'Zweite Person', 'Manuell eingeben', 'Bitte wähle zwei verschiedene Personen'],
+};
+function compatText() { return COMPAT_PICK_I18N[locale] || COMPAT_PICK_I18N.ko; }
 function navLabel(id) { return (NAV_I18N[locale] || NAV_I18N.ko)[id]; }
 function navHomeLabel() { return navLabel('home'); }
 function localDate(y, m, d, withWeekday = true) {
