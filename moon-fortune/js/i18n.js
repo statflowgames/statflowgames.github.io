@@ -103,10 +103,30 @@ function setLocale(code) {
 }
 function localeTag() { return LANGUAGE_META[locale][1]; }
 function menuText(id, vars = {}) { const x = lang().menu[id]; return [fmt(x[0], vars), fmt(x[1], vars)]; }
+const NAV_I18N = {
+  ko: { home: '홈', saju: '사주', zodiac: '별자리', tarot: '타로' },
+  en: { home: 'Home', saju: 'Saju', zodiac: 'Zodiac', tarot: 'Tarot' },
+  ja: { home: 'ホーム', saju: '四柱', zodiac: '星座', tarot: 'タロット' },
+  zh: { home: '首页', saju: '八字', zodiac: '星座', tarot: '塔罗' },
+  vi: { home: 'Trang chủ', saju: 'Bát tự', zodiac: 'Hoàng đạo', tarot: 'Tarot' },
+  es: { home: 'Inicio', saju: 'Pilares', zodiac: 'Zodiaco', tarot: 'Tarot' },
+  de: { home: 'Start', saju: 'Säulen', zodiac: 'Sternzeichen', tarot: 'Tarot' },
+};
+function navLabel(id) { return (NAV_I18N[locale] || NAV_I18N.ko)[id]; }
+function navHomeLabel() { return navLabel('home'); }
 function localDate(y, m, d, withWeekday = true) {
   return new Intl.DateTimeFormat(localeTag(), { year: 'numeric', month: 'long', day: 'numeric', ...(withWeekday ? { weekday: 'short' } : {}) }).format(new Date(y, m - 1, d));
 }
 function scoreBand(score) { return lang().bands[Math.max(0, Math.min(4, Math.round((score - 30) / 14) - 1))]; }
+const BIRTH_ERROR_I18N = {
+  en: 'Please check the lunar date and leap-month setting.',
+  ja: '旧暦の日付と閏月の設定を確認してください。',
+  zh: '请检查农历日期和闰月设置。',
+  vi: 'Vui lòng kiểm tra ngày âm lịch và thiết lập tháng nhuận.',
+  es: 'Revisa la fecha lunar y la opción de mes intercalar.',
+  de: 'Bitte prüfe das Monddatum und die Schaltmonat-Einstellung.',
+};
+function localizedBirthError(message) { return locale === 'ko' ? message : BIRTH_ERROR_I18N[locale] || BIRTH_ERROR_I18N.en; }
 
 const BIRTH_PLACE_I18N = {
   ko: ['서울·경기', '인천', '강원·강릉', '대전·충청', '대구·경북', '부산·경남', '울산', '광주·전라', '제주'],

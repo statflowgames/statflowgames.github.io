@@ -25,8 +25,8 @@ function today() { const t = new Date(); return [t.getFullYear(), t.getMonth() +
 function dayKey() { return today().join('-'); }
 // false = 모든 운세를 볼 때마다 광고 1편. true = 오늘의 운세·별자리·타로 한 장 상시 무료 + 나머지 하루 첫 1회 무료
 const FREE_PERKS = false;
-// false = 한국어만 (외국어는 결과 해설이 아직 요약뿐이라 숨김)
-const MULTI_LANG = false;
+// 상세 결과까지 번역된 7개 언어를 노출한다.
+const MULTI_LANG = true;
 function hasDailyFreeView() { return FREE_PERKS && Store.get('mf_free_day') !== dayKey(); }
 const ALWAYS_FREE = new Set(FREE_PERKS ? ['daily', 'zodiac', 'tarot'] : []);
 let tarotPaid = false; // 관문에서 광고를 본 직후의 타로 1회
@@ -44,6 +44,8 @@ const localizedItem = x => { const [nm, ds] = menuText(x.id, { y: yearTarget(tod
 const menuItems = () => MENU_DEF.map(localizedItem);
 const YEAR_ITEM = () => localizedItem({ id: 'yearly', ic: '🎆', build: p => buildYearly(p, today()) });
 const findItem = id => id === 'yearly' ? YEAR_ITEM() : menuItems().find(m => m.id === id);
+const CORE_TABS = new Set(['saju', 'zodiac', 'tarot']);
+let activeTab = 'home';
 
 function applyStaticI18n() {
   const L = lang(), U = L.ui;
@@ -53,6 +55,7 @@ function applyStaticI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = U[el.dataset.i18n] || el.textContent; });
   $('#pfName').placeholder = U.nameHint; $('#profileLimit').textContent = U.max8;
   $('#adTag').textContent = U.adTag; $('#adHere').textContent = U.adHere; $('#adNative').textContent = U.adNative;
+  renderBottomNav();
 }
 
 $('#langSelect').innerHTML = Object.entries(LANGUAGE_META).map(([code, x]) => `<option value="${code}">${x[0]}</option>`).join('');
@@ -66,12 +69,24 @@ applyStaticI18n();
 
 // ---------- 화면 전환 ----------
 let renderSeq = 0; // 화면이 바뀌면 늦게 끝난 이전 결과 렌더링을 버린다
+function renderBottomNav() {
+  const labels = { home: navLabel('home'), saju: navLabel('saju'), zodiac: navLabel('zodiac'), tarot: navLabel('tarot') };
+  document.querySelectorAll('#bottomNav button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === activeTab);
+    b.querySelector('b').textContent = labels[b.dataset.tab];
+    b.setAttribute('aria-label', labels[b.dataset.tab]);
+    if (b.dataset.tab === activeTab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  $('#bottomNav').setAttribute('aria-label', navHomeLabel());
+}
+function setActiveTab(id) { activeTab = CORE_TABS.has(id) ? id : 'home'; renderBottomNav(); }
 function show(id, title) {
   renderSeq++;
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
   $('#topTitle').textContent = title || '';
   $('#backBtn').style.visibility = id === 'home' ? 'hidden' : 'visible';
   $('#profileChip').style.display = id === 'home' && profile ? '' : 'none';
+  $('#bottomNav').hidden = !['home', 'gate', 'result'].includes(id);
   window.scrollTo(0, 0);
 }
 function go(id, title) {
@@ -88,6 +103,7 @@ function toast(msg) {
 
 // ---------- 홈 ----------
 function renderHome() {
+  setActiveTab('home');
   show('home');
   const U = lang().ui, T = terms();
   const [y, m, d] = today();
@@ -102,7 +118,7 @@ function renderHome() {
   $('#todayCard').innerHTML = `<div class="d">${localDate(y, m, d)} · ${U.todayPillar}</div>
     <div class="g serif">${gz.han} <span style="font-size:14px;color:var(--muted)">(${T.elements[STEM_EL[gz.s]]})</span></div>
     <div class="d" style="margin-top:4px">${profile ? fmt(U.check, { name: esc(profile.name) }) : U.addBirth}</div>${tags}`;
-  const items = [YEAR_ITEM(), ...menuItems()];
+  const items = [YEAR_ITEM(), ...menuItems().filter(it => !CORE_TABS.has(it.id))];
   $('#grid').innerHTML = items.map(it => `<button class="tile ${it.id === 'yearly' ? 'wide' : ''}" data-id="${it.id}">
       <span class="ad">${ALWAYS_FREE.has(it.id) ? U.free : hasDailyFreeView() ? U.dailyFree : U.ad}</span><div class="ic">${it.ic}</div><div><div class="nm">${it.nm}</div><div class="ds">${it.ds}</div></div></button>`).join('');
   $('#grid').querySelectorAll('.tile').forEach(b => b.onclick = () => openItem(b.dataset.id));
@@ -110,6 +126,7 @@ function renderHome() {
 $('#profileChip').onclick = () => openProfiles();
 
 function openItem(id) {
+  setActiveTab(id);
   if (!profile) { openProfile(id); return; }
   if (ALWAYS_FREE.has(id)) {
     const it = findItem(id);
@@ -120,6 +137,22 @@ function openItem(id) {
   }
   openGate(id);
 }
+
+function openCoreTab(id) {
+  setActiveTab(id);
+  if (!profile) { openProfile(id); return; }
+  if (id === 'tarot') {
+    history.pushState({ s: 'result', tab: id }, '');
+    tarotPaid = false; renderTarot();
+  } else openItem(id);
+}
+document.querySelectorAll('#bottomNav button').forEach(b => b.onclick = () => {
+  const id = b.dataset.tab;
+  if (id === 'home') {
+    if (activeTab === 'home' && $('#home').classList.contains('on')) return;
+    history.pushState({ s: 'home' }, ''); renderHome();
+  } else openCoreTab(id);
+});
 
 // ---------- 프로필 ----------
 let afterProfile = null;
@@ -173,7 +206,7 @@ function birthPicker(el, v) {
     if (!(lunar && lm === m)) q('.bl').checked = false;
     const r = readBirth(el);
     const l = !lunar && !r.error ? solarToLunar(r.y, r.m, r.d) : null;
-    q('.conv').textContent = r.error ? '⚠️ ' + r.error
+    q('.conv').textContent = r.error ? '⚠️ ' + localizedBirthError(r.error)
       : lunar ? `→ ${U.solar} ${localDate(r.y, r.m, r.d, false)}` : l ? `→ ${U.lunar} ${l.y} ${U.year} ${l.leap ? fmt(U.leap, { m: l.m }) : `${l.m}${U.month}`} ${l.d}${U.day}` : '';
   };
   seg.querySelectorAll('button').forEach(b => {
@@ -200,7 +233,7 @@ function readPerson(nameEl, birthEl, timeEl, noTimeEl, genderSel, placeEl = null
   const name = nameEl.value.trim();
   if (!name) { toast(U.requiredName); return null; }
   const b = readBirth(birthEl);
-  if (b.error) { toast(b.error); return null; }
+  if (b.error) { toast(localizedBirthError(b.error)); return null; }
   const t = new Date();
   if (b.y * 10000 + b.m * 100 + b.d > t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate()) { toast(U.futureDate); return null; }
   let hour = null, min = 0;
@@ -224,7 +257,9 @@ $('#pfSave').onclick = () => {
   toast(fmt(lang().ui.saved, { name: p.name }));
   if (afterProfile) {
     history.replaceState({ s: 'home' }, '');
-    if (ALWAYS_FREE.has(afterProfile)) {
+    if (afterProfile === 'tarot') {
+      history.pushState({ s: 'result', tab: 'tarot' }, ''); renderTarot();
+    } else if (ALWAYS_FREE.has(afterProfile)) {
       const it = findItem(afterProfile);
       history.pushState({ s: 'result' }, ''); show('result', it.nm);
       if (afterProfile === 'tarot') renderTarot(); else renderResult(it);
@@ -284,6 +319,7 @@ async function requestPremiumAccess(btn) {
 function renderGate(id) {
   const it = findItem(id);
   const U = lang().ui;
+  setActiveTab(id);
   show('gate', it.nm);
   const isCompat = id === 'compat';
   const q = partner || { name: '', y: 1995, m: 1, d: 1 };
@@ -325,9 +361,10 @@ function loadingThen(fn) {
   setTimeout(() => { if (seq === renderSeq) fn(); }, 1100);
 }
 function renderResult(it) {
+  setActiveTab(it.id);
   loadingThen(() => {
     const source = it.build(profile);
-    const res = localizedResult(it.id, profile, partner, source);
+    const res = localizedDetailedResult(it.id, profile, partner, source);
     $('#result').innerHTML = res.html + resultFooter();
     bindFooter(res.share);
     animateResult();
@@ -367,6 +404,7 @@ function tarotMode(key) { const [name, desc, positions] = lang().tarot.modes[key
 
 function renderTarot() {
   const U = lang().ui, R = lang().tarot;
+  setActiveTab('tarot');
   show('result', menuText('tarot')[0]);
   $('#result').innerHTML = `<div class="res-head"><div class="lbl">${fmt(R.label, { name: esc(profile.name) })}</div><h2 class="serif">${R.question}</h2></div>
     <div class="tarot-modes">${Object.entries(TAROT_MODES).map(([k, base]) => { const m = tarotMode(k); return `<button class="tarot-mode" data-mode="${k}"><span style="font-size:28px">${base.icon}</span><b>${m.name}</b><span>${m.desc}</span>${tarotPaid ? '' : `<span class="tagline" style="margin-top:6px">${FREE_PERKS && k === 'daily' ? U.free : hasDailyFreeView() ? U.todayFree : U.adOpen}</span>`}</button>`; }).join('')}</div>
@@ -422,9 +460,9 @@ function showTarotResult(modeKey, readings) {
     jae: '오늘은 현실적인 결과를 챙기는 흐름이라 시간·돈·약속을 구체적으로 점검해 보세요.',
     gwan: '오늘은 책임과 기준이 강조되니 서두르기보다 원칙을 확인하는 편이 안전해요.',
   }[rel] : tarotBridge(rel);
-  const cards = readings.map(({ card: c, rev, position }) => { const tx = tarotCardText(c, rev); return `<div class="card"><span class="tagline">${position} · ${rev ? `${lang().tarot.reversed} 🔄` : `${lang().tarot.upright} ⬆️`}</span>
+  const cards = readings.map(({ card: c, rev, position }) => { const tx = detailedTarotCardText(c, rev); return `<div class="card"><span class="tagline">${position} · ${rev ? `${lang().tarot.reversed} 🔄` : `${lang().tarot.upright} ⬆️`}</span>
     <h3>${c.icon} ${tarotCardName(c)}</h3><p><b>${tx.keyword}</b></p><p>${tx.message}</p></div>`; }).join('');
-  const keywords = readings.map(x => tarotCardText(x.card, x.rev).keyword).join(' · ');
+  const keywords = readings.map(x => detailedTarotCardText(x.card, x.rev).keyword).join(' · ');
   $('#tarotOut').innerHTML = `${cards}<div class="card calc-note"><h3>☯️ ${lang().tarot.sajuLink}</h3><p>${esc(profile.name)}: <b>${terms().masters[s.me]}</b> · <b>${gz.han}</b>. ${bridge}</p></div>
     <div class="card advice">${fmt(lang().tarot.keyword, { mode: mode.name })} — ${keywords}</div>
     <button class="btn ghost" id="tarotAgain">${lang().ui.anotherTarot}</button>${resultFooter()}`;
