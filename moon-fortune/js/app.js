@@ -50,6 +50,10 @@ const findItem = id => id === 'yearly' ? YEAR_ITEM() : menuItems().find(m => m.i
 const CORE_TABS = new Set(['saju', 'zodiac', 'tarot']);
 let activeTab = 'home';
 
+const PRIVACY_I18N = {
+  ko: ['개인정보 설정', '개인정보처리방침'], en: ['Privacy settings', 'Privacy Policy'], ja: ['プライバシー設定', 'プライバシーポリシー'],
+  zh: ['隐私设置', '隐私政策'], vi: ['Cài đặt quyền riêng tư', 'Chính sách quyền riêng tư'], es: ['Privacidad', 'Política de privacidad'], de: ['Datenschutz-Einstellungen', 'Datenschutzerklärung'],
+};
 function applyStaticI18n() {
   const L = lang(), U = L.ui;
   document.title = L.app[0];
@@ -58,6 +62,8 @@ function applyStaticI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = U[el.dataset.i18n] || el.textContent; });
   $('#pfName').placeholder = U.nameHint; $('#profileLimit').textContent = U.max8;
   $('#adTag').textContent = U.adTag; $('#adHere').textContent = U.adHere; $('#adNative').textContent = U.adNative;
+  const PV = PRIVACY_I18N[locale] || PRIVACY_I18N.en;
+  $('#privacyBtn').textContent = '🔒 ' + PV[0]; $('#policyLink').textContent = PV[1];
   renderBottomNav();
 }
 
@@ -96,7 +102,7 @@ function go(id, title) {
   history.pushState({ s: id }, '');
   show(id, title);
 }
-window.addEventListener('popstate', () => renderHome());
+window.addEventListener('popstate', e => e.state && e.state.s === 'profiles' ? showProfiles() : renderHome());
 $('#backBtn').onclick = () => history.length > 1 ? history.back() : renderHome();
 
 function toast(msg) {
@@ -271,8 +277,10 @@ $('#pfSave').onclick = () => {
   else history.back();
 };
 
-function openProfiles() {
-  go('profiles', lang().ui.selectPerson);
+function openProfiles() { history.pushState({ s: 'profiles' }, ''); showProfiles(); }
+function showProfiles() {
+  setActiveTab('home');
+  show('profiles', lang().ui.selectPerson);
   renderProfileList();
 }
 function renderProfileList() {
@@ -410,6 +418,9 @@ function renderResult(it) {
 function resultFooter() {
   return `<button class="btn" id="shareBtn">${lang().ui.share}</button><button class="btn ghost" id="homeBtn">${lang().ui.home}</button>`;
 }
+// 공유 글에 붙는 주소: 앱은 Play 스토어, 웹 체험판은 체험판 주소
+const SHARE_URL = window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()
+  ? 'https://play.google.com/store/apps/details?id=com.statflow.moonfortune' : 'https://statflowgames.github.io/moon-fortune/';
 function bindFooter(text) {
   $('#homeBtn').onclick = () => history.back();
   $('#shareBtn').onclick = async () => {
@@ -471,7 +482,7 @@ function tarotCardButton(reading, slot) {
 
 function startTarotReading(modeKey) {
   const mode = tarotMode(modeKey), single = mode.positions.length === 1;
-  const readings = tarotDraw(modeKey, single ? 3 : 3);
+  const readings = tarotDraw(modeKey, 3);
   $('#result').innerHTML = `<div class="res-head"><div class="lbl">${mode.icon} ${mode.name}</div><h2 class="serif">${single ? lang().tarot.pickOne : lang().tarot.pickAll}</h2></div>
     <div class="tarot-pick">${readings.map((x, i) => tarotCardButton(x, i)).join('')}</div>
     ${single ? '' : `<div class="tarot-spread-labels">${mode.positions.map(x => `<span>${x}</span>`).join('')}</div>`}<div id="tarotOut"></div>`;
@@ -482,7 +493,7 @@ function startTarotReading(modeKey) {
     el.setAttribute('aria-label', `${tarotCardName(reading.card)}, ${reading.rev ? lang().tarot.reversed : lang().tarot.upright}`);
     if (single) document.querySelectorAll('.tcard').forEach(o => o !== el && o.classList.add('dim'));
     const picked = single ? [{ ...reading, position: mode.positions[0] }] : readings.map((x, n) => ({ ...x, position: mode.positions[n] }));
-    if (single || document.querySelectorAll('.tcard.flip').length === readings.length) setTimeout(() => showTarotResult(modeKey, single ? picked : picked), 650);
+    if (single || document.querySelectorAll('.tcard.flip').length === readings.length) setTimeout(() => showTarotResult(modeKey, picked), 650);
   });
 }
 
@@ -531,6 +542,13 @@ function stars() {
   };
   loop();
 }
+
+// 앱(안드로이드) 뒤로 가기: 광고 화면이면 무시, 홈이 아니면 한 단계 뒤로, 홈이면 앱 종료
+const NativeApp = window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.Plugins && Capacitor.Plugins.App;
+if (NativeApp) NativeApp.addListener('backButton', () => {
+  if ($('#adlayer').classList.contains('on')) return;
+  if ($('#home').classList.contains('on')) NativeApp.exitApp(); else history.back();
+});
 
 history.replaceState({ s: 'home' }, '');
 stars();

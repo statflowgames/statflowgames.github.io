@@ -76,6 +76,8 @@ html[lang="zh"] body { font-family: 'Noto Sans SC', 'Noto Sans KR', system-ui, s
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .12), transparent); animation: shine 5s infinite; }
 @keyframes shine { 0%, 70% { left: -60%; } 100% { left: 130%; } }
 .foot { text-align: center; color: var(--muted); font-size: 11px; margin-top: 22px; opacity: .7; }
+.foot .linkbtn { background: none; border: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; padding: 6px 8px; }
+.foot .linkbtn[hidden] { display: none; }
 
 /* 폼 */
 .form { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; }

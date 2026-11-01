@@ -2,10 +2,13 @@
 // 앱(Capacitor + @capacitor-community/admob)에서는 실제 AdMob 보상형, 웹에서는 5초짜리 테스트 광고 화면
 const ADS_LIVE = false; // 출시 빌드에서만 true (실제 광고 ID 사용)
 const AD_UNITS = {
-  android: { test: 'ca-app-pub-3940256099942544/5224354917', live: '' }, // TODO: AdMob 앱 만든 뒤 실제 ID
-  ios: { test: 'ca-app-pub-3940256099942544/1712485313', live: '' },
+  // Moon Rabbit Fortune (ca-app-pub-4276944921483964): Android 앱 ~4518280108, iOS 앱 ~3205198432
+  android: { test: 'ca-app-pub-3940256099942544/5224354917', live: 'ca-app-pub-4276944921483964/5388508640' },
+  ios: { test: 'ca-app-pub-3940256099942544/1712485313', live: 'ca-app-pub-4276944921483964/9192022286' },
 };
 const WEB_AD_SECONDS = 5;
+
+const IS_IOS = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
 
 const Ads = {
   native() {
@@ -13,42 +16,52 @@ const Ads = {
     return C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.AdMob ? C.Plugins.AdMob : null;
   },
   unitId() {
-    const ios = window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios';
-    const u = ios ? AD_UNITS.ios : AD_UNITS.android;
+    const u = IS_IOS ? AD_UNITS.ios : AD_UNITS.android;
     return ADS_LIVE && u.live ? u.live : u.test;
   },
   async init() {
     const A = this.native();
     if (!A) return;
+    try { await A.initialize({}); } catch (e) { console.warn('admob init', e); return; }
+    // 유럽 등 동의가 필요한 지역에서만 Google 동의 창(UMP)이 뜬다. 그런 지역은 홈 아래에 '개인정보 설정' 버튼을 보여 준다
     try {
-      await A.initialize({});
-      this.preload();
-    } catch (e) { console.warn('admob init', e); }
+      let info = await A.requestConsentInfo();
+      if (info.isConsentFormAvailable && info.status === 'REQUIRED') info = await A.showConsentForm();
+      if (info.privacyOptionsRequirementStatus === 'REQUIRED') {
+        const b = document.getElementById('privacyBtn'); b.hidden = false;
+        b.onclick = () => A.showPrivacyOptionsForm().catch(() => {});
+      }
+    } catch (e) { }
+    if (IS_IOS) try { if ((await A.trackingAuthorizationStatus()).status === 'notDetermined') await A.requestTrackingAuthorization(); } catch (e) { }
+    this.preload();
   },
-  _ready: null,
-  preload() {
-    const A = this.native();
-    if (!A) return;
-    this._ready = A.prepareRewardVideoAd({ adId: this.unitId(), isTesting: !ADS_LIVE }).catch(e => { this._ready = null; throw e; });
+  loaded: false,
+  async preload() {
+    try { await this.native().prepareRewardVideoAd({ adId: this.unitId(), isTesting: !ADS_LIVE }); this.loaded = true; }
+    catch (e) { this.loaded = false; }
   },
-  // 보상을 받으면 true
+  // 끝까지 봐서 보상을 받으면 true. 광고가 없을 때(no fill)는 사용자를 막지 않는다
   async showRewarded() {
     const A = this.native();
     if (!A) return this.showWeb();
+    if (!this.loaded) { await this.preload(); if (!this.loaded) { this.preload(); return true; } }
+    this.loaded = false;
+    let rewarded = false, failed = false;
+    const subs = [];
     try {
-      if (!this._ready) this.preload();
-      await this._ready;
-      const r = await A.showRewardVideoAd();
-      this._ready = null;
+      const closed = new Promise(res => {
+        subs.push(A.addListener('onRewardedVideoAdReward', () => { rewarded = true; }));
+        subs.push(A.addListener('onRewardedVideoAdDismissed', res));
+        subs.push(A.addListener('onRewardedVideoAdFailedToShow', () => { failed = true; res(); }));
+        setTimeout(res, 120000);
+      });
+      await A.showRewardVideoAd(); await closed;
+    } catch (e) { failed = true; }
+    finally {
+      for (const s of subs) Promise.resolve(s).then(h => h && h.remove && h.remove()).catch(() => { });
       this.preload();
-      return !!r;
-    } catch (e) {
-      // 광고가 없을 때(no fill)는 사용자를 막지 않는다
-      console.warn('rewarded', e);
-      this._ready = null;
-      this.preload();
-      return true;
     }
+    return rewarded || failed;
   },
   showWeb() {
     return new Promise(resolve => {

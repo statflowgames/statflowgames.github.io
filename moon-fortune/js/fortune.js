@@ -225,6 +225,8 @@ function buildDaily(p, now) {
   };
 }
 
+// 월간 문장을 주간 결과에 쓸 때 '달'을 '주'로 바꾼다
+const asWeek = t => t.replace(/이달은 /g, '이번 주는 ').replace(/이달/g, '이번 주').replace(/달입니다/g, '주입니다').replace(/달이에요/g, '주예요');
 function buildWeekly(p, now) {
   const A = analyzeSaju(p), s = A.s;
   const base = new Date(now[0], now[1] - 1, now[2]);
@@ -246,7 +248,7 @@ function buildWeekly(p, now) {
     share: `${p.name}님의 이번 주 운세: ${avg}점 — ${WEEK_TITLE[T.group]}`,
     html: `<div class="res-head"><div class="lbl">${days[0].date} ~ ${days[6].date} 주간 운세</div>
       <h2 class="serif">${WEEK_TITLE[T.group]}</h2>${ringHTML(avg, '주간 평균')}</div>
-      <div class="card"><h3>🔮 이번 주의 기운</h3>${tgTag(tg)}<p>${WEEK_BODY[T.group]}</p><p>${T.month.split('. ').slice(0, 2).join('. ')}.</p></div>
+      <div class="card"><h3>🔮 이번 주의 기운</h3>${tgTag(tg)}<p>${WEEK_BODY[T.group]}</p><p>${asWeek(T.month.split('. ').slice(0, 2).join('. '))}.</p></div>
       <div class="card"><h3>📅 요일별 운세 흐름</h3>${barsHTML(days)}
         <p style="margin-top:10px">👍 가장 좋은 날은 <b>${best.l}요일(${best.date})</b>, 조심할 날은 <b>${worst.l}요일(${worst.date})</b>이에요.</p></div>
       <div class="card"><h3>🗓️ 하루하루 미리 보기</h3>${rowsHTML(days.map(x => ({
