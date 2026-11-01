@@ -30,6 +30,9 @@ const MULTI_LANG = true;
 function hasDailyFreeView() { return FREE_PERKS && Store.get('mf_free_day') !== dayKey(); }
 const ALWAYS_FREE = new Set(FREE_PERKS ? ['daily', 'zodiac', 'tarot'] : []);
 let tarotPaid = false; // 관문에서 광고를 본 직후의 타로 1회
+// 하루 첫 1회만 광고 없이: 오늘의 운세, 타로 '오늘의 한 장'
+const FIRST_FREE = { daily: 'mf_free_daily', tarotDaily: 'mf_free_tarot' };
+const firstFreeLeft = key => !!FIRST_FREE[key] && Store.get(FIRST_FREE[key]) !== dayKey();
 
 const MENU_DEF = [
   { id: 'daily', ic: '☀️', build: p => buildDaily(p, today()) },
@@ -120,7 +123,7 @@ function renderHome() {
     <div class="d" style="margin-top:4px">${profile ? fmt(U.check, { name: esc(profile.name) }) : U.addBirth}</div>${tags}`;
   const items = [YEAR_ITEM(), ...menuItems().filter(it => !CORE_TABS.has(it.id))];
   $('#grid').innerHTML = items.map(it => `<button class="tile ${it.id === 'yearly' ? 'wide' : ''}" data-id="${it.id}">
-      <span class="ad">${ALWAYS_FREE.has(it.id) ? U.free : hasDailyFreeView() ? U.dailyFree : U.ad}</span><div class="ic">${it.ic}</div><div><div class="nm">${it.nm}</div><div class="ds">${it.ds}</div></div></button>`).join('');
+      <span class="ad">${ALWAYS_FREE.has(it.id) ? U.free : (it.id === 'daily' && firstFreeLeft('daily')) || hasDailyFreeView() ? U.dailyFree : U.ad}</span><div class="ic">${it.ic}</div><div><div class="nm">${it.nm}</div><div class="ds">${it.ds}</div></div></button>`).join('');
   $('#grid').querySelectorAll('.tile').forEach(b => b.onclick = () => openItem(b.dataset.id));
 }
 $('#profileChip').onclick = () => openProfiles();
@@ -207,7 +210,7 @@ function birthPicker(el, v) {
     const r = readBirth(el);
     const l = !lunar && !r.error ? solarToLunar(r.y, r.m, r.d) : null;
     q('.conv').textContent = r.error ? '⚠️ ' + localizedBirthError(r.error)
-      : lunar ? `→ ${U.solar} ${localDate(r.y, r.m, r.d, false)}` : l ? `→ ${U.lunar} ${l.y} ${U.year} ${l.leap ? fmt(U.leap, { m: l.m }) : `${l.m}${U.month}`} ${l.d}${U.day}` : '';
+      : lunar ? `→ ${U.solar} ${localDate(r.y, r.m, r.d, false)}` : l ? `→ ${U.lunar} ${['ko', 'ja', 'zh'].includes(locale) ? `${l.y}${U.year} ${l.leap ? fmt(U.leap, { m: l.m }).replace(/(이에요|です)$/, '') : `${l.m}${U.month}`} ${l.d}${U.day}` : `${l.y}-${l.m}-${l.d}${l.leap ? ` (${fmt(U.leap, { m: l.m })})` : ''}`}` : '';
   };
   seg.querySelectorAll('button').forEach(b => {
     b.classList.toggle('on', b.dataset.v === cal);
@@ -307,13 +310,15 @@ $('#addProfile').onclick = () => {
 // ---------- 광고 관문 ----------
 function openGateReplace(id) { history.replaceState({ s: 'gate' }, ''); renderGate(id); }
 function openGate(id) { history.pushState({ s: 'gate' }, ''); renderGate(id); }
-async function requestPremiumAccess(btn) {
-  const free = hasDailyFreeView();
+async function requestPremiumAccess(btn, freeKey = null) {
+  const firstFree = firstFreeLeft(freeKey);
+  const free = firstFree || hasDailyFreeView();
   if (btn) btn.disabled = true;
   const ok = free ? true : await Ads.showRewarded();
   if (btn) btn.disabled = false;
   if (!ok) { toast(lang().ui.adNeed); return false; }
-  if (free) Store.set('mf_free_day', dayKey());
+  if (firstFree) Store.set(FIRST_FREE[freeKey], dayKey());
+  else if (free) Store.set('mf_free_day', dayKey());
   return true;
 }
 function renderGate(id) {
@@ -323,7 +328,7 @@ function renderGate(id) {
   show('gate', it.nm);
   const isCompat = id === 'compat';
   const q = partner || { name: '', y: 1995, m: 1, d: 1 };
-  const free = hasDailyFreeView();
+  const free = (id === 'daily' && firstFreeLeft('daily')) || hasDailyFreeView();
   $('#gate').innerHTML = `<div class="big">${it.ic}</div>
     <h2 class="serif">${esc(profile.name)} · ${it.nm}</h2><p>${it.ds}</p>
     ${isCompat ? `<div class="form" style="text-align:left;margin-bottom:14px">
@@ -347,7 +352,7 @@ function renderGate(id) {
       partner = pt; Store.set('mf_partner', pt);
     }
     const btn = $('#watchBtn');
-    if (!await requestPremiumAccess(btn)) return;
+    if (!await requestPremiumAccess(btn, id === 'daily' ? 'daily' : null)) return;
     history.replaceState({ s: 'result' }, '');
     if (id === 'tarot') { tarotPaid = true; renderTarot(); } else renderResult(it);
   };
@@ -407,11 +412,11 @@ function renderTarot() {
   setActiveTab('tarot');
   show('result', menuText('tarot')[0]);
   $('#result').innerHTML = `<div class="res-head"><div class="lbl">${fmt(R.label, { name: esc(profile.name) })}</div><h2 class="serif">${R.question}</h2></div>
-    <div class="tarot-modes">${Object.entries(TAROT_MODES).map(([k, base]) => { const m = tarotMode(k); return `<button class="tarot-mode" data-mode="${k}"><span style="font-size:28px">${base.icon}</span><b>${m.name}</b><span>${m.desc}</span>${tarotPaid ? '' : `<span class="tagline" style="margin-top:6px">${FREE_PERKS && k === 'daily' ? U.free : hasDailyFreeView() ? U.todayFree : U.adOpen}</span>`}</button>`; }).join('')}</div>
+    <div class="tarot-modes">${Object.entries(TAROT_MODES).map(([k, base]) => { const m = tarotMode(k); return `<button class="tarot-mode" data-mode="${k}"><span style="font-size:28px">${base.icon}</span><b>${m.name}</b><span>${m.desc}</span>${tarotPaid ? '' : `<span class="tagline" style="margin-top:6px">${FREE_PERKS && k === 'daily' ? U.free : k === 'daily' && firstFreeLeft('tarotDaily') ? U.dailyFree : hasDailyFreeView() ? U.todayFree : U.adOpen}</span>`}</button>`; }).join('')}</div>
     <div class="card calc-note"><h3>🃏 ${R.guide}</h3><p>${R.guideText}</p></div>`;
   document.querySelectorAll('.tarot-mode').forEach(b => b.onclick = async () => {
     const needAd = !(FREE_PERKS && b.dataset.mode === 'daily') && !tarotPaid;
-    if (needAd && !await requestPremiumAccess(b)) return;
+    if (needAd && !await requestPremiumAccess(b, b.dataset.mode === 'daily' ? 'tarotDaily' : null)) return;
     tarotPaid = false;
     startTarotReading(b.dataset.mode);
   });
