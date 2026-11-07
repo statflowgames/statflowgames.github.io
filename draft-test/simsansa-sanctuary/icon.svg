@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="마음의 성소">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#79b9bd"/><stop offset="1" stop-color="#273d61"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffe2a0"/><stop offset="1" stop-color="#bd792e"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#sky)"/>
+  <circle cx="256" cy="137" r="69" fill="#ffe8b3" opacity=".9"/>
+  <path d="M29 382 158 226l98 109 79-95 148 142v94H29z" fill="#1c4e46"/>
+  <path d="M67 303h200l-25 31H92z" fill="#d5543f"/><path d="M92 337h151v107H92z" fill="#f2d38c"/>
+  <path d="M77 302 167 242l91 60z" fill="#263537"/><path d="M117 355h101v89H117z" fill="#8f382a"/>
+  <path d="M327 264a76 76 0 0 1 152 0v180H327z" fill="#eee2c9"/><path d="M342 264a61 61 0 0 1 122 0z" fill="url(#gold)"/>
+  <rect x="392" y="172" width="22" height="153" rx="7" fill="url(#gold)"/><rect x="358" y="213" width="90" height="22" rx="7" fill="url(#gold)"/>
+  <path d="M0 439c127-39 235 23 346-4 70-17 119-6 166 7v70H0z" fill="#102b2d"/>
+</svg>

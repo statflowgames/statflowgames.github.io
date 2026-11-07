@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#102827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>마음의 성소 · 모바일 플레이테스트</title>
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#102827;color:#f5ecd8;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;overscroll-behavior:none}
+    #unity-canvas{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;background:#a7c0c8;touch-action:none;outline:0}
+    #loading{position:fixed;z-index:20;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#315f59,#102827 68%);transition:opacity .5s}
+    #loading.done{opacity:0;pointer-events:none}
+    .loader{width:min(78vw,360px);text-align:center}.mark{width:76px;height:76px;margin:auto;border:1px solid #e4bd6c;border-radius:26px;display:grid;place-items:center;font-size:36px;background:#ffffff0b;box-shadow:0 20px 60px #0005}.loader h1{margin:20px 0 5px;font-family:serif;font-size:25px;letter-spacing:-.05em}.loader p{margin:0 0 22px;color:#d7cfbd99;font-size:11px}.track{height:5px;overflow:hidden;border-radius:99px;background:#ffffff17}.bar{width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#d99b43,#f6dc95);transition:width .15s}.percent{margin-top:9px;color:#f6dc95;font-size:10px;font-variant-numeric:tabular-nums}
+    #warning{position:fixed;z-index:30;top:max(10px,env(safe-area-inset-top));left:50%;width:min(92vw,620px);transform:translateX(-50%);font-size:12px;text-align:center}.warning{margin:5px;padding:10px 14px;border-radius:13px;background:#562d25ee}.warning.info{background:#1b3e3aee}
+    @media (orientation:landscape){.loader{width:min(52vw,420px)}.mark{width:64px;height:64px;border-radius:22px}.loader h1{margin-top:13px}}
+  </style>
+</head>
+<body>
+  <canvas id="unity-canvas" tabindex="-1" aria-label="마음의 성소 3D 체험"></canvas>
+  <div id="loading"><div class="loader"><div class="mark">◈</div><h1>마음의 성소</h1><p>산사와 빛의 대성전을 준비하고 있습니다</p><div class="track"><div class="bar" id="bar"></div></div><div class="percent" id="percent">0%</div></div></div>
+  <div id="warning"></div>
+  <script>
+    const canvas=document.querySelector('#unity-canvas');
+    const loading=document.querySelector('#loading');
+    const bar=document.querySelector('#bar');
+    const percent=document.querySelector('#percent');
+    const warning=document.querySelector('#warning');
+    const buildUrl='Build';
+    const config={
+      dataUrl:buildUrl+'/WebGL.data.unityweb',
+      frameworkUrl:buildUrl+'/WebGL.framework.js.unityweb',
+      codeUrl:buildUrl+'/WebGL.wasm.unityweb',
+      streamingAssetsUrl:'StreamingAssets',
+      companyName:'SimSanSa Studio',
+      productName:'마음의 성소',
+      productVersion:'0.3-mobile',
+      devicePixelRatio:Math.min(window.devicePixelRatio||1,1.35),
+      showBanner(message,type){
+        const item=document.createElement('div');
+        item.className='warning '+(type==='error'?'':'info');
+        item.textContent=message;
+        warning.appendChild(item);
+        if(type!=='error')setTimeout(()=>item.remove(),5000);
+      }
+    };
+    function fit(){
+      const width=window.visualViewport?.width||window.innerWidth;
+      const height=window.visualViewport?.height||window.innerHeight;
+      canvas.style.width=width+'px';canvas.style.height=height+'px';
+    }
+    fit();
+    addEventListener('resize',fit,{passive:true});
+    addEventListener('orientationchange',()=>setTimeout(fit,120),{passive:true});
+    const script=document.createElement('script');
+    script.src=buildUrl+'/WebGL.loader.js';
+    script.onload=()=>createUnityInstance(canvas,config,p=>{const n=Math.round(p*100);bar.style.width=n+'%';percent.textContent=n+'%';})
+      .then(()=>{loading.classList.add('done');setTimeout(()=>loading.remove(),600);})
+      .catch(error=>{config.showBanner('불러오지 못했습니다: '+error,'error');});
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>
