@@ -57,7 +57,8 @@ export function generateChunk(seed: number, stage: StageId, chunkIndex: number):
       const chamber = row % 17 === 0 && col > 2 && col < WORLD_COLS - 3;
       const naturalCave = row > 12 && hash(seed ^ 0x9e3779b9, row, col) < .075;
       const secret = row % 19 === 7 && (col === 1 || col === WORLD_COLS - 2);
-      if (col === shaft || chamber || naturalCave) continue;
+      const tutorialShaft = stage === 'green' && (col === 7 || col === 8);
+      if (tutorialShaft || col === shaft || chamber || naturalCave) continue;
       cells.push({ row, col, kind: secret ? 'chest' : tileFor(seed, stage, row, col), variant: Math.floor(hash(seed ^ 0x14fa9, row, col) * 4), hidden: secret });
     }
   }
