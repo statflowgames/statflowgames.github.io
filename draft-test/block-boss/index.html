@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#15113f">
+  <title>블록 보스전 | Statflow Games Lab</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <main class="app">
+    <header class="topbar">
+      <a class="lab-link" href="../" aria-label="플레이테스트 목록">‹ LAB</a>
+      <div class="score-chip"><span>SCORE</span><b id="score">0</b></div>
+      <button id="sound" class="round-btn" aria-label="소리 켜기 또는 끄기">♪</button>
+      <button id="pause" class="round-btn" aria-label="일시정지">Ⅱ</button>
+    </header>
+
+    <section class="battle" aria-label="블록 보스전 게임 화면">
+      <div class="boss-card" id="bossCard">
+        <div class="boss-avatar" id="bossAvatar"><span class="horn l"></span><span class="horn r"></span><i></i></div>
+        <div class="boss-info">
+          <div class="boss-name"><b>젤리 대왕</b><span id="bossMood">여유 만만</span></div>
+          <div class="hp-track"><div id="bossHp" class="hp-fill"></div></div>
+        </div>
+        <div id="damagePop" class="damage-pop">-20</div>
+      </div>
+
+      <div class="arena">
+        <div class="side-panel left-panel">
+          <span>NEXT</span>
+          <canvas id="next" width="96" height="96" aria-label="다음 블록"></canvas>
+          <span>COMBO</span><b id="combo">×0</b>
+        </div>
+        <div class="board-wrap" id="boardWrap">
+          <canvas id="board" width="300" height="540" aria-label="테트리스 게임판"></canvas>
+          <div class="danger-glow"></div>
+          <div id="battleToast" class="battle-toast">READY!</div>
+        </div>
+        <div class="side-panel right-panel">
+          <span>TIME</span><b id="time">90</b>
+          <span>ATTACK</span><b id="attack">+0</b>
+          <div class="mini-badge">줄을 지워<br>공격!</div>
+        </div>
+      </div>
+
+      <div class="controls" aria-label="게임 조작 버튼">
+        <button data-action="left" aria-label="왼쪽">◀</button>
+        <button data-action="rotate" class="rotate" aria-label="회전">↻</button>
+        <button data-action="right" aria-label="오른쪽">▶</button>
+        <button data-action="down" aria-label="아래">▼</button>
+        <button data-action="drop" class="drop" aria-label="바로 내리기">DROP</button>
+      </div>
+    </section>
+  </main>
+
+  <section id="start" class="overlay active">
+    <div class="panel start-panel">
+      <div class="logo-burst"><img src="icon.svg" alt="블록 보스전 아이콘"><span>NEW BOSS!</span></div>
+      <p class="eyebrow">PUZZLE × BOSS BATTLE</p>
+      <h1>블록<br><em>보스전</em></h1>
+      <p class="lead">줄을 지우면 공격!<br>보스의 방해 블록을 버티고 쓰러뜨리세요.</p>
+      <div class="rules"><span>1줄 <b>10 DMG</b></span><span>4줄 <b>100 DMG</b></span><span>콤보 <b>ATK UP</b></span></div>
+      <button id="startButton" class="primary">보스 잡으러 가기 <i>▶</i></button>
+      <p class="best">BEST <b id="best">0</b></p>
+    </div>
+  </section>
+
+  <section id="pauseLayer" class="overlay">
+    <div class="panel small-panel"><div class="pause-icon">Ⅱ</div><h2>잠깐 쉬는 중</h2><p>블록도 공중에서 기다리고 있어요.</p><button id="resume" class="primary">계속 싸우기</button></div>
+  </section>
+
+  <section id="result" class="overlay">
+    <div class="panel result-panel">
+      <div id="resultIcon" class="result-icon">👑</div>
+      <p class="eyebrow">BATTLE REPORT</p>
+      <h2 id="resultTitle">젤리 왕국 평정!</h2>
+      <p id="resultCopy">보스가 푸딩처럼 녹았습니다.</p>
+      <div class="result-score"><span>SCORE</span><b id="finalScore">0</b></div>
+      <div class="result-grid"><div><span>지운 줄</span><b id="finalLines">0</b></div><div><span>최대 콤보</span><b id="finalCombo">0</b></div></div>
+      <button id="retry" class="primary">다시 도전</button>
+      <button id="home" class="text-btn">처음 화면</button>
+    </div>
+  </section>
+  <script src="game.js"></script>
+</body>
+</html>
