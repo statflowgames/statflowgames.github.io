@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#6658d9">
+  <title>한 칸 왕국 | Statflow Games Lab</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="topbar">
+      <a href="../" aria-label="플레이테스트 목록">‹ LAB</a>
+      <div class="brand"><b>한 칸 왕국</b><span>ONE ROOM KINGDOM</span></div>
+      <button id="sound" class="circle" aria-label="소리 켜기 또는 끄기">♪</button>
+      <button id="pause" class="circle" aria-label="일시정지">Ⅱ</button>
+    </header>
+
+    <section class="hud" aria-label="게임 상태">
+      <div><small>NIGHT</small><b><span id="wave">1</span>/8</b></div>
+      <div class="heart"><small>왕국 체력</small><b id="hp">♥♥♥♥♥</b></div>
+      <div><small>COIN</small><b>✦ <span id="coin">0</span></b></div>
+      <div><small>SCORE</small><b id="score">0</b></div>
+    </section>
+
+    <section class="stage" id="stage">
+      <canvas id="game" width="720" height="900" aria-label="방을 배치하고 몬스터와 싸우는 왕국"></canvas>
+      <div id="toast" class="toast">첫 방을 골라 주세요!</div>
+      <div id="comboPop" class="combo-pop">대장간 시너지!</div>
+    </section>
+
+    <section class="command">
+      <div id="guide" class="guide"><b>낮</b><span>새 방을 골라 빈 칸에 배치하세요.</span></div>
+      <button id="battleButton" class="battle-button" disabled><span>밤 시작</span><small>주민들이 알아서 싸워요</small><i>☾</i></button>
+    </section>
+
+    <section id="choice" class="choice-sheet" aria-label="새 방 선택">
+      <div class="sheet-head"><div><small>ROOM DELIVERY</small><b>새 방이 도착했어요!</b></div><span>하나만 선택</span></div>
+      <div id="cards" class="cards"></div>
+    </section>
+  </main>
+
+  <section id="start" class="overlay active">
+    <div class="start-panel">
+      <a class="start-back" href="../">← STATFLOW LAB</a>
+      <div class="icon-wrap"><span class="spark s1">✦</span><span class="spark s2">✦</span><img src="icon.svg" alt="귀여운 한 칸 왕국 성 아이콘"></div>
+      <p class="eyebrow">BUILD · COMBINE · SURVIVE</p>
+      <h1>한 칸<br><em>왕국</em></h1>
+      <p class="lead">방 하나가 주민 한 명의 인생입니다.<br>붙여 짓고, 조합하고, 8번째 밤을 버티세요.</p>
+      <div class="mini-flow"><span><i>1</i>방 선택</span><b>›</b><span><i>2</i>배치</span><b>›</b><span><i>3</i>자동 전투</span></div>
+      <button id="startButton" class="primary"><span>왕국 세우기<small>매 판 다른 방 조합</small></span><i>→</i></button>
+      <p class="best">최고 기록 <b id="best">0</b></p>
+    </div>
+  </section>
+
+  <section id="pauseLayer" class="overlay">
+    <div class="modal"><div class="moon">☾</div><h2>왕국도 낮잠 중</h2><p>주민과 몬스터 모두 잠깐 멈췄어요.</p><button id="resume" class="primary simple">계속하기</button></div>
+  </section>
+
+  <section id="result" class="overlay">
+    <div class="modal result-modal">
+      <div id="resultCrown" class="result-crown">♛</div>
+      <p class="eyebrow">KINGDOM REPORT</p>
+      <h2 id="resultTitle">왕국을 지켜냈어요!</h2>
+      <p id="resultCopy">작지만 아주 단단한 왕국이 되었습니다.</p>
+      <div class="final-score"><small>SCORE</small><b id="finalScore">0</b></div>
+      <div class="report"><div><small>버틴 밤</small><b id="finalWave">8</b></div><div><small>지은 방</small><b id="finalRooms">8</b></div><div><small>최고 조합</small><b id="finalSynergy">3</b></div></div>
+      <button id="retry" class="primary simple">새 왕국 시작</button>
+      <button id="home" class="text-button">처음 화면</button>
+    </div>
+  </section>
+  <script src="game.js?v=3"></script>
+</body>
+</html>
