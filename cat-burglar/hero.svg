@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="halo" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fffdf4"/><stop offset="1" stop-color="#ffe8d1"/></linearGradient>
+    <linearGradient id="fur" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffd398"/><stop offset="1" stop-color="#ffb76e"/></linearGradient>
+    <linearGradient id="fish" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9de5ff"/><stop offset="1" stop-color="#63bce8"/></linearGradient>
+    <filter id="soft"><feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#9a6547" flood-opacity=".18"/></filter>
+  </defs>
+  <path d="M112 110C202 20 583 18 690 98c99 74 90 320-19 412-106 89-446 90-559-5C5 415 8 214 112 110Z" fill="url(#halo)" stroke="#fff" stroke-width="12" filter="url(#soft)"/>
+  <path d="M112 110C202 20 583 18 690 98" fill="none" stroke="#ffbed0" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 22"/>
+  <ellipse cx="405" cy="520" rx="250" ry="34" fill="#d89c73" opacity=".18"/>
+
+  <!-- cute fridge friend -->
+  <g transform="translate(55 240) rotate(-4)" stroke="#594940" stroke-width="8" stroke-linejoin="round">
+    <rect width="130" height="220" rx="34" fill="#9fe2d1"/>
+    <path d="M7 82h116" fill="none"/><path d="M100 28v35" stroke-linecap="round"/>
+    <circle cx="43" cy="129" r="6" fill="#594940" stroke="none"/><circle cx="85" cy="129" r="6" fill="#594940" stroke="none"/>
+    <path d="M48 151c11 13 25 13 36 0" fill="none" stroke-linecap="round"/>
+    <ellipse cx="28" cy="149" rx="11" ry="6" fill="#f58c9f" stroke="none" opacity=".7"/><ellipse cx="101" cy="149" rx="11" ry="6" fill="#f58c9f" stroke="none" opacity=".7"/>
+    <path d="m30 35 8-13 8 13 15 3-11 11 3 15-15-7-14 7 3-15-11-11Z" fill="#fff4b8" stroke-width="5"/>
+  </g>
+
+  <!-- swishing tail -->
+  <path d="M282 342c-98-66-122 45-84 92 27 33 78 19 73-18-4-27-37-20-34 3" fill="none" stroke="#594940" stroke-width="40" stroke-linecap="round"/>
+  <path d="M282 342c-98-66-122 45-84 92 27 33 78 19 73-18-4-27-37-20-34 3" fill="none" stroke="#ffbd79" stroke-width="25" stroke-linecap="round"/>
+
+  <!-- cat head and ears -->
+  <path d="M269 190 284 83l92 88M531 190 516 83l-92 88" fill="#ffbd79" stroke="#594940" stroke-width="12" stroke-linejoin="round"/>
+  <path d="m287 153 7-50 44 54M513 153l-7-50-44 54" fill="#ef8e78"/>
+  <rect x="254" y="137" width="292" height="286" rx="130" fill="url(#fur)" stroke="#594940" stroke-width="12"/>
+  <path d="M364 148l-9 42M400 143v47M436 148l9 42" stroke="#d98651" stroke-width="12" stroke-linecap="round"/>
+  <ellipse cx="335" cy="254" rx="31" ry="43" fill="#4c403a"/><ellipse cx="465" cy="254" rx="31" ry="43" fill="#4c403a"/>
+  <ellipse cx="324" cy="238" rx="12" ry="16" fill="#fff"/><ellipse cx="454" cy="238" rx="12" ry="16" fill="#fff"/>
+  <circle cx="342" cy="272" r="7" fill="#241f1c"/><circle cx="472" cy="272" r="7" fill="#241f1c"/>
+  <ellipse cx="294" cy="315" rx="28" ry="15" fill="#f58c9f" opacity=".72"/><ellipse cx="506" cy="315" rx="28" ry="15" fill="#f58c9f" opacity=".72"/>
+  <path d="m385 304 15 11 15-11" fill="#f16f7f" stroke="#594940" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M400 316c-16 31-47 24-51 2M400 316c16 31 47 24 51 2" fill="none" stroke="#594940" stroke-width="8" stroke-linecap="round"/>
+  <path d="M359 350c24 26 58 26 82 0" fill="#ff7898" stroke="#594940" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M280 294 211 281M280 319l-72 12M520 294l69-13M520 319l72 12" fill="none" stroke="#594940" stroke-width="7" stroke-linecap="round" opacity=".72"/>
+
+  <!-- fish hugged by cat -->
+  <g transform="translate(475 336) rotate(-10)" stroke="#594940" stroke-width="9" stroke-linejoin="round">
+    <ellipse cx="55" cy="35" rx="88" ry="48" fill="url(#fish)"/>
+    <path d="m132 35 73-48-10 95Z" fill="#72c9ef"/>
+    <circle cx="13" cy="23" r="8" fill="#4c403a" stroke="none"/><circle cx="10" cy="19" r="3" fill="#fff" stroke="none"/>
+    <path d="M15 51c15 12 31 12 46 0" fill="none" stroke-linecap="round"/>
+    <ellipse cx="-6" cy="48" rx="14" ry="8" fill="#f58c9f" stroke="none" opacity=".7"/>
+  </g>
+  <path d="M487 346c-37-19-62 4-61 41 1 39 45 54 78 27" fill="#ffbd79" stroke="#594940" stroke-width="12" stroke-linecap="round"/>
+  <path d="M516 386c-11-9-27-7-35 5" fill="none" stroke="#594940" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- box -->
+  <g stroke="#594940" stroke-width="10" stroke-linejoin="round">
+    <path d="M214 397h372l-23 130H239Z" fill="#df9b5e"/>
+    <path d="m214 397-45 61 132 4 36-65ZM586 397l45 61-132 4-36-65Z" fill="#f1b273"/>
+    <path d="m301 462-18 65h234l-18-65Z" fill="#d88e52"/>
+  </g>
+  <rect x="319" y="476" width="162" height="37" rx="15" fill="#fff1cf" transform="rotate(-2 400 494)"/>
+  <text x="400" y="501" text-anchor="middle" fill="#76513d" font-size="21" font-weight="900" font-family="sans-serif">오늘도 냠냠 성공!</text>
+
+  <!-- milk friend -->
+  <g transform="translate(651 278) rotate(6)" stroke="#594940" stroke-width="7" stroke-linejoin="round">
+    <path d="m0 35 28-35 60 9 22 40-9 147-107-7Z" fill="#ffd5e0"/>
+    <path d="m28 0 14 38 68 11M42 38 0 35" fill="#fff5ec"/>
+    <path d="M15 72 99 60 95 113l-85 12Z" fill="#fff9ed"/>
+    <path d="M52 87c-15-20-39 4 4 29 47-36 7-53-4-29Z" fill="#ff7898" stroke-width="5"/>
+    <circle cx="31" cy="151" r="5" fill="#594940" stroke="none"/><circle cx="71" cy="148" r="5" fill="#594940" stroke="none"/>
+    <path d="M36 167c10 10 21 10 31 0" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- sparkles and paws -->
+  <g fill="#ff7f9f"><path d="m94 141 10 21 21 10-21 10-10 21-10-21-21-10 21-10Z"/><path d="m690 106 7 15 16 7-16 7-7 16-7-16-15-7 15-7Z"/></g>
+  <g fill="#ffd15c"><path d="m631 75 6 13 14 6-14 6-6 14-6-14-13-6 13-6Z"/><path d="m135 494 6 13 14 6-14 6-6 14-6-14-13-6 13-6Z"/></g>
+  <g fill="#f58c9f"><path d="M723 197c-18-29-54-2 0 34 54-36 18-63 0-34Z"/><path d="M77 337c-15-24-44-2 0 28 44-30 15-52 0-28Z"/></g>
+</svg>
