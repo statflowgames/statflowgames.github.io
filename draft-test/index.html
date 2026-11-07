@@ -65,6 +65,9 @@
     .train { --accent: #54e5d4; --glow: #1676a477; --tilt: 3deg; }
     .blocks { --accent: #ff5b88; --glow: #5a42cb77; --tilt: -2deg; }
     .sanctuary { --accent: #f6c873; --glow: #4d9d8d77; --tilt: 2deg; }
+    .sneaky { --accent: #ffd166; --glow: #8b5cf677; --tilt: -3deg; }
+    .evolution { --accent: #75f4ff; --glow: #8b5cf677; --tilt: 2deg; }
+    .digger { --accent: #ffad4d; --glow: #368dff66; --tilt: -2deg; }
     .foot { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 22px; padding-top: 16px; border-top: 1px solid #1e2748; color: #697493; font-size: 8px; }
     .dummy-link { color: #8593ba; text-decoration: none; }
     .dummy-link:hover { color: #fff; }
@@ -103,7 +106,7 @@
   <main>
     <header class="top">
       <div>
-        <span class="chip">PLAYTEST LAB · 06 APPS</span>
+        <span class="chip">PLAYTEST LAB · 09 APPS</span>
         <h1>작지만, 바로 해보는 것들.</h1>
         <p class="lead">게임과 재미있는 실험 앱을 가볍게 골라 즐겨보세요. 설명은 짧고, 시작은 바로 됩니다.</p>
       </div>
@@ -115,10 +118,25 @@
 
     <div class="manifesto">
       <b>⚡</b>
-      <div><strong>현재 공개된 실험 6개</strong><span>큰 포스터 대신 한눈에 고르는 작은 앱 목록으로 정리했습니다.</span></div>
+      <div><strong>현재 공개된 실험 9개</strong><span>세 가지 새로운 모바일 게임 프로토타입을 추가했습니다.</span></div>
     </div>
 
     <section class="grid" aria-label="공개 앱과 게임 목록">
+      <article class="card sneaky">
+        <div class="art"><span class="badge">NEW · STEALTH PUZZLE</span><img src="sneaky-cat/icon.svg" alt="생선을 훔치는 귀여운 도둑 고양이 아이콘"></div>
+        <div class="copy"><small>MOBILE STEALTH ACTION</small><h2>도둑 고양이</h2><p>시선을 읽고, 소리로 속이고, 보물을 훔쳐 탈출하세요.</p><a href="sneaky-cat/">몰래 들어가기</a></div>
+      </article>
+
+      <article class="card evolution">
+        <div class="art"><span class="badge">NEW · FUSION LAB</span><img src="evolution-lab/icon.svg" alt="돌연변이 생명체가 담긴 실험 플라스크 아이콘"></div>
+        <div class="copy"><small>CREATURE FUSION AUTO BATTLE</small><h2>무한 진화 실험실</h2><p>생명체를 합성하고 파츠가 변하는 진화와 자동 전투를 관찰하세요.</p><a href="evolution-lab/">합성 시작하기</a></div>
+      </article>
+
+      <article class="card digger">
+        <div class="art"><span class="badge">NEW · DIG DEEPER</span><img src="mini-dungeon-digger/icon.svg" alt="곡괭이와 수정 광맥을 든 광부 아이콘"></div>
+        <div class="copy"><small>MINING RISK ROGUELITE</small><h2>미니 던전 디거</h2><p>더 깊은 보상을 노릴지, 광물을 지키고 돌아갈지 결정하세요.</p><a href="mini-dungeon-digger/">지하로 내려가기</a></div>
+      </article>
+
       <article class="card office">
         <div class="art"><span class="badge">NEW · OFFICE LIFE</span><img src="office-survival-lab/assets/office-map-premium.png" alt="픽셀 아트 사무실 풍경"></div>
         <div class="copy"><small>RETRO OFFICE SIM</small><h2>직장인 생존 연구소</h2><p>5분 동안 눈치와 멘탈을 지키며 오늘도 무사히 칼퇴하세요.</p><a href="office-survival-lab/">출근하기</a></div>

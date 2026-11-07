@@ -1,0 +1,13 @@
+{
+  "name": "statflow-playtest-games",
+  "private": true,
+  "workspaces": [
+    "sneaky-cat",
+    "evolution-lab",
+    "mini-dungeon-digger"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace sneaky-cat && npm run build --workspace evolution-lab && npm run build --workspace mini-dungeon-digger",
+    "check": "npm run check --workspace sneaky-cat && npm run check --workspace evolution-lab && npm run check --workspace mini-dungeon-digger"
+  }
+}
