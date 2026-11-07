@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#fff3df">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="누르면 달리고 떼면 숨는 귀여운 한 손 잠입 게임">
+  <title>냥도둑 — 한 입만 더!</title>
+  <link rel="icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+  <main id="game" class="game">
+    <header class="topbar">
+      <div class="brand"><span class="paw">●</span><span><b>냥도둑</b><small>한 입만 더!</small></span></div>
+      <div class="best"><small>최고 기록</small><b><span id="bestFish">0</span>마리</b></div>
+      <button id="soundButton" class="round-button" aria-label="소리 켜기 또는 끄기">♪</button>
+    </header>
+
+    <section class="loot-card" aria-label="현재 전리품">
+      <div class="fish-count"><span class="mini-fish">🐟</span><div><small>훔친 생선</small><b><span id="fishCount">0</span>마리</b></div></div>
+      <div class="loot-value"><small>지금 탈출하면</small><b><span id="lootValue">0</span> 코인</b></div>
+      <div class="suspicion"><small>들킬라!</small><span id="hearts"><i>♥</i><i>♥</i><i>♥</i></span></div>
+    </section>
+
+    <section id="arena" class="arena">
+      <canvas id="canvas" aria-label="냥도둑 게임 화면"></canvas>
+      <div id="alert" class="alert-bubble" role="status">쉿! 멈춰요!</div>
+      <div id="combo" class="combo-sticker"></div>
+      <div id="toast" class="toast"></div>
+      <div class="progress-rail"><i id="progressBar"></i><span class="cat-marker">●</span></div>
+    </section>
+
+    <section class="controls">
+      <div id="holdGuide" class="hold-guide">
+        <div class="finger">☝</div>
+        <div><b id="controlTitle">화면을 꾹 누르면 살금살금!</b><small id="controlCopy">누른 채 좌우 이동 · 떼면 얌전한 척</small></div>
+      </div>
+      <button id="escapeButton" class="escape-button" disabled>
+        <span>안전하게</span><b>도망가기!</b><small id="escapeLoot">생선 3마리부터</small>
+      </button>
+    </section>
+
+    <footer><span>STATFLOW GAMES</span><button id="pauseButton">Ⅱ</button><span>WEB PROTOTYPE</span></footer>
+  </main>
+
+  <section id="startLayer" class="layer start-layer active">
+    <div class="cloud c1"></div><div class="cloud c2"></div>
+    <div class="cat-hero" aria-hidden="true">
+      <div class="hero-tail"></div>
+      <div class="hero-body"><i></i><b></b><span></span></div>
+      <div class="hero-fish"><i></i></div>
+      <div class="box"><span>오늘의 목표<br><b>한 입만 더</b></span></div>
+      <i class="spark s1">✦</i><i class="spark s2">♥</i><i class="spark s3">✦</i>
+    </div>
+    <div class="title">
+      <p>STEAL · HIDE · ESCAPE!</p>
+      <h1>냥도둑</h1>
+      <strong>한 입만 더!</strong>
+      <span>🐟 들키기 전에 생선을 챙겨 도망가요</span>
+    </div>
+    <button id="startButton" class="primary-button"><span>슬쩍 들어가기</span><b>발바닥 꾹!</b><i>→</i></button>
+    <div class="howto"><span><i>☝</i><b>누르면 이동</b></span><span><i>🙈</i><b>떼면 숨기</b></span><span><i>🚪</i><b>욕심껏 탈출</b></span></div>
+    <small class="privacy">개인정보 수집 없는 모바일 웹 프로토타입</small>
+  </section>
+
+  <section id="resultLayer" class="layer result-layer" aria-hidden="true">
+    <div id="resultCard" class="result-card">
+      <div id="resultCat" class="result-cat">😽</div>
+      <p id="resultKicker">PERFECT ESCAPE!</p>
+      <h2 id="resultTitle">오늘도 완벽한 범행!</h2>
+      <span id="resultCopy">생선 냄새만 남기고 사라졌습니다.</span>
+      <div class="result-loot">
+        <div><small>생선</small><b><span id="resultFish">0</span>마리</b></div>
+        <div><small>획득</small><b><span id="resultCoins">0</span>코인</b></div>
+        <div><small>최고</small><b><span id="resultBest">0</span>마리</b></div>
+      </div>
+      <div class="total-bank">내 비밀 금고 <b><span id="bankValue">0</span> 코인</b></div>
+      <button id="retryButton" class="primary-button"><span>한 번만 더</span><b>이번엔 더 많이!</b><i>↻</i></button>
+      <button id="homeButton" class="text-button">처음 화면으로</button>
+    </div>
+  </section>
+
+  <section id="pauseLayer" class="layer pause-layer" aria-hidden="true">
+    <div><div class="pause-cat">😴</div><h2>잠깐 낮잠 중</h2><button id="resumeButton" class="primary-button"><span>다시 슬금슬금</span><b>계속하기</b><i>▶</i></button></div>
+  </section>
+
+  <script src="game.js?v=1"></script>
+</body>
+</html>
