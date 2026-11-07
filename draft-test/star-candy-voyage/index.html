@@ -1,0 +1,15 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10142f"><meta name="robots" content="noindex,nofollow"><meta name="description" content="별사탕을 드래그해 한 붓으로 별자리를 완성하는 우주 지도 퍼즐"><title>별사탕 항해일지 — 한 붓 별자리</title><link rel="stylesheet" href="style.css?v=1"></head>
+<body><main class="app">
+  <header><a href="../" class="lab">← LAB</a><div class="brand"><b>별사탕 항해일지</b><small>STARDUST MAP</small></div><button id="sound" aria-label="소리 켜기 또는 끄기">♪</button></header>
+  <section class="route-head"><button id="prev" aria-label="이전 별자리">‹</button><div><small id="stageNo">ROUTE 01</small><h1 id="stageName">달토끼 항로</h1><span id="stageStars" aria-label="획득 별점">☆☆☆</span></div><button id="next" aria-label="다음 별자리">›</button></section>
+  <section id="space" class="space" tabindex="0" aria-label="별을 순서대로 드래그해 연결하세요. 키보드에서는 엔터로 시작하고 방향키로 다음 별을 선택하세요.">
+    <div class="nebula n1"></div><div class="nebula n2"></div><div id="dust" class="dust" aria-hidden="true"></div>
+    <svg id="map" viewBox="0 0 360 430" role="img" aria-label="별자리 퍼즐 지도"><path id="preview" class="preview"></path><path id="line" class="route"></path><g id="nodes"></g></svg>
+    <div id="toast" class="toast" role="status"></div><div id="creature" class="creature" aria-hidden="true"></div>
+  </section>
+  <section class="mission"><div><small>항해 기록</small><b id="progress">1 / 12</b></div><p id="hint">반짝이는 첫 별부터 누른 채 이어 보세요</p><button id="reset">다시 그리기</button></section>
+</main>
+<section id="start" class="layer start active"><a href="../" class="layer-lab">← STATFLOW LAB</a><div class="hero-art" role="img" aria-label="별사탕으로 가득한 우주 항해 지도"><div class="fallback-ship">☾<i>✦</i><i>✧</i><i>★</i></div></div><p>CONNECT · DISCOVER · SAIL!</p><h1>별사탕<br><span>항해일지</span></h1><strong>한 붓 별자리 여행</strong><p class="copy">흩어진 별사탕을 한 붓으로 이으면<br>잠든 우주 동물이 깨어나요.</p><button id="startButton" class="primary"><b>첫 항로 출발</b><small>12개의 별자리 지도</small><i>→</i></button><div class="how"><span>누른 채</span><em>✦</em><span>순서대로</span><em>✦</em><span>끝까지 연결</span></div></section>
+<section id="pause" class="layer modal"><div><span class="big">🌙</span><h2>항해를 잠시 멈췄어요</h2><p>별들은 그 자리에서 기다리고 있어요.</p><button id="resume" class="primary"><b>계속 항해</b><small>별자리로 돌아가기</small><i>▶</i></button></div></section>
+<section id="complete" class="layer modal"><div class="card"><span id="completeIcon" class="big">🐇</span><p>CONSTELLATION FOUND</p><h2 id="completeTitle">달토끼를 발견했어요!</h2><div id="completeStars" class="earned">★★★</div><p id="completeCopy">별사탕 항로가 반짝이고 있어요.</p><button id="continue" class="primary"><b>다음 항로로</b><small>새 별자리 찾기</small><i>→</i></button><button id="again" class="text-button">이 별자리 다시 그리기</button></div></section>
+<script src="game.js?v=1"></script></body></html>

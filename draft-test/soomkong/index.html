@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="숨콩과 함께 1분부터 가볍게 숨을 고르는 로컬 웹앱">
+  <meta name="theme-color" content="#edf2e7">
+  <title>숨콩 — 잠깐 숨 고르기</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <nav class="topbar" aria-label="상단 메뉴">
+      <a class="lab-link" href="../">← LAB</a>
+      <button class="icon-button" id="soundButton" type="button" aria-label="소리 켜기" aria-pressed="false">🔇</button>
+    </nav>
+
+    <section id="homeView" class="view home-view" aria-labelledby="homeTitle">
+      <div class="hero-card">
+        <img src="../assets/soomkong.webp" alt="안개 낀 창가에서 숨을 고르는 콩 정령 숨콩" width="900" height="900">
+        <div class="hero-copy">
+          <p class="eyebrow">BREATHE · RESET</p>
+          <h1 id="homeTitle">숨콩</h1>
+          <p>복잡한 생각은 잠시 두고,<br>작은 콩과 천천히 숨을 골라요.</p>
+        </div>
+      </div>
+
+      <div class="stats" aria-label="호흡 기록">
+        <div><strong id="todayCount">0</strong><span>오늘 완료</span></div>
+        <div><strong id="streakCount">0</strong><span>연속 일</span></div>
+        <div><strong id="totalCount">0</strong><span>모두 완료</span></div>
+      </div>
+
+      <section class="control-card" aria-labelledby="methodTitle">
+        <div class="section-heading">
+          <div><span>01</span><h2 id="methodTitle">호흡 고르기</h2></div>
+          <small id="methodHint">편안하게 4초 들이쉬고 6초 내쉬어요</small>
+        </div>
+        <div class="segmented" role="radiogroup" aria-label="호흡법">
+          <button type="button" role="radio" aria-checked="true" class="choice active" data-method="calm">안정<br><small>4 · 6</small></button>
+          <button type="button" role="radio" aria-checked="false" class="choice" data-method="box">집중<br><small>4 · 4 · 4 · 4</small></button>
+          <button type="button" role="radio" aria-checked="false" class="choice" data-method="sleep">잠들기<br><small>4 · 7 · 8</small></button>
+        </div>
+      </section>
+
+      <section class="control-card" aria-labelledby="durationTitle">
+        <div class="section-heading"><div><span>02</span><h2 id="durationTitle">시간 고르기</h2></div></div>
+        <div class="duration-row" role="radiogroup" aria-label="호흡 시간">
+          <button type="button" role="radio" aria-checked="true" class="pill active" data-minutes="1">1분</button>
+          <button type="button" role="radio" aria-checked="false" class="pill" data-minutes="2">2분</button>
+          <button type="button" role="radio" aria-checked="false" class="pill" data-minutes="4">4분</button>
+        </div>
+      </section>
+
+      <button id="startButton" class="primary-button" type="button">숨콩과 시작하기 <span>→</span></button>
+      <p class="disclaimer">치료 목적이 아닌, 잠깐 숨을 고르는 가벼운 도구예요.</p>
+      <button class="text-button danger" id="resetButton" type="button">내 기록 전체 삭제</button>
+    </section>
+
+    <section id="sessionView" class="view session-view" hidden aria-labelledby="phaseTitle">
+      <div class="session-head">
+        <button id="closeSession" class="icon-button pale" type="button" aria-label="호흡 세션 종료">×</button>
+        <div><span id="sessionMethod">안정 호흡</span><strong id="remainingTime">01:00</strong></div>
+        <button id="pauseButton" class="icon-button pale" type="button" aria-label="일시정지" aria-pressed="false">Ⅱ</button>
+      </div>
+      <div class="window-scene" id="windowScene">
+        <div class="fog" id="fog" aria-hidden="true"></div>
+        <div class="breath-orb-wrap">
+          <div id="breathOrb" class="breath-orb"><span aria-hidden="true">🌱</span></div>
+        </div>
+        <div class="phase-copy" aria-live="polite">
+          <p id="phaseKicker">천천히</p>
+          <h2 id="phaseTitle">들이쉬어요</h2>
+          <strong id="phaseCount">4</strong>
+          <p id="phaseGuide">숨콩이 빗물을 모으고 있어요</p>
+        </div>
+      </div>
+      <div class="progress-track" aria-label="세션 진행률"><span id="progressBar"></span></div>
+      <p class="session-note">편안하지 않다면 언제든 멈춰도 괜찮아요.</p>
+    </section>
+
+    <dialog id="completeDialog">
+      <div class="dialog-art" aria-hidden="true">🌿</div>
+      <p class="eyebrow">WINDOW CLEARED</p>
+      <h2>창 한 칸이 맑아졌어요</h2>
+      <p>오늘의 숨이 작은 숲에<br>초록빛 한 조각을 남겼어요.</p>
+      <button id="finishButton" class="primary-button" type="button">풍경 간직하기</button>
+    </dialog>
+
+    <dialog id="resetDialog">
+      <h2>기록을 모두 지울까요?</h2>
+      <p>완료 횟수와 연속 기록이 이 기기에서 삭제되며 되돌릴 수 없어요.</p>
+      <div class="dialog-actions"><button class="text-button" data-close-reset type="button">취소</button><button id="confirmReset" class="danger-button" type="button">삭제</button></div>
+    </dialog>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

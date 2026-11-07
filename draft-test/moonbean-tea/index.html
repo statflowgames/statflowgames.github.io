@@ -1,0 +1,18 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#19352f"><meta name="robots" content="noindex,nofollow"><meta name="description" content="2초 동안 본 달빛 찻집 주문을 기억해 재료를 순서대로 담는 기억력 게임"><title>달콩 찻집 — 2초의 주문</title><link rel="stylesheet" href="style.css?v=1"></head>
+<body><main class="app">
+  <header><a href="../" class="lab">← LAB</a><div class="brand"><b>달콩 찻집</b><small>MOONBEAN TEA</small></div><button id="sound" aria-label="소리 켜기 또는 끄기">♪</button></header>
+  <section class="stats"><div><small>오늘 매출</small><b id="score">0</b></div><div><small>연속 주문</small><b id="streak">0잔</b></div><div><small>최고 기록</small><b id="best">0</b></div><div class="lives"><small>마음</small><b id="lives" aria-label="남은 생명 세 개">♥♥♥</b></div></section>
+  <section class="counter">
+    <div class="window" aria-hidden="true"><span class="moon"></span><i></i><i></i><i></i></div>
+    <div id="customer" class="customer" aria-hidden="true"><span id="customerFace">•ᴗ•</span><i></i></div>
+    <div class="speech"><small id="customerName">달토끼 손님</small><b id="reaction">따뜻한 차 한 잔 부탁해요!</b></div>
+    <div class="cup" aria-label="완성 중인 찻잔"><div id="tea" class="tea"></div><span id="moonFill">☾</span><i class="handle"></i></div>
+    <div id="ticket" class="ticket"><small>MOON ORDER</small><div id="order" aria-live="polite"></div><b id="countdown">주문을 기다리는 중</b></div>
+    <div id="toast" class="toast" role="status"></div>
+  </section>
+  <section class="tray"><div class="tray-head"><span><b id="guide">주문표를 기억하세요</b><small id="subguide">2초 뒤에 주문이 사라져요</small></span><button id="replay" disabled>다시 보기 −1♥</button></div><div class="ingredients" id="ingredients" role="group" aria-label="차 재료"></div></section>
+</main>
+<section id="start" class="layer start active"><a href="../" class="layer-lab">← STATFLOW LAB</a><div class="hero-art" role="img" aria-label="달빛과 찻잔이 있는 포근한 찻집"><div class="fallback-cup">☾<i>♨</i></div></div><p>PEEK · REMEMBER · BREW!</p><h1>달콩<br><span>찻집</span></h1><strong>2초의 달빛 주문</strong><p class="copy">주문표가 사라지기 전에 기억하고<br>재료를 순서대로 톡톡 담아 주세요.</p><button id="startButton" class="primary"><b>찻집 문 열기</b><small>첫 손님이 기다려요</small><i>→</i></button><div class="how"><span>👀 2초 보기</span><span>☝️ 순서 탭</span><span>☕ 달빛 채우기</span></div></section>
+<section id="pause" class="layer modal"><div><span class="big">🫖</span><h2>찻물이 천천히 우러나요</h2><p>돌아오면 같은 주문부터 이어집니다.</p><button id="resume" class="primary"><b>영업 계속</b><small>주문대로 차 우리기</small><i>▶</i></button></div></section>
+<section id="result" class="layer modal"><div class="card"><span class="big">🌙</span><p>MOONBEAN REPORT</p><h2 id="resultTitle">오늘도 포근한 마감!</h2><p id="resultCopy">달빛 향기가 골목 끝까지 퍼졌어요.</p><div class="result-stats"><div><small>매출 점수</small><b id="finalScore">0</b></div><div><small>최대 연속</small><b id="finalStreak">0잔</b></div><div><small>최고 기록</small><b id="finalBest">0</b></div></div><button id="retry" class="primary"><b>다시 문 열기</b><small>새 손님 맞이하기</small><i>↻</i></button><button id="home" class="text-button">처음 화면으로</button></div></section>
+<script src="game.js?v=1"></script></body></html>

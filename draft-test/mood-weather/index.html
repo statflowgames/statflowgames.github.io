@@ -1,0 +1,24 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="description" content="오늘 마음을 날씨와 한 문장으로 기록하는 로컬 감정 다이어리"><meta name="theme-color" content="#1f3156"><title>마음날씨 — 10초 감정 기록</title><link rel="stylesheet" href="style.css"></head>
+<body><main class="app-shell">
+  <nav class="topbar" aria-label="상단 메뉴"><a href="../">← LAB</a><button id="soundButton" class="round" type="button" aria-label="소리 켜기" aria-pressed="false">🔇</button></nav>
+  <header class="hero"><img src="../assets/mood-weather.webp" alt="일곱 날의 다양한 하늘을 여행하는 작은 구름 여행자" width="900" height="900"><div class="hero-copy"><p>CHECK IN · REFLECT</p><h1>마음날씨</h1><span>정답 없이, 오늘과 가장 닮은 하늘 하나.</span></div></header>
+  <section class="checkin-card" aria-labelledby="checkinTitle"><div class="date-line"><div><span id="todayLabel">오늘</span><h2 id="checkinTitle">마음의 하늘은 어땠나요?</h2></div><strong id="editBadge" hidden>기록 수정</strong></div>
+    <div class="weather-grid" role="radiogroup" aria-label="오늘의 마음 날씨">
+      <button type="button" role="radio" aria-checked="false" data-weather="sunny"><span>☀️</span><b>맑음</b></button>
+      <button type="button" role="radio" aria-checked="false" data-weather="cloud"><span>☁️</span><b>구름</b></button>
+      <button type="button" role="radio" aria-checked="false" data-weather="rain"><span>🌧️</span><b>비</b></button>
+      <button type="button" role="radio" aria-checked="false" data-weather="storm"><span>⛈️</span><b>번개</b></button>
+      <button type="button" role="radio" aria-checked="false" data-weather="rainbow"><span>🌈</span><b>무지개</b></button>
+    </div>
+    <label class="note-wrap"><span>오늘을 기억할 한마디</span><textarea id="noteInput" maxlength="80" rows="2" placeholder="예: 생각보다 괜찮은 하루였어"></textarea><small><span id="charCount">0</span>/80</small></label>
+    <button id="saveButton" class="save-button" type="button" disabled>오늘의 하늘 남기기 <span>→</span></button>
+    <p class="privacy-note">🔒 로그인 없이 이 기기에만 저장돼요.</p>
+  </section>
+  <section class="panorama-card" aria-labelledby="weekTitle"><div class="section-head"><div><p>MY WEEKLY SKY</p><h2 id="weekTitle">최근 7일의 하늘</h2></div><small><strong id="recordCount">0</strong>/7 기록</small></div><div id="panorama" class="panorama" role="list" aria-label="최근 7일 마음날씨"></div><div class="traveler" aria-hidden="true">☁️<span>모아의 여행길</span></div></section>
+  <section class="summary-card" aria-labelledby="summaryTitle"><div class="section-head"><div><p>SKY MIX</p><h2 id="summaryTitle">나의 날씨 분포</h2></div><small>전체 기록</small></div><div id="distribution" class="distribution"></div><p id="summaryCopy" class="summary-copy">첫 하늘을 기록하면 여기에 날씨가 모여요.</p></section>
+  <section class="story-note"><div aria-hidden="true">🕊️</div><p>“어떤 날씨든 지나가고,<br>기록된 하늘은 나만의 길이 돼요.”</p></section>
+  <button id="deleteAllButton" class="delete-link" type="button">모든 마음날씨 기록 삭제</button>
+  <dialog id="savedDialog"><div class="saved-sky" id="savedSky">☀️</div><p>SKY SAVED</p><h2>오늘의 하늘을 남겼어요</h2><span>모아가 이 풍경 위로 한 걸음 이동했어요.</span><button id="closeSaved" class="save-button" type="button">이번 주 하늘 보기</button></dialog>
+  <dialog id="deleteDialog"><h2>모든 하늘을 지울까요?</h2><p>이 기기에 저장된 날씨와 문장이 모두 삭제되며 되돌릴 수 없어요.</p><div class="dialog-actions"><button type="button" data-close-delete>취소</button><button id="confirmDelete" type="button" class="danger">전부 삭제</button></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</main><script src="app.js"></script></body></html>

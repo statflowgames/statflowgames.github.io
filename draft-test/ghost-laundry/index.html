@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#17162c">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="알맞은 비누로 유령 얼룩을 문질러 씻어 주는 60초 한 손 세탁 게임">
+  <title>유령 세탁소 — 달빛 얼룩 제거반</title>
+  <link rel="stylesheet" href="style.css?v=1">
+  <style>.hero-art>img{position:absolute;z-index:3;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 16px 20px #0005)}.hero-art.has-image .hero-ghost,.hero-art.has-image .orb{opacity:0}</style>
+</head>
+<body>
+  <main class="app" aria-live="polite">
+    <header class="topbar">
+      <a class="lab" href="../" aria-label="실험실 목록으로 돌아가기">← LAB</a>
+      <div class="brand"><b>유령 세탁소</b><small>NIGHT SHIFT</small></div>
+      <button id="sound" class="icon-button" aria-label="소리 켜기 또는 끄기">♪</button>
+    </header>
+    <section class="stats" aria-label="게임 상태">
+      <div><small>남은 밤</small><b id="time">60</b></div>
+      <div><small>세탁 점수</small><b id="score">0</b></div>
+      <div><small>최고 기록</small><b id="best">0</b></div>
+      <div class="combo"><small>연속 세탁</small><b id="combo">×1</b></div>
+    </section>
+    <section id="washRoom" class="wash-room" tabindex="0" aria-label="유령을 포인터로 문질러 세탁하세요. 키보드에서는 스페이스 키를 반복해서 누르세요.">
+      <div class="moon" aria-hidden="true"></div><div class="window" aria-hidden="true"><i></i><i></i></div>
+      <div id="ghost" class="ghost" aria-hidden="true"><i class="ear left"></i><i class="ear right"></i><span class="eye e1"></span><span class="eye e2"></span><span class="mouth"></span><span id="stain" class="stain"></span><em id="ghostMark">✦</em></div>
+      <div id="nameTag" class="name-tag">손님을 기다리는 중…</div>
+      <div id="bubbles" class="bubbles" aria-hidden="true"></div>
+      <div id="toast" class="toast" role="status"></div>
+    </section>
+    <section class="wash-panel">
+      <div class="meter"><span><b id="washLabel">세척 준비</b><small id="hint">얼룩색과 같은 비누를 고르세요</small></span><i><em id="washBar"></em></i></div>
+      <div class="soaps" role="group" aria-label="비누 선택">
+        <button class="soap pink" data-color="pink" aria-label="딸기빛 비누"><i>♥</i><span>딸기빛</span></button>
+        <button class="soap blue" data-color="blue" aria-label="새벽빛 비누"><i>✦</i><span>새벽빛</span></button>
+        <button class="soap gold" data-color="gold" aria-label="별가루 비누"><i>☾</i><span>별가루</span></button>
+      </div>
+    </section>
+  </main>
+
+  <section id="start" class="layer start active">
+    <a class="layer-lab" href="../">← STATFLOW LAB</a>
+    <div class="hero-art" role="img" aria-label="달빛 아래 유령 세탁소 일러스트"><img id="heroImage" src="../assets/ghost-laundry.webp" alt=""><span class="hero-ghost">✦</span><i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i></div>
+    <p>WASH · WIPE · REVEAL!</p><h1>유령<br><span>세탁소</span></h1>
+    <strong>달빛 얼룩 제거반</strong>
+    <p class="copy">얼룩과 같은 비누를 고르고<br>유령을 보송보송 문질러 주세요.</p>
+    <button id="startButton" class="primary"><b>오늘 밤 영업 시작</b><small>60초 세탁 코스</small><i>→</i></button>
+    <div class="how"><span>① 비누 고르기</span><span>② 문질러 씻기</span><span>③ 본모습 공개</span></div>
+  </section>
+  <section id="pause" class="layer modal"><div><span class="big">☾</span><h2>달빛이 잠깐 숨었어요</h2><p>돌아오면 세탁 시간이 이어져요.</p><button id="resume" class="primary"><b>다시 문지르기</b><small>세탁 계속</small><i>▶</i></button></div></section>
+  <section id="result" class="layer modal"><div class="result-card"><span class="big">🫧</span><p>NIGHT REPORT</p><h2>오늘 밤도 보송보송!</h2><div class="result-stats"><div><small>세탁 점수</small><b id="finalScore">0</b></div><div><small>씻은 유령</small><b id="finalGhosts">0</b></div><div><small>최고 기록</small><b id="finalBest">0</b></div></div><button id="retry" class="primary"><b>한 번 더 영업</b><small>더 빠르게 보송보송</small><i>↻</i></button><button id="home" class="text-button">처음 화면으로</button></div></section>
+  <script src="game.js?v=1"></script>
+</body>
+</html>
