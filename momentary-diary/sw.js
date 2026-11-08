@@ -1,18 +1,6 @@
-const CACHE = "momentary-diary-pages-v1";
-const BASE = "/momentary-diary/";
-self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll([BASE, `${BASE}manifest.webmanifest`, `${BASE}favicon.svg`])));
-  self.skipWaiting();
-});
-self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))));
-  self.clients.claim();
-});
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  event.respondWith(fetch(event.request).then((response) => {
-    const clone = response.clone();
-    caches.open(CACHE).then((cache) => cache.put(event.request, clone)).catch(() => undefined);
-    return response;
-  }).catch(() => caches.match(event.request).then((cached) => cached || caches.match(BASE))));
-});
+const CACHE = "moment-diary-v3";
+const BASE = new URL(self.registration.scope).pathname;
+const SHELL = ["", "manifest.webmanifest", "favicon.svg", ...["shrine","sea","cat","family","cafe","blossom","city","neon"].map((name) => `demo/${name}.svg`)].map((path) => `${BASE}${path}`);
+self.addEventListener("install", (event) => { event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL))); self.skipWaiting(); });
+self.addEventListener("activate", (event) => { event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))); self.clients.claim(); });
+self.addEventListener("fetch", (event) => { if (event.request.method !== "GET" || new URL(event.request.url).origin !== location.origin) return; const navigation = event.request.mode === "navigate"; event.respondWith((navigation ? fetch(event.request).then((response) => { caches.open(CACHE).then((cache) => cache.put(BASE, response.clone())); return response; }) : caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => { if (response.ok) caches.open(CACHE).then((cache) => cache.put(event.request, response.clone())); return response; }))).catch(() => caches.match(event.request).then((cached) => cached || caches.match(BASE)))); });
