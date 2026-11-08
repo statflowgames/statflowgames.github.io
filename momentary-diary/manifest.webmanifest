@@ -1,0 +1,15 @@
+{
+  "name": "MOMENT DIARY",
+  "short_name": "Moment Diary",
+  "description": "사진과 이야기로 만드는 나만의 추억 공간",
+  "start_url": "/momentary-diary/",
+  "scope": "/momentary-diary/",
+  "display": "standalone",
+  "background_color": "#fffaf4",
+  "theme_color": "#ed6f91",
+  "orientation": "portrait-primary",
+  "lang": "ko",
+  "icons": [
+    { "src": "/momentary-diary/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
