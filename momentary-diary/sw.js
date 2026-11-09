@@ -1,4 +1,4 @@
-const CACHE = "moment-diary-v6";
+const CACHE = "moment-diary-v7";
 const BASE = new URL(self.registration.scope).pathname;
 const STICKERS = ["cute-animals/cat-camera","cute-animals/sleeping-cat","cute-animals/happy-cat","cute-animals/rabbit-flower","cute-animals/rabbit-cup","cute-animals/bear-overalls","pastel-dream/pink-ribbon","pastel-dream/watercolor-flower","pastel-dream/floral-tape","travel/travel-stamp","neon-night/neon-heart-png","neon-night/neon-star-png"];
 const SHELL = ["", "manifest.webmanifest", "favicon.svg", ...["japan","sunset-sea","cat","family","cafe","flowers","tokyo-night","torii","cake","jeju"].map((name) => `demo/${name}.svg`), ...STICKERS.map((name) => `assets/stickers/${name}.png`)].map((path) => `${BASE}${path}`);
