@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1110222838';
-import { sprite } from './assets.js?v=1110222838';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1110225610';
+import { sprite } from './assets.js?v=1110225610';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -42,7 +42,9 @@ export class Renderer {
     const availH = this.H - this.top - this.bottom;
     const availW = this.W - this.side * 2;
     // 세로 화면은 좌우가 조금 넘쳐도(카메라가 따라감) 위아래를 꽉 채운다
-    let ts = clamp(Math.min(availW / g.w * this.overW, availH / g.h), 20, 84);
+    const fit = Math.min(availW / g.w, availH / g.h), big = Math.min(availW / g.w * this.overW, availH / g.h);
+    // 맵 전체가 거의 같은 크기로 들어가면 통째로 보이게, 아니면 좌우를 조금 넘겨 크게
+    let ts = clamp(fit >= big * 0.9 ? fit : big, 20, 84);
     // 넓은 맵은 조금 좌우로 스크롤되더라도 너무 작아지지 않게
     ts = Math.max(ts, Math.min(28, availH / g.h));
     this.ts = Math.floor(ts);
@@ -60,7 +62,7 @@ export class Renderer {
     const areaH = this.H - this.top - this.bottom;
     if (this.mapH <= areaH) y = this.top + (areaH - this.mapH) / 2;
     else {
-      const lo = this.H - 20 - this.mapH;
+      const lo = this.top + areaH - this.mapH;
       y = clamp(this.top + areaH / 2 - f.y * ts, Math.min(lo, this.top), this.top);
     }
     return [x, y];

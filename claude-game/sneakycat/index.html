@@ -12,23 +12,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1110222838" />
+  <link rel="stylesheet" href="style.css?v=1110225610" />
 </head>
 <body>
   <div id="app">
     <canvas id="cv"></canvas>
     <div id="hud" class="off">
       <button id="bPause" class="ibtn" aria-label="일시정지"><span></span><span></span></button>
-      <div class="hmid"><div id="lvTitle"></div><div id="status"></div></div>
+      <div class="hmid"><div id="lvTitle"></div></div>
       <div id="goals"></div>
     </div>
     <div id="ctrl" class="off">
-      <button id="bAct" class="rbtn act hide">타기</button>
+      <div id="status"></div>
       <button id="bMeow" class="rbtn meow"><b>야옹</b></button>
+      <button id="bAct" class="rbtn act idle">행동</button>
     </div>
     <div id="toast"></div>
     <div id="layer"></div>
   </div>
-  <script type="module" src="js/main.js?v=1110222838"></script>
+  <script type="module" src="js/main.js?v=1110225610"></script>
 </body>
 </html>

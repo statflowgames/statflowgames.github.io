@@ -1,11 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1110222838';
-import { Game } from './game.js?v=1110222838';
-import { Renderer, FONT } from './render.js?v=1110222838';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1110222838';
-import { Sound } from './audio.js?v=1110222838';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1110222838';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1110222838';
+import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1110225610';
+import { Game } from './game.js?v=1110225610';
+import { Renderer, FONT } from './render.js?v=1110225610';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1110225610';
+import { Sound } from './audio.js?v=1110225610';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1110225610';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1110225610';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -13,7 +13,7 @@ const R = new Renderer(cv);
 
 // ───────── 저장 ─────────
 const KEY = 'sneakycat.claude.v1';
-let save = { stars: {}, best: {}, skin: 'gray', sound: true, music: true, vib: true, seenCh: {} };
+let save = { stars: {}, best: {}, skin: 'gray', sound: true, music: true, vib: true, lefty: false, seenCh: {} };
 try { Object.assign(save, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { /* 저장소 없음 */ }
 const store = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* 무시 */ } };
 const starsOf = (id) => save.stars[id] || [false, false, false];
@@ -53,8 +53,9 @@ function resize() {
   const w = land ? Math.min(vw, Math.round(vh * 1.45)) : Math.min(vw, Math.round(vh * 0.66));
   app.style.width = w + 'px';
   app.classList.toggle('land', land);
-  if (land) { R.top = 66; R.bottom = 12; R.side = Math.min(130, w * 0.12); R.overW = 1; }
-  else { R.top = 70; R.bottom = Math.min(170, vh * 0.2); R.side = 0; R.overW = 1.3; }
+  // 아래 버튼 줄(--band 92px) 만큼은 맵을 비워 둔다
+  R.top = 66; R.bottom = 98; R.side = 0; R.overW = land ? 1 : 1.3;
+  app.classList.toggle('lefty', !!save.lefty);
   R.resize(w, vh);
 }
 window.addEventListener('resize', resize);
@@ -148,6 +149,7 @@ function titleScreen() {
         <button class="tg ${save.sound ? 'on' : ''}" data-t="sound">효과음</button>
         <button class="tg ${save.music ? 'on' : ''}" data-t="music">음악</button>
         <button class="tg ${save.vib ? 'on' : ''}" data-t="vib">진동</button>
+        <button class="tg ${save.lefty ? 'on' : ''}" data-t="lefty">왼손</button>
       </div>
       <div class="credit">StatFlow Games</div>
     </div>`, 'center title');
@@ -158,6 +160,7 @@ function titleScreen() {
     b.classList.toggle('on', save[k]);
     if (k === 'sound') Sound.setSound(save.sound);
     if (k === 'music') Sound.setMusic(save.music);
+    if (k === 'lefty') app.classList.toggle('lefty', save.lefty);
   });
 }
 
@@ -282,7 +285,10 @@ function updateHud() {
   game.bonus.forEach((b, i) => set('b' + i, b.taken, (v) => $('#gB' + i).classList.toggle('on', v)));
   set('e', game.spotted, (v) => { const e = $('#gE'); e.classList.toggle('bad', v); e.textContent = v ? '들켰다' : '안 들킴'; });
   const a = game.actionTarget();
-  set('a', a ? a.label : '', (v) => { const b = $('#bAct'); b.classList.toggle('hide', !v); if (v) b.textContent = v; });
+  set('a', a ? a.label : '', (v) => {
+    const b = $('#bAct'); b.classList.toggle('idle', !v); b.textContent = v || '행동';
+    b.classList.remove('pop'); if (v) { void b.offsetWidth; b.classList.add('pop'); }
+  });
   const cd = game.cat.meowCD / 3.5;
   $('#bMeow').style.setProperty('--cd', cd.toFixed(3));
   const chased = game.chased(), d = game.danger();
@@ -301,6 +307,7 @@ function pauseGame() {
       <div class="toggles">
         <button class="tg ${save.sound ? 'on' : ''}" data-t="sound">효과음</button>
         <button class="tg ${save.music ? 'on' : ''}" data-t="music">음악</button>
+        <button class="tg ${save.lefty ? 'on' : ''}" data-t="lefty">왼손</button>
       </div>
     </div>`, 'center dim');
   on(el, '[data-a=resume]', () => resumeGame());
@@ -309,6 +316,7 @@ function pauseGame() {
   on(el, '[data-t]', (e, b) => {
     const k = b.dataset.t; save[k] = !save[k]; store(); b.classList.toggle('on', save[k]);
     Sound.setSound(save.sound); Sound.setMusic(save.music);
+    app.classList.toggle('lefty', !!save.lefty);
   });
 }
 function resumeGame() {
