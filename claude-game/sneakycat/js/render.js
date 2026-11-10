@@ -505,11 +505,19 @@ export class Renderer {
     return true;
   }
   drawGuard(c, g, t) {
-    const flip = Math.cos(g.face) < 0;
+    const fx = Math.cos(g.face), fy = Math.sin(g.face);
+    const flip = fx < 0;
     if (g.type === 'dog') {
       const sleep = g.state === 'sleep';
       if (this.sprite(c, sprite(sleep ? 'sprite-dog-sleep' : 'sprite-dog'), g.x, g.y + 0.3, 1.15, false, { t, moving: g.moving, walkT: g.walkT, rate: 2.6, flip })) return;
-    } else if (this.sprite(c, sprite('sprite-' + g.type), g.x, g.y + 0.3, 1.32, true, { t, moving: g.moving, walkT: g.walkT, rate: 2.2, amp: 0.06, flip })) return;
+    } else {
+      let pose = '';
+      if (g.state === 'chase') pose = '-alert';
+      else if (Math.abs(fx) > Math.abs(fy)) pose = '-side';
+      else if (fy < 0) pose = '-back';
+      const spr = sprite('sprite-' + g.type + pose) || sprite('sprite-' + g.type);
+      if (this.sprite(c, spr, g.x, g.y + 0.3, 1.32, true, { t, moving: g.moving, walkT: g.walkT, rate: 2.2, amp: 0.06, flip: pose === '-side' && flip })) return;
+    }
     this.at(c, g.x, g.y + 0.22);
     const o = { face: g.face, t, moving: g.moving, walkT: g.walkT, state: g.state, type: g.type, sleep: g.state === 'sleep', ch: this.game.L.ch };
     if (g.type === 'dog') drawDog(c, o); else drawHuman(c, o);

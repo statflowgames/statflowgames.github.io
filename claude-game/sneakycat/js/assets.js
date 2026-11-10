@@ -1,6 +1,10 @@
 // 그림 파일 불러오기 + 고양이 색 바꾸기. 파일이 없으면 null 을 돌려주고, 그 자리는 코드 그림이 대신한다.
 const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 'legend',
-  'sprite-cat', 'sprite-cat-fish', 'sprite-owner', 'sprite-butler', 'sprite-guard', 'sprite-dog', 'sprite-dog-sleep'];
+  'sprite-cat', 'sprite-cat-fish',
+  'sprite-owner', 'sprite-owner-side', 'sprite-owner-back', 'sprite-owner-alert',
+  'sprite-butler', 'sprite-butler-side', 'sprite-butler-back', 'sprite-butler-alert',
+  'sprite-guard', 'sprite-guard-side', 'sprite-guard-back', 'sprite-guard-alert',
+  'sprite-dog', 'sprite-dog-sleep'];
 export const IMG = {};
 
 export function loadAll(timeout = 3000) {
