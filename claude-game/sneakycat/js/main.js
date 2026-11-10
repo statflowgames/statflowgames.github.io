@@ -1,11 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1110225610';
-import { Game } from './game.js?v=1110225610';
-import { Renderer, FONT } from './render.js?v=1110225610';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1110225610';
-import { Sound } from './audio.js?v=1110225610';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1110225610';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1110225610';
+import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1110230652';
+import { Game } from './game.js?v=1110230652';
+import { Renderer, FONT } from './render.js?v=1110230652';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1110230652';
+import { Sound } from './audio.js?v=1110230652';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1110230652';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1110230652';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -57,6 +57,7 @@ function resize() {
   R.top = 66; R.bottom = 98; R.side = 0; R.overW = land ? 1 : 1.3;
   app.classList.toggle('lefty', !!save.lefty);
   R.resize(w, vh);
+  placeSides();
 }
 window.addEventListener('resize', resize);
 resize();
@@ -135,7 +136,7 @@ function show(html, cls = '') {
   return layer.firstElementChild;
 }
 function hideLayer() { layer.innerHTML = ''; }
-function setHud(on) { $('#hud').classList.toggle('off', !on); $('#ctrl').classList.toggle('off', !on); }
+function setHud(on) { for (const id of ['#hud', '#ctrl', '#sideL', '#sideR']) $(id).classList.toggle('off', !on); }
 const on = (el, sel, fn) => el.querySelectorAll(sel).forEach((b) => b.addEventListener('click', (e) => { Sound.unlock(); Sound.play('click'); fn(e, b); }));
 
 function titleScreen() {
@@ -246,6 +247,7 @@ function startLevel(i, skipIntro = false) {
   R.focus = game.fish;
   R.setGame(game, skinById(save.skin));
   setHud(true);
+  buildSides(L, i);
   buildGoals();
   $('#lvTitle').textContent = `${L.id} ${L.name}`;
   const ch = CHAPTERS[L.ch - 1];
@@ -264,6 +266,29 @@ function startLevel(i, skipIntro = false) {
     </div>`, 'center dim');
   on(el, '[data-a=go]', () => startPlay());
   on(el, '[data-e]', (e, b) => { const g = entry(b.dataset.e); toast(`${g.name} — ${g.desc}`, 3600); });
+}
+// 가로 화면에서 맵 양옆 빈자리에 스테이지 정보와 조작법
+function buildSides(L, i) {
+  $('#sideL').innerHTML = `<h3>${L.id} ${L.name}</h3><p>${L.hint}</p>
+    <h4>이번 스테이지</h4>${inLevel(L).filter((e) => e.id !== 'door').map((e) => guideRow(e, newInLevel(i).includes(e))).join('')}`;
+  const k = (a, b) => `<div class="key"><span>${a}</span><kbd>${b}</kbd></div>`;
+  $('#sideR').innerHTML = `<h3>조작</h3>${k('이동 (살금살금)', '방향키 · WASD')}${k('달리기', 'Shift')}${k('행동', 'Space')}${k('야옹', 'Q')}${k('일시정지', 'Esc')}${k('다시 하기 (끝난 뒤)', 'R')}
+    <h4>알아 두기</h4>
+    <p class="tipl">· 달리기 발소리, 야옹, 꽃병 소리는 문을 돌아 퍼져요.</p>
+    <p class="tipl">· 탁자·침대·상자 밑과 고양이 문 안은 안 보여요.</p>
+    <p class="tipl">· 화면을 끌어서 움직여도 돼요.</p>`;
+  placeSides();
+}
+function placeSides() {
+  if (!game) return;
+  const gap = (R.W - Math.min(R.mapW, R.W)) / 2;
+  const w = Math.min(340, gap - 28);
+  for (const [id, side] of [['#sideL', 'left'], ['#sideR', 'right']]) {
+    const el = $(id);
+    el.classList.toggle('narrow', w < 190);
+    el.style.width = w + 'px'; el.style.left = el.style.right = '';
+    el.style[side] = Math.max(14, gap - w - 14) + 'px';
+  }
 }
 function startPlay() {
   if (!game || game.state !== 'intro') return;

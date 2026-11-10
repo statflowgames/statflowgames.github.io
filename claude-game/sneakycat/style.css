@@ -139,6 +139,19 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .scr.list { background: rgba(21, 18, 40, 0.94); }
 
 /* ───── 가로 화면 (PC) ───── */
+/* 가로 화면 양옆 정보판 (맵 옆 빈자리) */
+.side { position: absolute; top: 76px; bottom: calc(var(--band) + 14px); overflow-y: auto; pointer-events: auto; background: rgba(36, 29, 59, 0.82); border: 2px solid var(--line); border-radius: 18px; padding: 14px; font-size: 15px; }
+#app:not(.land) .side, .side.narrow { display: none; }
+.side h3 { margin: 0 0 6px; font-weight: normal; font-size: 21px; color: var(--gold); }
+.side h4 { margin: 14px 0 4px; font-weight: normal; font-size: 16px; color: var(--gold); }
+.side p { margin: 0; line-height: 1.5; color: #e9e0f7; }
+.side .gi { padding: 6px 8px; }
+.side .gi img { width: 44px; height: 44px; }
+.side .gi b { font-size: 16px; }
+.side .gi span { font-size: 13px; }
+.side .key { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(75, 63, 114, 0.6); }
+.side .key kbd { font-family: var(--font); background: #1b1530; border: 2px solid var(--line); border-radius: 8px; padding: 1px 8px; color: var(--ink); white-space: nowrap; }
+.side .tipl { color: var(--sub); font-size: 14px; line-height: 1.5; margin-top: 4px; }
 .land .scr.list { padding: 0 max(0px, calc(50% - 300px)); }
 
 /* ───── 등장인물·물건 소개 ───── */
