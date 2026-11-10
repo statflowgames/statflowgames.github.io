@@ -140,7 +140,7 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 
 /* ───── 가로 화면 (PC) ───── */
 /* 가로 화면 양옆 정보판 (맵 옆 빈자리) */
-.side { position: absolute; top: 76px; bottom: calc(var(--band) + 14px); overflow-y: auto; pointer-events: auto; background: rgba(36, 29, 59, 0.82); border: 2px solid var(--line); border-radius: 18px; padding: 14px; font-size: 15px; }
+.side { position: absolute; top: 76px; max-height: calc(100% - 76px - var(--band) - 14px); overflow-y: auto; pointer-events: auto; background: rgba(36, 29, 59, 0.82); border: 2px solid var(--line); border-radius: 18px; padding: 14px; font-size: 15px; }
 #app:not(.land) .side, .side.narrow { display: none; }
 .side h3 { margin: 0 0 6px; font-weight: normal; font-size: 21px; color: var(--gold); }
 .side h4 { margin: 14px 0 4px; font-weight: normal; font-size: 16px; color: var(--gold); }

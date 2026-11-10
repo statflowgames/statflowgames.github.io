@@ -1,11 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1110230652';
-import { Game } from './game.js?v=1110230652';
-import { Renderer, FONT } from './render.js?v=1110230652';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1110230652';
-import { Sound } from './audio.js?v=1110230652';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1110230652';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1110230652';
+import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1110234505';
+import { Game } from './game.js?v=1110234505';
+import { Renderer, FONT } from './render.js?v=1110234505';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1110234505';
+import { Sound } from './audio.js?v=1110234505';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1110234505';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1110234505';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -50,11 +50,14 @@ function resize() {
   const vw = window.innerWidth, vh = window.innerHeight;
   // 가로 화면(PC)은 넓게 쓰고 버튼을 지도 옆에 둔다. 세로 화면은 위아래를 꽉 채운다.
   const land = vw > vh * 0.95;
-  const w = land ? Math.min(vw, Math.round(vh * 1.45)) : Math.min(vw, Math.round(vh * 0.66));
+  const w = land ? vw : Math.min(vw, Math.round(vh * 0.66));
   app.style.width = w + 'px';
   app.classList.toggle('land', land);
   // 아래 버튼 줄(--band 92px) 만큼은 맵을 비워 둔다
-  R.top = 66; R.bottom = 98; R.side = 0; R.overW = land ? 1 : 1.3;
+  // 가로 화면은 양옆 정보판 자리를 비우고, 맵을 높이보다 1.3배 크게 (위아래는 카메라가 따라감)
+  R.top = 66; R.bottom = 98;
+  R.side = land ? Math.min(440, Math.max(0, (w - vh * 0.75) / 2)) : 0;
+  R.overW = land ? 1 : 1.3; R.overH = land ? 1.3 : 1;
   app.classList.toggle('lefty', !!save.lefty);
   R.resize(w, vh);
   placeSides();
@@ -282,7 +285,7 @@ function buildSides(L, i) {
 function placeSides() {
   if (!game) return;
   const gap = (R.W - Math.min(R.mapW, R.W)) / 2;
-  const w = Math.min(340, gap - 28);
+  const w = Math.min(440, gap - 28);
   for (const [id, side] of [['#sideL', 'left'], ['#sideR', 'right']]) {
     const el = $(id);
     el.classList.toggle('narrow', w < 190);
