@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1110234505';
-import { sprite } from './assets.js?v=1110234505';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1110235033';
+import { sprite } from './assets.js?v=1110235033';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -462,7 +462,27 @@ export class Renderer {
       c.fillStyle = gr; c.fillRect(0, 0, this.W, this.H);
     }
     if (G.alarmFlash > 0) { c.fillStyle = `rgba(255,40,60,${G.alarmFlash * 0.22 * (0.6 + 0.4 * Math.sin(t * 20))})`; c.fillRect(0, 0, this.W, this.H); }
+    this.edgeMarks(c, t);
     if (joy && joy.active) this.drawJoy(c, joy);
+  }
+  // 맵이 화면보다 길 때, 화면 밖 경비가 어느 쪽에 있는지 가장자리에 화살표로
+  edgeMarks(c, t) {
+    const G = this.game, ts = this.ts;
+    const y0 = this.top, y1 = this.H - this.bottom;
+    if (this.mapH <= y1 - y0 + 2) return;
+    for (const g of G.guards) {
+      const sx = this.ox + g.x * ts, sy = this.oy + g.y * ts;
+      const up = sy < y0 + 4, down = sy > y1 - 4;
+      if (!up && !down) continue;
+      const col = g.state === 'sleep' ? '#9aa3c7' : g.state === 'chase' ? '#ff5d6c' : g.meter > 0.05 || g.state === 'suspicious' || g.state === 'investigate' ? '#ffb347' : '#ffe08c';
+      const x = Math.max(16, Math.min(this.W - 16, sx)), y = up ? y0 + 12 : y1 - 12, d = up ? -1 : 1;
+      const pulse = g.state === 'chase' ? 1 + Math.sin(t * 10) * 0.15 : 1;
+      c.save(); c.translate(x, y); c.scale(pulse, pulse);
+      c.globalAlpha = g.state === 'sleep' ? 0.55 : 0.92;
+      c.beginPath(); c.moveTo(0, d * 9); c.lineTo(-9, -d * 4); c.lineTo(9, -d * 4); c.closePath();
+      c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = '#1a1428'; c.stroke();
+      c.restore();
+    }
   }
   at(c, x, y, k = 0.92) {
     const s = this.ts / 32;

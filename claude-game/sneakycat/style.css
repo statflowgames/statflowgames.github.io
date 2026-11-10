@@ -34,7 +34,7 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 #goals .g { width: 30px; height: 30px; position: relative; opacity: 0.35; filter: grayscale(1); transition: 0.25s; }
 #goals .g.on { opacity: 1; filter: none; transform: scale(1.08); }
 #goals .g img { width: 100%; height: 100%; }
-#goals .eye { opacity: 1; filter: none; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--green); border-left: 1px solid var(--line); margin-left: 2px; padding-left: 4px; width: 38px; line-height: 1.05; text-align: center; }
+#goals .eye { white-space: nowrap; opacity: 1; filter: none; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--green); border-left: 1px solid var(--line); margin-left: 2px; padding-left: 4px; width: 38px; line-height: 1.05; text-align: center; }
 #goals .eye.bad { color: var(--red); }
 
 /* ───── 버튼 ───── */
@@ -42,6 +42,15 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 #ctrl { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--band) + env(safe-area-inset-bottom)); padding: 0 14px env(safe-area-inset-bottom); display: flex; align-items: center; gap: 12px; pointer-events: none; background: linear-gradient(rgba(12, 10, 24, 0), rgba(12, 10, 24, 0.9) 22%); border-top: 2px solid rgba(75, 63, 114, 0.55); }
 #ctrl #status { flex: 1; min-width: 0; font-size: 16px; }
 .lefty #ctrl { flex-direction: row-reverse; }
+/* 짧은 세로 화면: 위아래 줄을 얇게 */
+.compact { --band: 76px; }
+.compact #hud { padding-top: calc(env(safe-area-inset-top) + 6px); }
+.compact .ibtn { width: 38px; height: 38px; border-radius: 12px; }
+.compact #lvTitle { font-size: 15px; }
+.compact #goals .g { width: 26px; height: 26px; }
+.compact #goals .eye { width: auto; font-size: 11px; }
+.compact .rbtn { width: 56px; height: 56px; font-size: 15px; }
+.compact .act { width: 64px; height: 64px; font-size: 15px; }
 .lefty #ctrl #status { text-align: right; }
 .rbtn { flex-shrink: 0; pointer-events: auto; width: 64px; height: 64px; border-radius: 50%; font-size: 17px; border: 3px solid #1a1428; box-shadow: 0 4px 0 #1a1428, inset 0 -5px 0 rgba(0,0,0,0.18); position: relative; overflow: hidden; }
 .rbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #1a1428, inset 0 -5px 0 rgba(0,0,0,0.18); }
