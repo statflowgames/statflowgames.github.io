@@ -1,10 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS } from './levels.js';
-import { Game } from './game.js';
-import { Renderer, FONT } from './render.js';
-import { drawCat, drawFish, drawBonus, ell } from './art.js';
-import { Sound } from './audio.js';
-import { loadAll, IMG, spriteURL } from './assets.js';
+import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1110222838';
+import { Game } from './game.js?v=1110222838';
+import { Renderer, FONT } from './render.js?v=1110222838';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1110222838';
+import { Sound } from './audio.js?v=1110222838';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1110222838';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1110222838';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -12,7 +13,7 @@ const R = new Renderer(cv);
 
 // ───────── 저장 ─────────
 const KEY = 'sneakycat.claude.v1';
-let save = { stars: {}, best: {}, skin: 'gray', sound: true, music: true, vib: true };
+let save = { stars: {}, best: {}, skin: 'gray', sound: true, music: true, vib: true, seenCh: {} };
 try { Object.assign(save, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { /* 저장소 없음 */ }
 const store = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* 무시 */ } };
 const starsOf = (id) => save.stars[id] || [false, false, false];
@@ -47,9 +48,13 @@ let titleT = 0;
 
 function resize() {
   const vw = window.innerWidth, vh = window.innerHeight;
-  const w = Math.min(vw, Math.round(vh * 0.66));
+  // 가로 화면(PC)은 넓게 쓰고 버튼을 지도 옆에 둔다. 세로 화면은 위아래를 꽉 채운다.
+  const land = vw > vh * 0.95;
+  const w = land ? Math.min(vw, Math.round(vh * 1.45)) : Math.min(vw, Math.round(vh * 0.66));
   app.style.width = w + 'px';
-  R.top = 70; R.bottom = Math.min(170, vh * 0.2);
+  app.classList.toggle('land', land);
+  if (land) { R.top = 66; R.bottom = 12; R.side = Math.min(130, w * 0.12); R.overW = 1; }
+  else { R.top = 70; R.bottom = Math.min(170, vh * 0.2); R.side = 0; R.overW = 1.3; }
   R.resize(w, vh);
 }
 window.addEventListener('resize', resize);
@@ -163,7 +168,7 @@ function levelScreen() {
   for (const ch of CHAPTERS) {
     const lv = LEVELS.map((l, i) => ({ l, i })).filter((x) => x.l.ch === ch.id);
     const got = lv.reduce((n, x) => n + starsOf(x.l.id).filter(Boolean).length, 0);
-    html += `<div class="chap">${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}<h3>${ch.id}장 · ${ch.name}<span>★ ${got}/${lv.length * 3}</span></h3><p>${ch.sub}</p><div class="lvgrid">`;
+    html += `<div class="chap">${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}<h3>${ch.id}장 · ${ch.name}<span>★ ${got}/${lv.length * 3}</span></h3><p>${ch.sub}</p><button class="gbtn" data-c="${ch.id}">등장인물 · 물건 소개</button><div class="lvgrid">`;
     for (const { l, i } of lv) {
       const st = starsOf(l.id), ok = unlocked(i), cl = cleared(l.id);
       const nx = ok && !cl && !nextShown; if (nx) nextShown = true;
@@ -173,6 +178,7 @@ function levelScreen() {
   }
   const el = show(html, 'list');
   on(el, '[data-a=back]', () => titleScreen());
+  on(el, '[data-c]', (e, b) => chapterScreen(+b.dataset.c, null));
   on(el, '[data-i]', (e, b) => {
     const i = +b.dataset.i;
     if (!unlocked(i)) { toast('앞 스테이지를 먼저 깨야 해요'); return; }
@@ -199,10 +205,33 @@ function skinScreen() {
   });
 }
 
+// ───────── 장 소개 (등장인물·물건) ─────────
+const guideRow = (e, isNew) => `<div class="gi ${isNew ? 'new' : ''}"><img src="${guideIcon(e.id)}" alt=""><div><b>${e.name}${isNew ? '<em>NEW</em>' : ''}</b><span>${e.desc}</span></div></div>`;
+function chapterScreen(chId, next) {
+  scene = 'chapter'; game = null; setHud(false);
+  save.seenCh[chId] = true; store();
+  const ch = CHAPTERS[chId - 1], all = inChapter(chId), nw = newInChapter(chId);
+  const sec = (kind, title) => {
+    const list = all.filter((e) => e.kind === kind);
+    return list.length ? `<h4>${title}</h4>${list.map((e) => guideRow(e, chId > 1 && nw.has(e.id))).join('')}` : '';
+  };
+  const el = show(`<div class="top"><button class="back" data-a="back">‹</button><h2>${ch.id}장 · ${ch.name}</h2></div>
+    <div class="chap guide">
+      ${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}
+      <p>${ch.sub} — 이번 장에서 만나는 것들이에요.</p>
+      ${sec('who', '등장인물')}
+      ${sec('item', '물건과 장치')}
+    </div>
+    <div class="gfoot"><button class="btn main" data-a="go">${next ? '잠입하러 가기' : '알겠어요'}</button></div>`, 'list');
+  on(el, '[data-a=back]', () => levelScreen());
+  on(el, '[data-a=go]', () => (next ? next() : levelScreen()));
+}
+
 // ───────── 게임 ─────────
-function startLevel(i) {
-  levelIdx = i; paused = false; ended = false;
+function startLevel(i, skipIntro = false) {
   const L = LEVELS[i];
+  if (!skipIntro && firstOfChapter(i) && !save.seenCh[L.ch]) { chapterScreen(L.ch, () => startLevel(i, true)); return; }
+  levelIdx = i; paused = false; ended = false;
   game = new Game(L);
   game.fx = (name) => {
     Sound.play(name);
@@ -217,17 +246,21 @@ function startLevel(i) {
   buildGoals();
   $('#lvTitle').textContent = `${L.id} ${L.name}`;
   const ch = CHAPTERS[L.ch - 1];
+  const nw = skipIntro && firstOfChapter(i) ? [] : newInLevel(i), here = inLevel(L).filter((e) => e.id !== 'door');
   const el = show(`<div class="card">
       ${IMG['chapter-' + ch.id] ? `<div class="cbanner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}
       <span class="tag">${ch.id}장 · ${ch.name}</span>
       <h1>${L.name}</h1>
       <p class="tip">${L.hint}</p>
+      ${nw.length ? `<div class="newbox"><div class="nh">새로 등장!</div>${nw.map((e) => guideRow(e, false)).join('')}</div>` : ''}
+      <div class="chips"><span>이번 스테이지</span>${here.map((e) => `<button class="chip" data-e="${e.id}"><img src="${guideIcon(e.id)}" alt="${e.name}"></button>`).join('')}</div>
       <div class="goalrow on"><span class="s">★</span>${L.golden ? '황금 생선' : '생선'}을 물고 고양이 문으로 탈출</div>
       <div class="goalrow on"><span class="s">★</span>${ch.bonusName} 2개 모두 챙기기</div>
       <div class="goalrow on"><span class="s">★</span>한 번도 들키지 않기 (!)</div>
       <button class="btn main" data-a="go">잠입 시작</button>
     </div>`, 'center dim');
   on(el, '[data-a=go]', () => startPlay());
+  on(el, '[data-e]', (e, b) => { const g = entry(b.dataset.e); toast(`${g.name} — ${g.desc}`, 3600); });
 }
 function startPlay() {
   if (!game || game.state !== 'intro') return;
@@ -349,7 +382,16 @@ function drawTitleBg(dt) {
     const im = IMG.title, k = Math.max(W / im.width, H / im.height);
     const w = im.width * k, h = im.height * k;
     c.fillStyle = '#151228'; c.fillRect(0, 0, W, H);
-    c.drawImage(im, (W - w) / 2, (H - h) / 2 + Math.sin(titleT * 0.6) * 2, w, h);
+    const bob = Math.sin(titleT * 0.6) * 2;
+    if (W > H) {
+      // 가로 화면: 흐리게 깐 배경 위에 세로 그림을 통째로
+      c.globalAlpha = 0.35; c.drawImage(im, (W - w) / 2, (H - h) / 2, w, h); c.globalAlpha = 1;
+      const k2 = H / im.height, w2 = im.width * k2;
+      c.drawImage(im, (W - w2) / 2, bob, w2, H);
+      const fade = (x0, x1) => { const g = c.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, 'rgba(21,18,40,0)'); g.addColorStop(1, 'rgba(21,18,40,0.85)'); return g; };
+      c.fillStyle = fade((W + w2) / 2 - 40, (W + w2) / 2); c.fillRect((W + w2) / 2 - 40, 0, 40, H);
+      c.fillStyle = fade((W - w2) / 2 + 40, (W - w2) / 2); c.fillRect((W - w2) / 2, 0, 40, H);
+    } else c.drawImage(im, (W - w) / 2, (H - h) / 2 + bob, w, h);
     for (const [x, y, s] of STARS.slice(0, 24)) {
       const a = Math.max(0, Math.sin(titleT * 1.3 + x * 31));
       c.globalAlpha = a * a * 0.9;
@@ -421,7 +463,8 @@ loadAll().then(() => titleScreen());
 // 테스트용 핸들
 window.__sc = {
   get game() { return game; },
-  start: (i) => { startLevel(i); startPlay(); },
+  start: (i) => { startLevel(i, true); startPlay(); },
+  intro: (i) => startLevel(i),
   step(dt = 1 / 60, inp = { dx: 0, dy: 0, mag: 0, run: false }) { game.update(dt, inp); R.draw(dt, joy); updateHud(); },
   save: () => save,
 };

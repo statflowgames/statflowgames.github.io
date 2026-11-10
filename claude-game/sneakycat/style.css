@@ -54,7 +54,9 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 #layer { position: absolute; inset: 0; pointer-events: none; }
 #layer > .scr { position: absolute; inset: 0; pointer-events: auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .dim { background: rgba(10, 8, 22, 0.72); backdrop-filter: blur(2px); }
-.center { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 18px; }
+.center { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 24px 18px; }
+.center > :first-child { margin-top: auto; }
+.center > :last-child { margin-bottom: auto; }
 
 .btn { display: block; width: 100%; max-width: 300px; padding: 14px 16px; border-radius: 16px; font-size: 20px; background: var(--panel2); border: 3px solid #120e20; box-shadow: 0 4px 0 #120e20; margin: 8px auto 0; }
 .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #120e20; }
@@ -129,3 +131,24 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .card .cbanner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 60%, var(--panel)); }
 .title .logo { margin-top: 2vh; }
 .scr.list { background: rgba(21, 18, 40, 0.94); }
+
+/* ───── 가로 화면 (PC) ───── */
+.land .scr.list { padding: 0 max(0px, calc(50% - 300px)); }
+.land #ctrl { right: 22px; bottom: 26px; }
+
+/* ───── 등장인물·물건 소개 ───── */
+.gbtn { display: block; margin: -4px 0 12px; padding: 7px 12px; border-radius: 12px; background: #1b1530; border: 2px solid var(--line); color: var(--gold); font-size: 15px; }
+.chap.guide h4 { margin: 14px 0 4px; font-weight: normal; font-size: 18px; color: var(--gold); }
+.gi { display: flex; gap: 10px; align-items: center; background: #1b1530; border: 2px solid transparent; border-radius: 14px; padding: 7px 10px; margin-top: 6px; text-align: left; }
+.gi.new { border-color: rgba(255, 211, 77, 0.6); }
+.gi img { width: 54px; height: 54px; object-fit: contain; flex-shrink: 0; background: rgba(255, 255, 255, 0.05); border-radius: 12px; }
+.gi b { display: flex; align-items: center; gap: 6px; font-weight: normal; font-size: 17px; color: var(--ink); }
+.gi em { font-style: normal; font-size: 11px; background: var(--pink); color: #4a1d36; border-radius: 6px; padding: 1px 5px; }
+.gi span { display: block; font-size: 14px; color: var(--sub); line-height: 1.4; margin-top: 1px; }
+.gfoot { padding: 0 14px 30px; }
+.newbox { margin-top: 10px; border: 2px solid rgba(255, 211, 77, 0.55); border-radius: 16px; padding: 4px 8px 8px; background: rgba(255, 211, 77, 0.06); }
+.newbox .nh { color: var(--gold); font-size: 16px; margin-top: 4px; }
+.newbox .gi { background: rgba(27, 21, 48, 0.85); }
+.chips { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; }
+.chips span { width: 100%; font-size: 13px; color: var(--sub); }
+.chip img { width: 40px; height: 40px; object-fit: contain; background: #1b1530; border: 2px solid var(--line); border-radius: 10px; padding: 2px; display: block; }
