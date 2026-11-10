@@ -4,6 +4,7 @@ import { Game } from './game.js';
 import { Renderer, FONT } from './render.js';
 import { drawCat, drawFish, drawBonus, ell } from './art.js';
 import { Sound } from './audio.js';
+import { loadAll, IMG, spriteURL } from './assets.js';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -162,7 +163,7 @@ function levelScreen() {
   for (const ch of CHAPTERS) {
     const lv = LEVELS.map((l, i) => ({ l, i })).filter((x) => x.l.ch === ch.id);
     const got = lv.reduce((n, x) => n + starsOf(x.l.id).filter(Boolean).length, 0);
-    html += `<div class="chap"><h3>${ch.id}장 · ${ch.name}<span>★ ${got}/${lv.length * 3}</span></h3><p>${ch.sub}</p><div class="lvgrid">`;
+    html += `<div class="chap">${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}<h3>${ch.id}장 · ${ch.name}<span>★ ${got}/${lv.length * 3}</span></h3><p>${ch.sub}</p><div class="lvgrid">`;
     for (const { l, i } of lv) {
       const st = starsOf(l.id), ok = unlocked(i), cl = cleared(l.id);
       const nx = ok && !cl && !nextShown; if (nx) nextShown = true;
@@ -187,7 +188,7 @@ function skinScreen() {
   let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>고양이 옷장</h2><div class="starsum">★ ${ts}</div></div><div class="skins">`;
   for (const s of SKINS) {
     const ok = ts >= s.need;
-    html += `<button class="skin ${save.skin === s.id ? 'sel' : ''} ${ok ? '' : 'lock'}" data-s="${s.id}"><img src="${skinIcon(s)}" alt="">${ok ? s.name : '???'}<small>${ok ? (save.skin === s.id ? '입는 중' : '입어 보기') : `별 ${s.need}개`}</small></button>`;
+    html += `<button class="skin ${save.skin === s.id ? 'sel' : ''} ${ok ? '' : 'lock'}" data-s="${s.id}"><img src="${spriteURL('sprite-cat', s) || skinIcon(s)}" alt="">${ok ? s.name : '???'}<small>${ok ? (save.skin === s.id ? '입는 중' : '입어 보기') : `별 ${s.need}개`}</small></button>`;
   }
   const el = show(html + '</div>', 'list');
   on(el, '[data-a=back]', () => titleScreen());
@@ -217,6 +218,7 @@ function startLevel(i) {
   $('#lvTitle').textContent = `${L.id} ${L.name}`;
   const ch = CHAPTERS[L.ch - 1];
   const el = show(`<div class="card">
+      ${IMG['chapter-' + ch.id] ? `<div class="cbanner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}
       <span class="tag">${ch.id}장 · ${ch.name}</span>
       <h1>${L.name}</h1>
       <p class="tip">${L.hint}</p>
@@ -289,7 +291,7 @@ function endLevel(win) {
   const L = game.L;
   if (!win) {
     const el = show(`<div class="card">
-        <div class="big">😿</div>
+        ${IMG.caught ? `<img class="hero" src="${spriteURL('caught', skinById(save.skin))}" alt="">` : '<div class="big">😿</div>'}
         <h1>잡혔다!</h1>
         <p>${FAIL[(Math.random() * FAIL.length) | 0]}</p>
         <button class="btn main" data-a="retry">다시 도전</button>
@@ -312,6 +314,7 @@ function endLevel(win) {
   const last = levelIdx === LEVELS.length - 1;
   const labels = ['생선 들고 탈출', `${ch.bonusName} 모두 챙김`, '한 번도 안 들킴'];
   const el = show(`<div class="card">
+      ${IMG[last ? 'legend' : 'win'] ? `<img class="hero" src="${spriteURL(last ? 'legend' : 'win', skinById(save.skin))}" alt="">` : ''}
       <span class="tag">${L.id} · ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</span>
       <h1>${last ? '전설의 도둑 고양이!' : '탈출 성공!'}</h1>
       ${last ? '<p>황금 생선까지 훔쳐 냈다! 모든 스테이지 클리어!</p>' : ''}
@@ -342,6 +345,19 @@ function drawTitleBg(dt) {
   titleT += dt;
   const c = R.ctx, W = R.W, H = R.H;
   c.setTransform(R.dpr, 0, 0, R.dpr, 0, 0);
+  if (IMG.title) {
+    const im = IMG.title, k = Math.max(W / im.width, H / im.height);
+    const w = im.width * k, h = im.height * k;
+    c.fillStyle = '#151228'; c.fillRect(0, 0, W, H);
+    c.drawImage(im, (W - w) / 2, (H - h) / 2 + Math.sin(titleT * 0.6) * 2, w, h);
+    for (const [x, y, s] of STARS.slice(0, 24)) {
+      const a = Math.max(0, Math.sin(titleT * 1.3 + x * 31));
+      c.globalAlpha = a * a * 0.9;
+      c.fillStyle = '#fff6d8'; c.fillRect(x * W, y * H * 0.7, s, s);
+    }
+    c.globalAlpha = 1;
+    return;
+  }
   const g = c.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, '#120f2a'); g.addColorStop(0.6, '#2b2150'); g.addColorStop(1, '#3e2a55');
   c.fillStyle = g; c.fillRect(0, 0, W, H);
@@ -399,8 +415,8 @@ function frame(now) {
   }
   requestAnimationFrame(frame);
 }
-titleScreen();
 requestAnimationFrame(frame);
+loadAll().then(() => titleScreen());
 
 // 테스트용 핸들
 window.__sc = {

@@ -118,3 +118,14 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .unlock { margin-top: 10px; padding: 8px; border-radius: 12px; background: linear-gradient(90deg, #3d2d6b, #5a2d5e); font-size: 15px; }
 .row2 { display: flex; gap: 8px; }
 .row2 .btn { margin-top: 8px; }
+
+/* 그림 파일 */
+.hero { display: block; width: 78%; max-width: 240px; margin: -6px auto 4px; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.35)); animation: heroin 0.45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes heroin { from { transform: scale(0.6) rotate(-6deg); opacity: 0; } }
+.chap { position: relative; overflow: hidden; }
+.chap .banner { margin: -14px -14px 10px; height: 0; padding-bottom: 33.3%; background-size: cover; background-position: center; position: relative; }
+.chap .banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 55%, var(--panel)); }
+.card .cbanner { margin: -20px -18px 12px; height: 0; padding-bottom: 33.3%; background-size: cover; background-position: center; border-radius: 20px 20px 0 0; position: relative; }
+.card .cbanner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 60%, var(--panel)); }
+.title .logo { margin-top: 2vh; }
+.scr.list { background: rgba(21, 18, 40, 0.94); }

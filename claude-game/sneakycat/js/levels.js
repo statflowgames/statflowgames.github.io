@@ -343,7 +343,7 @@ export const SKINS = [
   { id: 'cheese', name: '치즈', need: 5, body: '#f2a84c', stripe: '#c8772b', belly: '#fff1da', eye: '#7cc7ff' },
   { id: 'tux', name: '턱시도', need: 10, body: '#2e2b37', stripe: '#2e2b37', belly: '#f6f2ee', eye: '#ffd34d' },
   { id: 'calico', name: '삼색이', need: 16, body: '#f7efe4', stripe: '#f7efe4', belly: '#ffffff', eye: '#8fd16a', patches: ['#e8913a', '#3a3340'] },
-  { id: 'black', name: '까망이', need: 22, body: '#25212d', stripe: '#25212d', belly: '#38333f', eye: '#ffe45c' },
+  { id: 'black', name: '까망이', need: 22, body: '#3d3848', stripe: '#2c2836', belly: '#4a4556', eye: '#ffe45c' },
   { id: 'white', name: '눈송이', need: 30, body: '#f8f6f2', stripe: '#e2dcd6', belly: '#ffffff', eye: '#78c4ff', mask: '#5f5a72' },
   { id: 'gold', name: '황금 고양이', need: 40, body: '#ffd447', stripe: '#e39d17', belly: '#fff6c8', eye: '#ff6f9f' },
 ];

@@ -1,5 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
 import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js';
+import { sprite } from './assets.js';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -448,7 +449,33 @@ export class Renderer {
     c.fillStyle = gr; c.fill();
     c.strokeStyle = `rgba(${col},${alpha * 0.7})`; c.lineWidth = 1; c.stroke();
   }
+  // 그림 파일 캐릭터: 발밑(bbox 아래 가운데)을 (x,y)에 맞추고 size(타일) 크기로. 걷기는 통통 튀기·기울이기로 흉내낸다.
+  sprite(c, spr, x, y, size, byHeight, o) {
+    if (!spr) return false;
+    const ts = this.ts;
+    const k = (size * ts) / (byHeight ? spr.bh : spr.bw);
+    const ph = o.moving ? (o.walkT || 0) * (o.rate || 3) * Math.PI : 0;
+    const bob = o.moving ? -Math.abs(Math.sin(ph)) * (o.amp || 0.09) * ts : 0;
+    const tilt = o.moving ? Math.sin(ph) * 0.07 : 0;
+    const breathe = o.moving ? 1 : 1 + Math.sin((o.t || 0) * 2.4) * 0.018;
+    const fx = x * ts, fy = y * ts;
+    c.save();
+    c.fillStyle = 'rgba(0,0,0,0.28)';
+    c.beginPath(); c.ellipse(fx, fy, spr.bw * k * 0.36, spr.bw * k * 0.1, 0, 0, 7); c.fill();
+    c.translate(fx, fy + bob);
+    c.rotate(tilt + (o.rot || 0));
+    c.scale((o.flip ? -1 : 1) * k, k * breathe);
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(spr.cv, spr.bx, spr.by, spr.bw, spr.bh, -spr.bw / 2, -spr.bh, spr.bw, spr.bh);
+    c.restore();
+    return true;
+  }
   drawGuard(c, g, t) {
+    const flip = Math.cos(g.face) < 0;
+    if (g.type === 'dog') {
+      const sleep = g.state === 'sleep';
+      if (this.sprite(c, sprite(sleep ? 'sprite-dog-sleep' : 'sprite-dog'), g.x, g.y + 0.3, 1.15, false, { t, moving: g.moving, walkT: g.walkT, rate: 2.6, flip })) return;
+    } else if (this.sprite(c, sprite('sprite-' + g.type), g.x, g.y + 0.3, 1.32, true, { t, moving: g.moving, walkT: g.walkT, rate: 2.2, amp: 0.06, flip })) return;
     this.at(c, g.x, g.y + 0.22);
     const o = { face: g.face, t, moving: g.moving, walkT: g.walkT, state: g.state, type: g.type, sleep: g.state === 'sleep', ch: this.game.L.ch };
     if (g.type === 'dog') drawDog(c, o); else drawHuman(c, o);
@@ -459,7 +486,10 @@ export class Renderer {
     const tile = G.grid.c(Math.floor(cat.x), Math.floor(cat.y));
     const o = { skin: this.skin, t, face: cat.face, moving: cat.moving, run: cat.run, walkT: cat.walkT, fish: cat.hasFish, golden: G.L.golden };
     if (G.state === 'caught') { o.moving = false; }
+    const spr = sprite(cat.hasFish ? 'sprite-cat-fish' : 'sprite-cat', this.skin, cat.hasFish && G.L.golden);
+    const so = { t, moving: o.moving, walkT: cat.walkT, rate: cat.run ? 2.6 : 3.2, amp: cat.run ? 0.12 : 0.07, flip: cat.face < 0 };
     if (cat.riding) {
+      if (spr) { this.sprite(c, spr, cat.x, cat.y - 0.02, 0.85, false, so); return; }
       this.at(c, cat.x, cat.y + 0.12, 0.8); c.translate(0, -5); drawCat(c, o); c.restore();
       return;
     }
@@ -471,10 +501,15 @@ export class Renderer {
     c.fillStyle = cat.hidden ? 'rgba(160,255,190,0.18)' : 'rgba(255,255,255,0.13)';
     c.beginPath(); c.ellipse(cat.x * this.ts, (cat.y + 0.22) * this.ts, 13 * s, 5 * s, 0, 0, 7); c.fill();
     if (cat.hidden) c.globalAlpha = tile === 'C' ? 0.75 : 0.5;
-    this.at(c, cat.x, cat.y + 0.22, 0.88);
-    if (G.state === 'caught') c.rotate(Math.sin(t * 30) * 0.05);
-    drawCat(c, o);
-    c.restore();
+    if (spr) {
+      if (G.state === 'caught') so.rot = Math.sin(t * 30) * 0.06;
+      this.sprite(c, spr, cat.x, cat.y + 0.24, 1.08, false, so);
+    } else {
+      this.at(c, cat.x, cat.y + 0.22, 0.88);
+      if (G.state === 'caught') c.rotate(Math.sin(t * 30) * 0.05);
+      drawCat(c, o);
+      c.restore();
+    }
     c.globalAlpha = 1;
     if (cat.hidden && tile !== 'C') {
       c.font = `${Math.round(10 * Math.max(0.9, s))}px ${FONT}`; c.textAlign = 'center';
