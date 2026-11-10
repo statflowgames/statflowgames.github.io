@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#151228" />
+  <meta name="description" content="밤마다 몰래 생선을 훔치는 도둑 고양이의 잠입 퍼즐 게임" />
+  <title>도둑 고양이</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="cv"></canvas>
+    <div id="hud" class="off">
+      <button id="bPause" class="ibtn" aria-label="일시정지"><span></span><span></span></button>
+      <div class="hmid"><div id="lvTitle"></div><div id="status"></div></div>
+      <div id="goals"></div>
+    </div>
+    <div id="ctrl" class="off">
+      <button id="bAct" class="rbtn act hide">타기</button>
+      <button id="bMeow" class="rbtn meow"><b>야옹</b></button>
+    </div>
+    <div id="toast"></div>
+    <div id="layer"></div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
