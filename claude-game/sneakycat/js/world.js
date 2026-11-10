@@ -7,7 +7,7 @@ export function tileInfo(c) {
       return { cat: false, hum: false, vis: true, hide: false };
     case 'S': case 'K': case 'X': case 'v':
       return { cat: false, hum: false, vis: false, hide: false };
-    case 'T': case 'D': case 'B':
+    case 'T': case 'D': case 'B': case 'V':
       return { cat: true, hum: false, vis: false, hide: true };
     case 'C':
       return { cat: true, hum: false, vis: true, hide: true };
@@ -190,7 +190,7 @@ export class Grid {
 
 export function parseLevel(L) {
   const grid = new Grid(L.map);
-  const ents = { cat: null, fish: null, bonus: [], vases: [], cams: [], lasers: [], switches: [], wps: {}, roomba: null };
+  const ents = { cat: null, fish: null, bonus: [], vases: [], cams: [], lasers: [], switches: [], wps: {}, roomba: null, vents: [] };
   for (let y = 0; y < grid.h; y++) for (let x = 0; x < grid.w; x++) {
     const c = grid.ch[y][x];
     const p = { x: x + 0.5, y: y + 0.5, tx: x, ty: y };
@@ -199,6 +199,7 @@ export function parseLevel(L) {
     else if (c === '$') ents.bonus.push(p);
     else if (c === 'v') ents.vases.push(p);
     else if (c === 's') ents.switches.push(p);
+    else if (c === 'V') ents.vents.push(p);
     else if (c === 'r') ents.roomba = p;
     else if (c === '=' || c === '!') ents.lasers.push({ ...p, dir: c === '=' ? 'h' : 'v' });
     else if (c === 'c') {

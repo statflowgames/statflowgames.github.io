@@ -18,7 +18,7 @@ const store = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } c
 const starsOf = (id) => save.stars[id] || [false, false, false];
 const totalStars = () => LEVELS.reduce((n, l) => n + starsOf(l.id).filter(Boolean).length, 0);
 const cleared = (id) => !!save.stars[id];
-const unlocked = (i) => i === 0 || cleared(LEVELS[i - 1].id);
+const unlocked = (i) => i === 0 || cleared(LEVELS[i - 1].id) || cleared(LEVELS[i].id);
 const skinById = (id) => SKINS.find((s) => s.id === id) || SKINS[0];
 Sound.setSound(save.sound);
 Sound.setMusic(save.music);

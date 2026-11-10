@@ -77,6 +77,12 @@ export class Renderer {
       if (g.ch[y][x] === '#' || g.ch[y][x] === 'C') continue;
       this.floorTile(c, x, y, g.floor[y][x], ch);
     }
+    // 삐걱 마루, 환풍구
+    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+      const k = g.ch[y][x];
+      if (k === '%') this.creakTile(c, x, y);
+      else if (k === 'V') this.ventTile(c, x, y);
+    }
     // 고양이 문 앞 발판
     const s = G.ents.cat;
     {
@@ -154,6 +160,34 @@ export class Renderer {
       c.stroke();
       c.strokeStyle = 'rgba(120,126,140,0.5)'; c.strokeRect(X + 0.5, Y + 0.5, ts - 1, ts - 1);
     }
+  }
+  creakTile(c, x, y) {
+    const ts = this.ts, X = x * ts, Y = y * ts, s = ts / 32;
+    c.save();
+    c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(X + 1, Y + 2, ts - 2, ts - 3);
+    for (let r = 0; r < 3; r++) {
+      const py = Y + r * ts / 3 + 1;
+      c.fillStyle = r % 2 ? '#c99566' : '#bb8657';
+      c.save(); c.translate(X + ts / 2, py + ts / 6); c.rotate((r - 1) * 0.06);
+      c.fillRect(-ts / 2 + 1, -ts / 6 + 0.5, ts - 2, ts / 3 - 1.5);
+      c.restore();
+    }
+    c.strokeStyle = '#5a3a22'; c.lineWidth = 1.2 * s; c.beginPath();
+    c.moveTo(X + ts * 0.2, Y + ts * 0.3); c.lineTo(X + ts * 0.42, Y + ts * 0.45); c.lineTo(X + ts * 0.36, Y + ts * 0.62); c.lineTo(X + ts * 0.6, Y + ts * 0.78);
+    c.moveTo(X + ts * 0.7, Y + ts * 0.15); c.lineTo(X + ts * 0.8, Y + ts * 0.32);
+    c.stroke();
+    c.fillStyle = 'rgba(255,220,170,0.7)'; c.font = `${Math.round(8 * s)}px ${FONT}`; c.textAlign = 'center';
+    c.fillText('~', X + ts * 0.78, Y + ts * 0.62);
+    c.restore();
+  }
+  ventTile(c, x, y) {
+    const ts = this.ts, X = x * ts, Y = y * ts, s = ts / 32;
+    rr(c, X + 3 * s, Y + 4 * s, ts - 6 * s, ts - 7 * s, 3 * s);
+    c.fillStyle = '#20232e'; c.fill(); c.lineWidth = 1.6 * s; c.strokeStyle = '#8f98ad'; c.stroke();
+    c.strokeStyle = '#6c7489'; c.lineWidth = 2 * s;
+    for (let i = 1; i < 5; i++) { const yy = Y + 4 * s + i * (ts - 7 * s) / 5; c.beginPath(); c.moveTo(X + 6 * s, yy); c.lineTo(X + ts - 6 * s, yy); c.stroke(); }
+    c.fillStyle = '#b9c1d3';
+    for (const [dx, dy] of [[5, 6], [ts / s - 5, 6], [5, ts / s - 5], [ts / s - 5, ts / s - 5]]) { c.beginPath(); c.arc(X + dx * s, Y + dy * s, 1.3 * s, 0, 7); c.fill(); }
   }
   wallTile(c, x, y, k, pal, ch) {
     const ts = this.ts, X = x * ts, Y = y * ts, g = this.game.grid;
@@ -396,7 +430,7 @@ export class Renderer {
     // 소리 고리
     for (const n of G.noises) {
       const p = n.t / 0.9;
-      const col = { step: '255,255,255', meow: '255,150,210', crash: '255,220,100', bark: '255,160,80' }[n.kind] || '255,90,90';
+      const col = { step: '255,255,255', meow: '255,150,210', crash: '255,220,100', bark: '255,160,80', creak: '233,185,138' }[n.kind] || '255,90,90';
       c.strokeStyle = `rgba(${col},${(1 - p) * (n.kind === 'step' ? 0.35 : 0.7)})`;
       c.lineWidth = (n.kind === 'step' ? 1.2 : 2.5) * s;
       c.beginPath(); c.arc(n.x * ts, n.y * ts, n.r * ts * (0.25 + 0.75 * Math.sqrt(p)), 0, 7); c.stroke();
@@ -493,7 +527,7 @@ export class Renderer {
       this.at(c, cat.x, cat.y + 0.12, 0.8); c.translate(0, -5); drawCat(c, o); c.restore();
       return;
     }
-    if (tile === 'B' && cat.hidden) {
+    if ((tile === 'B' || tile === 'V') && cat.hidden) {
       this.at(c, Math.floor(cat.x) + 0.5, Math.floor(cat.y) + 0.62); drawCatPeek(c, o); c.restore();
       return;
     }

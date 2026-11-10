@@ -73,6 +73,8 @@ const SFX = {
   siren() { for (let i = 0; i < 4; i++) osc('square', i % 2 ? 720 : 960, null, 0.2, 0.07, i * 0.2, sfx, ['lowpass', 2400]); },
   zap() { osc('sawtooth', 1500, 250, 0.18, 0.12); },
   power() { osc('square', 120, 60, 0.5, 0.12, 0, sfx, ['lowpass', 500]); noise(0.06, 0.25, 'highpass', 3000); },
+  creak() { osc('sawtooth', 140, 95, 0.32, 0.1, 0, sfx, ['bandpass', 600, 4]); osc('sawtooth', 210, 150, 0.2, 0.05, 0.08, sfx, ['bandpass', 900, 5]); },
+  vent() { noise(0.25, 0.22, 'bandpass', 1800, 0, 3); osc('square', 330, 220, 0.12, 0.05, 0.05, sfx, ['lowpass', 1200]); osc('square', 260, 180, 0.12, 0.05, 0.22, sfx, ['lowpass', 1200]); },
   ride() { osc('sine', 1200, 1200, 0.07, 0.1); osc('sine', 1600, 1600, 0.09, 0.1, 0.08); },
   win() { [523, 659, 784, 659, 784, 1047].forEach((f, i) => osc('triangle', f, f, 0.22, 0.16, i * 0.11)); },
   click() { osc('triangle', 880, 660, 0.05, 0.08); },

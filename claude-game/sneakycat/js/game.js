@@ -42,6 +42,8 @@ export class Game {
     this.vases = ents.vases.map((v) => ({ ...v, broken: false }));
     this.switches = ents.switches.map((v) => ({ ...v, on: true }));
     this.power = true;
+    // 환풍구는 읽는 순서대로 두 개씩 이어진다 (1↔2, 3↔4)
+    this.vents = ents.vents.map((v) => ({ ...v }));
     this.cams = ents.cams.map((c, i) => ({
       ...c, ox: c.x + c.wall.x * 0.36, oy: c.y + c.wall.y * 0.36,
       ang: c.base, meter: 0, alarmT: 0, phase: i * 2.1, sweep: 0.85, period: 6.5, range: 5.5, fov: 0.62,
@@ -122,6 +124,15 @@ export class Game {
     } else { c.moving = false; c.run = false; c.stepT = 0; }
     const wasHidden = c.hidden;
     c.hidden = this.grid.hideAt(c.x, c.y);
+    const tk = Math.floor(c.x) + ',' + Math.floor(c.y);
+    if (tk !== c.tileKey) {
+      c.tileKey = tk;
+      if (this.grid.c(Math.floor(c.x), Math.floor(c.y)) === '%') {
+        this.noise(c.x, c.y, 3.6, 'creak');
+        this.popup(c.x, c.y - 0.8, '삐걱!', '#e9b98a');
+        this.fx('creak');
+      }
+    }
     if (c.hidden && !wasHidden && this.grid.c(Math.floor(c.x), Math.floor(c.y)) !== 'C') this.fx('hide');
   }
   catFree(x, y) {
@@ -165,6 +176,10 @@ export class Game {
     if (this.state !== 'play') return null;
     const c = this.cat;
     if (c.riding) return { kind: 'unride', label: '내리기' };
+    for (let i = 0; i < this.vents.length; i++) {
+      const v = this.vents[i];
+      if (this.vents[i ^ 1] && Math.hypot(v.x - c.x, v.y - c.y) < 0.6) return { kind: 'vent', label: '환풍구', obj: this.vents[i ^ 1], from: v };
+    }
     const r = this.roomba;
     if (r && Math.hypot(r.x - c.x, r.y - c.y) < 0.95) return { kind: 'ride', label: '타기', obj: r };
     for (const v of this.vases) if (!v.broken && Math.hypot(v.x - c.x, v.y - c.y) < 1.2) return { kind: 'vase', label: '넘어뜨리기', obj: v };
@@ -175,7 +190,12 @@ export class Game {
     const a = this.actionTarget();
     if (!a) return;
     const c = this.cat;
-    if (a.kind === 'ride') {
+    if (a.kind === 'vent') {
+      const to = a.obj;
+      for (const p of [a.from, to]) for (let i = 0; i < 8; i++) this.part(p.x, p.y, (Math.random() - 0.5) * 3, -Math.random() * 2.5, '#9aa3b8', 0.5);
+      c.x = to.x; c.y = to.y; c.hidden = true; c.tileKey = Math.floor(c.x) + ',' + Math.floor(c.y);
+      this.popup(c.x, c.y - 0.9, '쏙!', '#c9d6f0'); this.fx('vent');
+    } else if (a.kind === 'ride') {
       c.riding = a.obj; c.hidden = true;
       this.popup(c.x, c.y - 0.9, '탑승!', '#9fe7ff'); this.fx('ride');
     } else if (a.kind === 'unride') {
