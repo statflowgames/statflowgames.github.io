@@ -1,11 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1110235033';
-import { Game } from './game.js?v=1110235033';
-import { Renderer, FONT } from './render.js?v=1110235033';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1110235033';
-import { Sound } from './audio.js?v=1110235033';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1110235033';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1110235033';
+import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1111093338';
+import { Game } from './game.js?v=1111093338';
+import { Renderer, FONT } from './render.js?v=1111093338';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1111093338';
+import { Sound } from './audio.js?v=1111093338';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1111093338';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1111093338';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -61,7 +61,7 @@ function resize() {
   // 가로 화면은 양옆 정보판 자리를 비우고 맵을 높이보다 1.3배 크게,
   // 세로 화면은 맵을 가로 폭에 맞추고 위아래가 넘치면 카메라가 고양이를 따라간다
   R.side = land ? Math.min(440, Math.max(0, (w - vh * 0.75) / 2)) : 0;
-  R.overW = 1; R.overH = land ? 1.3 : 1.5;
+  R.overW = land ? 1 : 1.3; R.overH = land ? 1.3 : 1.5;
   app.classList.toggle('lefty', !!save.lefty);
   R.resize(w, vh);
   placeSides();
