@@ -1,11 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1112004344';
-import { Game } from './game.js?v=1112004344';
-import { Renderer, FONT } from './render.js?v=1112004344';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1112004344';
-import { Sound } from './audio.js?v=1112004344';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1112004344';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1112004344';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1112010029';
+import { Game } from './game.js?v=1112010029';
+import { Renderer, FONT } from './render.js?v=1112010029';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1112010029';
+import { Sound } from './audio.js?v=1112010029';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1112010029';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1112010029';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');

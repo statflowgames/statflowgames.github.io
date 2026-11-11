@@ -1,6 +1,6 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1112004344';
-import { CHAPTERS } from './levels.js?v=1112004344';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1112010029';
+import { CHAPTERS } from './levels.js?v=1112010029';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },
@@ -12,6 +12,7 @@ export const TYPES = {
 };
 // 50번째 스테이지부터: 더 빠르고, 더 멀리 보고, 더 빨리 알아챈다
 const hardType = (T) => ({ ...T, walk: T.walk * 1.15, run: T.run * 1.08, range: T.range + 0.5, turn: T.turn * 1.15 });
+const BELT = { '<': [-1, 0], '>': [1, 0], '^': [0, -1], 'y': [0, 1] }, BELT_SPEED = 1.7;
 const CAT_SNEAK = 2.3, CAT_RUN = 4.0, CAT_R = 0.27;
 
 const LINES = {
@@ -61,6 +62,8 @@ export class Game {
     this.roomba = ents.roomba ? this.makeRoomba(level.roomba) : null;
     // 배식 카트: 정해진 지점을 오가는 움직이는 숨는 곳
     this.carts = (level.carts || []).map((r) => this.makeCart(r));
+    // 움직이는 탐조등: 천장 불빛이 정해진 길을 돈다. 숨지 않은 채 동그라미 안에 있으면 경보
+    this.spots = (level.spots || []).map((r, i) => this.makeSpot(r, i));
     // 자동문: 시간마다 열리고 닫힘. 사람이 다가오면 열림 (고양이는 너무 작아서 센서가 못 알아챔)
     this.doorOpen = this.hard ? 2.6 : 3.2; this.doorShut = this.hard ? 3.0 : 2.4;
     this.doors = ents.doors.map((d) => ({ ...d, open: true, amt: 1, phase: (d.tx * 1.7 + d.ty * 2.3) % (this.doorOpen + this.doorShut) }));
@@ -85,6 +88,37 @@ export class Game {
     this.guardsMade = (this.guardsMade || 0) + 1;
     if (g.sleeper) g.bubble = { text: 'Zz', t: 999, kind: 'z' };
     return g;
+  }
+  makeSpot(route, i) {
+    const pts = [...route].map((d) => this.ents.wps[d]);
+    return { x: pts[0].x, y: pts[0].y, pts, wi: pts.length > 1 ? 1 : 0, route: null, pause: 0.5 + i * 0.7, r: 1.2, speed: this.hard ? 1.5 : 1.25, meter: 0, alarmT: 0 };
+  }
+  updateSpots(dt, idle) {
+    const c = this.cat;
+    for (const sp of this.spots) {
+      sp.alarmT = Math.max(0, sp.alarmT - dt);
+      if (!this.power) { sp.meter = 0; continue; }
+      if (sp.alarmT > 0) {
+        // 경보가 울리면 고양이 쪽으로 따라온다
+        const dx = c.x - sp.x, dy = c.y - sp.y, d = Math.hypot(dx, dy);
+        if (d > 0.05) { sp.x += (dx / d) * Math.min(d, 2.2 * dt); sp.y += (dy / d) * Math.min(d, 2.2 * dt); }
+        sp.route = null;
+      } else if (sp.pause > 0) sp.pause -= dt;
+      else {
+        if (!sp.route) sp.route = this.grid.path(sp.x, sp.y, sp.pts[sp.wi].x, sp.pts[sp.wi].y) || [];
+        if (!sp.route.length) { sp.route = null; sp.wi = (sp.wi + 1) % sp.pts.length; sp.pause = 0.6; }
+        else {
+          const p = sp.route[0], dx = p.x - sp.x, dy = p.y - sp.y, d = Math.hypot(dx, dy), st = sp.speed * dt;
+          if (d <= st) { sp.x = p.x; sp.y = p.y; sp.route.shift(); } else { sp.x += (dx / d) * st; sp.y += (dy / d) * st; }
+        }
+      }
+      if (idle) continue;
+      const inside = !c.hidden && Math.hypot(c.x - sp.x, c.y - sp.y) < sp.r;
+      if (inside && sp.alarmT <= 0) {
+        sp.meter += dt * (this.hard ? 2.2 : 1.8);
+        if (sp.meter >= 1) { sp.meter = 0; sp.alarmT = 2.6; this.alarm(c.x, c.y); }
+      } else sp.meter = Math.max(0, sp.meter - dt * 0.8);
+    }
   }
   makeCart(route) {
     const pts = [...route].map((d) => this.ents.wps[d]);
@@ -131,7 +165,7 @@ export class Game {
     if (this.state !== 'play') {
       if (this.state === 'caught' || this.state === 'win') this.endT += dt;
       // 인트로 중에도 화면이 살아 있도록 청소기·카메라는 움직인다
-      if (this.state === 'intro') { this.updateRoomba(dt); this.updateCarts(dt); this.updateDoors(dt); this.updateSecurity(dt, true); }
+      if (this.state === 'intro') { this.updateRoomba(dt); this.updateCarts(dt); this.updateDoors(dt); this.updateSpots(dt, true); this.updateSecurity(dt, true); }
       return;
     }
     this.elapsed += dt;
@@ -139,6 +173,7 @@ export class Game {
     this.updateRoomba(dt);
     this.updateCarts(dt);
     this.updateDoors(dt);
+    this.updateSpots(dt, false);
     this.updateSecurity(dt, false);
     for (const g of this.guards) { this.updateGuard(g, dt); if (this.state !== 'play') return; }
     this.checkPickups();
@@ -159,6 +194,9 @@ export class Game {
     // 얼음 위에서는 천천히 속도가 붙고, 손을 떼도 한참 미끄러진다
     c.ice = this.grid.c(Math.floor(c.x), Math.floor(c.y)) === '~';
     if (c.ice) { const k = Math.min(1, 1.7 * dt); c.vx += (tx - c.vx) * k; c.vy += (ty - c.vy) * k; } else { c.vx = tx; c.vy = ty; }
+    const belt = BELT[this.grid.c(Math.floor(c.x), Math.floor(c.y))];
+    c.belt = !!belt;
+    if (belt) this.moveCat(belt[0] * BELT_SPEED * dt, belt[1] * BELT_SPEED * dt);
     const sp = Math.hypot(c.vx, c.vy);
     if (sp > 0.05) {
       const ox = c.x, oy = c.y;
@@ -580,6 +618,7 @@ export class Game {
     let m = 0;
     for (const g of this.guards) m = Math.max(m, g.state === 'chase' ? 1 : g.meter);
     for (const c of this.cams) m = Math.max(m, c.meter);
+    for (const s of this.spots) m = Math.max(m, s.meter);
     return m;
   }
 }

@@ -1,7 +1,7 @@
 // 등장인물·물건 소개 (도감). 장 시작 화면과 스테이지 시작 카드에서 쓴다.
-import { LEVELS, CHAPTERS } from './levels.js?v=1112004344';
-import { drawHuman, drawDog, drawRoomba, drawCart, drawFish, drawBonus, drawVase, drawSwitch, drawCatPeek, ell, rr, OUT } from './art.js?v=1112004344';
-import { sprite } from './assets.js?v=1112004344';
+import { LEVELS, CHAPTERS } from './levels.js?v=1112010029';
+import { drawHuman, drawDog, drawRoomba, drawCart, drawFish, drawBonus, drawVase, drawSwitch, drawCatPeek, ell, rr, OUT } from './art.js?v=1112010029';
+import { sprite } from './assets.js?v=1112010029';
 
 const has = (L, chars) => L.map.some((row) => [...chars].some((k) => row.includes(k)));
 const guard = (L, t, sleep = false) => L.guards.some((g) => g.t === t && !!g.sleep === sleep);
@@ -37,6 +37,8 @@ export const GUIDE = [
     desc: '4장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
   { id: 'sushi', kind: 'item', name: '연어 초밥', in: (L) => L.ch === 5,
     desc: '5장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
+  { id: 'bell', kind: 'item', name: '방울 목걸이', in: (L) => L.ch === 6,
+    desc: '6장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
   { id: 'door', kind: 'item', name: '고양이 문', in: () => true,
     desc: '들어온 곳이자 나가는 곳. 문 안에 있으면 들키지 않아요.' },
   { id: 'hide', kind: 'item', name: '숨는 곳', in: (L) => has(L, 'TDB'),
@@ -63,6 +65,10 @@ export const GUIDE = [
     desc: '시간마다 열렸다 닫혀요(구석 고리: 초록 = 열린 시간, 빨강 = 닫힌 시간). 사람이 오면 열리지만 고양이는 작아서 안 열려요. 닫히면 길도 시야도 막혀요.' },
   { id: 'cart', kind: 'item', name: '배식 카트', in: (L) => !!(L.carts && L.carts.length),
     desc: '옆에서 "카트에 숨기"를 누르면 천 덮개 밑에 쏙. 카트가 가는 대로 숨은 채 실려 가요. "내리기"로 내려요.' },
+  { id: 'belt', kind: 'item', name: '무빙워크', in: (L) => has(L, '<>^y'),
+    desc: '화살표 쪽으로 저절로 실려 가요. 같은 방향이면 엄청 빠르고, 거꾸로 걸으면 아주 느려요.' },
+  { id: 'spot', kind: 'item', name: '움직이는 탐조등', in: (L) => !!(L.spots && L.spots.length),
+    desc: '천장 불빛 동그라미가 길을 따라 돌아요. 숨지 않고 동그라미 안에 있으면 경보! 보안 전원을 끄면 꺼져요.' },
 ];
 const byId = Object.fromEntries(GUIDE.map((e) => [e.id, e]));
 export const entry = (id) => byId[id];
@@ -93,6 +99,17 @@ const DRAW = {
   shrimp: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'shrimp', 0); },
   chef: (c) => { c.translate(24, 47); c.scale(1.2, 1.2); drawHuman(c, { type: 'chef', face: Math.PI / 2, t: 0 }); },
   sushi: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'sushi', 0); },
+  bell: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'bell', 0); },
+  belt: (c) => {
+    rr(c, 4, 12, 40, 24, 3); c.fillStyle = '#4a5066'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#9aa3b8'; c.stroke();
+    c.strokeStyle = '#ffd66b'; c.lineWidth = 3; c.lineCap = 'round';
+    for (const x of [14, 24, 34]) { c.beginPath(); c.moveTo(x - 4, 18); c.lineTo(x + 2, 24); c.lineTo(x - 4, 30); c.stroke(); }
+  },
+  spot: (c) => {
+    const g = c.createRadialGradient(24, 26, 3, 24, 26, 20); g.addColorStop(0, 'rgba(255,250,215,0.95)'); g.addColorStop(1, 'rgba(255,250,215,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(24, 26, 20, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(255,240,180,0.9)'; c.lineWidth = 1.6; c.setLineDash([4, 3]); c.beginPath(); c.arc(24, 26, 17, 0, 7); c.stroke(); c.setLineDash([]);
+  },
   cart: (c) => { c.translate(24, 40); c.scale(1.5, 1.5); drawCart(c, {}, 0, { eye: '#9be86a' }); },
   autodoor: (c) => {
     c.fillStyle = '#3b2f45'; c.fillRect(2, 8, 10, 34); c.fillRect(36, 8, 10, 34);
