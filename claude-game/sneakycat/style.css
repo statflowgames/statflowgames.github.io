@@ -54,6 +54,10 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .lefty #ctrl #status { text-align: right; }
 .rbtn { flex-shrink: 0; pointer-events: auto; width: 64px; height: 64px; border-radius: 50%; font-size: 17px; border: 3px solid #1a1428; box-shadow: 0 4px 0 #1a1428, inset 0 -5px 0 rgba(0,0,0,0.18); position: relative; overflow: hidden; }
 .rbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #1a1428, inset 0 -5px 0 rgba(0,0,0,0.18); }
+.look { width: 52px; height: 52px; font-size: 13px; line-height: 1.1; background: radial-gradient(circle at 50% 35%, #d4e0ff, #92aaf5); color: #1d2a4a; touch-action: none; }
+.look b { font-weight: normal; }
+.compact .look { width: 46px; height: 46px; font-size: 12px; }
+.looking .look { background: radial-gradient(circle at 50% 35%, #fff, #c4d3ff); transform: translateY(3px); box-shadow: 0 1px 0 #1a1428; }
 .meow { background: radial-gradient(circle at 50% 35%, #ffc1df, #ff8fc0); color: #4a1d36; }
 .meow::after { content: ''; position: absolute; inset: 0; background: conic-gradient(rgba(20,12,30,0.55) calc(var(--cd, 0) * 360deg), transparent 0); }
 .meow b { position: relative; z-index: 1; font-weight: normal; }

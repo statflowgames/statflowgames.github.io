@@ -1,11 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1111093338';
-import { Game } from './game.js?v=1111093338';
-import { Renderer, FONT } from './render.js?v=1111093338';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1111093338';
-import { Sound } from './audio.js?v=1111093338';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1111093338';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1111093338';
+import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1111102508';
+import { Game } from './game.js?v=1111102508';
+import { Renderer, FONT } from './render.js?v=1111102508';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1111102508';
+import { Sound } from './audio.js?v=1111102508';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1111102508';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1111102508';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -43,7 +43,7 @@ const skinIcon = (s) => icon(70, 56, (c) => { c.translate(31, 50); c.scale(1.7, 
 
 // ───────── 상태 ─────────
 let scene = 'title';
-let game = null, levelIdx = 0, paused = false, ended = false;
+let game = null, levelIdx = 0, paused = false, ended = false, looking = false;
 let titleT = 0;
 
 function resize() {
@@ -74,7 +74,7 @@ const joy = { active: false, id: null, ox: 0, oy: 0, dx: 0, dy: 0, mag: 0, run: 
 const keys = new Set();
 cv.addEventListener('pointerdown', (e) => {
   Sound.unlock();
-  if (scene !== 'game' || paused || !game || game.state !== 'play') return;
+  if (scene !== 'game' || paused || looking || !game || game.state !== 'play') return;
   if (joy.active) return;
   const r = cv.getBoundingClientRect();
   joy.active = true; joy.id = e.pointerId;
@@ -99,6 +99,7 @@ window.addEventListener('keydown', (e) => {
   Sound.unlock();
   keys.add(e.code);
   if (scene !== 'game' || !game) return;
+  if (e.code === 'Tab') { e.preventDefault(); if (!e.repeat) setLook(true); return; }
   if (e.code === 'Escape' || e.code === 'KeyP') { paused ? resumeGame() : pauseGame(); }
   if (paused) return;
   if (game.state === 'intro' && (e.code === 'Space' || e.code === 'Enter')) { startPlay(); e.preventDefault(); return; }
@@ -106,8 +107,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyQ' || e.code === 'KeyM') doMeow();
   if (e.code === 'KeyR' && ended) startLevel(levelIdx);
 });
-window.addEventListener('keyup', (e) => keys.delete(e.code));
-window.addEventListener('blur', () => { keys.clear(); joy.active = false; joy.mag = 0; });
+window.addEventListener('keyup', (e) => { keys.delete(e.code); if (e.code === 'Tab') setLook(false); });
+window.addEventListener('blur', () => { keys.clear(); joy.active = false; joy.mag = 0; setLook(false); });
 
 function readInput() {
   let kx = 0, ky = 0;
@@ -126,6 +127,20 @@ function readInput() {
 $('#bAct').addEventListener('pointerdown', (e) => { e.preventDefault(); doAct(); });
 $('#bMeow').addEventListener('pointerdown', (e) => { e.preventDefault(); doMeow(); });
 $('#bPause').addEventListener('click', () => { Sound.play('click'); pauseGame(); });
+// 둘러보기: 누르고 있는 동안 게임을 멈추고 맵 전체를 보여 줌
+const bLook = $('#bLook');
+bLook.addEventListener('pointerdown', (e) => { e.preventDefault(); try { bLook.setPointerCapture(e.pointerId); } catch { /* 무시 */ } setLook(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) bLook.addEventListener(ev, () => setLook(false));
+bLook.addEventListener('contextmenu', (e) => e.preventDefault());
+function setLook(v) {
+  v = !!v && !!game && scene === 'game' && !paused && !ended && game.state === 'play';
+  if (v === looking) return;
+  looking = v; R.peek = v;
+  joy.active = false; joy.mag = 0; joy.run = false;
+  app.classList.toggle('looking', v);
+  R.layout(true); placeSides();
+  if (v) vib(10);
+}
 function doAct() { if (game && !paused && game.state === 'play') game.doAction(); }
 function doMeow() { if (game && !paused && game.meow()) vib(15); }
 
@@ -243,6 +258,7 @@ function startLevel(i, skipIntro = false) {
   const L = LEVELS[i];
   if (!skipIntro && firstOfChapter(i) && !save.seenCh[L.ch]) { chapterScreen(L.ch, () => startLevel(i, true)); return; }
   levelIdx = i; paused = false; ended = false;
+  looking = false; R.peek = false; app.classList.remove('looking');
   game = new Game(L);
   game.fx = (name) => {
     Sound.play(name);
@@ -279,7 +295,7 @@ function buildSides(L, i) {
   $('#sideL').innerHTML = `<h3>${L.id} ${L.name}</h3><p>${L.hint}</p>
     <h4>이번 스테이지</h4>${inLevel(L).filter((e) => e.id !== 'door').map((e) => guideRow(e, newInLevel(i).includes(e))).join('')}`;
   const k = (a, b) => `<div class="key"><span>${a}</span><kbd>${b}</kbd></div>`;
-  $('#sideR').innerHTML = `<h3>조작</h3>${k('이동 (살금살금)', '방향키 · WASD')}${k('달리기', 'Shift')}${k('행동', 'Space')}${k('야옹', 'Q')}${k('일시정지', 'Esc')}${k('다시 하기 (끝난 뒤)', 'R')}
+  $('#sideR').innerHTML = `<h3>조작</h3>${k('이동 (살금살금)', '방향키 · WASD')}${k('달리기', 'Shift')}${k('행동', 'Space')}${k('야옹', 'Q')}${k('맵 전체 보기', 'Tab 누르고 있기')}${k('일시정지', 'Esc')}${k('다시 하기 (끝난 뒤)', 'R')}
     <h4>알아 두기</h4>
     <p class="tipl">· 달리기 발소리, 야옹, 꽃병 소리는 문을 돌아 퍼져요.</p>
     <p class="tipl">· 탁자·침대·상자 밑과 고양이 문 안은 안 보여요.</p>
@@ -324,10 +340,11 @@ function updateHud() {
   const cd = game.cat.meowCD / 3.5;
   $('#bMeow').style.setProperty('--cd', cd.toFixed(3));
   const chased = game.chased(), d = game.danger();
-  const st = chased ? ['쫓기는 중! 숨어요!', 'bad'] : game.cat.riding ? ['청소기 탑승 중', ''] : game.cat.hidden && game.state === 'play' ? ['숨는 중', ''] : d > 0.3 ? ['수상하게 여기는 중…', 'warn'] : game.cat.hasFish ? ['생선 확보! 고양이 문으로', ''] : ['살금살금…', ''];
+  const st = looking ? ['둘러보는 중…', 'warn'] : chased ? ['쫓기는 중! 숨어요!', 'bad'] : game.cat.riding ? ['청소기 탑승 중', ''] : game.cat.hidden && game.state === 'play' ? ['숨는 중', ''] : d > 0.3 ? ['수상하게 여기는 중…', 'warn'] : game.cat.hasFish ? ['생선 확보! 고양이 문으로', ''] : ['살금살금…', ''];
   set('s', st.join('|'), () => { const s = $('#status'); s.textContent = st[0]; s.className = st[1]; });
 }
 function pauseGame() {
+  setLook(false);
   if (!game || paused || ended) return;
   paused = true; joy.active = false;
   const el = show(`<div class="card">
@@ -483,13 +500,13 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (scene === 'game' && game) {
-    if (!paused) {
+    if (!paused && !looking) {
       game.update(dt, game.state === 'play' ? readInput() : { dx: 0, dy: 0, mag: 0, run: false });
       Sound.setTension(game.chased() ? 1 : 0);
       if (!ended && game.state === 'caught' && game.endT > 1.2) endLevel(false);
       if (!ended && game.state === 'win' && game.endT > 0.5) endLevel(true);
     }
-    R.draw(paused ? 0 : dt, joy);
+    R.draw(paused || looking ? 0 : dt, joy);
     updateHud();
   } else {
     Sound.setTension(0);

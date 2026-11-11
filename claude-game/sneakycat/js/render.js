@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1111093338';
-import { sprite } from './assets.js?v=1111093338';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1111102508';
+import { sprite } from './assets.js?v=1111102508';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -23,7 +23,7 @@ export class Renderer {
     this.ts = 32;
     this.ox = 0; this.oy = 0;
     this.focus = null;
-    this.top = 70; this.bottom = 150; this.side = 0; this.overW = 1; this.overH = 1;
+    this.top = 70; this.bottom = 150; this.side = 0; this.overW = 1; this.overH = 1; this.peek = false;
     this.skin = null;
   }
   resize(w, h) {
@@ -47,6 +47,8 @@ export class Renderer {
     let ts = clamp(fit >= big * 0.9 ? fit : big, 20, 84);
     // 넓은 맵은 조금 좌우로 스크롤되더라도 너무 작아지지 않게
     ts = Math.max(ts, Math.min(28, availH / g.h));
+    // 둘러보기: 맵 전체를 한 화면에
+    if (this.peek) ts = Math.min(84, fit);
     this.ts = Math.floor(ts);
     this.mapW = g.w * this.ts;
     this.mapH = g.h * this.ts;
