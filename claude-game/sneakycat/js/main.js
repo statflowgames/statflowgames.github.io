@@ -1,11 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1111102508';
-import { Game } from './game.js?v=1111102508';
-import { Renderer, FONT } from './render.js?v=1111102508';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1111102508';
-import { Sound } from './audio.js?v=1111102508';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1111102508';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1111102508';
+import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1111230905';
+import { Game } from './game.js?v=1111230905';
+import { Renderer, FONT } from './render.js?v=1111230905';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1111230905';
+import { Sound } from './audio.js?v=1111230905';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1111230905';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1111230905';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -135,11 +135,11 @@ bLook.addEventListener('contextmenu', (e) => e.preventDefault());
 function setLook(v) {
   v = !!v && !!game && scene === 'game' && !paused && !ended && game.state === 'play';
   if (v === looking) return;
-  looking = v; R.peek = v;
+  looking = v;
   joy.active = false; joy.mag = 0; joy.run = false;
   app.classList.toggle('looking', v);
-  R.layout(true); placeSides();
-  if (v) vib(10);
+  R.setPeek(v); placeSides();
+  if (v) { vib(10); Sound.play('peek'); }
 }
 function doAct() { if (game && !paused && game.state === 'play') game.doAction(); }
 function doMeow() { if (game && !paused && game.meow()) vib(15); }

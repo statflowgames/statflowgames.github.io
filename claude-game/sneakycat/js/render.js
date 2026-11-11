@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1111102508';
-import { sprite } from './assets.js?v=1111102508';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1111230905';
+import { sprite } from './assets.js?v=1111230905';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -407,6 +407,8 @@ export class Renderer {
       }
     }
 
+    if (this.peek) this.peekPaths(c);
+
     // 바닥 물건 (은은히 빛남)
     const glow = (x, y, col, r) => {
       const gr = c.createRadialGradient(x, y, 0, x, y, r);
@@ -452,6 +454,7 @@ export class Renderer {
       c.strokeText(p.text, p.x * ts, y); c.fillStyle = p.color; c.fillText(p.text, p.x * ts, y);
     }
     c.globalAlpha = 1;
+    if (this.peek) this.peekRings(c);
     c.restore();
 
     // 화면 효과
@@ -464,8 +467,116 @@ export class Renderer {
       c.fillStyle = gr; c.fillRect(0, 0, this.W, this.H);
     }
     if (G.alarmFlash > 0) { c.fillStyle = `rgba(255,40,60,${G.alarmFlash * 0.22 * (0.6 + 0.4 * Math.sin(t * 20))})`; c.fillRect(0, 0, this.W, this.H); }
+    if (this.peek) this.peekEye(c);
     this.edgeMarks(c, t);
     if (joy && joy.active) this.drawJoy(c, joy);
+  }
+  setPeek(v) {
+    this.peek = v; this.peekT0 = performance.now() / 1000; this.peekCache = null;
+    this.layout(true);
+  }
+  // 둘러보기: 경비가 걸어갈 길, 카메라가 고개 돌리는 범위 (게임은 멈춰 있으니 실제 시간으로 움직임)
+  peekPaths(c) {
+    const G = this.game, ts = this.ts, s = ts / 32, now = performance.now() / 1000;
+    const a = Math.min(1, (now - this.peekT0) / 0.3);
+    const P = (p) => [p.x * ts, p.y * ts];
+    const leg = (from, to) => G.grid.path(from.x, from.y, to.x, to.y) || [];
+    const loopOf = (pts) => { const l = [pts[0]]; pts.forEach((p, i) => l.push(...leg(p, pts[(i + 1) % pts.length]))); return l; };
+    if (!this.peekCache) {
+      this.peekCache = G.guards.map((g) => (g.pts.length < 2 ? null : loopOf(g.pts)));
+      this.peekRoomba = G.roomba && G.roomba.pts.length > 1 ? loopOf(G.roomba.pts) : null;
+    }
+    const line = (pts, col, w, dash, off) => {
+      if (pts.length < 2) return;
+      c.beginPath(); pts.forEach((p, i) => { const [x, y] = P(p); if (i) c.lineTo(x, y); else c.moveTo(x, y); });
+      c.strokeStyle = col; c.lineWidth = w; c.setLineDash(dash); c.lineDashOffset = off; c.stroke(); c.setLineDash([]);
+    };
+    const arrow = (p, q, col, sz) => {
+      const [x0, y0] = P(p), [x1, y1] = P(q);
+      c.save(); c.translate((x0 + x1) / 2, (y0 + y1) / 2); c.rotate(Math.atan2(y1 - y0, x1 - x0));
+      c.beginPath(); c.moveTo(sz, 0); c.lineTo(-sz * 0.7, -sz * 0.75); c.lineTo(-sz * 0.7, sz * 0.75); c.closePath();
+      c.fillStyle = col; c.fill(); c.lineWidth = 1.5; c.strokeStyle = 'rgba(20,14,30,0.8)'; c.stroke(); c.restore();
+    };
+    const COL = ['255,214,107', '127,212,255', '255,157,226', '157,255,170', '255,179,122', '200,170,255'];
+    c.save(); c.globalAlpha = a; c.lineCap = 'round'; c.lineJoin = 'round';
+    if (this.peekRoomba) line(this.peekRoomba, 'rgba(200,210,230,0.35)', 2 * s, [2 * s, 5 * s], 0);
+    // 카메라: 고개를 돌리는 전체 범위와 양쪽 화살표
+    if (G.power) for (const cam of G.cams) {
+      c.globalCompositeOperation = 'lighter';
+      this.cone(c, cam.ox, cam.oy, cam.base, cam.sweep * 2 + cam.fov, cam.range, '140,200,255', 0.1 * a);
+      c.globalCompositeOperation = 'source-over';
+      const R0 = cam.range * ts * 0.55, a0 = cam.base - cam.sweep, a1 = cam.base + cam.sweep, cx = cam.ox * ts, cy = cam.oy * ts;
+      c.beginPath(); c.arc(cx, cy, R0, a0, a1);
+      c.strokeStyle = 'rgba(160,215,255,0.9)'; c.lineWidth = 2 * s; c.setLineDash([5 * s, 4 * s]); c.lineDashOffset = -now * 18 * s; c.stroke(); c.setLineDash([]);
+      for (const [an, d] of [[a0, -1], [a1, 1]]) {
+        c.save(); c.translate(cx + Math.cos(an) * R0, cy + Math.sin(an) * R0); c.rotate(an + (d * Math.PI) / 2);
+        c.beginPath(); c.moveTo(6 * s, 0); c.lineTo(-4 * s, -5 * s); c.lineTo(-4 * s, 5 * s); c.closePath();
+        c.fillStyle = 'rgba(160,215,255,0.95)'; c.fill(); c.restore();
+      }
+    }
+    G.guards.forEach((g, i) => {
+      if (g.state === 'sleep') return;
+      const col = COL[i % COL.length];
+      if (g.state !== 'patrol') {
+        // 수상해서 다른 데로 가는 중: 지금 가는 길만 주황색
+        if (g.route && g.route.length) line([{ x: g.x, y: g.y }, ...g.route], 'rgba(255,150,60,0.95)', 3 * s, [6 * s, 5 * s], -now * 30 * s);
+        return;
+      }
+      // 서 있는 경비: 번갈아 보는 방향을 모두 옅게
+      if (g.pts.length < 2) {
+        if (g.look.length > 1) {
+          c.globalCompositeOperation = 'lighter';
+          for (const d of g.look) this.cone(c, g.x, g.y, d, g.T.fov, g.T.range, col, 0.09 * a);
+          c.globalCompositeOperation = 'source-over';
+        }
+        return;
+      }
+      line(this.peekCache[i], `rgba(${col},0.28)`, 2 * s, [2 * s, 6 * s], 0);
+      // 다음에 걸어갈 길 (지금 → 다음 지점 → 그다음 지점)
+      const n = g.pts.length, A = g.pts[g.wi], B = g.pts[(g.wi + 1) % n];
+      const cur = { x: g.x, y: g.y };
+      const next = [cur, ...(g.route && g.route.length ? g.route : leg(cur, A))];
+      const after = [A, ...leg(A, B)];
+      line(after, `rgba(${col},0.55)`, 2.5 * s, [5 * s, 5 * s], -now * 22 * s);
+      line(next, `rgba(${col},0.95)`, 3.5 * s, [7 * s, 5 * s], -now * 30 * s);
+      for (let k = 2; k < next.length; k += 3) arrow(next[k - 1], next[k], `rgb(${col})`, 5 * s);
+      for (let k = 2; k < after.length; k += 4) arrow(after[k - 1], after[k], `rgba(${col},0.7)`, 4 * s);
+      for (const [p, big] of [[A, true], [B, false]]) {
+        const [x, y] = P(p);
+        c.beginPath(); c.arc(x, y, (big ? 5 : 3.5) * s, 0, 7); c.fillStyle = `rgba(${col},${big ? 0.95 : 0.6})`; c.fill();
+        c.lineWidth = 1.5; c.strokeStyle = 'rgba(20,14,30,0.8)'; c.stroke();
+      }
+    });
+    c.restore();
+  }
+  // 둘러보기: 생선·보너스·경비를 반짝 고리로
+  peekRings(c) {
+    const G = this.game, ts = this.ts, s = ts / 32, now = performance.now() / 1000;
+    const ring = (x, y, col, ph) => {
+      const k = (now * 1.2 + ph) % 1;
+      c.beginPath(); c.arc(x * ts, y * ts, ts * (0.45 + k * 0.6), 0, 7);
+      c.strokeStyle = `rgba(${col},${(1 - k) * 0.9})`; c.lineWidth = 2.5 * s; c.stroke();
+    };
+    if (!G.fish.taken) ring(G.fish.x, G.fish.y, G.L.golden ? '255,215,90' : '150,215,255', 0);
+    G.bonus.forEach((b, i) => { if (!b.taken) ring(b.x, b.y, '255,160,220', 0.3 + i * 0.2); });
+    G.guards.forEach((g, i) => { if (g.state !== 'sleep') ring(g.x, g.y - 0.3, '255,236,170', 0.5 + i * 0.17); });
+  }
+  // 둘러보기: 고양이가 눈을 크게 뜨는 느낌 (가장자리 어둡게, 열리면서 넓어짐)
+  peekEye(c) {
+    const now = performance.now() / 1000, e = Math.min(1, (now - this.peekT0) / 0.35);
+    const o = 1 - Math.pow(1 - e, 3), W = this.W, H = this.H, cx = W / 2, cy = (this.top + H - this.bottom) / 2;
+    const rx = W * (0.25 + 0.4 * o), ry = H * (0.12 + 0.36 * o), k = rx / ry;
+    c.save(); c.translate(cx, cy); c.scale(1, 1 / k);
+    const gr = c.createRadialGradient(0, 0, rx * 0.72, 0, 0, rx * 1.25);
+    gr.addColorStop(0, 'rgba(10,8,30,0)'); gr.addColorStop(1, `rgba(10,8,30,${0.75 - 0.2 * o})`);
+    c.fillStyle = gr; c.fillRect(-W, -H * k, W * 2, H * 2 * k);
+    c.restore();
+    c.fillStyle = `rgba(110,150,255,${0.06 * o})`; c.fillRect(0, 0, W, H);
+    c.globalAlpha = o; c.font = `14px ${FONT}`; c.textAlign = 'center';
+    const msg = '고양이 눈으로 살피는 중 · 손을 떼면 계속';
+    const y = this.top + 18, w = c.measureText(msg).width + 26;
+    rr(c, cx - w / 2, y - 13, w, 26, 13); c.fillStyle = 'rgba(16,12,34,0.82)'; c.fill();
+    c.fillStyle = '#d8e2ff'; c.fillText(msg, cx, y + 5); c.globalAlpha = 1;
   }
   // 맵이 화면보다 길 때, 화면 밖 경비가 어느 쪽에 있는지 가장자리에 화살표로
   edgeMarks(c, t) {
