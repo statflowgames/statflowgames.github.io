@@ -4,7 +4,10 @@ const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 
   'sprite-owner', 'sprite-owner-side', 'sprite-owner-back', 'sprite-owner-alert',
   'sprite-butler', 'sprite-butler-side', 'sprite-butler-back', 'sprite-butler-alert',
   'sprite-guard', 'sprite-guard-side', 'sprite-guard-back', 'sprite-guard-alert',
-  'sprite-dog', 'sprite-dog-sleep'];
+  'sprite-dog', 'sprite-dog-sleep',
+  'chapter-4', 'chapter-5', 'chapter-6', 'chapter-7', 'chapter-8', 'chapter-9',
+  'ending-1', 'ending-2', 'ending-3', 'ending-4', 'ending-bg', 'sprite-cat-king',
+  ...['fishmonger', 'chef', 'keeper', 'robot', 'knight'].flatMap((n) => ['', '-side', '-back', '-alert'].map((p) => `sprite-${n}${p}`))];
 export const IMG = {};
 
 export function loadAll(timeout = 3000) {

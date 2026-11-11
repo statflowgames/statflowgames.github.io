@@ -1,11 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS } from './levels.js?v=1111230905';
-import { Game } from './game.js?v=1111230905';
-import { Renderer, FONT } from './render.js?v=1111230905';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1111230905';
-import { Sound } from './audio.js?v=1111230905';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1111230905';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1111230905';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1112003539';
+import { Game } from './game.js?v=1112003539';
+import { Renderer, FONT } from './render.js?v=1112003539';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1112003539';
+import { Sound } from './audio.js?v=1112003539';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1112003539';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1112003539';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -13,7 +13,7 @@ const R = new Renderer(cv);
 
 // ───────── 저장 ─────────
 const KEY = 'sneakycat.claude.v1';
-let save = { stars: {}, best: {}, skin: 'gray', sound: true, music: true, vib: true, lefty: false, seenCh: {} };
+let save = { stars: {}, best: {}, skin: 'gray', sound: true, music: true, vib: true, lefty: false, seenCh: {}, ending: false };
 try { Object.assign(save, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { /* 저장소 없음 */ }
 const store = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* 무시 */ } };
 const starsOf = (id) => save.stars[id] || [false, false, false];
@@ -21,6 +21,7 @@ const totalStars = () => LEVELS.reduce((n, l) => n + starsOf(l.id).filter(Boolea
 const cleared = (id) => !!save.stars[id];
 const unlocked = (i) => i === 0 || cleared(LEVELS[i - 1].id) || cleared(LEVELS[i].id);
 const skinById = (id) => SKINS.find((s) => s.id === id) || SKINS[0];
+const skinOpen = (s, ts = totalStars()) => (s.ending ? !!save.ending : ts >= s.need);
 Sound.setSound(save.sound);
 Sound.setMusic(save.music);
 const vib = (p) => { if (save.vib && navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) try { navigator.vibrate(p); } catch { /* 무시 */ } };
@@ -35,10 +36,8 @@ function icon(w, h, fn) {
 const ICON = {
   fish: icon(30, 30, (c) => drawFish(c, 15, 15, 1.05, false)),
   gold: icon(30, 30, (c) => drawFish(c, 15, 15, 1.05, true)),
-  yarn: icon(30, 30, (c) => { c.translate(15, 22); drawBonus(c, 'yarn', 0); }),
-  tuna: icon(30, 30, (c) => { c.translate(15, 22); drawBonus(c, 'tuna', 0); }),
-  gem: icon(30, 30, (c) => { c.translate(15, 22); drawBonus(c, 'gem', 0); }),
 };
+for (const ch of CHAPTERS) ICON[ch.bonus] = icon(30, 30, (c) => { c.translate(15, 22); drawBonus(c, ch.bonus, 0); });
 const skinIcon = (s) => icon(70, 56, (c) => { c.translate(31, 50); c.scale(1.7, 1.7); drawCat(c, { skin: s, t: 0.5, face: 1, fish: false }); });
 
 // ───────── 상태 ─────────
@@ -190,20 +189,32 @@ function titleScreen() {
 function levelScreen() {
   scene = 'levels'; game = null; setHud(false);
   let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>스테이지</h2><div class="starsum">★ ${totalStars()}/${LEVELS.length * 3}</div></div>`;
+  if (save.ending) html += `<button class="btn endbtn" data-a="ending">🏆 엔딩 다시 보기</button>`;
   let nextShown = false;
+  // 지금 할 스테이지가 있는 장만 펼치고 나머지는 접어 둔다
+  const nextIdx = LEVELS.findIndex((l, i) => unlocked(i) && !cleared(l.id));
+  const openCh = nextIdx >= 0 ? LEVELS[nextIdx].ch : LEVELS[LEVELS.length - 1].ch;
   for (const ch of CHAPTERS) {
     const lv = LEVELS.map((l, i) => ({ l, i })).filter((x) => x.l.ch === ch.id);
+    if (!lv.length) {
+      html += `<div class="chap soon"><h3>${ch.id}장 · ${ch.name}<span>준비 중</span></h3><p>${ch.sub} — 곧 열려요!</p></div>`;
+      continue;
+    }
     const got = lv.reduce((n, x) => n + starsOf(x.l.id).filter(Boolean).length, 0);
-    html += `<div class="chap">${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}<h3>${ch.id}장 · ${ch.name}<span>★ ${got}/${lv.length * 3}</span></h3><p>${ch.sub}</p><button class="gbtn" data-c="${ch.id}">등장인물 · 물건 소개</button><div class="lvgrid">`;
+    const hard = lv.some((x) => x.l.hard);
+    html += `<div class="chap ${ch.id === openCh ? '' : 'fold'}" data-ch="${ch.id}">${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}<h3 data-f="${ch.id}">${ch.id}장 · ${ch.name}${hard ? ' <em class="hardtag">🔥</em>' : ''}<span>★ ${got}/${lv.length * 3} <b class="fa">▾</b></span></h3><p>${ch.sub}</p><button class="gbtn" data-c="${ch.id}">등장인물 · 물건 소개</button><div class="lvgrid">`;
     for (const { l, i } of lv) {
       const st = starsOf(l.id), ok = unlocked(i), cl = cleared(l.id);
       const nx = ok && !cl && !nextShown; if (nx) nextShown = true;
-      html += `<button class="lv ${cl ? 'clear' : ''} ${ok ? '' : 'lock'} ${nx ? 'next' : ''}" data-i="${i}"><span class="no">${l.id}</span><span class="nm">${ok ? l.name : '잠겨 있음'}</span><span class="st">${st.map((s) => `<i class="${s ? 'on' : ''}">★</i>`).join('')}</span></button>`;
+      if (l.no === HARD_FROM) html += `<div class="hardline">🔥 여기부터 고난도 — 경비가 더 빠르고 더 멀리 봐요</div>`;
+      html += `<button class="lv ${cl ? 'clear' : ''} ${ok ? '' : 'lock'} ${nx ? 'next' : ''} ${l.hard ? 'hard' : ''}" data-i="${i}"><span class="no">${l.id}</span><span class="nm">${ok ? l.name : '잠겨 있음'}</span><span class="st">${st.map((s) => `<i class="${s ? 'on' : ''}">★</i>`).join('')}</span></button>`;
     }
     html += '</div></div>';
   }
   const el = show(html, 'list');
   on(el, '[data-a=back]', () => titleScreen());
+  on(el, '[data-a=ending]', () => endingScreen(false));
+  el.querySelectorAll('[data-f]').forEach((h) => h.addEventListener('click', () => { Sound.play('click'); h.parentElement.classList.toggle('fold'); }));
   on(el, '[data-c]', (e, b) => chapterScreen(+b.dataset.c, null));
   on(el, '[data-i]', (e, b) => {
     const i = +b.dataset.i;
@@ -219,14 +230,14 @@ function skinScreen() {
   const ts = totalStars();
   let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>고양이 옷장</h2><div class="starsum">★ ${ts}</div></div><div class="skins">`;
   for (const s of SKINS) {
-    const ok = ts >= s.need;
-    html += `<button class="skin ${save.skin === s.id ? 'sel' : ''} ${ok ? '' : 'lock'}" data-s="${s.id}"><img src="${spriteURL('sprite-cat', s) || skinIcon(s)}" alt="">${ok ? s.name : '???'}<small>${ok ? (save.skin === s.id ? '입는 중' : '입어 보기') : `별 ${s.need}개`}</small></button>`;
+    const ok = skinOpen(s, ts);
+    html += `<button class="skin ${save.skin === s.id ? 'sel' : ''} ${ok ? '' : 'lock'}" data-s="${s.id}"><img src="${spriteURL(s.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat', s) || skinIcon(s)}" alt="">${ok ? (s.crown ? '👑 ' : '') + s.name : '???'}<small>${ok ? (save.skin === s.id ? '입는 중' : '입어 보기') : s.ending ? '엔딩을 보면 열려요' : `별 ${s.need}개`}</small></button>`;
   }
   const el = show(html + '</div>', 'list');
   on(el, '[data-a=back]', () => titleScreen());
   on(el, '[data-s]', (e, b) => {
     const s = skinById(b.dataset.s);
-    if (ts < s.need) { toast(`별 ${s.need}개를 모으면 열려요`); return; }
+    if (!skinOpen(s, ts)) { toast(s.ending ? '99번째 스테이지를 깨고 엔딩을 보면 열려요' : `별 ${s.need}개를 모으면 열려요`); return; }
     save.skin = s.id; store(); skinScreen();
   });
 }
@@ -277,7 +288,7 @@ function startLevel(i, skipIntro = false) {
   const nw = skipIntro && firstOfChapter(i) ? [] : newInLevel(i), here = inLevel(L).filter((e) => e.id !== 'door');
   const el = show(`<div class="card">
       ${IMG['chapter-' + ch.id] ? `<div class="cbanner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}
-      <span class="tag">${ch.id}장 · ${ch.name}</span>
+      <span class="tag">${ch.id}장 · ${ch.name}</span>${L.hard ? '<span class="tag hardt">🔥 고난도</span>' : ''}
       <h1>${L.name}</h1>
       <p class="tip">${L.hint}</p>
       ${nw.length ? `<div class="newbox"><div class="nh">새로 등장!</div>${nw.map((e) => guideRow(e, false)).join('')}</div>` : ''}
@@ -399,18 +410,22 @@ function endLevel(win) {
   if (!save.best[L.id] || t < save.best[L.id]) save.best[L.id] = t;
   store();
   const after = totalStars();
-  const newSkins = SKINS.filter((s) => s.need > before && s.need <= after);
+  const newSkins = SKINS.filter((s) => !s.ending && s.need > before && s.need <= after);
   const ch = CHAPTERS[L.ch - 1];
-  const last = levelIdx === LEVELS.length - 1;
+  const last = !!L.final, golden = !!L.golden, fake = golden && !last;
+  const nextL = LEVELS[levelIdx + 1];
+  const soon = !last && !nextL;
   const labels = ['생선 들고 탈출', `${ch.bonusName} 모두 챙김`, '한 번도 안 들킴'];
   const el = show(`<div class="card">
-      ${IMG[last ? 'legend' : 'win'] ? `<img class="hero" src="${spriteURL(last ? 'legend' : 'win', skinById(save.skin))}" alt="">` : ''}
+      ${IMG[golden ? 'legend' : 'win'] ? `<img class="hero" src="${spriteURL(golden ? 'legend' : 'win', skinById(save.skin))}" alt="">` : ''}
       <span class="tag">${L.id} · ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</span>
-      <h1>${last ? '전설의 도둑 고양이!' : '탈출 성공!'}</h1>
-      ${last ? '<p>황금 생선까지 훔쳐 냈다! 모든 스테이지 클리어!</p>' : ''}
+      <h1>${last ? '전설의 도둑 고양이!' : fake ? '황금 생선…인데?' : '탈출 성공!'}</h1>
+      ${last ? '<p>진짜 황금 생선을 손에 넣었다! 99스테이지 모두 클리어!</p>' : ''}
+      ${fake ? '<p>훔친 황금 생선이 이상하게 가볍다. 톡톡… 플라스틱?! <b>진짜는 생선왕의 성에 있다!</b></p>' : ''}
+      ${soon ? '<p class="soonp">다음 장은 지금 준비 중이에요. 조금만 기다려 주세요!</p>' : ''}
       ${labels.map((lb, i) => `<div class="goalrow hide" data-g="${i}"><span class="s">★</span>${lb}</div>`).join('')}
       ${newSkins.map((s) => `<div class="unlock">새 고양이 해금: ${s.name}! (옷장에서 입기)</div>`).join('')}
-      ${last ? '' : '<button class="btn main" data-a="next">다음 스테이지</button>'}
+      ${last ? '<button class="btn main" data-a="ending">엔딩 보기</button>' : soon ? '' : `<button class="btn main" data-a="next">다음 스테이지${nextL.no === HARD_FROM ? ' 🔥' : ''}</button>`}
       <div class="row2"><button class="btn sm" data-a="retry">다시 하기</button><button class="btn sm" data-a="list">목록</button></div>
     </div>`, 'center dim');
   got.forEach((g, i) => setTimeout(() => {
@@ -420,8 +435,54 @@ function endLevel(win) {
     if (g) { r.classList.add('on'); Sound.play('star'); }
   }, 350 + i * 380));
   on(el, '[data-a=next]', () => startLevel(levelIdx + 1));
+  on(el, '[data-a=ending]', () => endingScreen(true));
   on(el, '[data-a=retry]', () => startLevel(levelIdx));
   on(el, '[data-a=list]', () => levelScreen());
+}
+
+// ───────── 엔딩 ─────────
+const ENDING = [
+  { img: 'ending-1', text: '생선왕의 성 가장 깊은 방. 드디어 찾았다 — 진짜 황금 생선!', bg: ['#2a1d3e', '#6b4a1e'] },
+  { img: 'ending-2', text: '경보가 울리고 온 성이 뒤집혔지만… 이미 늦었지롱!', bg: ['#1b1838', '#5a2240'] },
+  { img: 'ending-3', text: '새벽 지붕 위. 그동안 모은 보물을 하나하나 세어 본다.', bg: ['#3a2f6b', '#f2a65a'] },
+  { img: 'ending-4', text: '아침. 집사는 아무것도 모른다. 오늘도 평화로운 하루.', bg: ['#f6d9a8', '#f2b8a0'] },
+];
+const CREDITS = ['도둑 고양이', '', '기획 · 그림', 'StatFlow Games', '', '프로그램 · 레벨 디자인', 'Claude', '', '등장 인물', '잠옷 집사 · 정장 집사 · 강아지', '경비원 · 생선가게 사장님', '요리사 · 관리인 아저씨', '경비 로봇 · 생선왕의 기사', '', '그리고', '끝까지 살금살금 걸어 준 당신', '', '고마워요!'];
+function endingScreen(first) {
+  scene = 'ending'; game = null; setHud(false);
+  if (first && !save.ending) { save.ending = true; store(); }
+  Sound.play('win');
+  let i = 0;
+  const panel = () => {
+    const p = ENDING[i];
+    const art = IMG[p.img]
+      ? `<div class="eart" style="background-image:url(img/${p.img}.webp)"></div>`
+      : `<div class="eart code" style="background:linear-gradient(${p.bg[0]},${p.bg[1]})"><img src="${spriteURL('legend', skinById(save.skin)) || skinIcon(skinById(save.skin))}" alt=""></div>`;
+    const el = show(`<div class="ending">${art}<div class="etext"><p>${p.text}</p><small>${i + 1} / ${ENDING.length} · 눌러서 계속</small></div></div>`, 'full');
+    el.querySelector('.ending').addEventListener('click', () => { Sound.play('click'); i++; if (i < ENDING.length) panel(); else credits(); });
+  };
+  const credits = () => {
+    const bg = IMG['ending-bg'] ? `style="background-image:url(img/ending-bg.webp)"` : '';
+    const el = show(`<div class="credits" ${bg}><div class="roll">${CREDITS.map((l, k) => `<div class="${k === 0 ? 'ct' : l && CREDITS[k + 1] && !CREDITS[k - 1] ? 'ch' : ''}">${l || '&nbsp;'}</div>`).join('')}</div><small class="skip">눌러서 넘기기</small></div>`, 'full');
+    const go = () => { clearTimeout(tm); record(); };
+    const tm = setTimeout(go, 16000);
+    el.querySelector('.credits').addEventListener('click', go);
+  };
+  const record = () => {
+    const ts = totalStars(), all = LEVELS.length * 3, cl = LEVELS.filter((l) => cleared(l.id)).length;
+    const el = show(`<div class="card">
+        <span class="tag">THE END</span>
+        <h1>전설의 도둑 고양이</h1>
+        <div class="goalrow on"><span class="s">★</span>모은 별 ${ts} / ${all}</div>
+        <div class="goalrow on"><span class="s">✓</span>깬 스테이지 ${cl} / ${LEVELS.length}</div>
+        <div class="unlock">엔딩 보상: 👑 생선왕 고양이 (옷장에서 입기)</div>
+        <button class="btn main" data-a="skin">옷장 가기</button>
+        <button class="btn" data-a="list">스테이지 목록</button>
+      </div>`, 'center dim');
+    on(el, '[data-a=skin]', () => skinScreen());
+    on(el, '[data-a=list]', () => levelScreen());
+  };
+  panel();
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -524,4 +585,5 @@ window.__sc = {
   intro: (i) => startLevel(i),
   step(dt = 1 / 60, inp = { dx: 0, dy: 0, mag: 0, run: false }) { game.update(dt, inp); R.draw(dt, joy); updateHud(); },
   save: () => save,
+  ending: () => endingScreen(true),
 };

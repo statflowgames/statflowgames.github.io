@@ -183,3 +183,33 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .chips { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; margin-top: 10px; }
 .chips span { width: 100%; font-size: 13px; color: var(--sub); }
 .chip img { width: 40px; height: 40px; object-fit: contain; background: #1b1530; border: 2px solid var(--line); border-radius: 10px; padding: 2px; display: block; }
+
+/* 99스테이지: 장 접기, 고난도, 준비 중 */
+.chap h3[data-f] { cursor: pointer; }
+.chap .fa { display: inline-block; transition: transform 0.2s; font-weight: normal; }
+.chap.fold .fa { transform: rotate(-90deg); }
+.chap.fold .lvgrid, .chap.fold .gbtn, .chap.fold .banner, .chap.fold p { display: none; }
+.chap.soon { opacity: 0.55; }
+.chap.soon h3 span { color: var(--sub); }
+.hardtag { font-style: normal; font-size: 16px; }
+.lv.hard .no { background: #4a1d2a; color: #ffb3a0; }
+.hardline { margin: 6px 0 2px; padding: 8px 10px; border-radius: 12px; background: linear-gradient(90deg, #5a1d2a, #3a1d40); color: #ffd0b8; font-size: 14px; text-align: center; }
+.card .tag.hardt { margin-left: 6px; background: #5a1d2a; color: #ffc9b0; }
+.soonp { color: var(--sub); }
+.endbtn { display: block; width: calc(100% - 28px); margin: 0 14px 12px; }
+/* 엔딩 */
+.scr.full { padding: 0; }
+.ending { position: absolute; inset: 0; display: flex; flex-direction: column; background: #0d0b18; cursor: pointer; animation: fadein 0.6s; }
+.eart { flex: 1; background-size: cover; background-position: center; }
+.eart.code { display: flex; align-items: center; justify-content: center; }
+.eart.code img { width: 70%; max-width: 320px; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.4)); animation: heroin 0.6s cubic-bezier(.2,1.6,.4,1); }
+.etext { padding: 18px 22px calc(26px + env(safe-area-inset-bottom)); background: linear-gradient(rgba(13,11,24,0), #0d0b18 30%); margin-top: -60px; text-align: center; }
+.etext p { font-size: 21px; line-height: 1.5; margin: 0 0 8px; }
+.etext small { color: var(--sub); font-size: 13px; }
+.credits { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(circle at 50% 18%, #3a3170, #120f26 70%); background-size: cover; background-position: center; cursor: pointer; }
+.roll { position: absolute; left: 0; right: 0; top: 100%; text-align: center; font-size: 19px; line-height: 2; animation: roll 15s linear forwards; text-shadow: 0 2px 4px #000; }
+.roll .ct { font-size: 34px; color: var(--gold); }
+.roll .ch { color: var(--sub); font-size: 15px; }
+.credits .skip { position: absolute; bottom: calc(16px + env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center; color: var(--sub); font-size: 13px; }
+@keyframes roll { to { transform: translateY(calc(-100% - 100vh)); } }
+@keyframes fadein { from { opacity: 0; } }

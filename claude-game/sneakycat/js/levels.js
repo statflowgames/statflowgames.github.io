@@ -1,4 +1,5 @@
-// 도둑 고양이 — 스테이지 데이터
+// 도둑 고양이 — 스테이지 데이터 (1~3장 1~10번. 늘어난 스테이지는 levels2.js)
+import { EXTRA } from './levels2.js?v=1112003539';
 //
 // 타일 기호
 //   #  벽            .  나무 바닥      ,  부엌 타일     _  카펫     :  대리석
@@ -22,9 +23,21 @@ export const CHAPTERS = [
     pal: { wallTop: '#2f2a3f', wallFront: '#6f7fa8', trim: '#d8c27a', night: 'rgba(12,16,44,0.46)' } },
   { id: 3, name: '한밤의 박물관', sub: '카메라와 레이저', bonus: 'gem', bonusName: '보석',
     pal: { wallTop: '#25283a', wallFront: '#55607a', trim: '#9fb4c9', night: 'rgba(8,12,34,0.5)' } },
+  { id: 4, name: '새벽 수산시장', sub: '생선가게 사장님과 얼음 바닥', bonus: 'shrimp', bonusName: '왕새우',
+    pal: { wallTop: '#24363f', wallFront: '#5f8f99', trim: '#cfe9ee', night: 'rgba(10,28,48,0.4)' } },
+  { id: 5, name: '호텔 주방', sub: '요리사와 자동문', bonus: 'sushi', bonusName: '연어 초밥',
+    pal: { wallTop: '#3a2f2a', wallFront: '#c9c2b5', trim: '#e8d9a8', night: 'rgba(20,16,40,0.42)' } },
+  { id: 6, name: '한밤의 백화점', sub: '무빙워크와 탐조등', bonus: 'bell', bonusName: '방울 목걸이',
+    pal: { wallTop: '#2c2440', wallFront: '#8a6fb0', trim: '#f0c8e8', night: 'rgba(14,10,40,0.46)' } },
+  { id: 7, name: '밤의 놀이공원', sub: '불꽃놀이와 회전목마', bonus: 'cotton', bonusName: '솜사탕',
+    pal: { wallTop: '#2a2238', wallFront: '#c0606a', trim: '#ffd27a', night: 'rgba(20,10,44,0.44)' } },
+  { id: 8, name: '비밀 연구소', sub: '경비 로봇과 압력판', bonus: 'battery', bonusName: '건전지',
+    pal: { wallTop: '#1e2a2a', wallFront: '#4f7a72', trim: '#9ff0c8', night: 'rgba(6,20,22,0.5)' } },
+  { id: 9, name: '생선왕의 성', sub: '기사와 모든 장치', bonus: 'crown', bonusName: '왕관 조각',
+    pal: { wallTop: '#2a2030', wallFront: '#7a6a8a', trim: '#ffd700', night: 'rgba(16,8,34,0.5)' } },
 ];
 
-export const LEVELS = [
+const BASE = [
   // ───────────── 1장 작은 집 ─────────────
   {
     id: '1-1', ch: 1, name: '첫 번째 생선',
@@ -655,6 +668,12 @@ export const LEVELS = [
   },
 ];
 
+// 장 → 번호 순으로 합친다. no = 전체에서 몇 번째, hard = 50번째부터 고난도, final = 마지막(엔딩)
+const num = (L) => +L.id.split('-')[1];
+export const LEVELS = [...BASE, ...EXTRA].sort((a, b) => a.ch - b.ch || num(a) - num(b));
+export const HARD_FROM = 50;
+LEVELS.forEach((L, i) => { L.no = i + 1; L.hard = i + 1 >= HARD_FROM; L.final = L.id === '9-11'; });
+
 export const SKINS = [
   { id: 'gray', name: '회색 줄무늬', need: 0, body: '#8f8b99', stripe: '#5d5869', belly: '#ece7ee', eye: '#9be86a' },
   { id: 'cheese', name: '치즈', need: 8, body: '#f2a84c', stripe: '#c8772b', belly: '#fff1da', eye: '#7cc7ff' },
@@ -663,4 +682,10 @@ export const SKINS = [
   { id: 'black', name: '까망이', need: 45, body: '#3d3848', stripe: '#2c2836', belly: '#4a4556', eye: '#ffe45c' },
   { id: 'white', name: '눈송이', need: 60, body: '#f8f6f2', stripe: '#e2dcd6', belly: '#ffffff', eye: '#78c4ff', mask: '#5f5a72' },
   { id: 'gold', name: '황금 고양이', need: 80, body: '#ffd447', stripe: '#e39d17', belly: '#fff6c8', eye: '#ff6f9f' },
+  { id: 'siam', name: '샴 고양이', need: 110, body: '#efe2cc', stripe: '#c9b49a', belly: '#fff8ea', eye: '#6fb8ff', mask: '#4a3a30' },
+  { id: 'blue', name: '러시안 블루', need: 150, body: '#8193ab', stripe: '#6c7d96', belly: '#a7b6ca', eye: '#7be07b' },
+  { id: 'mackerel', name: '고등어', need: 190, body: '#9c8f74', stripe: '#4c4537', belly: '#efe6d2', eye: '#ffd34d' },
+  { id: 'sakura', name: '벚꽃 고양이', need: 240, body: '#ffc6dc', stripe: '#f39dbd', belly: '#fff0f6', eye: '#7a5cff' },
+  { id: 'galaxy', name: '밤하늘 고양이', need: 280, body: '#2f3474', stripe: '#4f43a6', belly: '#93a6ff', eye: '#ffe45c' },
+  { id: 'king', name: '생선왕 고양이', need: 0, ending: true, body: '#fff1b8', stripe: '#f2b84c', belly: '#ffffff', eye: '#ff6f9f', crown: true },
 ];

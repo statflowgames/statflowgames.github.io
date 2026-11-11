@@ -1,7 +1,7 @@
 // 등장인물·물건 소개 (도감). 장 시작 화면과 스테이지 시작 카드에서 쓴다.
-import { LEVELS, CHAPTERS } from './levels.js?v=1111230905';
-import { drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, drawCatPeek, ell, rr, OUT } from './art.js?v=1111230905';
-import { sprite } from './assets.js?v=1111230905';
+import { LEVELS, CHAPTERS } from './levels.js?v=1112003539';
+import { drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, drawCatPeek, ell, rr, OUT } from './art.js?v=1112003539';
+import { sprite } from './assets.js?v=1112003539';
 
 const has = (L, chars) => L.map.some((row) => [...chars].some((k) => row.includes(k)));
 const guard = (L, t, sleep = false) => L.guards.some((g) => g.t === t && !!g.sleep === sleep);
@@ -18,17 +18,21 @@ export const GUIDE = [
     desc: '잠옷 집사보다 조금 빠르고 더 멀리 봐요. 둘이서 엇갈려 다니기도 해요.' },
   { id: 'guard', kind: 'who', name: '경비원', in: (L) => guard(L, 'guard'),
     desc: '손전등이 제일 멀리 닿아요. 대신 불빛 폭은 좁으니 옆으로 비켜 가요.' },
+  { id: 'fishmonger', kind: 'who', name: '생선가게 사장님', in: (L) => guard(L, 'fishmonger'),
+    desc: '눈은 좀 어두워요. 그런데 고양이가 생선을 물고 있으면 냄새로 알아채요 (하늘색 동그라미 안에 들어가면 들켜요).' },
 
   { id: 'fish', kind: 'item', name: '생선', in: (L) => !L.golden,
     desc: '오늘의 목표! 물고 고양이 문으로 돌아오면 성공이에요.' },
   { id: 'gold', kind: 'item', name: '황금 생선', in: (L) => !!L.golden,
-    desc: '전설의 생선. 이걸 훔치면 모든 스테이지 클리어!' },
+    desc: '전설의 생선. 반짝반짝… 그런데 정말 진짜일까?' },
   { id: 'yarn', kind: 'item', name: '털실 뭉치', in: (L) => L.ch === 1,
     desc: '1장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
   { id: 'tuna', kind: 'item', name: '황금 참치캔', in: (L) => L.ch === 2,
     desc: '2장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
   { id: 'gem', kind: 'item', name: '보석', in: (L) => L.ch === 3,
     desc: '3장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
+  { id: 'shrimp', kind: 'item', name: '왕새우', in: (L) => L.ch === 4,
+    desc: '4장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
   { id: 'door', kind: 'item', name: '고양이 문', in: () => true,
     desc: '들어온 곳이자 나가는 곳. 문 안에 있으면 들키지 않아요.' },
   { id: 'hide', kind: 'item', name: '숨는 곳', in: (L) => has(L, 'TDB'),
@@ -47,6 +51,10 @@ export const GUIDE = [
     desc: '켜졌다 꺼졌다 깜빡여요. 빨간 줄이 꺼진 틈에 지나가요. 닿으면 경보!' },
   { id: 'switch', kind: 'item', name: '보안 전원', in: (L) => has(L, 's'),
     desc: '옆에서 "전원 끄기"를 누르면 카메라와 레이저가 한꺼번에 꺼져요.' },
+  { id: 'ice', kind: 'item', name: '얼음 바닥', in: (L) => has(L, '~'),
+    desc: '미끄러워요! 속도가 천천히 붙고, 손을 떼도 한참 미끄러져요. 미끄러지는 동안은 발소리가 안 나요.' },
+  { id: 'puddle', kind: 'item', name: '물웅덩이', in: (L) => has(L, 'w'),
+    desc: '밟으면 첨벙! 살금살금 걸어도 소리가 나서 근처 경비가 들어요.' },
 ];
 const byId = Object.fromEntries(GUIDE.map((e) => [e.id, e]));
 export const entry = (id) => byId[id];
@@ -73,6 +81,19 @@ const DRAW = {
   owner: (c) => { c.translate(24, 44); c.scale(1.35, 1.35); drawHuman(c, { type: 'owner', face: Math.PI / 2, t: 0 }); },
   butler: (c) => { c.translate(24, 44); c.scale(1.35, 1.35); drawHuman(c, { type: 'butler', face: Math.PI / 2, t: 0 }); },
   guard: (c) => { c.translate(24, 44); c.scale(1.35, 1.35); drawHuman(c, { type: 'guard', face: Math.PI / 2, t: 0 }); },
+  fishmonger: (c) => { c.translate(24, 44); c.scale(1.35, 1.35); drawHuman(c, { type: 'fishmonger', face: Math.PI / 2, t: 0 }); },
+  shrimp: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'shrimp', 0); },
+  ice: (c) => {
+    rr(c, 4, 6, 40, 36, 6); c.fillStyle = '#bfe3f2'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#5a8fb0'; c.stroke();
+    c.strokeStyle = '#ffffff'; c.lineWidth = 3; c.beginPath(); c.moveTo(12, 32); c.lineTo(22, 18); c.moveTo(26, 36); c.lineTo(31, 29); c.stroke();
+    c.strokeStyle = '#7fb0cc'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(34, 12); c.lineTo(38, 20); c.lineTo(34, 26); c.stroke();
+  },
+  puddle: (c) => {
+    c.beginPath(); c.ellipse(24, 28, 20, 13, 0, 0, 7); c.fillStyle = 'rgba(40,90,140,0.8)'; c.fill();
+    c.beginPath(); c.ellipse(22, 26, 16, 10, 0, 0, 7); c.fillStyle = '#7ec0ea'; c.fill();
+    c.strokeStyle = '#eaf8ff'; c.lineWidth = 2; c.beginPath(); c.ellipse(16, 23, 6, 2.4, -0.3, Math.PI, Math.PI * 1.9); c.stroke();
+    c.fillStyle = '#bfe8ff'; for (const [x, y] of [[36, 12], [40, 18], [12, 12]]) { c.beginPath(); c.arc(x, y, 2, 0, 7); c.fill(); }
+  },
   dog: (c) => { c.translate(24, 38); c.scale(1.4, 1.4); drawDog(c, { face: 0, t: 0, ch: 2 }); },
   sleeper: (c) => { c.translate(24, 38); c.scale(1.4, 1.4); drawDog(c, { face: 0, t: 0, ch: 1, sleep: true }); },
   fish: (c) => drawFish(c, 24, 24, 1.6, false),
@@ -131,7 +152,7 @@ const DRAW = {
     c.strokeStyle = '#ff5266'; c.lineWidth = 2; c.stroke();
   },
 };
-const SPRITE = { owner: 'sprite-owner', butler: 'sprite-butler', guard: 'sprite-guard', dog: 'sprite-dog', sleeper: 'sprite-dog-sleep' };
+const SPRITE = { owner: 'sprite-owner', butler: 'sprite-butler', guard: 'sprite-guard', fishmonger: 'sprite-fishmonger', dog: 'sprite-dog', sleeper: 'sprite-dog-sleep' };
 const iconCache = {};
 // 그림 파일이 있으면 그려진 부분만 잘라 정사각형 아이콘으로
 function cropIcon(name) {

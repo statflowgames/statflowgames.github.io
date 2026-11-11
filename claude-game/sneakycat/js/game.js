@@ -1,13 +1,16 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1111230905';
-import { CHAPTERS } from './levels.js?v=1111230905';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1112003539';
+import { CHAPTERS } from './levels.js?v=1112003539';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },
   butler: { walk: 1.4, run: 3.35, range: 4.6, fov: 1.2, nose: 0, turn: 4.5 },
   guard: { walk: 1.5, run: 3.6, range: 5.2, fov: 1.05, nose: 0, turn: 5 },
   dog: { walk: 1.9, run: 4.45, range: 3.4, fov: 1.6, nose: 1.35, turn: 7 },
+  fishmonger: { walk: 1.2, run: 3.1, range: 3.9, fov: 1.3, nose: 0, fishNose: 2.6, turn: 4 },
 };
+// 50번째 스테이지부터: 더 빠르고, 더 멀리 보고, 더 빨리 알아챈다
+const hardType = (T) => ({ ...T, walk: T.walk * 1.15, run: T.run * 1.08, range: T.range + 0.5, turn: T.turn * 1.15 });
 const CAT_SNEAK = 2.3, CAT_RUN = 4.0, CAT_R = 0.27;
 
 const LINES = {
@@ -24,6 +27,7 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export class Game {
   constructor(level) {
     this.L = level;
+    this.hard = !!level.hard;
     this.chapter = CHAPTERS[level.ch - 1];
     const { grid, ents } = parseLevel(level);
     this.grid = grid;
@@ -36,7 +40,7 @@ export class Game {
     this.alarmFlash = 0;
     this.fx = () => {};
     const s = ents.cat;
-    this.cat = { x: s.x, y: s.y, face: 1, moving: false, run: false, hidden: true, hasFish: false, riding: null, stepT: 0, walkT: 0, meowCD: 0, bubble: null };
+    this.cat = { x: s.x, y: s.y, vx: 0, vy: 0, face: 1, moving: false, run: false, hidden: true, hasFish: false, riding: null, stepT: 0, walkT: 0, meowCD: 0, bubble: null };
     this.fish = { ...ents.fish, taken: false };
     this.bonus = ents.bonus.map((b) => ({ ...b, taken: false }));
     this.vases = ents.vases.map((v) => ({ ...v, broken: false }));
@@ -46,7 +50,7 @@ export class Game {
     this.vents = ents.vents.map((v) => ({ ...v }));
     this.cams = ents.cams.map((c, i) => ({
       ...c, ox: c.x + c.wall.x * 0.36, oy: c.y + c.wall.y * 0.36,
-      ang: c.base, meter: 0, alarmT: 0, phase: i * 2.1, sweep: 0.85, period: 6.5, range: 5.5, fov: 0.62,
+      ang: c.base, meter: 0, alarmT: 0, phase: i * 2.1, sweep: 0.85, period: this.hard ? 5.2 : 6.5, range: this.hard ? 6 : 5.5, fov: 0.62,
     }));
     this.lasers = ents.lasers.map((l) => ({ ...l, phase: (l.dir === 'h' ? l.ty : l.tx) * 0.95 }));
     this.laserOn = 2.0;
@@ -60,7 +64,7 @@ export class Game {
   }
 
   makeGuard(spec) {
-    const T = TYPES[spec.t];
+    const T = this.hard ? hardType(TYPES[spec.t]) : TYPES[spec.t];
     const pts = [...spec.p].map((d) => this.ents.wps[d]);
     const look = (spec.look || ['d']).map((k) => DIRS[k]);
     const g = {
@@ -109,28 +113,42 @@ export class Game {
       c.x = c.riding.x; c.y = c.riding.y - 0.04; c.moving = false; c.run = false; c.hidden = true;
       return;
     }
-    if (inp.mag > 0.08) {
-      const speed = inp.run ? CAT_RUN : CAT_SNEAK * Math.min(1, 0.5 + inp.mag * 0.75);
-      const vx = inp.dx * speed, vy = inp.dy * speed;
-      this.moveCat(vx * dt, vy * dt);
+    const want = inp.mag > 0.08;
+    const speed = want ? (inp.run ? CAT_RUN : CAT_SNEAK * Math.min(1, 0.5 + inp.mag * 0.75)) : 0;
+    const tx = want ? inp.dx * speed : 0, ty = want ? inp.dy * speed : 0;
+    // 얼음 위에서는 천천히 속도가 붙고, 손을 떼도 한참 미끄러진다
+    c.ice = this.grid.c(Math.floor(c.x), Math.floor(c.y)) === '~';
+    if (c.ice) { const k = Math.min(1, 1.7 * dt); c.vx += (tx - c.vx) * k; c.vy += (ty - c.vy) * k; } else { c.vx = tx; c.vy = ty; }
+    const sp = Math.hypot(c.vx, c.vy);
+    if (sp > 0.05) {
+      const ox = c.x, oy = c.y;
+      this.moveCat(c.vx * dt, c.vy * dt);
+      if (Math.abs(c.x - ox) < Math.abs(c.vx * dt) * 0.3) c.vx = 0;
+      if (Math.abs(c.y - oy) < Math.abs(c.vy * dt) * 0.3) c.vy = 0;
       c.moving = true;
-      c.run = inp.run;
-      if (Math.abs(inp.dx) > 0.15) c.face = Math.sign(inp.dx);
-      c.walkT += dt * speed;
-      if (inp.run) {
+      c.run = want && inp.run;
+      if (Math.abs(c.vx) > 0.3) c.face = Math.sign(c.vx);
+      c.walkT += dt * sp * (c.ice && !want ? 0.2 : 1);
+      if (c.run && !c.ice) {
         c.stepT -= dt;
         if (c.stepT <= 0) { c.stepT = 0.3; this.noise(c.x, c.y + 0.2, 2.5, 'step'); this.fx('step'); }
       }
-    } else { c.moving = false; c.run = false; c.stepT = 0; }
+    } else { c.vx = c.vy = 0; c.moving = false; c.run = false; c.stepT = 0; }
     const wasHidden = c.hidden;
     c.hidden = this.grid.hideAt(c.x, c.y);
     const tk = Math.floor(c.x) + ',' + Math.floor(c.y);
     if (tk !== c.tileKey) {
       c.tileKey = tk;
-      if (this.grid.c(Math.floor(c.x), Math.floor(c.y)) === '%') {
+      const tile = this.grid.c(Math.floor(c.x), Math.floor(c.y));
+      if (tile === '%') {
         this.noise(c.x, c.y, 3.6, 'creak');
         this.popup(c.x, c.y - 0.8, '삐걱!', '#e9b98a');
         this.fx('creak');
+      } else if (tile === 'w') {
+        this.noise(c.x, c.y, 3.4, 'splash');
+        this.popup(c.x, c.y - 0.8, '첨벙!', '#9fdcff');
+        for (let i = 0; i < 8; i++) this.part(c.x, c.y, (Math.random() - 0.5) * 3, -Math.random() * 2.5, '#bfe8ff', 0.45);
+        this.fx('splash');
       }
     }
     if (c.hidden && !wasHidden && this.grid.c(Math.floor(c.x), Math.floor(c.y)) !== 'C') this.fx('hide');
@@ -333,11 +351,13 @@ export class Game {
 
   // ───────── 경비 ─────────
   say(g, text, kind = 'say', t = 1.6) { g.bubble = { text, t, kind }; }
+  noseOf(g) { return g.T.nose + (this.cat.hasFish ? g.T.fishNose || 0 : 0); }
   canSee(g, d) {
     const c = this.cat;
     if (c.hidden) return false;
     if (d < 0.6) return true;
-    if (g.T.nose && d < g.T.nose) return true;
+    const nose = this.noseOf(g);
+    if (nose && d < nose) return true;
     if (d > g.T.range) return false;
     if (Math.abs(angDiff(Math.atan2(c.y - g.y, c.x - g.x), g.face)) > g.T.fov / 2) return false;
     return this.grid.los(g.x, g.y, c.x, c.y);
@@ -353,7 +373,7 @@ export class Game {
     const d = Math.hypot(c.x - g.x, c.y - g.y);
     const sees = this.canSee(g, d);
     if (sees) {
-      let rate = 1.7 * (1.3 - Math.min(1, d / T.range)) * (c.run ? 1.5 : 1);
+      let rate = 1.7 * (1.3 - Math.min(1, d / T.range)) * (c.run ? 1.5 : 1) * (this.hard ? 1.25 : 1);
       if (d < 0.75) rate = 12;
       if (g.state !== 'patrol') rate *= 1.25;
       g.meter = Math.min(1, g.meter + rate * dt);

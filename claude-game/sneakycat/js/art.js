@@ -139,6 +139,7 @@ const HUMAN = {
   owner: { top: '#8ec5ff', pants: '#7fb3ef', shoe: '#ff9fb7', hair: '#6b4a3a', skin: '#ffd9b8', light: false },
   butler: { top: '#2d2f3d', pants: '#24252f', shoe: '#141418', hair: '#c9cad3', skin: '#f6d2b0', light: false },
   guard: { top: '#365887', pants: '#26385a', shoe: '#1a1d26', hair: '#3a2a22', skin: '#f2c9a3', light: true },
+  fishmonger: { top: '#3e8f86', pants: '#33404f', shoe: '#f2c230', hair: '#2e2420', skin: '#f0c49a', light: false },
 };
 export function drawHuman(c, o) {
   const P = HUMAN[o.type];
@@ -172,6 +173,9 @@ export function drawHuman(c, o) {
       c.beginPath(); c.moveTo(-2.4, -21.3); c.lineTo(0, -20.3); c.lineTo(-2.4, -19.2); c.fill();
       c.beginPath(); c.moveTo(2.6, -21.3); c.lineTo(0.2, -20.3); c.lineTo(2.6, -19.2); c.fill();
     }
+  } else if (o.type === 'fishmonger') {
+    // 고무 앞치마
+    if (view !== 'back') { rr(c, -5.6, -20.5, 11.2, 12, 3); c.fillStyle = '#e9edf0'; c.fill(); c.lineWidth = 1; c.strokeStyle = OUT; c.stroke(); c.fillStyle = '#3e8f86'; c.fillRect(-4.2, -16, 8.4, 1.4); }
   } else if (o.type === 'guard') {
     c.fillStyle = '#1d2a44'; c.fillRect(-7.4, -12.5, 14.8, 2.2);
     if (view !== 'back') { c.fillStyle = '#ffd34d'; c.beginPath(); c.arc(view === 'side' ? 3.5 : -3.2, -18, 1.5, 0, 7); c.fill(); }
@@ -195,6 +199,7 @@ export function drawHuman(c, o) {
   ell(c, 0, hy, 8.6, 8.2, P.skin, OUT);
   if (view === 'back') {
     c.beginPath(); c.ellipse(0, hy - 0.5, 8.4, 8, 0, 0, Math.PI * 2); c.fillStyle = P.hair; c.fill();
+    if (o.type === 'fishmonger') { rr(c, -8.6, hy - 6.5, 17.2, 4.2, 2); c.fillStyle = '#ffffff'; c.fill(); c.lineWidth = 1; c.strokeStyle = OUT; c.stroke(); ell(c, 0, hy - 3, 2.4, 1.6, '#ffffff', OUT, 0.9); }
   } else {
     const fx = view === 'side' ? 2.6 : 0;
     // 머리카락
@@ -202,6 +207,11 @@ export function drawHuman(c, o) {
     c.beginPath(); c.ellipse(-fx * 0.6, hy - 3.5, 8.3, 5.2, 0, Math.PI, Math.PI * 2); c.fill();
     if (view === 'side') { c.beginPath(); c.ellipse(-5, hy, 3.6, 6, 0, 0, Math.PI * 2); c.fill(); }
     if (o.type === 'owner') { c.beginPath(); c.moveTo(-2, hy - 8); c.lineTo(0, hy - 11); c.lineTo(1.5, hy - 7.5); c.fill(); }
+    if (o.type === 'fishmonger') {
+      rr(c, -8.6, hy - 6.5, 17.2, 4.2, 2); c.fillStyle = '#ffffff'; c.fill(); c.lineWidth = 1; c.strokeStyle = OUT; c.stroke();
+      c.fillStyle = '#4f86c6'; c.fillRect(-8, hy - 5, 16, 1.1);
+      ell(c, -8.4, hy - 3.6, 1.6, 2.2, '#ffffff', OUT, 0.9);
+    }
     // 눈
     const sleepy = o.type === 'owner' && !alert && o.state !== 'suspicious' && o.state !== 'investigate';
     const big = alert || o.state === 'suspicious';
@@ -210,6 +220,7 @@ export function drawHuman(c, o) {
       else { ell(c, ex, hy, big ? 1.6 : 1.2, big ? 2 : 1.6, '#1d1620'); ell(c, ex - 0.4, hy - 0.6, 0.45, 0.45, '#fff'); }
     }
     if (o.type === 'butler') { c.fillStyle = '#9fa0aa'; c.beginPath(); c.ellipse(fx + 2.5, hy + 3.6, 3, 1.1, 0, 0, Math.PI * 2); c.fill(); }
+    else if (o.type === 'fishmonger' && !alert) { ell(c, fx + (view === 'side' ? 5 : 0), hy + 1.6, 1.8, 1.5, '#f2a98a', OUT, 0.8); c.strokeStyle = OUT; c.lineWidth = 0.9; c.beginPath(); c.moveTo(fx + 0.8, hy + 4.4); c.lineTo(fx + 3.6, hy + 4.4); c.stroke(); }
     else if (alert) { ell(c, fx + 2.4, hy + 4, 1.4, 1.6, '#7a2b33'); }
     else { c.strokeStyle = OUT; c.lineWidth = 0.9; c.beginPath(); c.moveTo(fx + 1.4, hy + 4); c.lineTo(fx + 3.2, hy + 4); c.stroke(); }
     ell(c, (view === 'side' ? fx - 1.6 : -4.6), hy + 2.4, 1.6, 0.9, 'rgba(255,120,120,0.35)');
@@ -328,6 +339,34 @@ export function drawBonus(c, kind, t) {
     c.fillStyle = '#e04a5a'; c.fillRect(-5.3, -2, 10.6, 3.6);
     ell(c, 0, -5, 6, 1.8, '#fff0a8', OUT, 1.2);
     drawFish(c, 0, -0.2, 0.25, false);
+  } else if (kind === 'shrimp') {
+    c.save(); c.rotate(-0.3);
+    for (let i = 0; i < 4; i++) ell(c, -4 + i * 2.6, Math.sin(i * 0.9) * 1.2 - i * 0.3, 3.4 - i * 0.35, 3 - i * 0.3, i % 2 ? '#ff9a5a' : '#ff8a4a', OUT, 1.1);
+    c.beginPath(); c.moveTo(5.5, -1.5); c.lineTo(9, -4); c.lineTo(9, 1.5); c.closePath(); fillStroke(c, '#ffb07a', OUT, 1);
+    c.strokeStyle = '#d9542a'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(-6, -1); c.quadraticCurveTo(-10, -8, -4, -9); c.stroke();
+    ell(c, -5, -1.5, 0.9, 0.9, '#1d1620');
+    c.restore();
+  } else if (kind === 'sushi') {
+    rr(c, -7, -1, 14, 6, 3); fillStroke(c, '#fbf8ef', OUT, 1.3);
+    rr(c, -7.5, -4.5, 15, 5, 2.5); fillStroke(c, '#ff8f6a', OUT, 1.3);
+    c.strokeStyle = '#ffd2c0'; c.lineWidth = 1; for (const x of [-4, 0, 4]) { c.beginPath(); c.moveTo(x - 1, -4); c.lineTo(x + 1.5, -0.5); c.stroke(); }
+    c.fillStyle = '#2a3a2a'; c.fillRect(-1.5, -4.8, 3, 9.5);
+  } else if (kind === 'bell') {
+    c.strokeStyle = '#d6324a'; c.lineWidth = 2.2; c.beginPath(); c.arc(0, -6, 6.5, 0.15 * Math.PI, 0.85 * Math.PI, true); c.stroke();
+    ell(c, 0, 1, 5, 5, '#ffcf3f', OUT, 1.3); c.fillStyle = OUT; c.fillRect(-3.5, 1.5, 7, 0.9); ell(c, 0, 3.5, 1, 1, OUT);
+    ell(c, -1.8, -1, 1.2, 0.8, '#fff6c8');
+  } else if (kind === 'cotton') {
+    c.strokeStyle = '#e9d9b8'; c.lineWidth = 1.8; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, 9); c.stroke();
+    for (const [x, y, r] of [[-3, -3, 4.2], [3, -3, 4.2], [0, -6.5, 4.4], [0, -1.5, 4]]) ell(c, x, y, r, r, '#ffb3d9', OUT, 1.1);
+    ell(c, -2, -6, 1.5, 1, '#ffe3f2');
+  } else if (kind === 'battery') {
+    rr(c, -4.5, -7, 9, 14, 2); fillStroke(c, '#3a3f52', OUT, 1.3);
+    c.fillStyle = '#8f98ad'; c.fillRect(-1.6, -8.6, 3.2, 1.8);
+    rr(c, -3, -1, 6, 6.5, 1); c.fillStyle = '#5cff8a'; c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.moveTo(0.6, -5.5); c.lineTo(-1.6, -2); c.lineTo(0, -2); c.lineTo(-0.6, 1); c.lineTo(1.8, -3); c.lineTo(0.2, -3); c.closePath(); c.fill();
+  } else if (kind === 'crown') {
+    c.beginPath(); c.moveTo(-7, 4); c.lineTo(-7, -4); c.lineTo(-3.5, 0); c.lineTo(0, -7); c.lineTo(3.5, 0); c.lineTo(7, -4); c.lineTo(7, 4); c.closePath(); fillStroke(c, '#ffcf3f', OUT, 1.4);
+    for (const [x, col] of [[-3.5, '#ff4d6d'], [0, '#7ef0ff'], [3.5, '#7bff8a']]) ell(c, x, 1.5, 1.3, 1.3, col);
   } else {
     c.beginPath(); c.moveTo(0, -7); c.lineTo(6, -2); c.lineTo(0, 7); c.lineTo(-6, -2); c.closePath(); fillStroke(c, '#7ef0ff', OUT, 1.4);
     c.beginPath(); c.moveTo(-6, -2); c.lineTo(6, -2); c.moveTo(0, -7); c.lineTo(-2, -2); c.lineTo(0, 7); c.lineTo(2, -2); c.closePath();

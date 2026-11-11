@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1111230905';
-import { sprite } from './assets.js?v=1111230905';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1112003539';
+import { sprite, IMG } from './assets.js?v=1112003539';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -8,10 +8,10 @@ const hash = (x, y, s = 0) => {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
-const CARPET = ['#c0605f', '#6c3150', '#34477a'];
-const CARPET_EDGE = ['#f0c27a', '#d8b45a', '#c9d6f0'];
-const SOFA = ['#d06b5f', '#4f7a5a', '#7a3346'];
-const BED = ['#7aa0e0', '#b04a6a', '#5d6f9a'];
+const CARPET = ['#c0605f', '#6c3150', '#34477a', '#2f6b73', '#7a2f3a', '#3d5a8a', '#6a3d8a', '#2d5a4a', '#5a2a5a'];
+const CARPET_EDGE = ['#f0c27a', '#d8b45a', '#c9d6f0', '#bfe6e0', '#f0d08a', '#e6e6f0', '#ffd27a', '#9ff0c8', '#ffd700'];
+const SOFA = ['#d06b5f', '#4f7a5a', '#7a3346', '#3f7f8a', '#8a4a3a', '#4a5f9a', '#a04a7a', '#4a6a7a', '#7a2a3a'];
+const BED = ['#7aa0e0', '#b04a6a', '#5d6f9a', '#5aa0a8', '#e0e0e8', '#8a7ad0', '#e07aa0', '#7ab0a0', '#c0a050'];
 export const FONT = '"Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
 
 export class Renderer {
@@ -88,6 +88,8 @@ export class Renderer {
       const k = g.ch[y][x];
       if (k === '%') this.creakTile(c, x, y);
       else if (k === 'V') this.ventTile(c, x, y);
+      else if (k === '~') this.iceTile(c, x, y);
+      else if (k === 'w') this.puddleTile(c, x, y);
     }
     // 고양이 문 앞 발판
     const s = G.ents.cat;
@@ -184,6 +186,32 @@ export class Renderer {
     c.stroke();
     c.fillStyle = 'rgba(255,220,170,0.7)'; c.font = `${Math.round(8 * s)}px ${FONT}`; c.textAlign = 'center';
     c.fillText('~', X + ts * 0.78, Y + ts * 0.62);
+    c.restore();
+  }
+  iceTile(c, x, y) {
+    const ts = this.ts, X = x * ts, Y = y * ts, s = ts / 32, g = this.game.grid;
+    c.fillStyle = (x + y) % 2 ? '#bfe3f2' : '#b2dbee'; c.fillRect(X, Y, ts, ts);
+    const ice = (dx, dy) => g.c(x + dx, y + dy) === '~';
+    c.fillStyle = 'rgba(70,130,170,0.45)';
+    if (!ice(-1, 0)) c.fillRect(X, Y, 2 * s, ts);
+    if (!ice(1, 0)) c.fillRect(X + ts - 2 * s, Y, 2 * s, ts);
+    if (!ice(0, -1)) c.fillRect(X, Y, ts, 2 * s);
+    if (!ice(0, 1)) c.fillRect(X, Y + ts - 2 * s, ts, 2 * s);
+    c.strokeStyle = 'rgba(255,255,255,0.85)'; c.lineWidth = 1.6 * s; c.lineCap = 'round';
+    const h = hash(x, y, 5);
+    c.beginPath(); c.moveTo(X + ts * (0.15 + h * 0.3), Y + ts * 0.7); c.lineTo(X + ts * (0.35 + h * 0.3), Y + ts * 0.45); c.stroke();
+    c.beginPath(); c.moveTo(X + ts * (0.45 + h * 0.2), Y + ts * 0.8); c.lineTo(X + ts * (0.55 + h * 0.2), Y + ts * 0.68); c.stroke();
+    c.strokeStyle = 'rgba(120,170,200,0.5)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(X + ts * 0.7, Y + ts * 0.2); c.lineTo(X + ts * 0.82, Y + ts * 0.36); c.lineTo(X + ts * 0.74, Y + ts * 0.5); c.stroke();
+  }
+  puddleTile(c, x, y) {
+    const ts = this.ts, X = x * ts + ts / 2, Y = y * ts + ts / 2, s = ts / 32, h = hash(x, y, 9);
+    c.save(); c.translate(X, Y); c.rotate((h - 0.5) * 0.6);
+    c.beginPath(); c.ellipse(0, 1 * s, 13 * s, 9 * s, 0, 0, 7); c.fillStyle = 'rgba(40,90,140,0.55)'; c.fill();
+    c.beginPath(); c.ellipse(-2 * s, 0, 11 * s, 7 * s, 0, 0, 7); c.fillStyle = 'rgba(110,180,230,0.6)'; c.fill();
+    c.strokeStyle = 'rgba(230,248,255,0.8)'; c.lineWidth = 1.3 * s;
+    c.beginPath(); c.ellipse(-5 * s, -2 * s, 4 * s, 1.6 * s, -0.3, Math.PI, Math.PI * 1.9); c.stroke();
+    c.beginPath(); c.ellipse(4 * s, 3 * s, 2.5 * s, 1 * s, 0, 0, Math.PI); c.stroke();
     c.restore();
   }
   ventTile(c, x, y) {
@@ -371,7 +399,8 @@ export class Renderer {
       if (g.state === 'sleep') continue;
       const col = g.state === 'chase' ? '255,70,80' : g.meter > 0.05 || g.state === 'suspicious' ? '255,170,60' : '255,226,140';
       this.cone(c, g.x, g.y, g.face, g.T.fov, g.T.range, col, g.state === 'chase' ? 0.4 : 0.3);
-      if (g.T.nose) { c.fillStyle = `rgba(${col},0.07)`; c.beginPath(); c.arc(g.x * ts, g.y * ts, g.T.nose * ts, 0, 7); c.fill(); }
+      const nose = G.noseOf(g);
+      if (nose) { c.fillStyle = `rgba(${g.T.fishNose && G.cat.hasFish ? '120,220,255' : col},${g.T.fishNose && G.cat.hasFish ? 0.1 : 0.07})`; c.beginPath(); c.arc(g.x * ts, g.y * ts, nose * ts, 0, 7); c.fill(); }
     }
     if (G.power) for (const cam of G.cams) {
       const col = cam.alarmT > 0 ? '255,60,70' : cam.meter > 0.05 ? '255,170,60' : '140,200,255';
@@ -438,7 +467,7 @@ export class Renderer {
     // 소리 고리
     for (const n of G.noises) {
       const p = n.t / 0.9;
-      const col = { step: '255,255,255', meow: '255,150,210', crash: '255,220,100', bark: '255,160,80', creak: '233,185,138' }[n.kind] || '255,90,90';
+      const col = { step: '255,255,255', meow: '255,150,210', crash: '255,220,100', bark: '255,160,80', creak: '233,185,138', splash: '150,215,255' }[n.kind] || '255,90,90';
       c.strokeStyle = `rgba(${col},${(1 - p) * (n.kind === 'step' ? 0.35 : 0.7)})`;
       c.lineWidth = (n.kind === 'step' ? 1.2 : 2.5) * s;
       c.beginPath(); c.arc(n.x * ts, n.y * ts, n.r * ts * (0.25 + 0.75 * Math.sqrt(p)), 0, 7); c.stroke();
@@ -665,7 +694,7 @@ export class Renderer {
     const tile = G.grid.c(Math.floor(cat.x), Math.floor(cat.y));
     const o = { skin: this.skin, t, face: cat.face, moving: cat.moving, run: cat.run, walkT: cat.walkT, fish: cat.hasFish, golden: G.L.golden };
     if (G.state === 'caught') { o.moving = false; }
-    const spr = sprite(cat.hasFish ? 'sprite-cat-fish' : 'sprite-cat', this.skin, cat.hasFish && G.L.golden);
+    const spr = sprite(cat.hasFish ? 'sprite-cat-fish' : this.skin && this.skin.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat', this.skin, cat.hasFish && G.L.golden);
     const so = { t, moving: o.moving, walkT: cat.walkT, rate: cat.run ? 2.6 : 3.2, amp: cat.run ? 0.12 : 0.07, flip: cat.face < 0 };
     if (cat.riding) {
       if (spr) { this.sprite(c, spr, cat.x, cat.y - 0.02, 0.85, false, so); return; }
@@ -690,6 +719,7 @@ export class Renderer {
       c.restore();
     }
     c.globalAlpha = 1;
+    if (this.skin && this.skin.crown && !(this.skin && IMG['sprite-cat-king'])) { this.at(c, cat.x + cat.face * 0.12, cat.y - 0.55, 0.7); drawBonus(c, 'crown', 0); c.restore(); }
     if (cat.hidden && tile !== 'C') {
       c.font = `${Math.round(10 * Math.max(0.9, s))}px ${FONT}`; c.textAlign = 'center';
       c.fillStyle = 'rgba(170,255,200,0.9)'; c.fillText('숨는 중', cat.x * this.ts, (cat.y - 0.55) * this.ts);
