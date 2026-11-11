@@ -140,7 +140,28 @@ const HUMAN = {
   butler: { top: '#2d2f3d', pants: '#24252f', shoe: '#141418', hair: '#c9cad3', skin: '#f6d2b0', light: false },
   guard: { top: '#365887', pants: '#26385a', shoe: '#1a1d26', hair: '#3a2a22', skin: '#f2c9a3', light: true },
   fishmonger: { top: '#3e8f86', pants: '#33404f', shoe: '#f2c230', hair: '#2e2420', skin: '#f0c49a', light: false },
+  chef: { top: '#f7f5ef', pants: '#3a3a46', shoe: '#2a2a30', hair: '#6a4a32', skin: '#ffd6b0', light: false },
 };
+// 요리사 모자 (높은 흰 모자)
+function toque(c, hy) {
+  rr(c, -6.5, hy - 10, 13, 5, 1.5); fillStroke(c, '#ffffff', OUT, 1.1);
+  for (const [x, y, r] of [[-4.5, -15, 4.2], [0, -17, 4.8], [4.5, -15, 4.2], [0, -13, 5]]) ell(c, x, hy + y, r, r, '#ffffff');
+  c.beginPath(); c.arc(-4.5, hy - 15, 4.2, Math.PI * 0.8, Math.PI * 1.75); c.arc(0, hy - 17, 4.8, Math.PI * 1.15, Math.PI * 1.85); c.arc(4.5, hy - 15, 4.2, Math.PI * 1.25, Math.PI * 0.2);
+  c.lineWidth = 1.1; c.strokeStyle = OUT; c.stroke();
+}
+// 배식 카트 (천 덮개, 아래에 고양이가 숨음)
+export function drawCart(c, r, t, cat) {
+  c.save();
+  ell(c, 0, 1, 13, 4, 'rgba(0,0,0,0.3)');
+  for (const x of [-9, 9]) ell(c, x, -0.5, 2.2, 2.2, '#3a3d4a', OUT, 1);
+  rr(c, -12, -6, 24, 3, 1); fillStroke(c, '#aab2c4', OUT, 1.1);
+  rr(c, -12, -17, 24, 12, 3); fillStroke(c, '#f4efe2', OUT, 1.3);
+  c.fillStyle = '#d9cfb8'; for (const x of [-7, 0, 7]) c.fillRect(x - 0.6, -15, 1.2, 9);
+  c.fillStyle = '#c8344a'; c.fillRect(-12, -9, 24, 1.6);
+  ell(c, 0, -19, 9, 3.4, '#c8ccd6', OUT, 1.2); ell(c, 0, -21.5, 2, 1.4, '#e8ebf0', OUT, 1);
+  if (cat) { ell(c, -2.5, -6.8, 1.3, 1.1, cat.eye || '#9be86a'); ell(c, 2.5, -6.8, 1.3, 1.1, cat.eye || '#9be86a'); }
+  c.restore();
+}
 export function drawHuman(c, o) {
   const P = HUMAN[o.type];
   const sx = Math.cos(o.face), sy = Math.sin(o.face);
@@ -173,6 +194,9 @@ export function drawHuman(c, o) {
       c.beginPath(); c.moveTo(-2.4, -21.3); c.lineTo(0, -20.3); c.lineTo(-2.4, -19.2); c.fill();
       c.beginPath(); c.moveTo(2.6, -21.3); c.lineTo(0.2, -20.3); c.lineTo(2.6, -19.2); c.fill();
     }
+  } else if (o.type === 'chef') {
+    if (view !== 'back') { c.fillStyle = '#c9c4b8'; for (const dy of [-19, -15.5, -12]) { c.beginPath(); c.arc(-2, dy, 0.9, 0, 7); c.arc(2.4, dy, 0.9, 0, 7); c.fill(); } }
+    c.fillStyle = '#d6324a'; c.fillRect(-4.5, -22.4, 9, 2.2);
   } else if (o.type === 'fishmonger') {
     // 고무 앞치마
     if (view !== 'back') { rr(c, -5.6, -20.5, 11.2, 12, 3); c.fillStyle = '#e9edf0'; c.fill(); c.lineWidth = 1; c.strokeStyle = OUT; c.stroke(); c.fillStyle = '#3e8f86'; c.fillRect(-4.2, -16, 8.4, 1.4); }
@@ -200,6 +224,7 @@ export function drawHuman(c, o) {
   if (view === 'back') {
     c.beginPath(); c.ellipse(0, hy - 0.5, 8.4, 8, 0, 0, Math.PI * 2); c.fillStyle = P.hair; c.fill();
     if (o.type === 'fishmonger') { rr(c, -8.6, hy - 6.5, 17.2, 4.2, 2); c.fillStyle = '#ffffff'; c.fill(); c.lineWidth = 1; c.strokeStyle = OUT; c.stroke(); ell(c, 0, hy - 3, 2.4, 1.6, '#ffffff', OUT, 0.9); }
+    if (o.type === 'chef') toque(c, hy);
   } else {
     const fx = view === 'side' ? 2.6 : 0;
     // 머리카락
@@ -207,6 +232,7 @@ export function drawHuman(c, o) {
     c.beginPath(); c.ellipse(-fx * 0.6, hy - 3.5, 8.3, 5.2, 0, Math.PI, Math.PI * 2); c.fill();
     if (view === 'side') { c.beginPath(); c.ellipse(-5, hy, 3.6, 6, 0, 0, Math.PI * 2); c.fill(); }
     if (o.type === 'owner') { c.beginPath(); c.moveTo(-2, hy - 8); c.lineTo(0, hy - 11); c.lineTo(1.5, hy - 7.5); c.fill(); }
+    if (o.type === 'chef') toque(c, hy);
     if (o.type === 'fishmonger') {
       rr(c, -8.6, hy - 6.5, 17.2, 4.2, 2); c.fillStyle = '#ffffff'; c.fill(); c.lineWidth = 1; c.strokeStyle = OUT; c.stroke();
       c.fillStyle = '#4f86c6'; c.fillRect(-8, hy - 5, 16, 1.1);

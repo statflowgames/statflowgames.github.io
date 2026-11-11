@@ -1,6 +1,6 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1112003539';
-import { CHAPTERS } from './levels.js?v=1112003539';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1112004344';
+import { CHAPTERS } from './levels.js?v=1112004344';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },
@@ -8,6 +8,7 @@ export const TYPES = {
   guard: { walk: 1.5, run: 3.6, range: 5.2, fov: 1.05, nose: 0, turn: 5 },
   dog: { walk: 1.9, run: 4.45, range: 3.4, fov: 1.6, nose: 1.35, turn: 7 },
   fishmonger: { walk: 1.2, run: 3.1, range: 3.9, fov: 1.3, nose: 0, fishNose: 2.6, turn: 4 },
+  chef: { walk: 1.3, run: 3.3, range: 4.4, fov: 1.3, nose: 0, turn: 7, chop: true },
 };
 // 50번째 스테이지부터: 더 빠르고, 더 멀리 보고, 더 빨리 알아챈다
 const hardType = (T) => ({ ...T, walk: T.walk * 1.15, run: T.run * 1.08, range: T.range + 0.5, turn: T.turn * 1.15 });
@@ -58,6 +59,11 @@ export class Game {
     this.laserCD = 0;
     this.guards = level.guards.map((g) => this.makeGuard(g));
     this.roomba = ents.roomba ? this.makeRoomba(level.roomba) : null;
+    // 배식 카트: 정해진 지점을 오가는 움직이는 숨는 곳
+    this.carts = (level.carts || []).map((r) => this.makeCart(r));
+    // 자동문: 시간마다 열리고 닫힘. 사람이 다가오면 열림 (고양이는 너무 작아서 센서가 못 알아챔)
+    this.doorOpen = this.hard ? 2.6 : 3.2; this.doorShut = this.hard ? 3.0 : 2.4;
+    this.doors = ents.doors.map((d) => ({ ...d, open: true, amt: 1, phase: (d.tx * 1.7 + d.ty * 2.3) % (this.doorOpen + this.doorShut) }));
     this.noises = [];
     this.popups = [];
     this.parts = [];
@@ -75,8 +81,40 @@ export class Game {
       bubble: null, barkT: 0, moving: false, walkT: 0, fast: false, searchBase: 0,
     };
     if (pts.length > 1) g.face = g.aim = Math.atan2(pts[1].y - g.y, pts[1].x - g.x);
+    if (T.chop) { g.chopping = true; g.chopT = 1.2 + (this.guardsMade || 0) * 1.3; g.tickT = 0; }
+    this.guardsMade = (this.guardsMade || 0) + 1;
     if (g.sleeper) g.bubble = { text: 'Zz', t: 999, kind: 'z' };
     return g;
+  }
+  makeCart(route) {
+    const pts = [...route].map((d) => this.ents.wps[d]);
+    return { x: pts[0].x, y: pts[0].y, pts, wi: pts.length > 1 ? 1 : 0, route: null, pause: 1, ang: 0, speed: this.hard ? 1.3 : 1.1, cart: true };
+  }
+  updateCarts(dt) {
+    for (const r of this.carts) {
+      if (r.pause > 0) { r.pause -= dt; continue; }
+      if (!r.route) r.route = this.grid.path(r.x, r.y, r.pts[r.wi].x, r.pts[r.wi].y) || [];
+      if (!r.route.length) { r.route = null; r.wi = (r.wi + 1) % r.pts.length; r.pause = 1.6; continue; }
+      const p = r.route[0], dx = p.x - r.x, dy = p.y - r.y, d = Math.hypot(dx, dy), st = r.speed * dt;
+      if (d > 0.01) r.ang = Math.atan2(dy, dx);
+      if (d <= st) { r.x = p.x; r.y = p.y; r.route.shift(); } else { r.x += (dx / d) * st; r.y += (dy / d) * st; }
+    }
+  }
+  doorTimed(d) { return (this.t + d.phase) % (this.doorOpen + this.doorShut) < this.doorOpen; }
+  updateDoors(dt) {
+    const c = this.cat;
+    for (const d of this.doors) {
+      const near = this.guards.some((g) => g.state !== 'sleep' && Math.hypot(g.x - d.x, g.y - d.y) < 1.5) || this.carts.some((r) => Math.hypot(r.x - d.x, r.y - d.y) < 1.3);
+      // 고양이는 문을 못 열지만, 이미 문 안에 있으면 끼지 않게 닫히지 않는다
+      const catIn = Math.abs(c.x - d.x) < 0.78 && Math.abs(c.y - d.y) < 0.78;
+      const open = this.doorTimed(d) || near || (d.open && catIn);
+      if (open !== d.open) {
+        d.open = open;
+        if (open) this.grid.shut.delete(d.tx + ',' + d.ty); else this.grid.shut.add(d.tx + ',' + d.ty);
+        if (Math.hypot(c.x - d.x, c.y - d.y) < 5) this.fx('door');
+      }
+      d.amt += ((open ? 1 : 0) - d.amt) * Math.min(1, dt * 9);
+    }
   }
   makeRoomba(route) {
     const pts = [...route].map((d) => this.ents.wps[d]);
@@ -93,12 +131,14 @@ export class Game {
     if (this.state !== 'play') {
       if (this.state === 'caught' || this.state === 'win') this.endT += dt;
       // 인트로 중에도 화면이 살아 있도록 청소기·카메라는 움직인다
-      if (this.state === 'intro') { this.updateRoomba(dt); this.updateSecurity(dt, true); }
+      if (this.state === 'intro') { this.updateRoomba(dt); this.updateCarts(dt); this.updateDoors(dt); this.updateSecurity(dt, true); }
       return;
     }
     this.elapsed += dt;
     this.updateCat(dt, input);
     this.updateRoomba(dt);
+    this.updateCarts(dt);
+    this.updateDoors(dt);
     this.updateSecurity(dt, false);
     for (const g of this.guards) { this.updateGuard(g, dt); if (this.state !== 'play') return; }
     this.checkPickups();
@@ -200,6 +240,7 @@ export class Game {
     }
     const r = this.roomba;
     if (r && Math.hypot(r.x - c.x, r.y - c.y) < 0.95) return { kind: 'ride', label: '타기', obj: r };
+    for (const k of this.carts) if (Math.hypot(k.x - c.x, k.y - c.y) < 1) return { kind: 'ride', label: '카트에 숨기', obj: k };
     for (const v of this.vases) if (!v.broken && Math.hypot(v.x - c.x, v.y - c.y) < 1.2) return { kind: 'vase', label: '넘어뜨리기', obj: v };
     for (const s of this.switches) if (s.on && Math.hypot(s.x - c.x, s.y - c.y) < 1.2) return { kind: 'switch', label: '전원 끄기', obj: s };
     return null;
@@ -215,7 +256,7 @@ export class Game {
       this.popup(c.x, c.y - 0.9, '쏙!', '#c9d6f0'); this.fx('vent');
     } else if (a.kind === 'ride') {
       c.riding = a.obj; c.hidden = true;
-      this.popup(c.x, c.y - 0.9, '탑승!', '#9fe7ff'); this.fx('ride');
+      this.popup(c.x, c.y - 0.9, a.obj.cart ? '쏙!' : '탑승!', '#9fe7ff'); this.fx(a.obj.cart ? 'hide' : 'ride');
     } else if (a.kind === 'unride') {
       const r = c.riding; c.riding = null;
       c.x = r.x; c.y = r.y;
@@ -335,6 +376,7 @@ export class Game {
     for (const g of this.guards) {
       if (g.state === 'chase') continue;
       if (kind === 'bark' && g.type === 'dog') continue;
+      if (g.chopping && g.state === 'patrol') continue; // 칼질 소리에 묻혀서 못 들음
       if (dist(g.x, g.y) > r) continue;
       if (g.state === 'sleep') { this.wake(g); continue; }
       const already = g.state === 'investigate' && g.target && Math.hypot(g.target.x - x, g.target.y - y) < 1.5;
@@ -490,6 +532,7 @@ export class Game {
       }
       g.moving = false;
       if (g.sleeper) { g.state = 'sleep'; g.meter = 0; g.bubble = { text: 'Zz', t: 999, kind: 'z' }; return; }
+      if (g.T.chop) { this.chop(g, dt); return; }
       if ((g.lookT += dt) > 2.3) { g.lookT = 0; g.li = (g.li + 1) % g.look.length; }
       g.aim = g.look[g.li];
       return;
@@ -498,6 +541,22 @@ export class Game {
     const p = g.pts[g.wi];
     if (!g.route) g.route = this.grid.path(g.x, g.y, p.x, p.y) || [];
     if (this.follow(g, g.T.walk, dt)) { g.route = null; g.wi = (g.wi + 1) % g.pts.length; g.pause = 0.7; }
+  }
+
+  chop(g, dt) {
+    g.chopT -= dt;
+    if (g.chopping) {
+      g.aim = g.look[0];
+      if ((g.tickT -= dt) <= 0) {
+        g.tickT = 0.34;
+        this.noises.push({ x: g.x + Math.cos(g.look[0]) * 0.7, y: g.y + Math.sin(g.look[0]) * 0.7, r: 1.3, t: 0, kind: 'chop' });
+        if (Math.hypot(this.cat.x - g.x, this.cat.y - g.y) < 7) this.fx('chop');
+      }
+      if (g.chopT <= 0) { g.chopping = false; g.chopT = this.hard ? 2.2 : 1.8; this.say(g, '…흠?', '?', 1); }
+    } else {
+      g.aim = g.look.length > 1 ? g.look[1] : g.look[0] + Math.PI;
+      if (g.chopT <= 0) { g.chopping = true; g.chopT = this.hard ? 2.6 : 3.4; g.tickT = 0; }
+    }
   }
 
   // ───────── 연출 ─────────

@@ -16,12 +16,15 @@ export function tileInfo(c) {
   }
 }
 
+const SHUT = { cat: false, hum: false, vis: true, hide: false };
+
 export class Grid {
   constructor(rows) {
     this.h = rows.length;
     this.w = rows[0].length;
     this.ch = rows.map((r) => r.split(''));
     this.knocked = new Set();
+    this.shut = new Set();
     this.info = this.ch.map((row) => row.map(tileInfo));
     // 바닥 무늬: 가구·물건 칸은 가장 가까운 바닥 무늬를 물려받는다
     this.floor = this.ch.map((row) => row.map((c) => (FLOORS.includes(c) ? c : null)));
@@ -44,10 +47,11 @@ export class Grid {
   get(x, y) {
     if (!this.in(x, y)) return tileInfo('#');
     if (this.ch[y][x] === 'v' && this.knocked.has(x + ',' + y)) return tileInfo('.');
+    if (this.ch[y][x] === 'A' && this.shut.has(x + ',' + y)) return SHUT;
     return this.info[y][x];
   }
   catOK(x, y) { return this.get(x, y).cat; }
-  humOK(x, y) { return this.get(x, y).hum; }
+  humOK(x, y) { return this.in(x, y) && this.ch[y][x] === 'A' ? true : this.get(x, y).hum; }
   blocksVis(x, y) { return this.get(x, y).vis; }
   hideAt(px, py) { return this.get(Math.floor(px), Math.floor(py)).hide; }
 
@@ -190,7 +194,7 @@ export class Grid {
 
 export function parseLevel(L) {
   const grid = new Grid(L.map);
-  const ents = { cat: null, fish: null, bonus: [], vases: [], cams: [], lasers: [], switches: [], wps: {}, roomba: null, vents: [] };
+  const ents = { cat: null, fish: null, bonus: [], vases: [], cams: [], lasers: [], switches: [], wps: {}, roomba: null, vents: [], doors: [] };
   for (let y = 0; y < grid.h; y++) for (let x = 0; x < grid.w; x++) {
     const c = grid.ch[y][x];
     const p = { x: x + 0.5, y: y + 0.5, tx: x, ty: y };
@@ -200,6 +204,7 @@ export function parseLevel(L) {
     else if (c === 'v') ents.vases.push(p);
     else if (c === 's') ents.switches.push(p);
     else if (c === 'V') ents.vents.push(p);
+    else if (c === 'A') ents.doors.push({ ...p, across: grid.c(x - 1, y) === '#' && grid.c(x + 1, y) === '#' });
     else if (c === 'r') ents.roomba = p;
     else if (c === '=' || c === '!') ents.lasers.push({ ...p, dir: c === '=' ? 'h' : 'v' });
     else if (c === 'c') {

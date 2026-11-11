@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1112003539';
-import { sprite, IMG } from './assets.js?v=1112003539';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1112004344';
+import { sprite, IMG } from './assets.js?v=1112004344';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -186,6 +186,21 @@ export class Renderer {
     c.stroke();
     c.fillStyle = 'rgba(255,220,170,0.7)'; c.font = `${Math.round(8 * s)}px ${FONT}`; c.textAlign = 'center';
     c.fillText('~', X + ts * 0.78, Y + ts * 0.62);
+    c.restore();
+  }
+  drawDoor(c, d, G) {
+    const ts = this.ts, s = ts / 32, X = d.tx * ts, Y = d.ty * ts, o = d.amt;
+    c.save();
+    c.fillStyle = 'rgba(30,26,40,0.35)'; c.fillRect(X, Y, ts, ts);
+    const pane = (x, y, w, h) => { rr(c, x, y, w, h, 2 * s); c.fillStyle = 'rgba(190,225,240,0.75)'; c.fill(); c.lineWidth = 1.6 * s; c.strokeStyle = '#5f6f82'; c.stroke(); c.strokeStyle = 'rgba(255,255,255,0.7)'; c.lineWidth = 1 * s; c.beginPath(); c.moveTo(x + w * 0.25, y + h * 0.75); c.lineTo(x + w * 0.6, y + h * 0.25); c.stroke(); };
+    const half = ts / 2, gap = half * o * 0.92, th = 7 * s;
+    if (d.across) { pane(X - gap + 1, Y + half - th / 2, half - 1, th); pane(X + half + gap, Y + half - th / 2, half - 1, th); }
+    else { pane(X + half - th / 2, Y - gap + 1, th, half - 1); pane(X + half - th / 2, Y + half + gap, th, half - 1); }
+    // 남은 시간 고리 (초록 = 열려 있는 시간, 빨강 = 닫혀 있는 시간)
+    const per = G.doorOpen + G.doorShut, ph = (G.t + d.phase) % per, timed = ph < G.doorOpen;
+    const left = timed ? 1 - ph / G.doorOpen : 1 - (ph - G.doorOpen) / G.doorShut;
+    c.beginPath(); c.arc(X + ts * 0.82, Y + ts * 0.18, 4 * s, -Math.PI / 2, -Math.PI / 2 + left * Math.PI * 2);
+    c.strokeStyle = timed ? '#7bff9a' : '#ff6d7a'; c.lineWidth = 2.2 * s; c.stroke();
     c.restore();
   }
   iceTile(c, x, y) {
@@ -392,6 +407,7 @@ export class Renderer {
     c.drawImage(this.staticCv, 0, 0, this.mapW, this.mapH);
     c.fillStyle = G.chapter.pal.night;
     c.fillRect(0, 0, this.mapW, this.mapH);
+    for (const d of G.doors) this.drawDoor(c, d, G);
 
     // 시야 (손전등 빛)
     c.globalCompositeOperation = 'lighter';
@@ -456,7 +472,8 @@ export class Renderer {
     for (const sw of G.switches) list.push({ y: sw.y - 0.3, f: () => { this.at(c, sw.x, sw.y + 0.25); drawSwitch(c, sw.on, t); c.restore(); } });
     if (G.roomba) list.push({ y: G.roomba.y - 0.01, f: () => { this.at(c, G.roomba.x, G.roomba.y + 0.2); drawRoomba(c, G.roomba, t); c.restore(); } });
     for (const g of G.guards) list.push({ y: g.y, f: () => this.drawGuard(c, g, t) });
-    list.push({ y: G.cat.riding ? G.roomba.y + 0.01 : G.cat.y, f: () => this.drawCatNow(c, t) });
+    for (const k of G.carts) list.push({ y: k.y, f: () => { this.at(c, k.x, k.y + 0.25); drawCart(c, k, t, G.cat.riding === k ? this.skin : null); c.restore(); } });
+    if (!(G.cat.riding && G.cat.riding.cart)) list.push({ y: G.cat.riding ? G.cat.riding.y + 0.01 : G.cat.y, f: () => this.drawCatNow(c, t) });
     list.sort((a, b) => a.y - b.y);
     for (const e of list) e.f();
     for (const cam of G.cams) this.drawCam(c, cam, t);
@@ -467,7 +484,7 @@ export class Renderer {
     // 소리 고리
     for (const n of G.noises) {
       const p = n.t / 0.9;
-      const col = { step: '255,255,255', meow: '255,150,210', crash: '255,220,100', bark: '255,160,80', creak: '233,185,138', splash: '150,215,255' }[n.kind] || '255,90,90';
+      const col = { step: '255,255,255', meow: '255,150,210', crash: '255,220,100', bark: '255,160,80', creak: '233,185,138', splash: '150,215,255', chop: '235,235,245' }[n.kind] || '255,90,90';
       c.strokeStyle = `rgba(${col},${(1 - p) * (n.kind === 'step' ? 0.35 : 0.7)})`;
       c.lineWidth = (n.kind === 'step' ? 1.2 : 2.5) * s;
       c.beginPath(); c.arc(n.x * ts, n.y * ts, n.r * ts * (0.25 + 0.75 * Math.sqrt(p)), 0, 7); c.stroke();
@@ -514,6 +531,7 @@ export class Renderer {
     if (!this.peekCache) {
       this.peekCache = G.guards.map((g) => (g.pts.length < 2 ? null : loopOf(g.pts)));
       this.peekRoomba = G.roomba && G.roomba.pts.length > 1 ? loopOf(G.roomba.pts) : null;
+      this.peekCarts = G.carts.filter((k) => k.pts.length > 1).map((k) => loopOf(k.pts));
     }
     const line = (pts, col, w, dash, off) => {
       if (pts.length < 2) return;
@@ -529,6 +547,7 @@ export class Renderer {
     const COL = ['255,214,107', '127,212,255', '255,157,226', '157,255,170', '255,179,122', '200,170,255'];
     c.save(); c.globalAlpha = a; c.lineCap = 'round'; c.lineJoin = 'round';
     if (this.peekRoomba) line(this.peekRoomba, 'rgba(200,210,230,0.35)', 2 * s, [2 * s, 5 * s], 0);
+    for (const l of this.peekCarts || []) line(l, 'rgba(255,240,200,0.5)', 2.5 * s, [3 * s, 5 * s], -now * 12 * s);
     // 카메라: 고개를 돌리는 전체 범위와 양쪽 화살표
     if (G.power) for (const cam of G.cams) {
       c.globalCompositeOperation = 'lighter';

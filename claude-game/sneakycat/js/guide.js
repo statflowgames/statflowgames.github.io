@@ -1,7 +1,7 @@
 // 등장인물·물건 소개 (도감). 장 시작 화면과 스테이지 시작 카드에서 쓴다.
-import { LEVELS, CHAPTERS } from './levels.js?v=1112003539';
-import { drawHuman, drawDog, drawRoomba, drawFish, drawBonus, drawVase, drawSwitch, drawCatPeek, ell, rr, OUT } from './art.js?v=1112003539';
-import { sprite } from './assets.js?v=1112003539';
+import { LEVELS, CHAPTERS } from './levels.js?v=1112004344';
+import { drawHuman, drawDog, drawRoomba, drawCart, drawFish, drawBonus, drawVase, drawSwitch, drawCatPeek, ell, rr, OUT } from './art.js?v=1112004344';
+import { sprite } from './assets.js?v=1112004344';
 
 const has = (L, chars) => L.map.some((row) => [...chars].some((k) => row.includes(k)));
 const guard = (L, t, sleep = false) => L.guards.some((g) => g.t === t && !!g.sleep === sleep);
@@ -20,6 +20,8 @@ export const GUIDE = [
     desc: '손전등이 제일 멀리 닿아요. 대신 불빛 폭은 좁으니 옆으로 비켜 가요.' },
   { id: 'fishmonger', kind: 'who', name: '생선가게 사장님', in: (L) => guard(L, 'fishmonger'),
     desc: '눈은 좀 어두워요. 그런데 고양이가 생선을 물고 있으면 냄새로 알아채요 (하늘색 동그라미 안에 들어가면 들켜요).' },
+  { id: 'chef', kind: 'who', name: '요리사', in: (L) => guard(L, 'chef'),
+    desc: '탁탁탁 칼질하는 동안은 도마만 보고 소리도 못 들어요. 칼질이 멈추면 "…흠?" 하고 뒤를 휙 돌아봐요.' },
 
   { id: 'fish', kind: 'item', name: '생선', in: (L) => !L.golden,
     desc: '오늘의 목표! 물고 고양이 문으로 돌아오면 성공이에요.' },
@@ -33,6 +35,8 @@ export const GUIDE = [
     desc: '3장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
   { id: 'shrimp', kind: 'item', name: '왕새우', in: (L) => L.ch === 4,
     desc: '4장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
+  { id: 'sushi', kind: 'item', name: '연어 초밥', in: (L) => L.ch === 5,
+    desc: '5장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
   { id: 'door', kind: 'item', name: '고양이 문', in: () => true,
     desc: '들어온 곳이자 나가는 곳. 문 안에 있으면 들키지 않아요.' },
   { id: 'hide', kind: 'item', name: '숨는 곳', in: (L) => has(L, 'TDB'),
@@ -55,6 +59,10 @@ export const GUIDE = [
     desc: '미끄러워요! 속도가 천천히 붙고, 손을 떼도 한참 미끄러져요. 미끄러지는 동안은 발소리가 안 나요.' },
   { id: 'puddle', kind: 'item', name: '물웅덩이', in: (L) => has(L, 'w'),
     desc: '밟으면 첨벙! 살금살금 걸어도 소리가 나서 근처 경비가 들어요.' },
+  { id: 'autodoor', kind: 'item', name: '자동문', in: (L) => has(L, 'A'),
+    desc: '시간마다 열렸다 닫혀요(구석 고리: 초록 = 열린 시간, 빨강 = 닫힌 시간). 사람이 오면 열리지만 고양이는 작아서 안 열려요. 닫히면 길도 시야도 막혀요.' },
+  { id: 'cart', kind: 'item', name: '배식 카트', in: (L) => !!(L.carts && L.carts.length),
+    desc: '옆에서 "카트에 숨기"를 누르면 천 덮개 밑에 쏙. 카트가 가는 대로 숨은 채 실려 가요. "내리기"로 내려요.' },
 ];
 const byId = Object.fromEntries(GUIDE.map((e) => [e.id, e]));
 export const entry = (id) => byId[id];
@@ -83,6 +91,15 @@ const DRAW = {
   guard: (c) => { c.translate(24, 44); c.scale(1.35, 1.35); drawHuman(c, { type: 'guard', face: Math.PI / 2, t: 0 }); },
   fishmonger: (c) => { c.translate(24, 44); c.scale(1.35, 1.35); drawHuman(c, { type: 'fishmonger', face: Math.PI / 2, t: 0 }); },
   shrimp: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'shrimp', 0); },
+  chef: (c) => { c.translate(24, 47); c.scale(1.2, 1.2); drawHuman(c, { type: 'chef', face: Math.PI / 2, t: 0 }); },
+  sushi: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'sushi', 0); },
+  cart: (c) => { c.translate(24, 40); c.scale(1.5, 1.5); drawCart(c, {}, 0, { eye: '#9be86a' }); },
+  autodoor: (c) => {
+    c.fillStyle = '#3b2f45'; c.fillRect(2, 8, 10, 34); c.fillRect(36, 8, 10, 34);
+    for (const x of [12, 26]) { rr(c, x, 10, 10, 30, 2); c.fillStyle = 'rgba(190,225,240,0.85)'; c.fill(); c.lineWidth = 1.6; c.strokeStyle = '#5f6f82'; c.stroke(); }
+    c.strokeStyle = '#fff'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(15, 30); c.lineTo(19, 18); c.moveTo(29, 30); c.lineTo(33, 18); c.stroke();
+    c.beginPath(); c.arc(40, 6, 4, -Math.PI / 2, Math.PI * 0.9); c.strokeStyle = '#7bff9a'; c.lineWidth = 2.4; c.stroke();
+  },
   ice: (c) => {
     rr(c, 4, 6, 40, 36, 6); c.fillStyle = '#bfe3f2'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#5a8fb0'; c.stroke();
     c.strokeStyle = '#ffffff'; c.lineWidth = 3; c.beginPath(); c.moveTo(12, 32); c.lineTo(22, 18); c.moveTo(26, 36); c.lineTo(31, 29); c.stroke();
@@ -152,7 +169,7 @@ const DRAW = {
     c.strokeStyle = '#ff5266'; c.lineWidth = 2; c.stroke();
   },
 };
-const SPRITE = { owner: 'sprite-owner', butler: 'sprite-butler', guard: 'sprite-guard', fishmonger: 'sprite-fishmonger', dog: 'sprite-dog', sleeper: 'sprite-dog-sleep' };
+const SPRITE = { owner: 'sprite-owner', butler: 'sprite-butler', guard: 'sprite-guard', fishmonger: 'sprite-fishmonger', chef: 'sprite-chef', dog: 'sprite-dog', sleeper: 'sprite-dog-sleep' };
 const iconCache = {};
 // 그림 파일이 있으면 그려진 부분만 잘라 정사각형 아이콘으로
 function cropIcon(name) {

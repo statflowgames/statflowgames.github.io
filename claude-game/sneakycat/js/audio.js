@@ -78,6 +78,8 @@ const SFX = {
   ride() { osc('sine', 1200, 1200, 0.07, 0.1); osc('sine', 1600, 1600, 0.09, 0.1, 0.08); },
   win() { [523, 659, 784, 659, 784, 1047].forEach((f, i) => osc('triangle', f, f, 0.22, 0.16, i * 0.11)); },
   splash() { noise(0.22, 0.28, 'bandpass', 1300, 0, 1.4); osc('sine', 900, 280, 0.16, 0.06); noise(0.12, 0.12, 'highpass', 3500, 0.06); },
+  chop() { noise(0.04, 0.1, 'highpass', 3200); osc('triangle', 1400, 900, 0.04, 0.03); },
+  door() { noise(0.35, 0.08, 'lowpass', 900, 0, 0.7); osc('sine', 420, 300, 0.25, 0.025); },
   peek() { osc('sine', 520, 1040, 0.22, 0.07); osc('triangle', 1560, 2350, 0.16, 0.035, 0.09); osc('sine', 2093, 2093, 0.2, 0.025, 0.18); },
   click() { osc('triangle', 880, 660, 0.05, 0.08); },
   star() { osc('triangle', 1175, 1568, 0.25, 0.16); },
