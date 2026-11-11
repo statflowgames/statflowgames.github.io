@@ -1,7 +1,7 @@
 // 등장인물·물건 소개 (도감). 장 시작 화면과 스테이지 시작 카드에서 쓴다.
-import { LEVELS, CHAPTERS } from './levels.js?v=1112010029';
-import { drawHuman, drawDog, drawRoomba, drawCart, drawFish, drawBonus, drawVase, drawSwitch, drawCatPeek, ell, rr, OUT } from './art.js?v=1112010029';
-import { sprite } from './assets.js?v=1112010029';
+import { LEVELS, CHAPTERS } from './levels.js?v=1112011451';
+import { drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, drawCatPeek, ell, rr, OUT } from './art.js?v=1112011451';
+import { sprite } from './assets.js?v=1112011451';
 
 const has = (L, chars) => L.map.some((row) => [...chars].some((k) => row.includes(k)));
 const guard = (L, t, sleep = false) => L.guards.some((g) => g.t === t && !!g.sleep === sleep);
@@ -20,6 +20,12 @@ export const GUIDE = [
     desc: '손전등이 제일 멀리 닿아요. 대신 불빛 폭은 좁으니 옆으로 비켜 가요.' },
   { id: 'fishmonger', kind: 'who', name: '생선가게 사장님', in: (L) => guard(L, 'fishmonger'),
     desc: '눈은 좀 어두워요. 그런데 고양이가 생선을 물고 있으면 냄새로 알아채요 (하늘색 동그라미 안에 들어가면 들켜요).' },
+  { id: 'keeper', kind: 'who', name: '관리인 아저씨', in: (L) => guard(L, 'keeper'),
+    desc: '커다란 손전등이 아주 멀리까지 닿아요. 대신 불빛 폭이 좁고 고개를 천천히 돌려요.' },
+  { id: 'robot', kind: 'who', name: '경비 로봇', in: (L) => guard(L, 'robot'),
+    desc: '소리를 전혀 못 들어요 (야옹·꽃병으로 못 꾀어요). 대신 멀리 보고, 서 있을 땐 레이더처럼 빙글빙글 돌아요.' },
+  { id: 'knight', kind: 'who', name: '기사', in: (L) => guard(L, 'knight'),
+    desc: '갑옷이 철컥철컥 — 걸을 때 회색 소리 고리가 보여서 다가오는 걸 알 수 있어요. 한 번 쫓기 시작하면 아주 끈질겨요.' },
   { id: 'chef', kind: 'who', name: '요리사', in: (L) => guard(L, 'chef'),
     desc: '탁탁탁 칼질하는 동안은 도마만 보고 소리도 못 들어요. 칼질이 멈추면 "…흠?" 하고 뒤를 휙 돌아봐요.' },
 
@@ -39,6 +45,12 @@ export const GUIDE = [
     desc: '5장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
   { id: 'bell', kind: 'item', name: '방울 목걸이', in: (L) => L.ch === 6,
     desc: '6장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
+  { id: 'cotton', kind: 'item', name: '솜사탕', in: (L) => L.ch === 7,
+    desc: '7장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
+  { id: 'battery', kind: 'item', name: '건전지', in: (L) => L.ch === 8,
+    desc: '8장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
+  { id: 'crown', kind: 'item', name: '왕관 조각', in: (L) => L.ch === 9,
+    desc: '9장 보너스 보물. 스테이지마다 2개, 다 챙기면 별 하나.' },
   { id: 'door', kind: 'item', name: '고양이 문', in: () => true,
     desc: '들어온 곳이자 나가는 곳. 문 안에 있으면 들키지 않아요.' },
   { id: 'hide', kind: 'item', name: '숨는 곳', in: (L) => has(L, 'TDB'),
@@ -69,6 +81,12 @@ export const GUIDE = [
     desc: '화살표 쪽으로 저절로 실려 가요. 같은 방향이면 엄청 빠르고, 거꾸로 걸으면 아주 느려요.' },
   { id: 'spot', kind: 'item', name: '움직이는 탐조등', in: (L) => !!(L.spots && L.spots.length),
     desc: '천장 불빛 동그라미가 길을 따라 돌아요. 숨지 않고 동그라미 안에 있으면 경보! 보안 전원을 끄면 꺼져요.' },
+  { id: 'firework', kind: 'item', name: '불꽃놀이', in: (L) => !!L.fireworks,
+    desc: '몇 초마다 펑! 터지는 동안(화면 위 표시)은 달리기·야옹·삐걱 소리가 묻혀서 아무도 못 들어요.' },
+  { id: 'carousel', kind: 'item', name: '회전목마', in: (L) => has(L, 'M'),
+    desc: '옆에서 "목마 타기"! 탄 동안은 숨은 상태로 빙글빙글 돌아요. 원하는 쪽에 왔을 때 "내리기".' },
+  { id: 'plate', kind: 'item', name: '압력판', in: (L) => has(L, '+'),
+    desc: '빨간 단추 판을 밟으면 바로 경보! 돌아가거나, 카트·청소기를 타고 지나가요.' },
 ];
 const byId = Object.fromEntries(GUIDE.map((e) => [e.id, e]));
 export const entry = (id) => byId[id];
@@ -100,6 +118,15 @@ const DRAW = {
   chef: (c) => { c.translate(24, 47); c.scale(1.2, 1.2); drawHuman(c, { type: 'chef', face: Math.PI / 2, t: 0 }); },
   sushi: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'sushi', 0); },
   bell: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'bell', 0); },
+  cotton: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'cotton', 0); },
+  battery: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'battery', 0); },
+  crown: (c) => { c.translate(24, 34); c.scale(1.6, 1.6); drawBonus(c, 'crown', 0); },
+  keeper: (c) => { c.translate(24, 46); c.scale(1.3, 1.3); drawHuman(c, { type: 'keeper', face: Math.PI / 2, t: 0 }); },
+  knight: (c) => { c.translate(24, 46); c.scale(1.3, 1.3); drawHuman(c, { type: 'knight', face: Math.PI / 2, t: 0 }); },
+  robot: (c) => { c.translate(24, 44); c.scale(1.2, 1.2); drawRobot(c, { face: Math.PI / 2, t: 0 }); },
+  carousel: (c) => { c.translate(24, 24); drawCarousel(c, { ang: 0.3 }, 14, 0); },
+  firework: (c) => { for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; c.fillStyle = `hsl(${i * 30},100%,65%)`; c.beginPath(); c.arc(24 + Math.cos(a) * 15, 22 + Math.sin(a) * 15, 2.6, 0, 7); c.fill(); } c.fillStyle = '#fff6c8'; c.beginPath(); c.arc(24, 22, 4, 0, 7); c.fill(); },
+  plate: (c) => { rr(c, 6, 6, 36, 36, 5); c.fillStyle = '#4a5068'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#9aa3b8'; c.stroke(); rr(c, 14, 14, 20, 20, 3); c.fillStyle = '#c05060'; c.fill(); ell(c, 24, 24, 4, 4, '#ff9aa8'); },
   belt: (c) => {
     rr(c, 4, 12, 40, 24, 3); c.fillStyle = '#4a5066'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#9aa3b8'; c.stroke();
     c.strokeStyle = '#ffd66b'; c.lineWidth = 3; c.lineCap = 'round';
@@ -186,7 +213,9 @@ const DRAW = {
     c.strokeStyle = '#ff5266'; c.lineWidth = 2; c.stroke();
   },
 };
-const SPRITE = { owner: 'sprite-owner', butler: 'sprite-butler', guard: 'sprite-guard', fishmonger: 'sprite-fishmonger', chef: 'sprite-chef', dog: 'sprite-dog', sleeper: 'sprite-dog-sleep' };
+const SPRITE = { owner: 'sprite-owner', butler: 'sprite-butler', guard: 'sprite-guard', fishmonger: 'sprite-fishmonger', chef: 'sprite-chef', keeper: 'sprite-keeper', robot: 'sprite-robot', knight: 'sprite-knight',
+  shrimp: 'item-shrimp', sushi: 'item-sushi', bell: 'item-bell', cotton: 'item-cotton', battery: 'item-battery', crown: 'item-crown', gold: 'item-fish-gold',
+  cart: 'item-cart', carousel: 'item-carousel', plate: 'item-plate', dog: 'sprite-dog', sleeper: 'sprite-dog-sleep' };
 const iconCache = {};
 // 그림 파일이 있으면 그려진 부분만 잘라 정사각형 아이콘으로
 function cropIcon(name) {

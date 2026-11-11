@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1112010029';
-import { sprite, IMG } from './assets.js?v=1112010029';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1112011451';
+import { sprite, IMG } from './assets.js?v=1112011451';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -434,6 +434,14 @@ export class Renderer {
     for (const d of G.doors) this.drawDoor(c, d, G);
     if (G.belts === undefined) G.belts = this.findBelts(G);
     for (const b of G.belts) this.drawBelt(c, b, t);
+    for (const p of G.plates) {
+      const X = p.tx * ts, Y = p.ty * ts;
+      if (this.topDown(c, 'item-plate', p.x, p.y, 0.9, 0)) { if (p.hot > 0) { c.fillStyle = 'rgba(255,60,80,0.35)'; c.fillRect(X, Y, ts, ts); } continue; }
+      rr(c, X + 4 * s, Y + 4 * s, ts - 8 * s, ts - 8 * s, 3 * s); c.fillStyle = p.hot > 0 ? '#7a2a33' : '#4a5068'; c.fill(); c.lineWidth = 1.4 * s; c.strokeStyle = '#9aa3b8'; c.stroke();
+      rr(c, X + 9 * s, Y + 9 * s, ts - 18 * s, ts - 18 * s, 2 * s); c.fillStyle = p.hot > 0 ? '#ff4d6d' : G.power || true ? '#c05060' : '#555'; c.fill();
+      ell(c, X + ts / 2, Y + ts / 2, 2 * s, 2 * s, Math.sin(t * 5 + p.tx) > 0 ? '#ff9aa8' : '#ff4d6d');
+    }
+    for (const r of G.rides) { if (!this.topDown(c, 'item-carousel', r.cx, r.cy, 3, r.ang)) { c.save(); c.translate(r.cx * ts, r.cy * ts); drawCarousel(c, r, ts, t); c.restore(); } if (G.cat.riding === r) { ell(c, r.x * ts - 2 * s, r.y * ts - 3 * s, 1.4 * s, 1.2 * s, this.skin.eye); ell(c, r.x * ts + 2 * s, r.y * ts - 3 * s, 1.4 * s, 1.2 * s, this.skin.eye); } }
 
     // 시야 (손전등 빛)
     c.globalCompositeOperation = 'lighter';
@@ -500,14 +508,14 @@ export class Renderer {
     c.globalCompositeOperation = 'source-over';
 
     const list = [];
-    if (!G.fish.taken) list.push({ y: G.fish.y, f: () => { this.at(c, G.fish.x, G.fish.y + 0.15); ell(c, 0, 0, 11, 3.6, '#f4f1ea', OUT, 1.2); drawFish(c, 0, -3 + Math.sin(t * 3) * 1, 0.9, G.L.golden, 0); c.restore(); } });
-    for (const b of G.bonus) if (!b.taken) list.push({ y: b.y, f: () => { this.at(c, b.x, b.y + 0.2); ell(c, 0, 0, 6, 2, 'rgba(0,0,0,0.3)'); drawBonus(c, G.chapter.bonus, t); c.restore(); } });
+    if (!G.fish.taken) list.push({ y: G.fish.y, f: () => { if (G.L.golden && this.sprite(c, sprite('item-fish-gold'), G.fish.x, G.fish.y + 0.3 + Math.sin(t * 3) * 0.04, 0.8, false, { t })) return; this.at(c, G.fish.x, G.fish.y + 0.15); ell(c, 0, 0, 11, 3.6, '#f4f1ea', OUT, 1.2); drawFish(c, 0, -3 + Math.sin(t * 3) * 1, 0.9, G.L.golden, 0); c.restore(); } });
+    for (const b of G.bonus) if (!b.taken) list.push({ y: b.y, f: () => { if (this.sprite(c, sprite('item-' + G.chapter.bonus), b.x, b.y + 0.25 + Math.sin(t * 3) * 0.04, 0.62, true, { t })) return; this.at(c, b.x, b.y + 0.2); ell(c, 0, 0, 6, 2, 'rgba(0,0,0,0.3)'); drawBonus(c, G.chapter.bonus, t); c.restore(); } });
     for (const v of G.vases) list.push({ y: v.y + (v.broken ? -0.4 : 0.1), f: () => { this.at(c, v.x, v.y + 0.3); drawVase(c, v.broken, t); c.restore(); } });
     for (const sw of G.switches) list.push({ y: sw.y - 0.3, f: () => { this.at(c, sw.x, sw.y + 0.25); drawSwitch(c, sw.on, t); c.restore(); } });
     if (G.roomba) list.push({ y: G.roomba.y - 0.01, f: () => { this.at(c, G.roomba.x, G.roomba.y + 0.2); drawRoomba(c, G.roomba, t); c.restore(); } });
     for (const g of G.guards) list.push({ y: g.y, f: () => this.drawGuard(c, g, t) });
-    for (const k of G.carts) list.push({ y: k.y, f: () => { this.at(c, k.x, k.y + 0.25); drawCart(c, k, t, G.cat.riding === k ? this.skin : null); c.restore(); } });
-    if (!(G.cat.riding && G.cat.riding.cart)) list.push({ y: G.cat.riding ? G.cat.riding.y + 0.01 : G.cat.y, f: () => this.drawCatNow(c, t) });
+    for (const k of G.carts) list.push({ y: k.y, f: () => { if (this.topDown(c, 'item-cart', k.x, k.y, 1.15, k.ang)) { if (G.cat.riding === k) { ell(c, k.x * ts - 2 * s, k.y * ts, 1.4 * s, 1.2 * s, this.skin.eye); ell(c, k.x * ts + 2 * s, k.y * ts, 1.4 * s, 1.2 * s, this.skin.eye); } return; } this.at(c, k.x, k.y + 0.25); drawCart(c, k, t, G.cat.riding === k ? this.skin : null); c.restore(); } });
+    if (!(G.cat.riding && (G.cat.riding.cart || G.cat.riding.ride))) list.push({ y: G.cat.riding ? G.cat.riding.y + 0.01 : G.cat.y, f: () => this.drawCatNow(c, t) });
     list.sort((a, b) => a.y - b.y);
     for (const e of list) e.f();
     for (const cam of G.cams) this.drawCam(c, cam, t);
@@ -518,8 +526,8 @@ export class Renderer {
     // 소리 고리
     for (const n of G.noises) {
       const p = n.t / 0.9;
-      const col = { step: '255,255,255', meow: '255,150,210', crash: '255,220,100', bark: '255,160,80', creak: '233,185,138', splash: '150,215,255', chop: '235,235,245' }[n.kind] || '255,90,90';
-      c.strokeStyle = `rgba(${col},${(1 - p) * (n.kind === 'step' ? 0.35 : 0.7)})`;
+      const col = { step: '255,255,255', meow: '255,150,210', crash: '255,220,100', bark: '255,160,80', creak: '233,185,138', splash: '150,215,255', chop: '235,235,245', clank: '200,210,230' }[n.kind] || '255,90,90';
+      c.strokeStyle = `rgba(${col},${(1 - p) * (n.kind === 'step' ? 0.35 : 0.7) * (n.muted ? 0.3 : 1)})`;
       c.lineWidth = (n.kind === 'step' ? 1.2 : 2.5) * s;
       c.beginPath(); c.arc(n.x * ts, n.y * ts, n.r * ts * (0.25 + 0.75 * Math.sqrt(p)), 0, 7); c.stroke();
     }
@@ -545,6 +553,21 @@ export class Renderer {
       const gr = c.createRadialGradient(this.W / 2, this.H / 2, Math.min(this.W, this.H) * 0.35, this.W / 2, this.H / 2, Math.max(this.W, this.H) * 0.72);
       gr.addColorStop(0, 'rgba(255,40,60,0)'); gr.addColorStop(1, chased ? `rgba(255,40,60,${a})` : `rgba(255,150,40,${a})`);
       c.fillStyle = gr; c.fillRect(0, 0, this.W, this.H);
+    }
+    if (G.fw) {
+      for (const b of G.fw.bursts) {
+        if (b.t < 0) continue;
+        const k = b.t / 1.4, X = b.x * this.W, Y = this.top + 20 + b.y * this.H * 0.4, R0 = 20 + k * 70;
+        c.globalAlpha = Math.max(0, 1 - k);
+        for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; c.fillStyle = `hsl(${b.hue + i * 6},100%,70%)`; c.beginPath(); c.arc(X + Math.cos(a) * R0, Y + Math.sin(a) * R0 + k * k * 30, 2.6, 0, 7); c.fill(); }
+        c.globalAlpha = 1;
+      }
+      if (G.boomFlash > 0) { c.fillStyle = `rgba(255,230,200,${G.boomFlash * 0.12})`; c.fillRect(0, 0, this.W, this.H); }
+      const f = G.fw, txt = f.on ? '🎆 펑! 지금은 소리가 안 들려요' : `🎆 다음 불꽃 ${f.t.toFixed(1)}초`;
+      c.font = `14px ${FONT}`; c.textAlign = 'center';
+      const w = c.measureText(txt).width + 24, y = this.top + 16;
+      rr(c, this.W / 2 - w / 2, y - 13, w, 26, 13); c.fillStyle = f.on ? 'rgba(120,40,90,0.9)' : 'rgba(16,12,34,0.8)'; c.fill();
+      c.fillStyle = f.on ? '#ffe08a' : '#d8e2ff'; c.fillText(txt, this.W / 2, y + 5);
     }
     if (G.alarmFlash > 0) { c.fillStyle = `rgba(255,40,60,${G.alarmFlash * 0.22 * (0.6 + 0.4 * Math.sin(t * 20))})`; c.fillRect(0, 0, this.W, this.H); }
     if (this.peek) this.peekEye(c);
@@ -705,6 +728,16 @@ export class Renderer {
     c.strokeStyle = `rgba(${col},${alpha * 0.7})`; c.lineWidth = 1; c.stroke();
   }
   // 그림 파일 캐릭터: 발밑(bbox 아래 가운데)을 (x,y)에 맞추고 size(타일) 크기로. 걷기는 통통 튀기·기울이기로 흉내낸다.
+  // 위에서 본 그림을 가운데 맞춰 돌려 그리기 (그림이 없으면 false)
+  topDown(c, name, x, y, size, ang) {
+    const spr = sprite(name);
+    if (!spr) return false;
+    const ts = this.ts, k = (size * ts) / Math.max(spr.bw, spr.bh);
+    c.save(); c.translate(x * ts, y * ts); c.rotate(ang || 0); c.scale(k, k);
+    c.drawImage(spr.cv, spr.bx, spr.by, spr.bw, spr.bh, -spr.bw / 2, -spr.bh / 2, spr.bw, spr.bh);
+    c.restore();
+    return true;
+  }
   sprite(c, spr, x, y, size, byHeight, o) {
     if (!spr) return false;
     const ts = this.ts;
@@ -741,7 +774,7 @@ export class Renderer {
     }
     this.at(c, g.x, g.y + 0.22);
     const o = { face: g.face, t, moving: g.moving, walkT: g.walkT, state: g.state, type: g.type, sleep: g.state === 'sleep', ch: this.game.L.ch };
-    if (g.type === 'dog') drawDog(c, o); else drawHuman(c, o);
+    if (g.type === 'dog') drawDog(c, o); else if (g.type === 'robot') drawRobot(c, o); else drawHuman(c, o);
     c.restore();
   }
   drawCatNow(c, t) {

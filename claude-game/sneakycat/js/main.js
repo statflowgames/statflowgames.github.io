@@ -1,11 +1,11 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1112010029';
-import { Game } from './game.js?v=1112010029';
-import { Renderer, FONT } from './render.js?v=1112010029';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1112010029';
-import { Sound } from './audio.js?v=1112010029';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1112010029';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1112010029';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1112011451';
+import { Game } from './game.js?v=1112011451';
+import { Renderer, FONT } from './render.js?v=1112011451';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1112011451';
+import { Sound } from './audio.js?v=1112011451';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1112011451';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1112011451';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -417,7 +417,7 @@ function endLevel(win) {
   const soon = !last && !nextL;
   const labels = ['생선 들고 탈출', `${ch.bonusName} 모두 챙김`, '한 번도 안 들킴'];
   const el = show(`<div class="card">
-      ${IMG[golden ? 'legend' : 'win'] ? `<img class="hero" src="${spriteURL(golden ? 'legend' : 'win', skinById(save.skin))}" alt="">` : ''}
+      ${(() => { const nm = golden ? 'legend' : !nextL || nextL.ch !== L.ch ? (IMG['clear-' + L.ch] ? 'clear-' + L.ch : 'win') : 'win'; return IMG[nm] ? `<img class="hero" src="${spriteURL(nm, skinById(save.skin))}" alt="">` : ''; })()}
       <span class="tag">${L.id} · ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</span>
       <h1>${last ? '전설의 도둑 고양이!' : fake ? '황금 생선…인데?' : '탈출 성공!'}</h1>
       ${last ? '<p>진짜 황금 생선을 손에 넣었다! 99스테이지 모두 클리어!</p>' : ''}

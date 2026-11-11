@@ -213,3 +213,7 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .credits .skip { position: absolute; bottom: calc(16px + env(safe-area-inset-bottom)); left: 0; right: 0; text-align: center; color: var(--sub); font-size: 13px; }
 @keyframes roll { to { transform: translateY(calc(-100% - 100vh)); } }
 @keyframes fadein { from { opacity: 0; } }
+
+/* 가로 화면 엔딩: 세로 그림을 통째로 */
+.land .eart:not(.code) { background-size: contain; background-repeat: no-repeat; }
+.land .credits { background-size: contain; background-repeat: no-repeat; background-color: #221c52; }

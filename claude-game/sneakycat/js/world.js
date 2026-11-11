@@ -3,7 +3,7 @@ const FLOORS = '.,_:';
 
 export function tileInfo(c) {
   switch (c) {
-    case '#': case 'H': case 'P': case 'O':
+    case '#': case 'H': case 'P': case 'O': case 'M':
       return { cat: false, hum: false, vis: true, hide: false };
     case 'S': case 'K': case 'X': case 'v':
       return { cat: false, hum: false, vis: false, hide: false };
@@ -11,6 +11,8 @@ export function tileInfo(c) {
       return { cat: true, hum: false, vis: false, hide: true };
     case 'C':
       return { cat: true, hum: false, vis: true, hide: true };
+    case 'm':
+      return { cat: true, hum: false, vis: false, hide: false };
     default:
       return { cat: true, hum: true, vis: false, hide: false };
   }
@@ -194,7 +196,7 @@ export class Grid {
 
 export function parseLevel(L) {
   const grid = new Grid(L.map);
-  const ents = { cat: null, fish: null, bonus: [], vases: [], cams: [], lasers: [], switches: [], wps: {}, roomba: null, vents: [], doors: [] };
+  const ents = { cat: null, fish: null, bonus: [], vases: [], cams: [], lasers: [], switches: [], wps: {}, roomba: null, vents: [], doors: [], rides: [], plates: [] };
   for (let y = 0; y < grid.h; y++) for (let x = 0; x < grid.w; x++) {
     const c = grid.ch[y][x];
     const p = { x: x + 0.5, y: y + 0.5, tx: x, ty: y };
@@ -204,6 +206,8 @@ export function parseLevel(L) {
     else if (c === 'v') ents.vases.push(p);
     else if (c === 's') ents.switches.push(p);
     else if (c === 'V') ents.vents.push(p);
+    else if (c === 'M') ents.rides.push(p);
+    else if (c === '+') ents.plates.push(p);
     else if (c === 'A') ents.doors.push({ ...p, across: grid.c(x - 1, y) === '#' && grid.c(x + 1, y) === '#' });
     else if (c === 'r') ents.roomba = p;
     else if (c === '=' || c === '!') ents.lasers.push({ ...p, dir: c === '=' ? 'h' : 'v' });

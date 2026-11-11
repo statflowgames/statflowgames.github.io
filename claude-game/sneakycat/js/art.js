@@ -141,6 +141,8 @@ const HUMAN = {
   guard: { top: '#365887', pants: '#26385a', shoe: '#1a1d26', hair: '#3a2a22', skin: '#f2c9a3', light: true },
   fishmonger: { top: '#3e8f86', pants: '#33404f', shoe: '#f2c230', hair: '#2e2420', skin: '#f0c49a', light: false },
   chef: { top: '#f7f5ef', pants: '#3a3a46', shoe: '#2a2a30', hair: '#6a4a32', skin: '#ffd6b0', light: false },
+  keeper: { top: '#e9b44c', pants: '#4a3f6a', shoe: '#2a2030', hair: '#8a8a8a', skin: '#f2c9a3', light: true },
+  knight: { top: '#b8c0d0', pants: '#7d8698', shoe: '#5a6070', hair: '#9aa3b8', skin: '#f2c9a3', light: true },
 };
 // 요리사 모자 (높은 흰 모자)
 function toque(c, hy) {
@@ -148,6 +150,47 @@ function toque(c, hy) {
   for (const [x, y, r] of [[-4.5, -15, 4.2], [0, -17, 4.8], [4.5, -15, 4.2], [0, -13, 5]]) ell(c, x, hy + y, r, r, '#ffffff');
   c.beginPath(); c.arc(-4.5, hy - 15, 4.2, Math.PI * 0.8, Math.PI * 1.75); c.arc(0, hy - 17, 4.8, Math.PI * 1.15, Math.PI * 1.85); c.arc(4.5, hy - 15, 4.2, Math.PI * 1.25, Math.PI * 0.2);
   c.lineWidth = 1.1; c.strokeStyle = OUT; c.stroke();
+}
+// 기사 투구 (물고기 장식), 관리인 모자
+function helmet(c, hy, view) {
+  c.beginPath(); c.ellipse(0, hy - 1, 9.4, 9.6, 0, Math.PI * 0.95, Math.PI * 2.05); c.closePath(); fillStroke(c, '#c9d0de', OUT, 1.2);
+  if (view !== 'back') { c.fillStyle = '#2a2f3a'; c.fillRect(view === 'side' ? 1 : -6, hy - 1.5, view === 'side' ? 8 : 12, 2.2); }
+  c.beginPath(); c.moveTo(-2, hy - 10); c.quadraticCurveTo(0, hy - 16, 5, hy - 14); c.lineTo(3, hy - 11); c.closePath(); fillStroke(c, '#ffd700', OUT, 1);
+}
+function cap(c, hy, view) {
+  c.beginPath(); c.ellipse(0, hy - 4, 8.6, 5, 0, Math.PI, Math.PI * 2); c.closePath(); fillStroke(c, '#4a3f6a', OUT, 1.1);
+  if (view !== 'back') { c.beginPath(); c.ellipse(view === 'side' ? 6 : 0, hy - 3.6, view === 'side' ? 5 : 7, 1.8, 0, 0, Math.PI * 2); fillStroke(c, '#3a3052', OUT, 1); }
+}
+// 경비 로봇 (원통 몸, 바퀴, 빨간 눈 한 줄)
+export function drawRobot(c, o) {
+  const fx = Math.cos(o.face), fy = Math.sin(o.face), alert = o.state === 'chase';
+  c.save();
+  ell(c, 0, 0, 10, 3.6, 'rgba(0,0,0,0.3)');
+  for (const x of [-6, 6]) ell(c, x, -1.5, 2.6, 2.6, '#2a2f3a', OUT, 1);
+  rr(c, -8, -24, 16, 22, 7); fillStroke(c, '#d8dee8', OUT, 1.4);
+  c.fillStyle = 'rgba(0,0,0,0.12)'; c.fillRect(-8, -9, 16, 3);
+  ell(c, 0, -24, 8, 4, '#eef2f7', OUT, 1.2);
+  const ex = fx * 4, ey = -18 + Math.max(0, fy) * 1.5;
+  if (fy > -0.6) { rr(c, ex - 5, ey - 1.6, 10, 3.2, 1.5); c.fillStyle = '#1d2230'; c.fill(); ell(c, ex + fx * 2, ey, 2.2, 1.2, alert ? '#ff3b4f' : (o.t * 3) % 1 > 0.5 ? '#ff6d7a' : '#ff3b4f'); }
+  c.strokeStyle = OUT; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -28); c.lineTo(0, -32); c.stroke(); ell(c, 0, -33, 1.5, 1.5, alert ? '#ff3b4f' : '#7bff9a', OUT, 0.8);
+  c.restore();
+}
+// 회전목마 (위에서 본 둥근 발판과 목마 넷)
+export function drawCarousel(c, r, ts, t) {
+  const R = ts * 1.45, s = ts / 32;
+  c.save();
+  c.beginPath(); c.arc(0, 0, R, 0, 7); c.fillStyle = '#6a3d8a'; c.fill(); c.lineWidth = 2 * s; c.strokeStyle = OUT; c.stroke();
+  for (let i = 0; i < 12; i++) { const a = r.ang + (i * Math.PI) / 6; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, R * 0.96, a, a + Math.PI / 6); c.closePath(); c.fillStyle = i % 2 ? '#ffd27a' : '#ff8fb8'; c.globalAlpha = 0.55; c.fill(); c.globalAlpha = 1; }
+  for (let i = 0; i < 4; i++) {
+    const a = r.ang + (i * Math.PI) / 2, x = Math.cos(a) * ts * 1.05, y = Math.sin(a) * ts * 1.05;
+    c.save(); c.translate(x, y); c.rotate(a + Math.PI / 2);
+    ell(c, 0, 0, 4 * s, 8 * s, ['#ffffff', '#ffe08a', '#bfe3ff', '#ffc1e3'][i], OUT, 1.2 * s);
+    ell(c, 0, -7 * s, 3 * s, 3.4 * s, ['#ffffff', '#ffe08a', '#bfe3ff', '#ffc1e3'][i], OUT, 1.2 * s);
+    c.restore();
+  }
+  ell(c, 0, 0, ts * 0.42, ts * 0.42, '#ffd700', OUT, 1.6 * s);
+  ell(c, 0, 0, ts * 0.18, ts * 0.18, '#c0606a');
+  c.restore();
 }
 // 배식 카트 (천 덮개, 아래에 고양이가 숨음)
 export function drawCart(c, r, t, cat) {
@@ -194,6 +237,12 @@ export function drawHuman(c, o) {
       c.beginPath(); c.moveTo(-2.4, -21.3); c.lineTo(0, -20.3); c.lineTo(-2.4, -19.2); c.fill();
       c.beginPath(); c.moveTo(2.6, -21.3); c.lineTo(0.2, -20.3); c.lineTo(2.6, -19.2); c.fill();
     }
+  } else if (o.type === 'keeper') {
+    c.fillStyle = '#c0606a'; for (let i = -6; i < 7; i += 3.2) c.fillRect(i, -22, 1.4, 14);
+    if (view !== 'back') { ell(c, 3.6, -11, 1.6, 1.6, '#ffd34d', OUT, 0.8); ell(c, 5.2, -10, 1.2, 1.2, '#ffd34d', OUT, 0.8); }
+  } else if (o.type === 'knight') {
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(-6.5, -21, 3, 12);
+    if (view !== 'back') { c.beginPath(); c.moveTo(-3, -19); c.lineTo(3, -19); c.lineTo(0, -12); c.closePath(); c.fillStyle = '#ffd700'; c.fill(); c.lineWidth = 0.8; c.strokeStyle = OUT; c.stroke(); }
   } else if (o.type === 'chef') {
     if (view !== 'back') { c.fillStyle = '#c9c4b8'; for (const dy of [-19, -15.5, -12]) { c.beginPath(); c.arc(-2, dy, 0.9, 0, 7); c.arc(2.4, dy, 0.9, 0, 7); c.fill(); } }
     c.fillStyle = '#d6324a'; c.fillRect(-4.5, -22.4, 9, 2.2);
@@ -225,6 +274,8 @@ export function drawHuman(c, o) {
     c.beginPath(); c.ellipse(0, hy - 0.5, 8.4, 8, 0, 0, Math.PI * 2); c.fillStyle = P.hair; c.fill();
     if (o.type === 'fishmonger') { rr(c, -8.6, hy - 6.5, 17.2, 4.2, 2); c.fillStyle = '#ffffff'; c.fill(); c.lineWidth = 1; c.strokeStyle = OUT; c.stroke(); ell(c, 0, hy - 3, 2.4, 1.6, '#ffffff', OUT, 0.9); }
     if (o.type === 'chef') toque(c, hy);
+    if (o.type === 'knight') helmet(c, hy, view);
+    if (o.type === 'keeper') cap(c, hy, view);
   } else {
     const fx = view === 'side' ? 2.6 : 0;
     // 머리카락
@@ -233,6 +284,8 @@ export function drawHuman(c, o) {
     if (view === 'side') { c.beginPath(); c.ellipse(-5, hy, 3.6, 6, 0, 0, Math.PI * 2); c.fill(); }
     if (o.type === 'owner') { c.beginPath(); c.moveTo(-2, hy - 8); c.lineTo(0, hy - 11); c.lineTo(1.5, hy - 7.5); c.fill(); }
     if (o.type === 'chef') toque(c, hy);
+    if (o.type === 'knight') helmet(c, hy, view);
+    if (o.type === 'keeper') cap(c, hy, view);
     if (o.type === 'fishmonger') {
       rr(c, -8.6, hy - 6.5, 17.2, 4.2, 2); c.fillStyle = '#ffffff'; c.fill(); c.lineWidth = 1; c.strokeStyle = OUT; c.stroke();
       c.fillStyle = '#4f86c6'; c.fillRect(-8, hy - 5, 16, 1.1);

@@ -81,6 +81,8 @@ const SFX = {
   chop() { noise(0.04, 0.1, 'highpass', 3200); osc('triangle', 1400, 900, 0.04, 0.03); },
   door() { noise(0.35, 0.08, 'lowpass', 900, 0, 0.7); osc('sine', 420, 300, 0.25, 0.025); },
   beep() { osc('square', 1250, 1250, 0.05, 0.04, 0, sfx, ['lowpass', 3000]); },
+  boom() { noise(0.6, 0.22, 'lowpass', 500, 0, 0.8); osc('sine', 120, 50, 0.5, 0.12); for (let i = 0; i < 4; i++) noise(0.08, 0.06, 'highpass', 4000, 0.15 + i * 0.07); },
+  clank() { osc('square', 900, 700, 0.05, 0.03, 0, sfx, ['bandpass', 1800, 3]); osc('square', 1300, 1100, 0.04, 0.02, 0.05, sfx, ['bandpass', 2400, 3]); },
   peek() { osc('sine', 520, 1040, 0.22, 0.07); osc('triangle', 1560, 2350, 0.16, 0.035, 0.09); osc('sine', 2093, 2093, 0.2, 0.025, 0.18); },
   click() { osc('triangle', 880, 660, 0.05, 0.08); },
   star() { osc('triangle', 1175, 1568, 0.25, 0.16); },
