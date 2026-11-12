@@ -1,5 +1,5 @@
 // 도둑 고양이 — 스테이지 데이터 (1~3장 1~10번. 늘어난 스테이지는 levels2.js)
-import { EXTRA } from './levels2.js?v=1112094939';
+import { EXTRA } from './levels2.js?v=1112103456';
 //
 // 타일 기호
 //   #  벽            .  나무 바닥      ,  부엌 타일     _  카펫     :  대리석
