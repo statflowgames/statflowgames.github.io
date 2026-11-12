@@ -1,6 +1,6 @@
 // 그림 파일 불러오기 + 고양이 색 바꾸기. 파일이 없으면 null 을 돌려주고, 그 자리는 코드 그림이 대신한다.
 const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 'legend',
-  'sprite-cat', 'sprite-cat-fish',
+  'sprite-cat', 'sprite-cat-fish', 'sprite-cat-run', 'sprite-cat-peek',
   'sprite-owner', 'sprite-owner-side', 'sprite-owner-back', 'sprite-owner-alert',
   'sprite-butler', 'sprite-butler-side', 'sprite-butler-back', 'sprite-butler-alert',
   'sprite-guard', 'sprite-guard-side', 'sprite-guard-back', 'sprite-guard-alert',
@@ -8,7 +8,9 @@ const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 
   'chapter-4', 'chapter-5', 'chapter-6', 'chapter-7', 'chapter-8', 'chapter-9',
   'ending-1', 'ending-2', 'ending-3', 'ending-4', 'ending-bg', 'sprite-cat-king',
   ...['fishmonger', 'chef', 'keeper', 'robot', 'knight'].flatMap((n) => ['', '-side', '-back', '-alert'].map((p) => `sprite-${n}${p}`)),
-  ...['fish-gold', 'yarn', 'tuna', 'gem', 'shrimp', 'sushi', 'bell', 'cotton', 'battery', 'crown', 'cart', 'carousel', 'plate'].map((n) => `item-${n}`),
+  ...['fish', 'fish-gold', 'yarn', 'tuna', 'gem', 'shrimp', 'sushi', 'bell', 'cotton', 'battery', 'crown',
+    'box', 'vase', 'vase-broken', 'roomba', 'camera', 'switch-on', 'switch-off', 'vent', 'cart', 'carousel', 'plate']
+    .map((n) => `item-${n}`),
   ...[1, 2, 3, 4, 5, 6, 7, 8].map((i) => `clear-${i}`)];
 export const IMG = {};
 

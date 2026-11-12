@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1112185900';
-import { sprite, IMG } from './assets.js?v=1112185900';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1112194755';
+import { sprite, IMG } from './assets.js?v=1112194755';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -254,6 +254,7 @@ export class Renderer {
     c.restore();
   }
   ventTile(c, x, y) {
+    if (this.topDown(c, 'item-vent', x + 0.5, y + 0.5, 0.88, 0)) return;
     const ts = this.ts, X = x * ts, Y = y * ts, s = ts / 32;
     rr(c, X + 3 * s, Y + 4 * s, ts - 6 * s, ts - 7 * s, 3 * s);
     c.fillStyle = '#20232e'; c.fill(); c.lineWidth = 1.6 * s; c.strokeStyle = '#8f98ad'; c.stroke();
@@ -340,6 +341,7 @@ export class Renderer {
         break;
       }
       case 'B': {
+        if (this.topDown(c, 'item-box', (X + W / 2) / ts, (Y + H / 2) / ts, 0.94, 0)) break;
         box(X + 4 * s, Y + 7 * s, W - 8 * s, H - 9 * s, 2 * s, '#c99358');
         c.fillStyle = '#a8743f'; c.fillRect(X + 4 * s + 1, Y + H - f - 1, W - 8 * s - 2, f - 2 * s);
         c.fillStyle = '#ddb07a';
@@ -508,11 +510,11 @@ export class Renderer {
     c.globalCompositeOperation = 'source-over';
 
     const list = [];
-    if (!G.fish.taken) list.push({ y: G.fish.y, f: () => { if (G.L.golden && this.sprite(c, sprite('item-fish-gold'), G.fish.x, G.fish.y + 0.3 + Math.sin(t * 3) * 0.04, 0.8, false, { t })) return; this.at(c, G.fish.x, G.fish.y + 0.15); ell(c, 0, 0, 11, 3.6, '#f4f1ea', OUT, 1.2); drawFish(c, 0, -3 + Math.sin(t * 3) * 1, 0.9, G.L.golden, 0); c.restore(); } });
+    if (!G.fish.taken) list.push({ y: G.fish.y, f: () => { if (this.sprite(c, sprite(G.L.golden ? 'item-fish-gold' : 'item-fish'), G.fish.x, G.fish.y + 0.3 + Math.sin(t * 3) * 0.04, 0.8, false, { t })) return; this.at(c, G.fish.x, G.fish.y + 0.15); ell(c, 0, 0, 11, 3.6, '#f4f1ea', OUT, 1.2); drawFish(c, 0, -3 + Math.sin(t * 3) * 1, 0.9, G.L.golden, 0); c.restore(); } });
     for (const b of G.bonus) if (!b.taken) list.push({ y: b.y, f: () => { if (this.sprite(c, sprite('item-' + G.chapter.bonus), b.x, b.y + 0.25 + Math.sin(t * 3) * 0.04, 0.62, true, { t })) return; this.at(c, b.x, b.y + 0.2); ell(c, 0, 0, 6, 2, 'rgba(0,0,0,0.3)'); drawBonus(c, G.chapter.bonus, t); c.restore(); } });
-    for (const v of G.vases) list.push({ y: v.y + (v.broken ? -0.4 : 0.1), f: () => { this.at(c, v.x, v.y + 0.3); drawVase(c, v.broken, t); c.restore(); } });
-    for (const sw of G.switches) list.push({ y: sw.y - 0.3, f: () => { this.at(c, sw.x, sw.y + 0.25); drawSwitch(c, sw.on, t); c.restore(); } });
-    if (G.roomba) list.push({ y: G.roomba.y - 0.01, f: () => { this.at(c, G.roomba.x, G.roomba.y + 0.2); drawRoomba(c, G.roomba, t); c.restore(); } });
+    for (const v of G.vases) list.push({ y: v.y + (v.broken ? -0.4 : 0.1), f: () => { const name = v.broken ? 'item-vase-broken' : 'item-vase'; if (v.broken ? this.topDown(c, name, v.x, v.y, 0.72, 0) : this.sprite(c, sprite(name), v.x, v.y + 0.28, 0.72, true, { t })) return; this.at(c, v.x, v.y + 0.3); drawVase(c, v.broken, t); c.restore(); } });
+    for (const sw of G.switches) list.push({ y: sw.y - 0.3, f: () => { if (this.topDown(c, sw.on ? 'item-switch-on' : 'item-switch-off', sw.x, sw.y, 0.68, 0)) return; this.at(c, sw.x, sw.y + 0.25); drawSwitch(c, sw.on, t); c.restore(); } });
+    if (G.roomba) list.push({ y: G.roomba.y - 0.01, f: () => { if (this.topDown(c, 'item-roomba', G.roomba.x, G.roomba.y, 0.92, G.roomba.ang)) return; this.at(c, G.roomba.x, G.roomba.y + 0.2); drawRoomba(c, G.roomba, t); c.restore(); } });
     for (const g of G.guards) list.push({ y: g.y, f: () => this.drawGuard(c, g, t) });
     for (const k of G.carts) list.push({ y: k.y, f: () => { if (this.topDown(c, 'item-cart', k.x, k.y, 1.15, k.ang)) { if (G.cat.riding === k) { ell(c, k.x * ts - 2 * s, k.y * ts, 1.4 * s, 1.2 * s, this.skin.eye); ell(c, k.x * ts + 2 * s, k.y * ts, 1.4 * s, 1.2 * s, this.skin.eye); } return; } this.at(c, k.x, k.y + 0.25); drawCart(c, k, t, G.cat.riding === k ? this.skin : null); c.restore(); } });
     if (!(G.cat.riding && (G.cat.riding.cart || G.cat.riding.ride))) list.push({ y: G.cat.riding ? G.cat.riding.y + 0.01 : G.cat.y, f: () => this.drawCatNow(c, t) });
@@ -782,7 +784,8 @@ export class Renderer {
     const tile = G.grid.c(Math.floor(cat.x), Math.floor(cat.y));
     const o = { skin: this.skin, t, face: cat.face, moving: cat.moving, run: cat.run, walkT: cat.walkT, fish: cat.hasFish, golden: G.L.golden };
     if (G.state === 'caught') { o.moving = false; }
-    const spr = sprite(cat.hasFish ? 'sprite-cat-fish' : this.skin && this.skin.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat', this.skin, cat.hasFish && G.L.golden);
+    const catSprite = cat.hasFish ? 'sprite-cat-fish' : cat.run && IMG['sprite-cat-run'] ? 'sprite-cat-run' : this.skin && this.skin.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat';
+    const spr = sprite(catSprite, this.skin, cat.hasFish && G.L.golden);
     const so = { t, moving: o.moving, walkT: cat.walkT, rate: cat.run ? 2.6 : 3.2, amp: cat.run ? 0.12 : 0.07, flip: cat.face < 0 };
     if (cat.riding) {
       if (spr) { this.sprite(c, spr, cat.x, cat.y - 0.02, 0.85, false, so); return; }
@@ -790,6 +793,8 @@ export class Renderer {
       return;
     }
     if ((tile === 'B' || tile === 'V') && cat.hidden) {
+      const peek = sprite('sprite-cat-peek', this.skin);
+      if (peek) { this.sprite(c, peek, Math.floor(cat.x) + 0.5, Math.floor(cat.y) + 0.58, 0.72, false, { t, moving: false, flip: cat.face < 0 }); return; }
       this.at(c, Math.floor(cat.x) + 0.5, Math.floor(cat.y) + 0.62); drawCatPeek(c, o); c.restore();
       return;
     }
@@ -815,6 +820,7 @@ export class Renderer {
   }
   drawCam(c, cam, t) {
     const ts = this.ts, s = ts / 32, G = this.game;
+    if (this.topDown(c, 'item-camera', cam.ox, cam.oy, 0.7, cam.ang)) return;
     c.save();
     c.translate(cam.ox * ts, cam.oy * ts);
     rr(c, -4 * s + cam.wall.x * 4 * s, -4 * s + cam.wall.y * 4 * s, 8 * s, 8 * s, 2 * s);
