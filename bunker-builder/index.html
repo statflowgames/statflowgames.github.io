@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#183b38">
+  <meta name="description" content="쌓으면 방어벽, 연결하면 탄약. 나만의 벙커로 다섯 번의 밤을 버티는 작은 전략 게임.">
+  <title>벙커 빌더 · 작은 벽, 큰 생존</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+ <main class="layout">
+  <aside class="intro">
+   <div class="eyebrow"><span></span> A LITTLE SURVIVAL EXPERIMENT</div>
+   <h1>작은 벽,<br>큰 <em>생존.</em></h1>
+   <p>내가 쌓은 벽이<br>나를 지키는 마지막 탄약.</p>
+   <div class="rule-card"><span class="cube-icon"></span><div><b>쌓으면 방어벽</b><small>다가오는 몬스터를 늦춰요.</small></div></div>
+   <div class="rule-card"><span class="cube-icon gold"></span><div><b>연결하면 탄약</b><small>포탑에 닿은 벽을 하나씩 쏴요.</small></div></div>
+   <div class="rule-card"><span class="rule-num">5</span><div><b>다섯 번의 밤</b><small>배치를 바꾸고, 더 오래 버텨요.</small></div></div>
+   <div class="intro-foot">BUNKER BUILDER <span>PLAYABLE 01</span></div>
+  </aside>
+  <section class="game" aria-label="벙커 빌더 게임">
+   <header class="game-header"><div><span class="small-brand">BUNKER BUILDER</span><h2>벙커 빌더<span class="title-dot">.</span></h2></div><div class="header-actions"><button id="sound" class="icon-btn" aria-label="소리 켜기" title="소리 켜기">♫</button><button id="help" class="icon-btn" aria-label="게임 방법">?</button><button id="pause" class="icon-btn" aria-label="일시 정지" disabled>Ⅱ</button></div></header>
+   <div class="status"><span class="wave">WAVE <b id="wave">01</b><i>/ 05</i></span><span id="phase" class="phase">배치 시간</span><span class="health"><span>♥</span> <b id="health">100</b></span></div>
+   <div class="board-wrap" id="board-wrap"><canvas id="board" width="480" height="570" aria-label="7열 9행 전장. 칸을 눌러 벽을 배치합니다."></canvas><div id="cells" class="cells" role="group" aria-label="벽 배치 격자"></div><div class="board-tag"><span id="board-dot"></span><span id="board-label">다가올 밤을 준비하세요</span></div><div id="toast" class="toast" role="status" aria-live="polite"></div></div>
+   <div class="dashboard"><div><span class="metric-label" id="stock-label">남은 블록</span><strong><span class="mini-cube"></span><span id="stock">12</span></strong></div><div><span class="metric-label">연결된 탄약</span><strong class="amber"><span id="ammo">0</span><small>발</small></strong></div><div><span class="metric-label" id="third-label">이번 웨이브</span><strong><span id="third">8</span><small id="third-unit">마리</small></strong></div></div>
+   <div id="build-controls" class="build-controls"><div class="tools"><button id="wall-tool" class="tool selected" aria-pressed="true"><span class="mini-cube"></span> 벽 놓기</button><button id="erase-tool" class="tool" aria-pressed="false">⌫ 회수</button><button id="undo" class="tool compact" aria-label="배치 되돌리기">↶</button><button id="preset" class="tool compact" title="기본 배치로 복구">기본 배치</button></div><button id="start" class="primary">전투 시작 <span>→</span></button><p class="hint" id="hint">빈칸을 누르거나 쓸어서 배치 · 노란 벽이 탄약이 돼요</p></div>
+   <div id="fight-controls" class="fight-controls" hidden><div class="combat-progress"><span id="combat-label">몬스터가 다가와요</span><b id="kills">0 / 8</b></div><div class="progress-track"><div id="progress"></div></div><div class="combat-bottom"><p id="combat-tip">가장 바깥쪽 벽부터 탄약으로 사용해요.</p><button id="speed" class="tool">속도 ×1</button></div></div>
+   <footer class="game-footer"><span>최고 기록 <b id="best">0</b></span><button id="restart">처음부터 ↻</button></footer>
+   <div id="overlay" class="overlay" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-symbol" id="modal-symbol">✦</div><p class="eyebrow" id="modal-eyebrow">A GOOD NIGHT</p><h2 id="modal-title">웨이브 클리어!</h2><p id="modal-desc"></p><div id="modal-content"></div><button id="modal-action" class="primary">계속하기 →</button></section></div>
+  </section>
+  <aside class="field-notes"><div class="eyebrow">FIELD NOTES / 001</div><h3>방어와 공격 사이,<br>한 칸의 고민.</h3><div class="note"><span>01</span><p>포탑과 <b>상하좌우</b>로 이어진 벽이 노랗게 빛나요.</p></div><div class="note"><span>02</span><p>벽 하나가 포탄 하나.<br>발사할수록 <b>벙커가 작아져요.</b></p></div><div class="note"><span>03</span><p>떨어뜨려 놓은 벽은 몬스터를 막는 <b>바리케이드</b>가 돼요.</p></div><div class="weather"><span>☾</span><div><b>오늘 밤의 예보</b><p id="forecast">작은 침입자 8마리</p></div></div><p class="desktop-tip">마우스 드래그 또는 터치로 배치<br>Space 일시 정지 · 1 / 2 도구 변경</p></aside>
+ </main>
+ <script src="core.js"></script><script src="game.js"></script>
+</body>
+</html>
