@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f3e8"><meta name="description" content="내 하루 옆에서 자기 하루를 보내는 작은 친구. 모리와 함께 가꾸는 주머니숲.">
+  <title>주머니숲 · 모리와 함께하는 하루</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css">
+  <link rel="preload" href="assets/room.png" as="image"><link rel="preload" href="assets/mori.png" as="image">
+</head>
+<body>
+  <aside class="desktop-note"><span class="eyebrow">A LITTLE LIFE, BESIDE YOURS</span><h1>너의 하루 옆에,<br>작은 나의 하루.</h1><p>서두르지 않아도 괜찮아.<br>우리의 시간은 차곡차곡 쌓이니까.</p><div class="desktop-pet pet-art"></div><small>주머니숲 · 첫 번째 이야기</small></aside>
+  <main class="app" id="app">
+    <header class="topbar"><div class="wordmark"><span class="brand-leaf">❧</span><div><span class="eyebrow">POCKET FOREST</span><h1>주머니숲</h1></div></div><button class="icon-button" id="settings" aria-label="설정">⚙</button></header>
+    <section class="bond-bar" aria-label="모리의 성장"><div><span class="bond-dot">♥</span><b id="bond-label">모리와 첫날</b><span id="trait-label">아직 알아가는 사이</span></div><div class="growth"><span id="level">Lv. 1</span><div class="growth-track"><i id="growth-fill"></i></div><span id="growth-value">0 / 100</span></div></section>
+    <section class="room" id="room" aria-label="모리의 방">
+      <div class="room-art"></div><div class="sunbeam"></div><div class="motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="room-heading"><span id="weather">☀ 포근한 오후</span><button id="checkin">오늘 내 하루는… <span>↗</span></button></div>
+      <div class="speech" id="speech" role="status" aria-live="polite">안녕! 오늘부터 여기 같이 살자.</div>
+      <div class="furniture-layer" id="furniture-layer"></div>
+      <button class="pet" id="pet" aria-label="모리 쓰다듬기"><span class="pet-shadow"></span><span class="pet-art" id="pet-art"></span><span class="pet-accessory" id="pet-accessory"></span></button>
+      <div class="hearts" id="hearts" aria-hidden="true"></div>
+      <button class="parcel" id="parcel" hidden aria-label="모리가 가져온 선물 열기"><span>✿</span><b>너 주려고!</b></button>
+      <div class="room-bottom"><span class="touch-hint" id="touch-hint">모리를 톡, 쓰다듬어 주세요</span><button id="interact" class="room-small" hidden>함께 쉬기 ☾</button></div>
+    </section>
+    <section class="day-card" id="day-card"><div class="day-icon" id="day-icon">☘</div><div class="day-copy"><small id="day-kicker">모리의 작은 하루</small><h2 id="day-title">오늘은 뭘 해볼까?</h2><p id="day-desc">작은 모험이 우리 집의 추억이 돼요.</p></div><button id="day-action" class="circle-action" aria-label="모리의 하루 골라주기">↗</button><div class="activity-progress" hidden id="activity-progress"><i></i></div></section>
+    <nav class="bottom-nav" aria-label="주요 메뉴"><button id="home-nav" class="active"><span>⌂</span>우리 집</button><button id="activities-nav"><span>♧</span>하루 보내기</button><button id="decorate-nav"><span>▧</span>방 꾸미기</button><button id="diary-nav"><span>▤</span>우리의 기록</button></nav>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="loading" id="loading"><span class="loader-leaf">☘</span><b>작은 집에 햇살을 들이는 중</b><p>모리가 곧 인사할 거예요.</p></div>
+  </main>
+  <dialog id="sheet" class="sheet"><div class="sheet-handle"></div><header><div><span class="eyebrow" id="sheet-kicker">OUR LITTLE DAYS</span><h2 id="sheet-title"></h2></div><button id="close-sheet" class="icon-button" aria-label="닫기">×</button></header><div id="sheet-notice" class="sheet-notice" role="status" hidden></div><div id="sheet-content"></div></dialog>
+  <script src="core.js"></script><script src="app.js"></script>
+</body>
+</html>
