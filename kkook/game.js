@@ -47,7 +47,8 @@ stage.addEventListener('pointerdown', e => {
   if (!assetsReady || paused || modalMode || e.button > 0 || e.target.closest('button:not(#hand-handle)')) return;
   if (pointerId !== null) return;
   const p = position(e);
-  if (game.begin(p.x,p.y)) {
+  const grabbedHandle = !!e.target.closest('#hand-handle');
+  if (game.begin(grabbedHandle ? game.last.x : p.x, grabbedHandle ? game.last.y : p.y)) {
     e.preventDefault(); pointerId = e.pointerId; stage.setPointerCapture(e.pointerId);
     game.move(p.x,p.y); chime('touch'); $('hand-handle').blur(); updateHUD();
   } else if (game.phase !== 'ended') toast('노랗게 빛나는 친구를 끌어주세요',1200);
@@ -135,6 +136,8 @@ function processEvents() {
   }
 }
 function updateHUD() {
+  $('hand-handle').style.left=game.last.x/WIDTH*100+'%';
+  $('hand-handle').style.top=game.last.y/HEIGHT*100+'%';
   $('time').textContent=Math.ceil(game.time);document.querySelector('.clock').classList.toggle('urgent',game.time<8);
   $('score').textContent=game.score.toLocaleString();$('lives').textContent='♥ '.repeat(game.lives)+'♡ '.repeat(3-game.lives);$('lives').setAttribute('aria-label',`기회 ${game.lives}번`);
   $('catch-badge').hidden=game.pending===0;$('friends-count').textContent=game.pending;$('pending').textContent='+'+game.reward;
