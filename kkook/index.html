@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="theme-color" content="#e6efda"><meta name="description" content="쭈욱 늘리고, 꼬옥 붙잡고! 말랑한 별숲 친구들을 둥지로 데려오는 작은 손맛 게임.">
+ <title>꼬옥! · 한 명만 더</title>
+ <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css">
+ <link rel="preload" href="assets/friends.png" as="image"><link rel="preload" href="assets/forest.png" as="image">
+</head>
+<body>
+ <main class="layout">
+  <aside class="intro"><span class="eyebrow">LITTLE FRIENDS, BIG HUGS</span><h1>놓지 마,<br><em>꼬옥!</em></h1><p>조금만 더 늘리면 닿을 것 같아.<br>친구 하나만 더 데려갈까?</p><div class="intro-art" aria-hidden="true"></div><div class="steps"><div><b>01</b><span>빛나는 친구를 <strong>쭈욱 끌어요</strong></span></div><div><b>02</b><span>다른 친구 위에서 <strong>손을 놓아요</strong></span></div><div><b>03</b><span>둥지로 돌아오면 <strong>꼬옥, 성공!</strong></span></div></div><small class="signature">STARFOREST FRIENDS <span>PLAY TEST 01</span></small></aside>
+  <section class="game" aria-label="꼬옥 게임">
+   <canvas id="scene" width="430" height="800" aria-label="친구를 끌어 다른 친구와 연결한 후 둥지로 데려오세요."></canvas>
+   <header class="hud"><div class="brand">꼬옥<span>!</span><small>한 명만 더</small></div><div class="clock" aria-label="남은 시간"><span>◷</span><b id="time">30</b><small>초</small></div><button id="pause" class="round" aria-label="일시 정지">Ⅱ</button></header>
+   <div class="scores"><div class="score-pill"><span>둥지 점수</span><b id="score">0</b></div><div class="life-pill" id="lives" aria-label="기회 3번">♥ ♥ ♥</div><button id="sound" class="small-round" aria-label="효과음 끄기">♪</button></div>
+   <button id="hand-handle" class="hand-handle" aria-label="빛나는 친구 잡기. 방향키로 이동하고 스페이스로 놓기" tabindex="0"></button>
+   <div class="catch-badge" id="catch-badge" hidden><span id="friends-count">1</span>명 함께 <b id="pending">+100</b></div>
+   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+   <div class="bottom"><div class="tension"><span id="tension-label">말랑말랑</span><div class="tension-track"><i id="tension-bar"></i></div><span id="tension-face">◡</span></div><div class="instruction" id="instruction"><b>별코를 쭉 끌어 친구 위에 놓으세요</b><span>손을 놓으면 꼬옥! · 둥지에 데려오면 점수 저장</span></div><div class="bottom-links"><span>최고 기록 <b id="best">0</b></span><button id="help">어떻게 해요?</button><button id="restart">다시 ↻</button></div></div>
+   <div id="loading" class="loading"><div class="loading-star">✦</div><b>친구들이 준비하고 있어요</b><span>햇살을 조금만 모을게요…</span></div>
+   <div id="overlay" class="overlay" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-friend" aria-hidden="true"></div><span class="eyebrow" id="modal-eyebrow">TODAY'S LITTLE ADVENTURE</span><h2 id="modal-title">꼬옥, 잘했어요!</h2><p id="modal-desc"></p><div id="modal-content"></div><button id="modal-action" class="primary">한 번 더 꼬옥! →</button></section></div>
+  </section>
+  <aside class="notes"><span class="eyebrow">A TINY FOREST ADVENTURE</span><h2>혼자보다,<br>함께라서 아슬아슬.</h2><p>친구가 많아질수록<br>멀리 닿고, 더 크게 흔들려요.</p><div class="note"><span>✧</span><div><b>한 명만 더!</b><p>많이 데려오면 보너스가 커져요.<br>욕심내다 놓치면 둥지 밖 점수는 사라져요.</p></div></div><div class="note"><span>♡</span><div><b>느긋한 누비를 만나면</b><p>구름 친구가 살짝 떠올라<br>친구들의 무게를 덜어줘요.</p></div></div><div class="note"><span>⌁</span><div><b>너무 당기면 위험해요</b><p>빨간 게이지가 차면 살짝 돌아오세요.<br>손을 놓으면 팔이 다시 줄어들어요.</p></div></div><div class="tiny-note">30초 동안, 얼마나 많은 친구를<br>무사히 데려올 수 있을까요?</div></aside>
+ </main>
+ <script src="core.js"></script><script src="game.js"></script>
+</body>
+</html>
