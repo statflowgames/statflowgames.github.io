@@ -261,3 +261,23 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .gitem.lock { opacity: 0.45; }
 .card .earn { margin: 8px auto 0; display: inline-flex; align-items: center; gap: 4px; background: #1b1530; border-radius: 12px; padding: 4px 12px; font-size: 16px; }
 .card .earn small { color: var(--sub); font-size: 12px; margin-left: 6px; }
+
+/* ───── 비밀 아지트 ───── */
+.btn.den { background: #3b5f8f; }
+.denwrap { margin: 0 14px; border-radius: 20px; overflow: hidden; border: 3px solid var(--line); background: #2f2650; position: relative; }
+#denCv { display: block; width: 100%; aspect-ratio: 16 / 11; touch-action: manipulation; }
+.dentip { position: absolute; left: 0; right: 0; top: 6px; text-align: center; font-size: 12px; color: var(--sub); pointer-events: none; text-shadow: 0 1px 0 #000; }
+.denbtns { display: flex; gap: 8px; padding: 10px 14px 0; }
+.denbtns .btn { margin: 0; flex: 1; font-size: 16px; padding: 10px 4px; }
+.love { margin: 10px 14px 4px; text-align: center; font-size: 16px; }
+.love span { color: #ff8fc0; letter-spacing: 2px; margin-left: 4px; }
+.love small { display: block; color: var(--sub); font-size: 12px; }
+.chap.trophy { margin-top: 10px; }
+.tgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.tcell { background: var(--panel2); border: 2px solid #120e20; border-radius: 14px; padding: 8px 4px; text-align: center; }
+.tcell img { width: 48px; height: 48px; object-fit: contain; display: block; margin: 0 auto 2px; }
+.tcell b { display: block; font-weight: normal; font-size: 13px; }
+.tcell small { color: var(--gold); font-size: 12px; }
+.tcell.none img { filter: brightness(0) opacity(0.4); }
+.tcell.none small, .tcell.none b { color: var(--sub); }
+.tcell.gold { border-color: var(--gold); }

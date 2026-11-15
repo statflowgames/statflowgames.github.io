@@ -1,13 +1,14 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1115224716';
-import { Game } from './game.js?v=1115224716';
-import { Renderer, FONT } from './render.js?v=1115224716';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1115224716';
-import { Sound } from './audio.js?v=1115224716';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1115224716';
-import { actIcon, buttonHTML } from './icons.js?v=1115224716';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1115224716';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1115224716';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1115230333';
+import { Game } from './game.js?v=1115230333';
+import { Renderer, FONT } from './render.js?v=1115230333';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1115230333';
+import { Sound } from './audio.js?v=1115230333';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1115230333';
+import { actIcon, buttonHTML } from './icons.js?v=1115230333';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1115230333';
+import { startDen } from './den.js?v=1115230333';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1115230333';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -176,6 +177,7 @@ function titleScreen() {
     <div class="tbtns">
       <button class="btn main" data-a="play">${totalStars() ? '이어하기' : '시작하기'}</button>
       <button class="btn pink" data-a="skin">고양이 옷장</button>
+      <button class="btn den" data-a="den">비밀 아지트</button>
       <div class="toggles">
         <button class="tg ${save.sound ? 'on' : ''}" data-t="sound">효과음</button>
         <button class="tg ${save.music ? 'on' : ''}" data-t="music">음악</button>
@@ -186,6 +188,7 @@ function titleScreen() {
     </div>`, 'center title');
   on(el, '[data-a=play]', () => levelScreen());
   on(el, '[data-a=skin]', () => skinScreen());
+  on(el, '[data-a=den]', () => denScreen());
   on(el, '[data-t]', (e, b) => {
     const k = b.dataset.t; save[k] = !save[k]; store();
     b.classList.toggle('on', save[k]);
@@ -290,6 +293,38 @@ function gearTap(id) {
   save.bones -= g.price; save.gear.owned[id] = true; on[sl.id] = id; store();
   Sound.play('star'); toast(`${g.name}을(를) 샀어요! ${sl.stat} ${pct(sl, g.val)}`);
   skinScreen();
+}
+
+// ───────── 비밀 아지트 ─────────
+let den = null;
+function denScreen() {
+  scene = 'den'; game = null; setHud(false);
+  if (!save.den) save.den = { pets: 0, snacks: 0, plays: 0 };
+  const shelf = CHAPTERS.map((ch) => {
+    const ls = LEVELS.filter((l) => l.ch === ch.id);
+    return { ch, img: IMG['item-' + ch.bonus], n: ls.filter((l) => starsOf(l.id)[1]).length, all: ls.length, seen: ls.some((l) => cleared(l.id)) };
+  });
+  const got = shelf.reduce((n, x) => n + x.n, 0), all = shelf.reduce((n, x) => n + x.all, 0);
+  const love = save.den.pets + save.den.snacks + save.den.plays;
+  const hearts = Math.min(5, Math.floor(love / 15));
+  const el = show(`<div class="top"><button class="back" data-a="back">‹</button><h2>비밀 아지트</h2><div class="starsum bones">${BONE} ${save.bones}</div></div>
+    <div class="denwrap"><canvas id="denCv"></canvas><div class="dentip">고양이를 톡 누르면 쓰다듬어요 · 바닥을 누르면 그쪽으로 가요</div></div>
+    <div class="denbtns"><button class="btn sm" data-a="snack">🐟 간식 주기</button><button class="btn sm" data-a="play">🧶 놀아 주기</button><button class="btn sm" data-a="ward">👕 옷장</button></div>
+    <div class="love">친밀도 <span>${'♥'.repeat(hearts)}${'♡'.repeat(5 - hearts)}</span><small>쓰다듬기 ${save.den.pets} · 간식 ${save.den.snacks} · 놀이 ${save.den.plays}</small></div>
+    <div class="chap trophy"><h3>훔친 물건 진열장 <span>${got} / ${all}</span></h3><p>스테이지에서 보너스 물건을 모두 챙기면 하나씩 늘어나요.</p><div class="tgrid">
+    ${shelf.map((x) => `<div class="tcell ${x.n ? '' : 'none'}"><img src="${IMG['item-' + x.ch.bonus] ? `img/item-${x.ch.bonus}.webp` : ICON[x.ch.bonus]}" alt=""><b>${x.seen ? x.ch.bonusName : '???'}</b><small>${x.n} / ${x.all}</small></div>`).join('')}
+    <div class="tcell gold ${save.ending ? '' : 'none'}"><img src="${IMG['item-fish-gold'] ? 'img/item-fish-gold.webp' : ''}" alt=""><b>${save.ending ? '진짜 황금 생선' : '???'}</b><small>${save.ending ? '전설의 보물' : '엔딩을 보면'}</small></div>
+    </div></div>`, 'list');
+  if (den) den.stop();
+  den = startDen(el.querySelector('#denCv'), {
+    skin: skinById(save.skin), wear: wearOn(), golden: !!save.ending,
+    shelf: shelf.map((x) => ({ img: x.img, n: x.n })),
+    onPet: () => { save.den.pets++; store(); },
+  });
+  on(el, '[data-a=back]', () => { den.stop(); den = null; titleScreen(); });
+  on(el, '[data-a=ward]', () => { den.stop(); den = null; skinScreen('gear'); });
+  on(el, '[data-a=snack]', () => { if (den.snack()) { save.den.snacks++; store(); } else toast('지금은 먹는 중이에요'); });
+  on(el, '[data-a=play]', () => { if (den.play()) { save.den.plays++; store(); } else toast('지금은 노는 중이에요'); });
 }
 
 // ───────── 장 소개 (등장인물·물건) ─────────
@@ -644,6 +679,7 @@ loadAll().then(() => { paintButtons(); titleScreen(); });
 // 테스트용 핸들
 window.__sc = {
   get game() { return game; },
+  get den() { return den; },
   start: (i) => { startLevel(i, true); startPlay(); },
   intro: (i) => startLevel(i),
   step(dt = 1 / 60, inp = { dx: 0, dy: 0, mag: 0, run: false }) { game.update(dt, inp); R.draw(dt, joy); updateHud(); },

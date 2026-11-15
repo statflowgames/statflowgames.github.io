@@ -1,5 +1,5 @@
 // 그림 파일 불러오기 + 고양이 색 바꾸기. 파일이 없으면 null 을 돌려주고, 그 자리는 코드 그림이 대신한다.
-import { drawWear, sockMask, paintSocks } from './wear.js?v=1115224716';
+import { drawWear, sockMask, paintSocks } from './wear.js?v=1115230333';
 const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 'legend',
   'sprite-cat', 'sprite-cat-fish', 'sprite-cat-run', 'sprite-cat-peek',
   'sprite-owner', 'sprite-owner-side', 'sprite-owner-back', 'sprite-owner-alert',
@@ -15,7 +15,7 @@ const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 
   ...[1, 2, 3, 4, 5, 6, 7, 8].map((i) => `clear-${i}`),
   ...['yawn', 'groom', 'loaf', 'crouch', 'scared', 'happy'].map((n) => `sprite-cat-${n}`),
   ...['eye', 'meow', 'paw', 'vent', 'ride', 'cart', 'carousel', 'unride', 'vase', 'switch'].map((n) => `ui-${n}`),
-  ...['feet', 'body', 'neck', 'tail', 'head'].flatMap((s) => [1, 2, 3, 4, 5].map((i) => `gear-${s}${i}`))];
+  ...['feet', 'body', 'neck', 'tail', 'head'].flatMap((s) => [1, 2, 3, 4, 5].map((i) => `gear-${s}${i}`)), 'den-bg'];
 export const IMG = {};
 
 export function loadAll(timeout = 3000) {
