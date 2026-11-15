@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1113120347';
-import { sprite, IMG } from './assets.js?v=1113120347';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1115143036';
+import { sprite, IMG } from './assets.js?v=1115143036';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -752,9 +752,9 @@ export class Renderer {
     c.save();
     c.fillStyle = 'rgba(0,0,0,0.28)';
     c.beginPath(); c.ellipse(fx, fy, spr.bw * k * 0.36, spr.bw * k * 0.1, 0, 0, 7); c.fill();
-    c.translate(fx, fy + bob);
+    c.translate(fx, fy + bob + (o.dy || 0) * ts);
     c.rotate(tilt + (o.rot || 0));
-    c.scale((o.flip ? -1 : 1) * k, k * breathe);
+    c.scale((o.flip ? -1 : 1) * k * (o.sx || 1), k * breathe * (o.sy || 1));
     c.imageSmoothingQuality = 'high';
     c.drawImage(spr.cv, spr.bx, spr.by, spr.bw, spr.bh, -spr.bw / 2, -spr.bh, spr.bw, spr.bh);
     c.restore();
@@ -784,9 +784,15 @@ export class Renderer {
     const tile = G.grid.c(Math.floor(cat.x), Math.floor(cat.y));
     const o = { skin: this.skin, t, face: cat.face, moving: cat.moving, run: cat.run, walkT: cat.walkT, fish: cat.hasFish, golden: G.L.golden };
     if (G.state === 'caught') { o.moving = false; }
-    const catSprite = cat.hasFish ? 'sprite-cat-fish' : cat.run && IMG['sprite-cat-run'] ? 'sprite-cat-run' : this.skin && this.skin.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat';
+    const mood = this.catMood(t);
+    const poseName = mood.pose && IMG['sprite-cat-' + mood.pose] ? 'sprite-cat-' + mood.pose : null;
+    const catSprite = poseName || (cat.hasFish ? 'sprite-cat-fish' : cat.run && IMG['sprite-cat-run'] ? 'sprite-cat-run' : this.skin && this.skin.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat');
     const spr = sprite(catSprite, this.skin, cat.hasFish && G.L.golden);
-    const so = { t, moving: o.moving, walkT: cat.walkT, rate: cat.run ? 2.6 : 3.2, amp: cat.run ? 0.12 : 0.07, flip: cat.face < 0 };
+    // 전용 그림이 있으면 몸 늘이기·눌리기는 약하게
+    const soft = poseName ? 0.35 : 1;
+    const so = { t, moving: o.moving, walkT: cat.walkT, rate: cat.run ? 2.6 : 3.2, amp: (cat.run ? 0.12 : 0.07) * (mood.amp || 1), flip: (cat.face < 0) !== !!mood.flip,
+      sx: 1 + ((mood.sx || 1) - 1) * soft, sy: 1 + ((mood.sy || 1) - 1) * soft, rot: mood.rot || 0, dy: mood.dy || 0 };
+    if (mood.flip) o.face = -o.face;
     if (cat.riding) {
       if (spr) { this.sprite(c, spr, cat.x, cat.y - 0.02, 0.85, false, so); return; }
       this.at(c, cat.x, cat.y + 0.12, 0.8); c.translate(0, -5); drawCat(c, o); c.restore();
@@ -806,17 +812,101 @@ export class Renderer {
       if (G.state === 'caught') so.rot = Math.sin(t * 30) * 0.06;
       this.sprite(c, spr, cat.x, cat.y + 0.24, 1.08, false, so);
     } else {
-      this.at(c, cat.x, cat.y + 0.22, 0.88);
+      this.at(c, cat.x, cat.y + 0.22 + so.dy, 0.88);
       if (G.state === 'caught') c.rotate(Math.sin(t * 30) * 0.05);
+      c.rotate(so.rot); c.scale(so.sx, so.sy);
       drawCat(c, o);
       c.restore();
     }
     c.globalAlpha = 1;
+    if (mood.emote && !cat.bubble && G.state !== 'caught') this.catEmote(c, mood, cat.x, cat.y + so.dy, t);
     if (this.skin && this.skin.crown && !(this.skin && IMG['sprite-cat-king'])) { this.at(c, cat.x + cat.face * 0.12, cat.y - 0.55, 0.7); drawBonus(c, 'crown', 0); c.restore(); }
     if (cat.hidden && tile !== 'C') {
       c.font = `${Math.round(10 * Math.max(0.9, s))}px ${FONT}`; c.textAlign = 'center';
       c.fillStyle = 'rgba(170,255,200,0.9)'; c.fillText('숨는 중', cat.x * this.ts, (cat.y - 0.55) * this.ts);
     }
+  }
+  // 고양이 기분: 가만히 있을 때 하품·그루밍·두리번·식빵, 경비 가까우면 웅크림, 들키면 털 곤두섬, 생선 물면 깡총
+  catMood(t) {
+    const G = this.game, cat = G.cat, m = {};
+    if (G.state === 'caught') return m;
+    const sin = Math.sin;
+    let near = 99;
+    for (const g of G.guards) if (g.state !== 'sleep') near = Math.min(near, Math.hypot(g.x - cat.x, g.y - cat.y));
+    const chased = G.guards.some((g) => g.state === 'chase'), d = G.danger();
+    if (chased && !cat.hidden) {
+      Object.assign(m, { pose: 'scared', emote: 'scared', sx: 1.1 + sin(t * 47) * 0.02, sy: 1.1 + sin(t * 53) * 0.02, rot: sin(t * 41) * 0.03 });
+    } else if (d > 0.12 || near < 3.2) {
+      Object.assign(m, { pose: 'crouch', emote: 'sweat', sx: 1.07, sy: 0.88, rot: cat.moving ? 0 : sin(t * 38) * 0.012, amp: 0.5 });
+    } else if (cat.joyT > 0) {
+      const p = 1.2 - cat.joyT;
+      Object.assign(m, { pose: 'happy', emote: 'happy', dy: -Math.abs(sin(p * Math.PI * 2.5)) * 0.32 * (cat.joyT / 1.2), sy: 1 + sin(p * Math.PI * 5) * 0.06 });
+    } else if (cat.hasFish) {
+      Object.assign(m, { emote: 'happy', amp: 1.8 });
+    } else if (!cat.moving && !cat.riding && G.state === 'play') {
+      const s = cat.stillT - 2.2;
+      if (s > 14) {
+        Object.assign(m, { pose: 'loaf', emote: 'zz', sx: 1.09, sy: 0.84 + sin(t * 1.6) * 0.015, dy: 0.03 });
+      } else if (s > 0) {
+        const slot = Math.floor(s / 3.5) % 3, lt = s % 3.5;
+        if (slot === 0 && lt < 1.5) {
+          const e = sin((Math.PI * lt) / 1.5);
+          Object.assign(m, { pose: 'yawn', emote: 'yawn', sx: 1 - 0.05 * e, sy: 1 + 0.09 * e, emoteK: e });
+        } else if (slot === 1 && lt < 1.7) {
+          Object.assign(m, { pose: 'groom', emote: 'groom', rot: sin(lt * 18) * 0.07, sy: 0.96 });
+        } else if (slot === 2 && lt > 0.5 && lt < 1.5) {
+          m.flip = true;
+        }
+      }
+    }
+    // 걷기 시작·멈춤·숨기·야옹 때 몸이 살짝 늘었다 눌림
+    const sq = (k) => { m.sx = (m.sx || 1) * (1 + k); m.sy = (m.sy || 1) * (1 - k); };
+    if (cat.kickT > 0) sq(-0.08 * (cat.kickT / 0.16));
+    if (cat.stopT > 0) sq(0.09 * (cat.stopT / 0.18));
+    if (cat.hideT > 0) sq(0.12 * (cat.hideT / 0.22));
+    if (cat.bubble && cat.bubble.t > 0.9) sq(-0.1 * ((cat.bubble.t - 0.9) / 0.3));
+    return m;
+  }
+  catEmote(c, m, x, y, t) {
+    const ts = this.ts, s = ts / 32, X = x * ts, Y = (y - 0.78) * ts;
+    c.save();
+    c.textAlign = 'center'; c.lineJoin = 'round';
+    const word = (txt, px, py, size, fill, a = 1) => {
+      c.globalAlpha = Math.max(0, a); c.font = `${Math.round(size * s)}px ${FONT}`;
+      c.lineWidth = 3 * s; c.strokeStyle = '#1a1428'; c.strokeText(txt, px, py); c.fillStyle = fill; c.fillText(txt, px, py);
+    };
+    const side = this.game.cat.face >= 0 ? 1 : -1;
+    if (m.emote === 'scared') {
+      word('!!', X + side * 10 * s, Y - 4 * s + Math.sin(t * 30) * 1.2 * s, 15, '#ff5f6d');
+      c.strokeStyle = 'rgba(255,255,255,0.85)'; c.lineWidth = 1.6 * s; c.globalAlpha = 1;
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI * 0.95 + i * 0.38 + Math.sin(t * 20 + i) * 0.05, r0 = 15 * s, r1 = 20 * s;
+        c.beginPath(); c.moveTo(X + Math.cos(a) * r0, Y + 14 * s + Math.sin(a) * r0); c.lineTo(X + Math.cos(a) * r1, Y + 14 * s + Math.sin(a) * r1); c.stroke();
+      }
+    } else if (m.emote === 'sweat') {
+      const k = (t * 0.9) % 1, px = X - side * 9 * s, py = Y + 4 * s + k * 5 * s;
+      c.globalAlpha = 1 - k * 0.6;
+      c.beginPath(); c.moveTo(px, py - 5 * s); c.quadraticCurveTo(px + 3.6 * s, py + 0.5 * s, px, py + 2.4 * s); c.quadraticCurveTo(px - 3.6 * s, py + 0.5 * s, px, py - 5 * s);
+      c.fillStyle = '#9fdcff'; c.fill(); c.lineWidth = 1.3 * s; c.strokeStyle = '#1a1428'; c.stroke();
+    } else if (m.emote === 'happy') {
+      for (let i = 0; i < 2; i++) {
+        const k = (t * 0.7 + i * 0.5) % 1;
+        word(i ? '♫' : '♪', X + (i ? 1 : -1) * 9 * s + Math.sin(k * 6) * 2 * s, Y - k * 10 * s, 11, i ? '#ffd27a' : '#ff9fd0', 1 - k);
+      }
+    } else if (m.emote === 'zz') {
+      for (let i = 0; i < 2; i++) {
+        const k = (t * 0.45 + i * 0.5) % 1;
+        word('z', X + side * (6 + k * 6) * s, Y - k * 12 * s, 9 + k * 5, '#cfd8ff', 1 - k);
+      }
+    } else if (m.emote === 'yawn') {
+      word('하암~', X + side * 12 * s, Y - 2 * s, 9, '#fffbe8', Math.min(1, (m.emoteK || 0) * 1.6));
+    } else if (m.emote === 'groom') {
+      for (let i = 0; i < 3; i++) {
+        const k = (t * 1.6 + i / 3) % 1;
+        word('✦', X + (i - 1) * 8 * s, Y + 8 * s - k * 8 * s, 7, '#fff6c4', 1 - k);
+      }
+    }
+    c.restore();
   }
   drawCam(c, cam, t) {
     const ts = this.ts, s = ts / 32, G = this.game;

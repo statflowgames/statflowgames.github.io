@@ -1,11 +1,12 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1113120347';
-import { Game } from './game.js?v=1113120347';
-import { Renderer, FONT } from './render.js?v=1113120347';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1113120347';
-import { Sound } from './audio.js?v=1113120347';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1113120347';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1113120347';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1115143036';
+import { Game } from './game.js?v=1115143036';
+import { Renderer, FONT } from './render.js?v=1115143036';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1115143036';
+import { Sound } from './audio.js?v=1115143036';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1115143036';
+import { actIcon, buttonHTML } from './icons.js?v=1115143036';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1115143036';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -345,7 +346,7 @@ function updateHud() {
   set('e', game.spotted, (v) => { const e = $('#gE'); e.classList.toggle('bad', v); e.textContent = v ? '들켰다' : '안 들킴'; });
   const a = game.actionTarget();
   set('a', a ? a.label : '', (v) => {
-    const b = $('#bAct'); b.classList.toggle('idle', !v); b.textContent = v || '행동';
+    const b = $('#bAct'); b.classList.toggle('idle', !v); b.innerHTML = buttonHTML(actIcon(v), v || '행동');
     b.classList.remove('pop'); if (v) { void b.offsetWidth; b.classList.add('pop'); }
   });
   const cd = game.cat.meowCD / 3.5;
@@ -576,7 +577,15 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-loadAll().then(() => titleScreen());
+// 아래 버튼 아이콘 (ui-*.png 그림이 있으면 그걸로)
+function paintButtons() {
+  $('#bLook').innerHTML = buttonHTML('eye', '보기');
+  $('#bMeow').innerHTML = buttonHTML('meow', '야옹');
+  $('#bAct').innerHTML = buttonHTML('paw', '행동');
+  hudCache.a = undefined;
+}
+paintButtons();
+loadAll().then(() => { paintButtons(); titleScreen(); });
 
 // 테스트용 핸들
 window.__sc = {

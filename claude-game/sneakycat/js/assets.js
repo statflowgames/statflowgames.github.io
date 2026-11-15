@@ -11,7 +11,9 @@ const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 
   ...['fish', 'fish-gold', 'yarn', 'tuna', 'gem', 'shrimp', 'sushi', 'bell', 'cotton', 'battery', 'crown',
     'box', 'vase', 'vase-broken', 'roomba', 'camera', 'switch-on', 'switch-off', 'vent', 'cart', 'carousel', 'plate']
     .map((n) => `item-${n}`),
-  ...[1, 2, 3, 4, 5, 6, 7, 8].map((i) => `clear-${i}`)];
+  ...[1, 2, 3, 4, 5, 6, 7, 8].map((i) => `clear-${i}`),
+  ...['yawn', 'groom', 'loaf', 'crouch', 'scared', 'happy'].map((n) => `sprite-cat-${n}`),
+  ...['eye', 'meow', 'paw', 'vent', 'ride', 'cart', 'carousel', 'unride', 'vase', 'switch'].map((n) => `ui-${n}`)];
 export const IMG = {};
 
 export function loadAll(timeout = 3000) {

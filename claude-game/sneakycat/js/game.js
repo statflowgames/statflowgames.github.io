@@ -1,6 +1,6 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1113120347';
-import { CHAPTERS } from './levels.js?v=1113120347';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1115143036';
+import { CHAPTERS } from './levels.js?v=1115143036';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },
@@ -45,7 +45,7 @@ export class Game {
     this.alarmFlash = 0;
     this.fx = () => {};
     const s = ents.cat;
-    this.cat = { x: s.x, y: s.y, vx: 0, vy: 0, face: 1, moving: false, run: false, hidden: true, hasFish: false, riding: null, stepT: 0, walkT: 0, meowCD: 0, bubble: null };
+    this.cat = { x: s.x, y: s.y, vx: 0, vy: 0, face: 1, moving: false, run: false, hidden: true, hasFish: false, riding: null, stepT: 0, walkT: 0, meowCD: 0, bubble: null, stillT: 0, joyT: 0, kickT: 0, stopT: 0, hideT: 0 };
     this.fish = { ...ents.fish, taken: false };
     this.bonus = ents.bonus.map((b) => ({ ...b, taken: false }));
     this.vases = ents.vases.map((v) => ({ ...v, broken: false }));
@@ -221,6 +221,9 @@ export class Game {
     const c = this.cat;
     c.meowCD = Math.max(0, c.meowCD - dt);
     if (c.bubble && (c.bubble.t -= dt) <= 0) c.bubble = null;
+    // 보는 재미용 타이머 (게임 규칙에는 영향 없음)
+    c.joyT = Math.max(0, c.joyT - dt); c.kickT = Math.max(0, c.kickT - dt); c.stopT = Math.max(0, c.stopT - dt); c.hideT = Math.max(0, c.hideT - dt);
+    const wasMoving = c.moving;
     if (c.riding) {
       c.x = c.riding.x; c.y = c.riding.y - 0.04; c.moving = false; c.run = false; c.hidden = true;
       return;
@@ -246,11 +249,18 @@ export class Game {
       c.walkT += dt * sp * (c.ice && !want ? 0.2 : 1);
       if (c.run && !c.ice) {
         c.stepT -= dt;
-        if (c.stepT <= 0) { c.stepT = 0.3; this.noise(c.x, c.y + 0.2, 2.5, 'step'); this.fx('step'); }
+        if (c.stepT <= 0) {
+          c.stepT = 0.3; this.noise(c.x, c.y + 0.2, 2.5, 'step'); this.fx('step');
+          for (let i = 0; i < 3; i++) this.part(c.x - c.face * 0.25, c.y + 0.2, -c.face * Math.random() * 1.2, -Math.random() * 0.8, 'rgba(220,214,240,0.7)', 0.35);
+        }
       }
     } else { c.vx = c.vy = 0; c.moving = false; c.run = false; c.stepT = 0; }
+    if (c.moving && !wasMoving) { c.kickT = 0.16; c.stillT = 0; }
+    if (!c.moving && wasMoving) c.stopT = 0.18;
+    c.stillT = c.moving ? 0 : c.stillT + dt;
     const wasHidden = c.hidden;
     c.hidden = this.grid.hideAt(c.x, c.y);
+    if (c.hidden && !wasHidden) c.hideT = 0.22;
     const tk = Math.floor(c.x) + ',' + Math.floor(c.y);
     if (tk !== c.tileKey) {
       c.tileKey = tk;
@@ -364,7 +374,7 @@ export class Game {
   checkPickups() {
     const c = this.cat;
     if (!this.fish.taken && Math.hypot(this.fish.x - c.x, this.fish.y - c.y) < 0.6) {
-      this.fish.taken = true; c.hasFish = true;
+      this.fish.taken = true; c.hasFish = true; c.joyT = 1.2;
       this.popup(c.x, c.y - 1, this.L.golden ? '황금 생선!' : '생선 획득!', '#ffe27a');
       for (let i = 0; i < 16; i++) this.part(c.x, c.y - 0.3, (Math.random() - 0.5) * 5, -Math.random() * 4, '#ffe27a', 0.8);
       this.fx('fish');
