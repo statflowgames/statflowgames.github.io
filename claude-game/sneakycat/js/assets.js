@@ -68,11 +68,12 @@ function recolor(d, skin, golden, box) {
       if (box && (pat || pts)) {
         const p = i >> 2, x = p % box.w, y = (p / box.w) | 0;
         const nx = (x - box.x0) / bw, ny = (y - box.y0) / bh;
+        // 삼색이: 주황·검정 얼룩. 배와 앞가슴·앞발(오른쪽 아래)은 하얗게 두어
+        // 목에 띠를 두른 것처럼 보이지 않게 하고, 검정은 등·꼬리(왼쪽)에만.
         if (pat && lum < 0.77) {
-          // 삼색이: 주황·검정 얼룩 (배는 하얗게 둔다)
-          const n = noise(nx * 3 + 0.5, ny * 3 + 0.5, 3);
-          if (n > 0.56) base = pat[0];
-          else if (n < 0.33) base = pat[1];
+          const n = noise(nx * 3 + 0.5, ny * 3 + 0.5, 3), right = sm(0.38, 0.62, nx);
+          if (n - right * sm(0.24, 0.44, ny) * 0.6 > 0.56) base = pat[0];
+          else if (n + right * 0.5 < 0.36) base = pat[1];
         }
         if (pts) {
           // 샴: 몸 가운데서 먼 귀·꼬리·발끝을 짙게
