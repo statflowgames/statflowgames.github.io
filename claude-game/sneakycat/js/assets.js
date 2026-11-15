@@ -31,11 +31,24 @@ const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[
 const sm = (e0, e1, x) => Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
 
 // 회색 고양이 그림의 밝기 띠 (줄무늬 ~0.38, 몸 ~0.55, 배 ~0.9) 를 고른 털색으로 바꾼다.
-// 외곽선·복면(어두움), 눈·코·생선(채도 높음), 하이라이트(아주 흰색)는 그대로 둔다.
-function recolor(d, skin, golden) {
+// 외곽선·복면(어두움), 코·생선(채도 높음), 하이라이트(아주 흰색)는 그대로 둔다.
+// box 가 있으면(고양이 그림) 눈 색, 삼색 얼룩, 샴 고양이 끝 색까지 칠한다.
+const hash = (x, y, sd) => { let h = (x * 374761393 + y * 668265263 + sd * 2147483647) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+function noise(x, y, sd) {
+  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = hash(xi, yi, sd), b = hash(xi + 1, yi, sd), c = hash(xi, yi + 1, sd), e = hash(xi + 1, yi + 1, sd);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + e) * u * v;
+}
+const EYE_REF = 0.81; // 원래 초록 눈동자 밝기
+function recolor(d, skin, golden, box) {
   const st = rgb(skin.stripe), bo = rgb(skin.body), be = rgb(skin.belly);
   const doSkin = skin.id !== 'gray';
   const gold = [[224, 154, 18], [255, 212, 71], [255, 243, 176]];
+  const eye = box && doSkin && skin.eye ? rgb(skin.eye) : null;
+  const pat = box && skin.patches ? skin.patches.map(rgb) : null;
+  const pts = box && skin.points ? rgb(skin.points) : null;
+  const bw = box ? Math.max(1, box.x1 - box.x0) : 1, bh = box ? Math.max(1, box.y1 - box.y0) : 1;
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] < 8) continue;
     const r = d[i], g = d[i + 1], b = d[i + 2];
@@ -46,8 +59,27 @@ function recolor(d, skin, golden) {
     if (golden && sat > 0.25 && lum > 0.25 && b - r > 50 && b >= g * 0.95) {
       // 파란 생선 → 황금 생선
       out = lum < 0.5 ? mix(gold[0], gold[1], lum / 0.5) : mix(gold[1], gold[2], (lum - 0.5) / 0.5);
+    } else if (eye && sat > 0.3 && g > 60 && g > r * 1.12 && g > b * 1.4) {
+      // 초록 눈동자 → 털색마다 다른 눈 색
+      const k = Math.min(1.3, lum / EYE_REF);
+      out = [eye[0] * k, eye[1] * k, eye[2] * k];
     } else if (doSkin && sat < 0.22 && lum > 0.22 && lum < 0.955) {
-      const base = mix(mix(st, bo, sm(0.42, 0.5, lum)), be, sm(0.72, 0.82, lum));
+      let base = mix(mix(st, bo, sm(0.42, 0.5, lum)), be, sm(0.72, 0.82, lum));
+      if (box && (pat || pts)) {
+        const p = i >> 2, x = p % box.w, y = (p / box.w) | 0;
+        const nx = (x - box.x0) / bw, ny = (y - box.y0) / bh;
+        if (pat && lum < 0.77) {
+          // 삼색이: 주황·검정 얼룩 (배는 하얗게 둔다)
+          const n = noise(nx * 3 + 0.5, ny * 3 + 0.5, 3);
+          if (n > 0.56) base = pat[0];
+          else if (n < 0.33) base = pat[1];
+        }
+        if (pts) {
+          // 샴: 몸 가운데서 먼 귀·꼬리·발끝을 짙게
+          const dist = Math.hypot((nx - 0.5) / 0.5, (ny - 0.58) / 0.5);
+          base = mix(base, pts, sm(0.6, 0.95, dist) * (lum < 0.77 ? 1 : 0.75));
+        }
+      }
       const ref = lum < 0.46 ? 0.38 : lum < 0.77 ? 0.55 : 0.9;
       const k = Math.min(1.35, lum / ref);
       out = [base[0] * k, base[1] * k, base[2] * k];
@@ -69,10 +101,13 @@ export function sprite(name, skin = null, golden = false) {
   c.drawImage(im, 0, 0);
   const data = c.getImageData(0, 0, cv.width, cv.height);
   const d = data.data;
-  if ((skin && skin.id !== 'gray') || golden) { recolor(d, skin || { id: 'gray' }, golden); c.putImageData(data, 0, 0); }
   let x0 = cv.width, y0 = cv.height, x1 = 0, y1 = 0;
   for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
     if (d[(y * cv.width + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  if ((skin && skin.id !== 'gray') || golden) {
+    const box = name.startsWith('sprite-cat') ? { x0, y0, x1, y1, w: cv.width } : null;
+    recolor(d, skin || { id: 'gray' }, golden, box); c.putImageData(data, 0, 0);
   }
   const s = { cv, bx: x0, by: y0, bw: x1 - x0 + 1, bh: y1 - y0 + 1 };
   cache.set(key, s);

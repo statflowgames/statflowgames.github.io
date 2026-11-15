@@ -1,5 +1,5 @@
 // 도둑 고양이 — 스테이지 데이터 (1~3장 1~10번. 늘어난 스테이지는 levels2.js)
-import { EXTRA } from './levels2.js?v=1115145211';
+import { EXTRA } from './levels2.js?v=1115222305';
 //
 // 타일 기호
 //   #  벽            .  나무 바닥      ,  부엌 타일     _  카펫     :  대리석
@@ -682,7 +682,7 @@ export const SKINS = [
   { id: 'black', name: '까망이', need: 45, body: '#3d3848', stripe: '#2c2836', belly: '#4a4556', eye: '#ffe45c' },
   { id: 'white', name: '눈송이', need: 60, body: '#f8f6f2', stripe: '#e2dcd6', belly: '#ffffff', eye: '#78c4ff', mask: '#5f5a72' },
   { id: 'gold', name: '황금 고양이', need: 80, body: '#ffd447', stripe: '#e39d17', belly: '#fff6c8', eye: '#ff6f9f' },
-  { id: 'siam', name: '샴 고양이', need: 110, body: '#efe2cc', stripe: '#c9b49a', belly: '#fff8ea', eye: '#6fb8ff', mask: '#4a3a30' },
+  { id: 'siam', name: '샴 고양이', need: 110, body: '#efe2cc', stripe: '#e3d3ba', belly: '#fff8ea', eye: '#6fb8ff', mask: '#4a3a30', points: '#5b4636' },
   { id: 'blue', name: '러시안 블루', need: 150, body: '#8193ab', stripe: '#6c7d96', belly: '#a7b6ca', eye: '#7be07b' },
   { id: 'mackerel', name: '고등어', need: 190, body: '#9c8f74', stripe: '#4c4537', belly: '#efe6d2', eye: '#ffd34d' },
   { id: 'sakura', name: '벚꽃 고양이', need: 240, body: '#ffc6dc', stripe: '#f39dbd', belly: '#fff0f6', eye: '#7a5cff' },

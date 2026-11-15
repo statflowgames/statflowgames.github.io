@@ -1,12 +1,12 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1115145211';
-import { Game } from './game.js?v=1115145211';
-import { Renderer, FONT } from './render.js?v=1115145211';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1115145211';
-import { Sound } from './audio.js?v=1115145211';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1115145211';
-import { actIcon, buttonHTML } from './icons.js?v=1115145211';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1115145211';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1115222305';
+import { Game } from './game.js?v=1115222305';
+import { Renderer, FONT } from './render.js?v=1115222305';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1115222305';
+import { Sound } from './audio.js?v=1115222305';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1115222305';
+import { actIcon, buttonHTML } from './icons.js?v=1115222305';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1115222305';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
