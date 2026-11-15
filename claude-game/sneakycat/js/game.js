@@ -1,6 +1,6 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1115222716';
-import { CHAPTERS } from './levels.js?v=1115222716';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1115224716';
+import { CHAPTERS } from './levels.js?v=1115224716';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },
@@ -30,9 +30,13 @@ const pick = (a) => a[(Math.random() * a.length) | 0];
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export class Game {
-  constructor(level) {
+  constructor(level, perks = {}) {
     this.L = level;
     this.hard = !!level.hard;
+    // 옷장 장비 효과 (어려움 스테이지에서는 절반)
+    const pk = this.hard ? 0.5 : 1;
+    this.perk = { quiet: (perks.quiet || 0) * pk, sneak: (perks.sneak || 0) * pk, calm: (perks.calm || 0) * pk, dash: (perks.dash || 0) * pk, meow: (perks.meow || 0) * pk };
+    this.meowMax = 3.5 * (1 - this.perk.meow);
     this.chapter = CHAPTERS[level.ch - 1];
     const { grid, ents } = parseLevel(level);
     this.grid = grid;
@@ -149,7 +153,7 @@ export class Game {
       if (idle) continue;
       const inside = !c.hidden && Math.hypot(c.x - sp.x, c.y - sp.y) < sp.r;
       if (inside && sp.alarmT <= 0) {
-        sp.meter += dt * (this.hard ? 2.2 : 1.8);
+        sp.meter += dt * (this.hard ? 2.2 : 1.8) * (1 - this.perk.sneak);
         if (sp.meter >= 1) { sp.meter = 0; sp.alarmT = 2.6; this.alarm(c.x, c.y); }
       } else sp.meter = Math.max(0, sp.meter - dt * 0.8);
     }
@@ -229,7 +233,7 @@ export class Game {
       return;
     }
     const want = inp.mag > 0.08;
-    const speed = want ? (inp.run ? CAT_RUN : CAT_SNEAK * Math.min(1, 0.5 + inp.mag * 0.75)) : 0;
+    const speed = want ? (inp.run ? CAT_RUN * (this.perk.dash && this.chased() ? 1 + this.perk.dash : 1) : CAT_SNEAK * Math.min(1, 0.5 + inp.mag * 0.75)) : 0;
     const tx = want ? inp.dx * speed : 0, ty = want ? inp.dy * speed : 0;
     // 얼음 위에서는 천천히 속도가 붙고, 손을 떼도 한참 미끄러진다
     c.ice = this.grid.c(Math.floor(c.x), Math.floor(c.y)) === '~';
@@ -250,7 +254,7 @@ export class Game {
       if (c.run && !c.ice) {
         c.stepT -= dt;
         if (c.stepT <= 0) {
-          c.stepT = 0.3; this.noise(c.x, c.y + 0.2, 2.5, 'step'); this.fx('step');
+          c.stepT = 0.3; this.noise(c.x, c.y + 0.2, 2.5 * (1 - this.perk.quiet), 'step'); this.fx('step');
           for (let i = 0; i < 3; i++) this.part(c.x - c.face * 0.25, c.y + 0.2, -c.face * Math.random() * 1.2, -Math.random() * 0.8, 'rgba(220,214,240,0.7)', 0.35);
         }
       }
@@ -266,11 +270,11 @@ export class Game {
       c.tileKey = tk;
       const tile = this.grid.c(Math.floor(c.x), Math.floor(c.y));
       if (tile === '%') {
-        this.noise(c.x, c.y, 3.6, 'creak');
+        this.noise(c.x, c.y, 3.6 * (1 - this.perk.quiet), 'creak');
         this.popup(c.x, c.y - 0.8, '삐걱!', '#e9b98a');
         this.fx('creak');
       } else if (tile === 'w') {
-        this.noise(c.x, c.y, 3.4, 'splash');
+        this.noise(c.x, c.y, 3.4 * (1 - this.perk.quiet), 'splash');
         this.popup(c.x, c.y - 0.8, '첨벙!', '#9fdcff');
         for (let i = 0; i < 8; i++) this.part(c.x, c.y, (Math.random() - 0.5) * 3, -Math.random() * 2.5, '#bfe8ff', 0.45);
         this.fx('splash');
@@ -364,7 +368,7 @@ export class Game {
   meow() {
     const c = this.cat;
     if (this.state !== 'play' || c.meowCD > 0) return false;
-    c.meowCD = 3.5;
+    c.meowCD = this.meowMax;
     c.bubble = { text: '야옹~', t: 1.2 };
     this.noise(c.x, c.y, 6, 'meow');
     this.fx('meow');
@@ -427,7 +431,7 @@ export class Game {
       const d = Math.hypot(c.x - cam.ox, c.y - cam.oy);
       const sees = !c.hidden && d < cam.range && Math.abs(angDiff(Math.atan2(c.y - cam.oy, c.x - cam.ox), cam.ang)) < cam.fov / 2 && this.grid.los(cam.ox, cam.oy, c.x, c.y);
       if (sees) {
-        cam.meter += 1.9 * dt * (1.35 - d / cam.range);
+        cam.meter += 1.9 * dt * (1.35 - d / cam.range) * (1 - this.perk.sneak);
         if (cam.meter >= 1) { cam.meter = 0; cam.alarmT = 2.6; this.alarm(c.x, c.y); }
       } else cam.meter = Math.max(0, cam.meter - 0.7 * dt);
     }
@@ -503,7 +507,7 @@ export class Game {
     const d = Math.hypot(c.x - g.x, c.y - g.y);
     const sees = this.canSee(g, d);
     if (sees) {
-      let rate = 1.7 * (1.3 - Math.min(1, d / T.range)) * (c.run ? 1.5 : 1) * (this.hard ? 1.25 : 1);
+      let rate = 1.7 * (1.3 - Math.min(1, d / T.range)) * (c.run ? 1.5 : 1) * (this.hard ? 1.25 : 1) * (1 - this.perk.sneak);
       if (d < 0.75) rate = 12;
       if (g.state !== 'patrol') rate *= 1.25;
       g.meter = Math.min(1, g.meter + rate * dt);
@@ -511,7 +515,7 @@ export class Game {
       g.seenT = 0;
     } else {
       g.seenT += dt;
-      if (g.state !== 'chase') g.meter = Math.max(0, g.meter - (g.state === 'suspicious' ? 0.16 : 0.3) * dt);
+      if (g.state !== 'chase') g.meter = Math.max(0, g.meter - (g.state === 'suspicious' ? 0.16 : 0.3) * (1 + this.perk.calm) * dt);
     }
     if (g.state !== 'chase' && g.meter >= 1) this.startChase(g);
 

@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1115222716';
-import { sprite, IMG } from './assets.js?v=1115222716';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1115224716';
+import { sprite, IMG } from './assets.js?v=1115224716';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -33,8 +33,8 @@ export class Renderer {
     this.cv.height = Math.round(h * this.dpr);
     if (this.game) this.layout(true);
   }
-  setGame(g, skin) {
-    this.game = g; this.skin = skin;
+  setGame(g, skin, wear = null) {
+    this.game = g; this.skin = skin; this.wear = wear;
     this.layout(true);
   }
   layout(snap) {
@@ -756,7 +756,8 @@ export class Renderer {
     c.rotate(tilt + (o.rot || 0));
     c.scale((o.flip ? -1 : 1) * k * (o.sx || 1), k * breathe * (o.sy || 1));
     c.imageSmoothingQuality = 'high';
-    c.drawImage(spr.cv, spr.bx, spr.by, spr.bw, spr.bh, -spr.bw / 2, -spr.bh, spr.bw, spr.bh);
+    const ox = spr.ox ?? spr.bx, oy = spr.oy ?? spr.by, ow = spr.ow ?? spr.bw, oh = spr.oh ?? spr.bh;
+    c.drawImage(spr.cv, ox, oy, ow, oh, -spr.bw / 2 + (ox - spr.bx), -spr.bh + (oy - spr.by), ow, oh);
     c.restore();
     return true;
   }
@@ -787,7 +788,7 @@ export class Renderer {
     const mood = this.catMood(t);
     const poseName = mood.pose && IMG['sprite-cat-' + mood.pose] ? 'sprite-cat-' + mood.pose : null;
     const catSprite = poseName || (cat.hasFish ? 'sprite-cat-fish' : cat.run && IMG['sprite-cat-run'] ? 'sprite-cat-run' : this.skin && this.skin.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat');
-    const spr = sprite(catSprite, this.skin, cat.hasFish && G.L.golden);
+    const spr = sprite(catSprite, this.skin, cat.hasFish && G.L.golden, this.wear);
     // 전용 그림이 있으면 몸 늘이기·눌리기는 약하게
     const soft = poseName ? 0.35 : 1;
     const so = { t, moving: o.moving, walkT: cat.walkT, rate: cat.run ? 2.6 : 3.2, amp: (cat.run ? 0.12 : 0.07) * (mood.amp || 1), flip: (cat.face < 0) !== !!mood.flip,
@@ -799,7 +800,7 @@ export class Renderer {
       return;
     }
     if ((tile === 'B' || tile === 'V') && cat.hidden) {
-      const peek = sprite('sprite-cat-peek', this.skin);
+      const peek = sprite('sprite-cat-peek', this.skin, false, this.wear);
       if (peek) { this.sprite(c, peek, Math.floor(cat.x) + 0.5, Math.floor(cat.y) + 0.58, 0.72, false, { t, moving: false, flip: cat.face < 0 }); return; }
       this.at(c, Math.floor(cat.x) + 0.5, Math.floor(cat.y) + 0.62); drawCatPeek(c, o); c.restore();
       return;

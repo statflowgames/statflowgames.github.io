@@ -1,4 +1,5 @@
 // 그림 파일 불러오기 + 고양이 색 바꾸기. 파일이 없으면 null 을 돌려주고, 그 자리는 코드 그림이 대신한다.
+import { drawWear, sockMask, paintSocks } from './wear.js?v=1115224716';
 const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 'legend',
   'sprite-cat', 'sprite-cat-fish', 'sprite-cat-run', 'sprite-cat-peek',
   'sprite-owner', 'sprite-owner-side', 'sprite-owner-back', 'sprite-owner-alert',
@@ -13,7 +14,8 @@ const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 
     .map((n) => `item-${n}`),
   ...[1, 2, 3, 4, 5, 6, 7, 8].map((i) => `clear-${i}`),
   ...['yawn', 'groom', 'loaf', 'crouch', 'scared', 'happy'].map((n) => `sprite-cat-${n}`),
-  ...['eye', 'meow', 'paw', 'vent', 'ride', 'cart', 'carousel', 'unride', 'vase', 'switch'].map((n) => `ui-${n}`)];
+  ...['eye', 'meow', 'paw', 'vent', 'ride', 'cart', 'carousel', 'unride', 'vase', 'switch'].map((n) => `ui-${n}`),
+  ...['feet', 'body', 'neck', 'tail', 'head'].flatMap((s) => [1, 2, 3, 4, 5].map((i) => `gear-${s}${i}`))];
 export const IMG = {};
 
 export function loadAll(timeout = 3000) {
@@ -91,8 +93,11 @@ function recolor(d, skin, golden, box) {
 
 const cache = new Map();
 // 그림 + 실제 그려진 영역(bbox). skin 을 주면 고양이 털색을 바꾼다.
-export function sprite(name, skin = null, golden = false) {
-  const key = `${name}|${skin ? skin.id : ''}|${golden ? 1 : 0}`;
+// on: 입은 장비 { feet, body, neck, tail, head } — 고양이 그림 위에 그려 넣는다
+const wearKey = (on) => (on ? ['feet', 'body', 'neck', 'tail', 'head'].map((k) => on[k] || '').join(',') : '');
+export function sprite(name, skin = null, golden = false, on = null) {
+  if (on && !name.startsWith('sprite-cat')) on = null;
+  const key = `${name}|${skin ? skin.id : ''}|${golden ? 1 : 0}|${wearKey(on)}`;
   if (cache.has(key)) return cache.get(key);
   const im = IMG[name];
   if (!im) return null;
@@ -106,19 +111,32 @@ export function sprite(name, skin = null, golden = false) {
   for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
     if (d[(y * cv.width + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   }
-  if ((skin && skin.id !== 'gray') || golden) {
+  const socks = on && on.feet ? sockMask(d, cv.width, cv.height, name) : null;
+  if ((skin && skin.id !== 'gray') || golden || socks) {
     const box = name.startsWith('sprite-cat') ? { x0, y0, x1, y1, w: cv.width } : null;
-    recolor(d, skin || { id: 'gray' }, golden, box); c.putImageData(data, 0, 0);
+    if ((skin && skin.id !== 'gray') || golden) recolor(d, skin || { id: 'gray' }, golden, box);
+    if (socks) paintSocks(d, cv.width, socks, on.feet);
+    c.putImageData(data, 0, 0);
   }
-  const s = { cv, bx: x0, by: y0, bw: x1 - x0 + 1, bh: y1 - y0 + 1 };
+  // bx..bh: 고양이 몸 크기(그리는 크기 기준), ox..oh: 장비까지 포함해 실제로 그릴 영역
+  const s = { cv, bx: x0, by: y0, bw: x1 - x0 + 1, bh: y1 - y0 + 1, ox: x0, oy: y0, ow: x1 - x0 + 1, oh: y1 - y0 + 1 };
+  if (on && (on.body || on.neck || on.tail || on.head)) {
+    drawWear(c, name, cv.width, cv.height, on, IMG);
+    const e = c.getImageData(0, 0, cv.width, cv.height).data;
+    let a0 = cv.width, b0 = cv.height, a1 = 0, b1 = 0;
+    for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
+      if (e[(y * cv.width + x) * 4 + 3] > 24) { if (x < a0) a0 = x; if (x > a1) a1 = x; if (y < b0) b0 = y; if (y > b1) b1 = y; }
+    }
+    Object.assign(s, { ox: a0, oy: b0, ow: a1 - a0 + 1, oh: b1 - b0 + 1 });
+  }
   cache.set(key, s);
   return s;
 }
 const urlCache = new Map();
-export function spriteURL(name, skin, golden) {
-  const key = `${name}|${skin ? skin.id : ''}|${golden ? 1 : 0}`;
+export function spriteURL(name, skin, golden, on = null) {
+  const key = `${name}|${skin ? skin.id : ''}|${golden ? 1 : 0}|${wearKey(on)}`;
   if (!urlCache.has(key)) {
-    const s = sprite(name, skin, golden);
+    const s = sprite(name, skin, golden, on);
     urlCache.set(key, s ? s.cv.toDataURL('image/png') : null);
   }
   return urlCache.get(key);
