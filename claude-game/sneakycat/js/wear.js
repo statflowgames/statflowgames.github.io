@@ -164,7 +164,12 @@ export function drawWear(c, name, W, H, on, IMG) {
   if (on.body && P.cape) {
     const [sx, sy, rx, ry] = P.cape, S = [sx * W, sy * H], R = [rx * W, ry * H];
     const pic = im(on.body);
-    if (pic) art(c, pic, S[0], S[1], Math.hypot(S[0] - R[0], S[1] - R[1]) * 1.3, 0.92, 0.12, Math.atan2(S[1] - R[1], S[0] - R[0]));
+    if (pic) {
+      // 망토 그림: 오른쪽 위 목깃 가운데(0.8, 0.22) → 왼쪽 끝(0.06, 0.62)이 어깨 → 엉덩이 선에 오게 늘이고 돌린다
+      const ar = pic.naturalHeight / pic.naturalWidth, vx = -0.74, vy = 0.4 * ar;
+      const w = Math.hypot(R[0] - S[0], R[1] - S[1]) / Math.hypot(vx, vy);
+      art(c, pic, S[0], S[1], w, 0.8, 0.22, Math.atan2(R[1] - S[1], R[0] - S[0]) - Math.atan2(vy, vx));
+    }
     else cape(c, on.body, S, R, W, lw);
   }
   if (on.tail && P.tail) {

@@ -1,5 +1,5 @@
 // 아래 버튼 아이콘. assets 에 ui-<이름>.png 가 들어오면 그 그림을, 없으면 아래 코드 그림(SVG)을 쓴다.
-import { IMG } from './assets.js?v=1115230333';
+import { IMG } from './assets.js?v=1115233541';
 
 const L = 'stroke="#2a1f2e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
 const svg = (body) => `<svg viewBox="0 0 48 48" aria-hidden="true">${body}</svg>`;
@@ -57,7 +57,10 @@ const SVG = {
 const ACT = { '환풍구': 'vent', '타기': 'ride', '카트에 숨기': 'cart', '목마 타기': 'carousel', '내리기': 'unride', '넘어뜨리기': 'vase', '전원 끄기': 'switch' };
 export const actIcon = (label) => ACT[label] || 'paw';
 
+// 버튼 B안 그림(전체 보기 = 방 배치도, 야옹 = 입 벌린 복면 고양이, 기본 행동 = 발바닥)이 있으면 그걸 먼저 쓴다
+const B = { eye: 'map-b', meow: 'meow-b', paw: 'paw-b' };
 export function iconHTML(key) {
+  if (B[key] && IMG['ui-' + B[key]]) key = B[key];
   return IMG['ui-' + key] ? `<img src="img/ui-${key}.webp" alt="">` : SVG[key] || SVG.paw;
 }
 export function buttonHTML(key, label) {

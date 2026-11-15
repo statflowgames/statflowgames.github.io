@@ -85,6 +85,8 @@ const SFX = {
   clank() { osc('square', 900, 700, 0.05, 0.03, 0, sfx, ['bandpass', 1800, 3]); osc('square', 1300, 1100, 0.04, 0.02, 0.05, sfx, ['bandpass', 2400, 3]); },
   peek() { osc('sine', 520, 1040, 0.22, 0.07); osc('triangle', 1560, 2350, 0.16, 0.035, 0.09); osc('sine', 2093, 2093, 0.2, 0.025, 0.18); },
   click() { osc('triangle', 880, 660, 0.05, 0.08); },
+  // 골골: 낮게 웅웅 떨리는 소리 (짧은 저음 잡음을 빠르게 이어 붙인다)
+  purr() { for (let i = 0; i < 34; i++) { const e = Math.sin((i / 34) * Math.PI); noise(0.03, 0.16 * e, 'lowpass', 180 + (i % 2) * 40, i * 0.042, 1.2); } osc('sine', 52, 48, 1.4, 0.05); },
   star() { osc('triangle', 1175, 1568, 0.25, 0.16); },
 };
 

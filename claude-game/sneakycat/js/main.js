@@ -1,14 +1,15 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1115230333';
-import { Game } from './game.js?v=1115230333';
-import { Renderer, FONT } from './render.js?v=1115230333';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1115230333';
-import { Sound } from './audio.js?v=1115230333';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1115230333';
-import { actIcon, buttonHTML } from './icons.js?v=1115230333';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1115230333';
-import { startDen } from './den.js?v=1115230333';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1115230333';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1115233541';
+import { Game } from './game.js?v=1115233541';
+import { Renderer, FONT } from './render.js?v=1115233541';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1115233541';
+import { Sound } from './audio.js?v=1115233541';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1115233541';
+import { actIcon, buttonHTML } from './icons.js?v=1115233541';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1115233541';
+import { startDen } from './den.js?v=1115233541';
+import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1115233541';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1115233541';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -32,6 +33,7 @@ if (save.bones == null) {
   store();
 }
 const wearOn = () => save.gear.on;
+initLang(save.lang);
 Sound.setSound(save.sound);
 Sound.setMusic(save.music);
 const vib = (p) => { if (save.vib && navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) try { navigator.vibrate(p); } catch { /* 무시 */ } };
@@ -173,22 +175,24 @@ const on = (el, sel, fn) => el.querySelectorAll(sel).forEach((b) => b.addEventLi
 function titleScreen() {
   scene = 'title'; game = null; setHud(false);
   const el = show(`
-    <div class="logo">도둑 고양이<small>오늘 밤도 생선은 내 거야</small></div>
+    <div class="logo">${t('title.name')}<small>${t('title.sub')}</small></div>
     <div class="tbtns">
-      <button class="btn main" data-a="play">${totalStars() ? '이어하기' : '시작하기'}</button>
-      <button class="btn pink" data-a="skin">고양이 옷장</button>
-      <button class="btn den" data-a="den">비밀 아지트</button>
+      <button class="btn main" data-a="play">${totalStars() ? t('title.continue') : t('title.start')}</button>
+      <button class="btn pink" data-a="skin">${t('title.ward')}</button>
+      <button class="btn den" data-a="den">${t('title.den')}</button>
       <div class="toggles">
-        <button class="tg ${save.sound ? 'on' : ''}" data-t="sound">효과음</button>
-        <button class="tg ${save.music ? 'on' : ''}" data-t="music">음악</button>
-        <button class="tg ${save.vib ? 'on' : ''}" data-t="vib">진동</button>
-        <button class="tg ${save.lefty ? 'on' : ''}" data-t="lefty">왼손</button>
+        <button class="tg ${save.sound ? 'on' : ''}" data-t="sound">${t('tg.sound')}</button>
+        <button class="tg ${save.music ? 'on' : ''}" data-t="music">${t('tg.music')}</button>
+        <button class="tg ${save.vib ? 'on' : ''}" data-t="vib">${t('tg.vib')}</button>
+        <button class="tg ${save.lefty ? 'on' : ''}" data-t="lefty">${t('tg.lefty')}</button>
+        <button class="tg on" data-l="lang">🌐 ${t('tg.lang')}</button>
       </div>
       <div class="credit">StatFlow Games</div>
     </div>`, 'center title');
   on(el, '[data-a=play]', () => levelScreen());
   on(el, '[data-a=skin]', () => skinScreen());
   on(el, '[data-a=den]', () => denScreen());
+  on(el, '[data-l]', () => { save.lang = nextLang(); setLang(save.lang); store(); paintButtons(); titleScreen(); });
   on(el, '[data-t]', (e, b) => {
     const k = b.dataset.t; save[k] = !save[k]; store();
     b.classList.toggle('on', save[k]);
@@ -419,7 +423,7 @@ function buildGoals() {
   const ch = CHAPTERS[game.L.ch - 1];
   $('#goals').innerHTML = `<div class="g" id="gF"><img src="${game.L.golden ? ICON.gold : ICON.fish}" alt=""></div>` +
     game.bonus.map((_, i) => `<div class="g" id="gB${i}"><img src="${ICON[ch.bonus]}" alt=""></div>`).join('') +
-    `<div class="g eye" id="gE">안 들킴</div>`;
+    `<div class="g eye" id="gE">${t('goal.safe')}</div>`;
 }
 let hudCache = {};
 function updateHud() {
@@ -427,16 +431,16 @@ function updateHud() {
   const set = (k, v, fn) => { if (hudCache[k] !== v) { hudCache[k] = v; fn(v); } };
   set('f', game.fish.taken, (v) => $('#gF').classList.toggle('on', v));
   game.bonus.forEach((b, i) => set('b' + i, b.taken, (v) => $('#gB' + i).classList.toggle('on', v)));
-  set('e', game.spotted, (v) => { const e = $('#gE'); e.classList.toggle('bad', v); e.textContent = v ? '들켰다' : '안 들킴'; });
+  set('e', game.spotted, (v) => { const e = $('#gE'); e.classList.toggle('bad', v); e.textContent = v ? t('goal.spotted') : t('goal.safe'); });
   const a = game.actionTarget();
   set('a', a ? a.label : '', (v) => {
-    const b = $('#bAct'); b.classList.toggle('idle', !v); b.innerHTML = buttonHTML(actIcon(v), v || '행동');
+    const b = $('#bAct'); b.classList.toggle('idle', !v); b.innerHTML = buttonHTML(actIcon(v), v ? tAct(v) : t('btn.act')); b.setAttribute('aria-label', v ? tAct(v) : t('aria.act'));
     b.classList.remove('pop'); if (v) { void b.offsetWidth; b.classList.add('pop'); }
   });
   const cd = game.cat.meowCD / game.meowMax;
   $('#bMeow').style.setProperty('--cd', cd.toFixed(3));
   const chased = game.chased(), d = game.danger();
-  const st = looking ? ['둘러보는 중…', 'warn'] : chased ? ['쫓기는 중! 숨어요!', 'bad'] : game.cat.riding ? ['청소기 탑승 중', ''] : game.cat.hidden && game.state === 'play' ? ['숨는 중', ''] : d > 0.3 ? ['수상하게 여기는 중…', 'warn'] : game.cat.hasFish ? ['생선 확보! 고양이 문으로', ''] : ['살금살금…', ''];
+  const st = looking ? [t('st.look'), 'warn'] : chased ? [t('st.chase'), 'bad'] : game.cat.riding ? [t('st.ride'), ''] : game.cat.hidden && game.state === 'play' ? [t('st.hide'), ''] : d > 0.3 ? [t('st.sus'), 'warn'] : game.cat.hasFish ? [t('st.fish'), ''] : [t('st.sneak'), ''];
   set('s', st.join('|'), () => { const s = $('#status'); s.textContent = st[0]; s.className = st[1]; });
 }
 function pauseGame() {
@@ -444,15 +448,15 @@ function pauseGame() {
   if (!game || paused || ended) return;
   paused = true; joy.active = false;
   const el = show(`<div class="card">
-      <h1>일시정지</h1>
+      <h1>${t('pause.title')}</h1>
       <p>${game.L.id} ${game.L.name}</p>
-      <button class="btn main" data-a="resume">계속하기</button>
-      <button class="btn" data-a="retry">처음부터</button>
-      <button class="btn" data-a="list">스테이지 목록</button>
+      <button class="btn main" data-a="resume">${t('pause.resume')}</button>
+      <button class="btn" data-a="retry">${t('pause.retry')}</button>
+      <button class="btn" data-a="list">${t('pause.list')}</button>
       <div class="toggles">
-        <button class="tg ${save.sound ? 'on' : ''}" data-t="sound">효과음</button>
-        <button class="tg ${save.music ? 'on' : ''}" data-t="music">음악</button>
-        <button class="tg ${save.lefty ? 'on' : ''}" data-t="lefty">왼손</button>
+        <button class="tg ${save.sound ? 'on' : ''}" data-t="sound">${t('tg.sound')}</button>
+        <button class="tg ${save.music ? 'on' : ''}" data-t="music">${t('tg.music')}</button>
+        <button class="tg ${save.lefty ? 'on' : ''}" data-t="lefty">${t('tg.lefty')}</button>
       </div>
     </div>`, 'center dim');
   on(el, '[data-a=resume]', () => resumeGame());
@@ -667,11 +671,17 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 // 아래 버튼 아이콘 (ui-*.png 그림이 있으면 그걸로)
+// 야옹 버튼 위 작은 고양이 귀 (B안)
+const EARS = '<svg class="ears" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><path class="ef" d="M12 30 L18 3 Q20 0 23 2 L44 30Z M88 30 L82 3 Q80 0 77 2 L56 30Z"/><path class="es" d="M12 30 L18 3 Q20 0 23 2 L44 30 M88 30 L82 3 Q80 0 77 2 L56 30"/></svg>';
 function paintButtons() {
-  $('#bLook').innerHTML = buttonHTML('eye', '보기');
-  $('#bMeow').innerHTML = buttonHTML('meow', '야옹');
-  $('#bAct').innerHTML = buttonHTML('paw', '행동');
-  hudCache.a = undefined;
+  $('#bLook').innerHTML = buttonHTML('eye', t('btn.map'));
+  $('#bMeow').innerHTML = EARS + buttonHTML('meow', t('btn.meow'));
+  $('#bAct').innerHTML = buttonHTML('paw', t('btn.act'));
+  $('#bPause').setAttribute('aria-label', t('aria.pause'));
+  $('#bLook').setAttribute('aria-label', t('aria.map'));
+  $('#bMeow').setAttribute('aria-label', t('aria.meow'));
+  $('#bAct').setAttribute('aria-label', t('aria.act'));
+  hudCache.a = undefined; hudCache.s = undefined; hudCache.e = undefined;
 }
 paintButtons();
 loadAll().then(() => { paintButtons(); titleScreen(); });

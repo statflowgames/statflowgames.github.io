@@ -1,8 +1,8 @@
 // 비밀 아지트: 훔친 물건을 모아 둔 고양이의 방. 쓰다듬기·간식·놀아 주기 — 벌칙 없이 반응만 좋아진다.
 // 배경 그림(img/den-bg.webp)이 있으면 그걸, 없으면 코드로 방을 그린다.
-import { IMG, sprite } from './assets.js?v=1115230333';
-import { Sound } from './audio.js?v=1115230333';
-import { FONT } from './render.js?v=1115230333';
+import { IMG, sprite } from './assets.js?v=1115233541';
+import { Sound } from './audio.js?v=1115233541';
+import { FONT } from './render.js?v=1115233541';
 
 const OUT = '#2a1f2e';
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -33,7 +33,7 @@ export function startDen(cv, opts) {
     cat.state = 'pet'; cat.timer = 1.6; cat.pose = 'sprite-cat-happy-pet'; cat.sq = 0.25;
     for (let i = 0; i < 4; i++) setTimeout(() => alive && word('♥', cat.x * W + rnd(-30, 30), floorY() - H * 0.34, i % 2 ? '#ff8fc0' : '#ff5fa2', rnd(14, 22)), i * 160);
     word('골골~', cat.x * W + cat.face * 40, floorY() - H * 0.42, '#fffbe8', 15);
-    Sound.play('meow');
+    Sound.play('purr');
     opts.onPet && opts.onPet();
   }
   function snack() {

@@ -54,24 +54,23 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .compact .rbtn small { font-size: 10px; }
 .lefty #ctrl #status { text-align: right; }
 /* 젤리 버튼: 아이콘 + 작은 이름 */
-.rbtn { flex-shrink: 0; pointer-events: auto; width: 64px; height: 64px; border-radius: 50%; border: 3px solid #1a1428; box-shadow: 0 5px 0 #1a1428, inset 0 -6px 0 rgba(0,0,0,0.16), inset 0 3px 0 rgba(255,255,255,0.35); position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; transition: transform 0.08s; -webkit-tap-highlight-color: transparent; }
-.rbtn::before { content: ''; position: absolute; left: 20%; top: 7%; width: 60%; height: 28%; border-radius: 50%; background: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0)); pointer-events: none; z-index: 2; }
+.rbtn { flex-shrink: 0; pointer-events: auto; width: 64px; height: 64px; border-radius: 30%; border: 3px solid #1a1428; box-shadow: 0 5px 0 #1a1428, inset 0 -6px 0 rgba(0,0,0,0.16), inset 0 3px 0 rgba(255,255,255,0.35); position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; transition: transform 0.08s; -webkit-tap-highlight-color: transparent; }
+.rbtn::before { content: ''; position: absolute; left: 14%; top: 6%; width: 72%; height: 26%; border-radius: 40% 40% 50% 50%; background: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0)); pointer-events: none; z-index: 2; }
 .rbtn .ic { display: block; width: 54%; height: 54%; position: relative; z-index: 1; margin-top: 2px; }
 .rbtn .ic svg, .rbtn .ic img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 1.5px 0 rgba(26,20,40,0.35)); }
 .rbtn small { position: relative; z-index: 1; font-size: 11px; line-height: 1; margin-top: 1px; white-space: nowrap; letter-spacing: -0.3px; }
 .rbtn:active { transform: translateY(4px) scale(1.04, 0.92); box-shadow: 0 1px 0 #1a1428, inset 0 -4px 0 rgba(0,0,0,0.16), inset 0 3px 0 rgba(255,255,255,0.35); }
-.look { width: 54px; height: 54px; background: radial-gradient(circle at 50% 30%, #e6edff, #8fa8f5 75%); color: #1d2a4a; touch-action: none; }
+.look { width: 56px; height: 56px; background: radial-gradient(circle at 50% 30%, #e6edff, #8fa8f5 75%); color: #1d2a4a; touch-action: none; }
 .look small { font-size: 10px; }
 .compact .look { width: 48px; height: 48px; }
 .looking .look { background: radial-gradient(circle at 50% 30%, #fff, #c4d3ff); transform: translateY(4px) scale(1.04, 0.92); box-shadow: 0 1px 0 #1a1428; }
 .meow { background: radial-gradient(circle at 50% 30%, #ffd6ea, #ff84bb 75%); color: #4a1d36; }
-.meow::after { content: ''; position: absolute; inset: 0; background: conic-gradient(rgba(20,12,30,0.55) calc(var(--cd, 0) * 360deg), transparent 0); z-index: 3; pointer-events: none; }
+.meow::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: conic-gradient(rgba(20,12,30,0.55) calc(var(--cd, 0) * 360deg), transparent 0); z-index: 3; pointer-events: none; }
 .act { width: 78px; height: 78px; background: radial-gradient(circle at 50% 30%, #fff6c4, #ffc23d 75%); color: #4a3510; transition: filter 0.2s, opacity 0.2s, transform 0.08s; }
 .act .ic { width: 50%; height: 50%; }
 .act small { font-size: 12px; }
 .act.idle { filter: saturate(0.15) brightness(0.62); opacity: 0.6; pointer-events: none; }
-.act:not(.idle) { animation: ready 1.3s ease-out infinite; }
-.act.pop:not(.idle) { animation: pop 0.28s, ready 1.3s ease-out 0.28s infinite; }
+.act.pop:not(.idle) { animation: pop 0.28s, ready 0.9s ease-out 0.28s 1; }
 @keyframes pop { 0% { transform: scale(0.6); } 70% { transform: scale(1.1); } 100% { transform: scale(1); } }
 @keyframes ready { 0% { box-shadow: 0 5px 0 #1a1428, inset 0 -6px 0 rgba(0,0,0,0.16), 0 0 0 0 rgba(255,214,90,0.75); } 100% { box-shadow: 0 5px 0 #1a1428, inset 0 -6px 0 rgba(0,0,0,0.16), 0 0 0 14px rgba(255,214,90,0); } }
 
@@ -97,7 +96,8 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .logo { font-size: clamp(48px, 15vw, 70px); line-height: 1; color: var(--gold); text-shadow: 0 4px 0 #6b3d10, 0 8px 18px rgba(0,0,0,0.6); letter-spacing: 2px; text-align: center; }
 .logo small { display: block; font-size: 0.32em; color: var(--ink); letter-spacing: 1px; margin-top: 10px; text-shadow: 0 2px 0 #000; }
 .tbtns { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 26px); padding: 0 24px; }
-.toggles { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center; margin-top: 14px; }
+.toggles .tg { white-space: nowrap; }
 .tg { padding: 8px 14px; border-radius: 12px; background: rgba(36,29,59,0.9); border: 2px solid var(--line); font-size: 15px; color: var(--sub); }
 .tg.on { color: var(--ink); border-color: var(--gold); }
 .credit { text-align: center; color: var(--sub); font-size: 12px; margin-top: 12px; opacity: 0.7; }
@@ -281,3 +281,11 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .tcell.none img { filter: brightness(0) opacity(0.4); }
 .tcell.none small, .tcell.none b { color: var(--sub); }
 .tcell.gold { border-color: var(--gold); }
+
+/* 버튼 B안: 야옹 버튼 위 작은 귀 */
+.rbtn .ears { position: absolute; left: -3px; right: -3px; width: calc(100% + 6px); top: -11px; height: 15px; z-index: 0; pointer-events: none; overflow: visible; }
+.rbtn .ears .ef { fill: #ffb3d4; }
+.rbtn .ears .es { fill: none; stroke: #1a1428; stroke-width: 3; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.meow { margin-top: 8px; }
+.rbtn .ic { width: 62%; height: 62%; }
+.act .ic { width: 56%; height: 56%; }
