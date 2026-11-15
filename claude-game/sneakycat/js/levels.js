@@ -1,5 +1,5 @@
 // 도둑 고양이 — 스테이지 데이터 (1~3장 1~10번. 늘어난 스테이지는 levels2.js)
-import { EXTRA } from './levels2.js?v=1115233541';
+import { EXTRA } from './levels2.js?v=1115234513';
 //
 // 타일 기호
 //   #  벽            .  나무 바닥      ,  부엌 타일     _  카펫     :  대리석
@@ -687,5 +687,6 @@ export const SKINS = [
   { id: 'mackerel', name: '고등어', need: 190, body: '#9c8f74', stripe: '#4c4537', belly: '#efe6d2', eye: '#ffd34d' },
   { id: 'sakura', name: '벚꽃 고양이', need: 240, body: '#ffc6dc', stripe: '#f39dbd', belly: '#fff0f6', eye: '#7a5cff' },
   { id: 'galaxy', name: '밤하늘 고양이', need: 280, body: '#2f3474', stripe: '#4f43a6', belly: '#93a6ff', eye: '#ffe45c' },
+  { id: 'moon', name: '달빛 도둑', need: 0, quest: 7, body: '#5b6b8c', stripe: '#3f4a66', belly: '#dfe6f5', eye: '#ffe45c' },
   { id: 'king', name: '생선왕 고양이', need: 0, ending: true, body: '#fff1b8', stripe: '#f2b84c', belly: '#ffffff', eye: '#ff6f9f', crown: true },
 ];

@@ -1,6 +1,6 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1115233541';
-import { CHAPTERS } from './levels.js?v=1115233541';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1115234513';
+import { CHAPTERS } from './levels.js?v=1115234513';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },
@@ -37,6 +37,9 @@ export class Game {
     const pk = this.hard ? 0.5 : 1;
     this.perk = { quiet: (perks.quiet || 0) * pk, sneak: (perks.sneak || 0) * pk, calm: (perks.calm || 0) * pk, dash: (perks.dash || 0) * pk, meow: (perks.meow || 0) * pk };
     this.meowMax = 3.5 * (1 - this.perk.meow);
+    // 하루 의뢰 조건 확인용 기록
+    this.stats = { meows: 0, ran: false, vases: 0 };
+    this.naked = !Object.values(perks).some((v) => v > 0);
     this.chapter = CHAPTERS[level.ch - 1];
     const { grid, ents } = parseLevel(level);
     this.grid = grid;
@@ -249,6 +252,7 @@ export class Game {
       if (Math.abs(c.y - oy) < Math.abs(c.vy * dt) * 0.3) c.vy = 0;
       c.moving = true;
       c.run = want && inp.run;
+      if (c.run && this.state === 'play') this.stats.ran = true;
       if (Math.abs(c.vx) > 0.3) c.face = Math.sign(c.vx);
       c.walkT += dt * sp * (c.ice && !want ? 0.2 : 1);
       if (c.run && !c.ice) {
@@ -354,7 +358,7 @@ export class Game {
       c.hidden = this.grid.hideAt(c.x, c.y);
       this.fx('ride');
     } else if (a.kind === 'vase') {
-      const v = a.obj; v.broken = true;
+      const v = a.obj; v.broken = true; this.stats.vases++;
       this.grid.knocked.add(v.tx + ',' + v.ty);
       this.noise(v.x, v.y, 8.5, 'crash');
       for (let i = 0; i < 14; i++) this.part(v.x, v.y - 0.3, (Math.random() - 0.5) * 4, -Math.random() * 3, i % 2 ? '#7fb6e8' : '#f3f0ff', 0.7);
@@ -368,7 +372,7 @@ export class Game {
   meow() {
     const c = this.cat;
     if (this.state !== 'play' || c.meowCD > 0) return false;
-    c.meowCD = this.meowMax;
+    c.meowCD = this.meowMax; this.stats.meows++;
     c.bubble = { text: '야옹~', t: 1.2 };
     this.noise(c.x, c.y, 6, 'meow');
     this.fx('meow');

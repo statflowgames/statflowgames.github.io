@@ -1,15 +1,16 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1115233541';
-import { Game } from './game.js?v=1115233541';
-import { Renderer, FONT } from './render.js?v=1115233541';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1115233541';
-import { Sound } from './audio.js?v=1115233541';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1115233541';
-import { actIcon, buttonHTML } from './icons.js?v=1115233541';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1115233541';
-import { startDen } from './den.js?v=1115233541';
-import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1115233541';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1115233541';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1115234513';
+import { Game } from './game.js?v=1115234513';
+import { Renderer, FONT } from './render.js?v=1115234513';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1115234513';
+import { Sound } from './audio.js?v=1115234513';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1115234513';
+import { actIcon, buttonHTML } from './icons.js?v=1115234513';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1115234513';
+import { startDen } from './den.js?v=1115234513';
+import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1115234513';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1115234513';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1115234513';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -25,7 +26,7 @@ const totalStars = () => LEVELS.reduce((n, l) => n + starsOf(l.id).filter(Boolea
 const cleared = (id) => !!save.stars[id];
 const unlocked = (i) => i === 0 || cleared(LEVELS[i - 1].id) || cleared(LEVELS[i].id);
 const skinById = (id) => SKINS.find((s) => s.id === id) || SKINS[0];
-const skinOpen = (s, ts = totalStars()) => (s.ending ? !!save.ending : ts >= s.need);
+const skinOpen = (s, ts = totalStars()) => (s.ending ? !!save.ending : s.quest ? (save.pieces || 0) >= s.quest : ts >= s.need);
 // 옷장 장비 + 생선뼈. 장비가 생기기 전 기록이 있으면 그만큼 생선뼈를 한 번 챙겨 준다
 if (!save.gear) save.gear = { owned: {}, on: {} };
 if (save.bones == null) {
@@ -180,6 +181,7 @@ function titleScreen() {
       <button class="btn main" data-a="play">${totalStars() ? t('title.continue') : t('title.start')}</button>
       <button class="btn pink" data-a="skin">${t('title.ward')}</button>
       <button class="btn den" data-a="den">${t('title.den')}</button>
+      ${questsOpen() ? `<button class="btn quest" data-a="quest">📜 오늘의 의뢰 <small>${questDone()}/3</small></button>` : ''}
       <div class="toggles">
         <button class="tg ${save.sound ? 'on' : ''}" data-t="sound">${t('tg.sound')}</button>
         <button class="tg ${save.music ? 'on' : ''}" data-t="music">${t('tg.music')}</button>
@@ -192,6 +194,7 @@ function titleScreen() {
   on(el, '[data-a=play]', () => levelScreen());
   on(el, '[data-a=skin]', () => skinScreen());
   on(el, '[data-a=den]', () => denScreen());
+  on(el, '[data-a=quest]', () => questScreen());
   on(el, '[data-l]', () => { save.lang = nextLang(); setLang(save.lang); store(); paintButtons(); titleScreen(); });
   on(el, '[data-t]', (e, b) => {
     const k = b.dataset.t; save[k] = !save[k]; store();
@@ -254,7 +257,7 @@ function skinScreen(tab = wardTab) {
     html += '<div class="skins">';
     for (const s of SKINS) {
       const ok = skinOpen(s, ts);
-      html += `<button class="skin ${save.skin === s.id ? 'sel' : ''} ${ok ? '' : 'lock'}" data-s="${s.id}"><img src="${spriteURL(s.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat', s, false, ok ? wearOn() : null) || skinIcon(s)}" alt="">${ok ? (s.crown ? '👑 ' : '') + s.name : '???'}<small>${ok ? (save.skin === s.id ? '입는 중' : '입어 보기') : s.ending ? '엔딩을 보면 열려요' : `별 ${s.need}개`}</small></button>`;
+      html += `<button class="skin ${save.skin === s.id ? 'sel' : ''} ${ok ? '' : 'lock'}" data-s="${s.id}"><img src="${spriteURL(s.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat', s, false, ok ? wearOn() : null) || skinIcon(s)}" alt="">${ok ? (s.crown ? '👑 ' : '') + s.name : '???'}<small>${ok ? (save.skin === s.id ? '입는 중' : '입어 보기') : s.ending ? '엔딩을 보면 열려요' : s.quest ? `의뢰 조각 ${save.pieces || 0}/${s.quest}` : `별 ${s.need}개`}</small></button>`;
     }
     html += '</div>';
   }
@@ -263,7 +266,7 @@ function skinScreen(tab = wardTab) {
   on(el, '[data-t]', (e, b) => skinScreen(b.dataset.t));
   on(el, '[data-s]', (e, b) => {
     const s = skinById(b.dataset.s);
-    if (!skinOpen(s, ts)) { toast(s.ending ? '99번째 스테이지를 깨고 엔딩을 보면 열려요' : `별 ${s.need}개를 모으면 열려요`); return; }
+    if (!skinOpen(s, ts)) { toast(s.ending ? '99번째 스테이지를 깨고 엔딩을 보면 열려요' : s.quest ? `하루 의뢰 보너스 상자에서 조각 ${s.quest}개를 모으면 열려요` : `별 ${s.need}개를 모으면 열려요`); return; }
     save.skin = s.id; store(); skinScreen();
   });
   on(el, '[data-g]', (e, b) => gearTap(b.dataset.g));
@@ -297,6 +300,77 @@ function gearTap(id) {
   save.bones -= g.price; save.gear.owned[id] = true; on[sl.id] = id; store();
   Sound.play('star'); toast(`${g.name}을(를) 샀어요! ${sl.stat} ${pct(sl, g.val)}`);
   skinScreen();
+}
+
+// ───────── 하루 도둑 의뢰 ─────────
+const questsOpen = () => LEVELS.some((l) => cleared(l.id));
+const vaseCount = {};
+function questLevels() {
+  return LEVELS.filter((l) => cleared(l.id)).map((l) => {
+    if (vaseCount[l.id] == null) vaseCount[l.id] = new Game(l).vases.length;
+    return { id: l.id, vases: vaseCount[l.id], best: save.best[l.id] };
+  });
+}
+// 오늘 의뢰 (날짜가 바뀌면 새로 만든다)
+function quests() {
+  const day = today();
+  if (!save.quest || save.quest.day !== day) {
+    save.quest = { day, list: questsOpen() ? makeQuests(day, questLevels()) : [], rerolled: false, box: false };
+    store();
+  }
+  return save.quest;
+}
+const questDone = () => quests().list.filter((q) => q.done).length;
+const questsFor = (id) => (questsOpen() ? quests().list.filter((q) => q.lv === id && !q.done) : []);
+function questCheck(L, win) {
+  const out = [];
+  if (!win || !questsOpen()) return out;
+  const Q = quests(), ch = CHAPTERS[L.ch - 1];
+  for (const q of Q.list) {
+    if (q.lv !== L.id || q.done) continue;
+    const ok = condOk(q, game), reward = TIERS[q.tier].reward;
+    if (ok) { q.done = true; save.bones += reward; }
+    out.push({ ok, text: condText(q, ch), reward });
+  }
+  if (!Q.box && Q.list.length && Q.list.every((q) => q.done)) {
+    Q.box = true; save.bones += BOX.bones;
+    const before = save.pieces || 0;
+    save.pieces = before + BOX.pieces;
+    out.box = true;
+    out.skin = before < PIECES_FOR_SKIN && save.pieces >= PIECES_FOR_SKIN;
+  }
+  store();
+  return out;
+}
+function questScreen() {
+  scene = 'quest'; game = null; setHud(false);
+  const Q = quests();
+  const now = new Date(), mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const left = Math.max(0, mid - now), hh = Math.floor(left / 3600000), mm = Math.floor((left % 3600000) / 60000);
+  const lvBy = (id) => LEVELS.findIndex((l) => l.id === id);
+  let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>오늘의 의뢰</h2><div class="starsum bones">${BONE} ${save.bones}</div></div>
+    <div class="qhead">이미 깬 스테이지를 조건대로 다시 깨면 생선뼈를 받아요.<small>새 의뢰까지 ${hh}시간 ${mm}분 · 바꾸기 ${Q.rerolled ? '오늘은 다 썼어요' : '하루 1번'}</small></div>`;
+  Q.list.forEach((q, k) => {
+    const i = lvBy(q.lv), L = LEVELS[i], ch = CHAPTERS[L.ch - 1], T = TIERS[q.tier];
+    html += `<div class="qcard ${T.cls} ${q.done ? 'done' : ''}">
+      <div class="qtop"><span class="qt">${T.name}</span><span class="qr">${BONE} +${T.reward}</span></div>
+      <b>${condText(q, ch)}</b>
+      <p>${L.id} ${L.name}</p>
+      ${q.done ? '<div class="qdone">✓ 완료</div>' : `<div class="qbtns"><button class="btn sm main" data-q="${k}">도전하기</button>${Q.rerolled ? '' : `<button class="btn sm" data-r="${k}">바꾸기</button>`}</div>`}
+    </div>`;
+  });
+  const n = Q.list.filter((q) => q.done).length, pc = save.pieces || 0;
+  html += `<div class="qbox ${Q.box ? 'open' : ''}">🎁 3개 모두 완료하면 보너스 상자 <b>${Q.box ? '받았어요!' : `${n} / 3`}</b>
+    <small>생선뼈 +${BOX.bones} · 달빛 도둑 조각 +${BOX.pieces} — 조각 ${Math.min(pc, PIECES_FOR_SKIN)} / ${PIECES_FOR_SKIN}${pc >= PIECES_FOR_SKIN ? ' (해금 완료)' : ''}</small>
+    <div class="pbar"><i style="width:${Math.min(100, (pc / PIECES_FOR_SKIN) * 100)}%"></i></div></div>`;
+  const el = show(html, 'list');
+  on(el, '[data-a=back]', () => titleScreen());
+  on(el, '[data-q]', (e, b) => startLevel(lvBy(Q.list[+b.dataset.q].lv)));
+  on(el, '[data-r]', (e, b) => {
+    const k = +b.dataset.r;
+    Q.list[k] = rerollOne(Q.day, Q.list[k], questLevels(), Q.list); Q.rerolled = true; store();
+    toast('의뢰를 바꿨어요'); questScreen();
+  });
 }
 
 // ───────── 비밀 아지트 ─────────
@@ -385,6 +459,7 @@ function startLevel(i, skipIntro = false) {
       <div class="goalrow on"><span class="s">★</span>${L.golden ? '황금 생선' : '생선'}을 물고 고양이 문으로 탈출</div>
       <div class="goalrow on"><span class="s">★</span>${ch.bonusName} 2개 모두 챙기기</div>
       <div class="goalrow on"><span class="s">★</span>한 번도 들키지 않기 (!)</div>
+      ${questsFor(L.id).map((q) => `<div class="qline">📜 오늘의 의뢰: ${condText(q, ch)} <b>+${TIERS[q.tier].reward}</b></div>`).join('')}
       <button class="btn main" data-a="go">잠입 시작</button>
     </div>`, 'center dim');
   on(el, '[data-a=go]', () => startPlay());
@@ -495,6 +570,7 @@ function endLevel(win) {
   const got = game.stars();
   const old = starsOf(L.id);
   const wasCleared = cleared(L.id);
+  const qres = questCheck(L, true);
   const newStars = got.filter((g, i) => g && !old[i]).length;
   const earn = (wasCleared ? EARN.again : EARN.first) + newStars * EARN.star;
   save.bones += earn;
@@ -503,7 +579,7 @@ function endLevel(win) {
   if (!save.best[L.id] || t < save.best[L.id]) save.best[L.id] = t;
   store();
   const after = totalStars();
-  const newSkins = SKINS.filter((s) => !s.ending && s.need > before && s.need <= after);
+  const newSkins = SKINS.filter((s) => !s.ending && !s.quest && s.need > before && s.need <= after);
   const ch = CHAPTERS[L.ch - 1];
   const last = !!L.final, golden = !!L.golden, fake = golden && !last;
   const nextL = LEVELS[levelIdx + 1];
@@ -518,6 +594,9 @@ function endLevel(win) {
       ${soon ? '<p class="soonp">다음 장은 지금 준비 중이에요. 조금만 기다려 주세요!</p>' : ''}
       ${labels.map((lb, i) => `<div class="goalrow hide" data-g="${i}"><span class="s">★</span>${lb}</div>`).join('')}
       <div class="earn">${BONE} 생선뼈 +${earn}<small>모두 ${save.bones}</small></div>
+      ${qres.map((r) => `<div class="qres ${r.ok ? 'ok' : ''}">📜 ${r.ok ? '의뢰 완료' : '의뢰 실패'}: ${r.text}${r.ok ? ` <b>+${r.reward}</b>` : ''}</div>`).join('')}
+      ${qres.box ? `<div class="unlock">🎁 오늘의 의뢰 3개 완료! 보너스 상자: 생선뼈 +${BOX.bones}, 달빛 도둑 조각 +${BOX.pieces} (${save.pieces}/${PIECES_FOR_SKIN})</div>` : ''}
+      ${qres.skin ? '<div class="unlock">새 고양이 해금: 달빛 도둑! (옷장에서 입기)</div>' : ''}
       ${newSkins.map((s) => `<div class="unlock">새 고양이 해금: ${s.name}! (옷장에서 입기)</div>`).join('')}
       ${last ? '<button class="btn main" data-a="ending">엔딩 보기</button>' : soon ? '' : `<button class="btn main" data-a="next">다음 스테이지${nextL.no === HARD_FROM ? ' 🔥' : ''}</button>`}
       <div class="row2"><button class="btn sm" data-a="retry">다시 하기</button><button class="btn sm" data-a="list">목록</button></div>
@@ -690,6 +769,7 @@ loadAll().then(() => { paintButtons(); titleScreen(); });
 window.__sc = {
   get game() { return game; },
   get den() { return den; },
+  end: (win) => { if (!ended) endLevel(win); },
   start: (i) => { startLevel(i, true); startPlay(); },
   intro: (i) => startLevel(i),
   step(dt = 1 / 60, inp = { dx: 0, dy: 0, mag: 0, run: false }) { game.update(dt, inp); R.draw(dt, joy); updateHud(); },

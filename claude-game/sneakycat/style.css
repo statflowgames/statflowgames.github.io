@@ -289,3 +289,32 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .meow { margin-top: 8px; }
 .rbtn .ic { width: 62%; height: 62%; }
 .act .ic { width: 56%; height: 56%; }
+
+/* ───── 하루 도둑 의뢰 ───── */
+.btn.quest { background: #6b4a2a; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.quest small { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 1px 8px; font-size: 14px; }
+.qhead { margin: 0 14px 10px; color: var(--sub); font-size: 14px; line-height: 1.45; }
+.qhead small { display: block; color: var(--gold); font-size: 13px; margin-top: 2px; }
+.qcard { margin: 0 14px 10px; background: var(--panel); border: 2px solid var(--line); border-left-width: 8px; border-radius: 16px; padding: 10px 12px; }
+.qcard.easy { border-left-color: var(--green); } .qcard.mid { border-left-color: #6fb7ff; } .qcard.hard { border-left-color: var(--red); }
+.qcard.done { opacity: 0.6; }
+.qtop { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.qt { background: #1b1530; border-radius: 8px; padding: 1px 8px; color: var(--sub); }
+.qr { color: #fffbe8; }
+.qcard b { display: block; font-weight: normal; font-size: 18px; margin: 6px 0 2px; }
+.qcard p { margin: 0 0 8px; color: var(--sub); font-size: 14px; }
+.qbtns { display: flex; gap: 8px; }
+.qbtns .btn { margin: 0; flex: 1; padding: 8px 6px; font-size: 16px; }
+.qbtns .btn + .btn { flex: 0 0 90px; }
+.qdone { color: var(--green); font-size: 16px; }
+.qbox { margin: 4px 14px 30px; background: #2a2148; border: 2px dashed var(--gold); border-radius: 16px; padding: 12px; text-align: center; font-size: 16px; }
+.qbox.open { border-style: solid; }
+.qbox b { font-weight: normal; color: var(--gold); margin-left: 4px; }
+.qbox small { display: block; color: var(--sub); font-size: 12px; margin-top: 4px; }
+.pbar { height: 8px; background: #1b1530; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+.pbar i { display: block; height: 100%; background: linear-gradient(90deg, #8fa8f5, #ffe45c); }
+.card .qline { margin: 8px 0 0; background: #2a2148; border-radius: 12px; padding: 6px 10px; font-size: 14px; color: #ffe8b0; }
+.card .qline b { font-weight: normal; color: var(--gold); }
+.card .qres { margin: 6px auto 0; font-size: 14px; color: var(--sub); }
+.card .qres.ok { color: var(--green); }
+.card .qres b { font-weight: normal; color: var(--gold); }
