@@ -14,7 +14,10 @@
   .app img { width:88px; height:88px; border-radius:22px; }
   .app h2 { margin:0; font-size:1.25rem; }
   a { color:var(--accent); }
-  a.play { display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:8px 16px; border-radius:999px; font-weight:bold; }
+  a.play { display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:8px 16px; border-radius:999px; font-weight:bold; margin:0 6px 6px 0; }
+  a.play.ios { background:#4a3b47; }
+  .links a { margin-right:12px; }
+  @media (max-width:480px) { .app { flex-direction:column; align-items:flex-start; } }
   footer { margin-top:48px; color:var(--sub); font-size:.9rem; }
 </style>
 </head>
@@ -38,8 +41,28 @@
     <div>
       <h2>🚀 은하 방역대 (Galaxy Pest Control)</h2>
       <p>우주를 뒤덮은 해충 떼를 손가락 하나로 박멸하는 세로형 탄막 슈팅 게임</p>
-      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.galaxypest">Google Play에서 받기</a></p>
+      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.galaxypest">Google Play에서 받기</a><a class="play ios" href="https://apps.apple.com/app/id6827798986">App Store에서 받기</a></p>
       <a href="galaxypest/privacy.html">개인정보처리방침 (Privacy Policy)</a>
+    </div>
+  </section>
+
+  <section class="app">
+    <img src="moonfortune/icon.png" alt="달토끼 운세 아이콘">
+    <div>
+      <h2>🐰 달토끼 운세 (Moon Rabbit Fortune)</h2>
+      <p>오늘의 운세·신년운세·사주팔자·타로·궁합·별자리 운세를 한 앱에</p>
+      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.moonfortune">Google Play에서 받기</a></p>
+      <a href="moonfortune/privacy.html">개인정보처리방침 (Privacy Policy)</a>
+    </div>
+  </section>
+
+  <section class="app">
+    <img src="arsenia/icon.png" alt="아르세니아 전기 아이콘">
+    <div>
+      <h2>⚔️ 아르세니아 전기 (Arsenia Chronicle)</h2>
+      <p>별의 검을 찾아 떠나는 50장 완결 판타지 턴제 전략 SRPG. 광고·뽑기 없음</p>
+      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.arsenia">Google Play에서 받기</a></p>
+      <p class="links"><a href="arsenia/">고객 지원 (Support)</a><a href="arsenia/privacy.html">개인정보처리방침 (Privacy Policy)</a></p>
     </div>
   </section>
 
