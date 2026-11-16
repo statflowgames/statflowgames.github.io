@@ -1,72 +1,169 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>statflow</title>
 <style>
   :root { --text:#4a3b47; --sub:#7a6a78; --accent:#ff7fa8; --bg:#fff7f2; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Noto Sans KR","Malgun Gothic",sans-serif; line-height:1.7; }
-  main { max-width:720px; margin:0 auto; padding:48px 16px; }
-  h1 { font-size:2rem; margin:0; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Noto Sans KR","Noto Sans JP","Noto Sans SC","Malgun Gothic","Hiragino Sans",sans-serif; line-height:1.7; }
+  main { max-width:720px; margin:0 auto; padding:32px 16px 48px; }
+  .top { display:flex; justify-content:flex-end; }
+  .top select { border:1px solid #e9d6dd; background:#fff; color:var(--text); border-radius:999px; padding:5px 12px; font:inherit; font-size:.9rem; cursor:pointer; }
+  h1 { font-size:2rem; margin:8px 0 0; }
   .sub { color:var(--sub); margin-top:4px; }
   .app { display:flex; gap:16px; align-items:center; background:#fff; border-radius:20px; padding:20px; margin-top:32px; }
-  .app img { width:88px; height:88px; border-radius:22px; }
+  .app img { width:88px; height:88px; border-radius:22px; flex:none; }
   .app h2 { margin:0; font-size:1.25rem; }
   a { color:var(--accent); }
   a.play { display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:8px 16px; border-radius:999px; font-weight:bold; margin:0 6px 6px 0; }
   a.play.ios { background:#4a3b47; }
   .links a { margin-right:12px; }
-  @media (max-width:480px) { .app { flex-direction:column; align-items:flex-start; } }
   footer { margin-top:48px; color:var(--sub); font-size:.9rem; }
+  @media (max-width:480px) { .app { flex-direction:column; align-items:flex-start; } }
 </style>
 </head>
 <body>
 <main>
+  <div class="top">
+    <select id="lang" aria-label="Language">
+      <option value="en">English</option>
+      <option value="ko">한국어</option>
+      <option value="ja">日本語</option>
+      <option value="zh">简体中文</option>
+      <option value="zh-Hant">繁體中文</option>
+      <option value="es">Español</option>
+      <option value="pt">Português</option>
+      <option value="it">Italiano</option>
+      <option value="vi">Tiếng Việt</option>
+    </select>
+  </div>
+
   <h1>statflow</h1>
-  <p class="sub">귀엽고 즐거운 모바일 게임을 만듭니다.</p>
+  <p class="sub" data-t="tagline">We make cute and fun mobile games.</p>
 
   <section class="app">
-    <img src="jellydoku/icon.png" alt="젤리도쿠 아이콘">
+    <img src="jellydoku/icon.png" alt="">
     <div>
-      <h2>🍓 젤리도쿠 - 말랑 블록 퍼즐</h2>
-      <p>말랑말랑 젤리 블록을 놓고 뿅! 터뜨리는 귀여운 블록 스도쿠 퍼즐</p>
-      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.jellydoku">Google Play에서 받기</a></p>
-      <a href="jellydoku/privacy.html">개인정보처리방침 (Privacy Policy)</a>
+      <h2>🍓 <span data-t="jd_name">Jellydoku: Block Puzzle</span></h2>
+      <p data-t="jd_desc">Block puzzle meets sudoku — place squishy jelly blocks and pop full rows and 3x3 squares.</p>
+      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.jellydoku" data-t="gp">Get it on Google Play</a></p>
+      <a href="jellydoku/privacy.html" data-t="privacy">Privacy Policy</a>
     </div>
   </section>
 
   <section class="app">
-    <img src="galaxypest/icon.png" alt="은하 방역대 아이콘">
+    <img src="galaxypest/icon.png" alt="">
     <div>
-      <h2>🚀 은하 방역대 (Galaxy Pest Control)</h2>
-      <p>우주를 뒤덮은 해충 떼를 손가락 하나로 박멸하는 세로형 탄막 슈팅 게임</p>
-      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.galaxypest">Google Play에서 받기</a><a class="play ios" href="https://apps.apple.com/app/id6827798986">App Store에서 받기</a></p>
-      <a href="galaxypest/privacy.html">개인정보처리방침 (Privacy Policy)</a>
+      <h2>🚀 <span data-t="gp_name">Galaxy Pest Control</span></h2>
+      <p data-t="gp_desc">A vertical bullet-hell shooter — wipe out swarms of space pests with one finger.</p>
+      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.galaxypest" data-t="gp">Get it on Google Play</a><a class="play ios" href="https://apps.apple.com/app/id6827798986" data-t="as">Get it on the App Store</a></p>
+      <a href="galaxypest/privacy.html" data-t="privacy">Privacy Policy</a>
     </div>
   </section>
 
   <section class="app">
-    <img src="moonfortune/icon.png" alt="달토끼 운세 아이콘">
+    <img src="moonfortune/icon.png" alt="">
     <div>
-      <h2>🐰 달토끼 운세 (Moon Rabbit Fortune)</h2>
-      <p>오늘의 운세·신년운세·사주팔자·타로·궁합·별자리 운세를 한 앱에</p>
-      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.moonfortune">Google Play에서 받기</a></p>
-      <a href="moonfortune/privacy.html">개인정보처리방침 (Privacy Policy)</a>
+      <h2>🐰 <span data-t="mf_name">Moon Rabbit Fortune</span></h2>
+      <p data-t="mf_desc">Daily horoscope, Korean Saju (BaZi), tarot reading and love compatibility in one app.</p>
+      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.moonfortune" data-t="gp">Get it on Google Play</a></p>
+      <a href="moonfortune/privacy.html" data-t="privacy">Privacy Policy</a>
     </div>
   </section>
 
   <section class="app">
-    <img src="arsenia/icon.png" alt="아르세니아 전기 아이콘">
+    <img src="arsenia/icon.png" alt="">
     <div>
-      <h2>⚔️ 아르세니아 전기 (Arsenia Chronicle)</h2>
-      <p>별의 검을 찾아 떠나는 50장 완결 판타지 턴제 전략 SRPG. 광고·뽑기 없음</p>
-      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.arsenia">Google Play에서 받기</a></p>
-      <p class="links"><a href="arsenia/">고객 지원 (Support)</a><a href="arsenia/privacy.html">개인정보처리방침 (Privacy Policy)</a></p>
+      <h2>⚔️ <span data-t="ar_name">Arsenia Chronicle</span></h2>
+      <p data-t="ar_desc">A turn-based fantasy tactics RPG — 50 chapters, 8 heroes, playable offline. No ads, no gacha.</p>
+      <p><a class="play" href="https://play.google.com/store/apps/details?id=com.statflow.arsenia" data-t="gp">Get it on Google Play</a></p>
+      <p class="links"><a href="arsenia/" data-t="support">Support</a><a href="arsenia/privacy.html" data-t="privacy">Privacy Policy</a></p>
     </div>
   </section>
 
-  <footer>문의: <a href="mailto:statflow.games@gmail.com">statflow.games@gmail.com</a></footer>
+  <footer><span data-t="contact">Contact:</span> <a href="mailto:statflow.games@gmail.com">statflow.games@gmail.com</a></footer>
 </main>
+<script>
+(function () {
+  // 게임 이름: 각 스토어에 실제로 쓰는 이름. 없는 언어는 영어(기본) 이름을 쓴다.
+  var T = {
+    en: {},
+    ko: { tagline: '귀엽고 즐거운 모바일 게임을 만듭니다.',
+      jd_name: '젤리도쿠 - 말랑 블록 퍼즐', jd_desc: '말랑말랑 젤리 블록을 놓고 뿅! 터뜨리는 귀여운 블록 스도쿠 퍼즐',
+      gp_name: '은하 방역대', gp_desc: '우주를 뒤덮은 해충 떼를 손가락 하나로 박멸하는 세로형 탄막 슈팅 게임',
+      mf_name: '달토끼 운세', mf_desc: '오늘의 운세·신년운세·사주팔자·타로·궁합·별자리 운세를 한 앱에',
+      ar_name: '아르세니아 전기', ar_desc: '별의 검을 찾아 떠나는 50장 완결 판타지 턴제 전략 SRPG. 광고·뽑기 없음',
+      gp: 'Google Play에서 받기', as: 'App Store에서 받기', privacy: '개인정보처리방침', support: '고객 지원', contact: '문의:' },
+    ja: { tagline: 'かわいくて楽しいモバイルゲームを作っています。',
+      jd_desc: 'ブロックパズルと数独がひとつに。ぷにぷにのゼリーブロックを置いて、列や3x3マスをそろえて消そう。',
+      gp_desc: '指一本で宇宙の害虫の大群を一掃する、縦画面の弾幕シューティング。',
+      mf_desc: '今日の運勢、韓国式四柱推命、タロット、相性占いがひとつのアプリに。',
+      ar_name: 'アルセニア戦記', ar_desc: '全50章のターン制ファンタジーSRPG。8人の仲間、オフラインで遊べる。広告・ガチャなし。',
+      gp: 'Google Play で手に入れよう', as: 'App Store で手に入れよう', privacy: 'プライバシーポリシー', support: 'サポート', contact: 'お問い合わせ:' },
+    zh: { tagline: '我们制作可爱又有趣的手机游戏。',
+      jd_desc: '方块拼图遇上数独——放下软萌果冻方块，填满整行和3x3宫格即可消除。',
+      gp_desc: '竖屏弹幕射击游戏——用一根手指消灭成群的太空害虫。',
+      mf_desc: '每日运势、韩国四柱八字、塔罗占卜和恋爱配对，尽在一个应用。',
+      ar_name: '阿尔塞尼亚战记', ar_desc: '回合制奇幻战棋 SRPG——50 章剧情、8 位英雄，可离线游玩。无广告、无抽卡。',
+      gp: '在 Google Play 上获取', as: '在 App Store 上获取', privacy: '隐私政策', support: '客服支持', contact: '联系我们：' },
+    'zh-Hant': { tagline: '我們製作可愛又有趣的手機遊戲。',
+      jd_desc: '方塊拼圖遇上數獨——放下軟萌果凍方塊，填滿整行和3x3宮格即可消除。',
+      gp_desc: '直式彈幕射擊遊戲——用一根手指消滅成群的太空害蟲。',
+      mf_desc: '每日運勢、韓國四柱八字、塔羅占卜與戀愛配對，盡在一個 App。',
+      ar_name: '阿爾塞尼亞戰記', ar_desc: '回合制奇幻戰棋 SRPG——50 章劇情、8 位英雄，可離線遊玩。無廣告、無抽卡。',
+      gp: '在 Google Play 上取得', as: '在 App Store 上取得', privacy: '隱私權政策', support: '客服支援', contact: '聯絡我們：' },
+    es: { tagline: 'Creamos juegos para móvil adorables y divertidos.',
+      jd_desc: 'Puzle de bloques y sudoku a la vez: coloca bloques de gelatina y completa filas y cuadros de 3x3.',
+      gp_desc: 'Un shooter vertical de tipo bullet hell: acaba con plagas espaciales con un solo dedo.',
+      mf_desc: 'Horóscopo diario, Saju coreano (BaZi), lectura de tarot y compatibilidad amorosa en una sola app.',
+      ar_name: 'Crónica de Arsenia', ar_desc: 'RPG táctico de fantasía por turnos: 50 capítulos, 8 héroes y juego sin conexión. Sin anuncios ni gacha.',
+      gp: 'Disponible en Google Play', as: 'Disponible en App Store', privacy: 'Política de privacidad', support: 'Soporte', contact: 'Contacto:' },
+    pt: { tagline: 'Criamos jogos para celular fofos e divertidos.',
+      jd_desc: 'Quebra-cabeça de blocos com sudoku: encaixe blocos de gelatina e complete linhas e quadrados 3x3.',
+      gp_desc: 'Um jogo de tiro vertical bullet hell: elimine enxames de pragas espaciais com um só dedo.',
+      mf_desc: 'Horóscopo diário, Saju coreano (BaZi), leitura de tarô e compatibilidade amorosa em um só app.',
+      ar_name: 'Crônica de Arsenia', ar_desc: 'RPG tático de fantasia por turnos: 50 capítulos, 8 heróis e jogo offline. Sem anúncios e sem gacha.',
+      gp: 'Disponível no Google Play', as: 'Disponível na App Store', privacy: 'Política de Privacidade', support: 'Suporte', contact: 'Contato:' },
+    it: { tagline: 'Creiamo giochi per smartphone carini e divertenti.',
+      jd_desc: 'Puzzle a blocchi e sudoku insieme: posiziona i blocchi di gelatina e completa righe e quadrati 3x3.',
+      gp_desc: 'Uno sparatutto verticale bullet hell: spazza via sciami di parassiti spaziali con un dito.',
+      mf_desc: 'Oroscopo del giorno, Saju coreano (BaZi), lettura dei tarocchi e affinità di coppia in un\'unica app.',
+      ar_name: 'Cronache di Arsenia', ar_desc: 'GDR tattico fantasy a turni: 50 capitoli, 8 eroi, giocabile offline. Niente pubblicità né gacha.',
+      gp: 'Disponibile su Google Play', as: 'Disponibile su App Store', privacy: 'Informativa sulla privacy', support: 'Assistenza', contact: 'Contatti:' },
+    vi: { tagline: 'Chúng tôi làm những trò chơi di động dễ thương và vui nhộn.',
+      jd_desc: 'Xếp khối kết hợp sudoku: đặt những khối thạch mềm mại, lấp đầy hàng và ô 3x3 để xóa.',
+      gp_desc: 'Game bắn súng màn hình dọc kiểu bullet hell: tiêu diệt bầy sâu bọ vũ trụ chỉ bằng một ngón tay.',
+      mf_desc: 'Tử vi hằng ngày, Saju Hàn Quốc (Bát tự), xem bài tarot và độ hợp đôi trong một ứng dụng.',
+      ar_name: 'Biên niên sử Arsenia', ar_desc: 'Game nhập vai chiến thuật giả tưởng theo lượt: 50 chương, 8 anh hùng, chơi ngoại tuyến. Không quảng cáo, không gacha.',
+      gp: 'Tải trên Google Play', as: 'Tải trên App Store', privacy: 'Chính sách quyền riêng tư', support: 'Hỗ trợ', contact: 'Liên hệ:' }
+  };
+  var EN = {};
+  var nodes = document.querySelectorAll('[data-t]');
+  for (var i = 0; i < nodes.length; i++) EN[nodes[i].getAttribute('data-t')] = nodes[i].textContent;
+  function pick(code) {
+    code = String(code || '').toLowerCase();
+    if (/^zh[-_](tw|hk|mo|hant)/.test(code)) return 'zh-Hant';
+    var base = code.split(/[-_]/)[0];
+    return T[base] ? base : null;
+  }
+  function apply(l) {
+    var d = T[l] || {};
+    for (var i = 0; i < nodes.length; i++) { var k = nodes[i].getAttribute('data-t'); nodes[i].textContent = d[k] || EN[k]; }
+    document.documentElement.lang = l;
+    document.getElementById('lang').value = l;
+  }
+  var l = null;
+  var q = /[?&]lang=([\w-]+)/i.exec(location.search);       // 스토어 마케팅 URL: ?lang=ja 등
+  if (q) l = q[1] === 'zh-Hant' ? 'zh-Hant' : pick(q[1]);
+  if (!l) { try { var s = localStorage.getItem('statflow_lang'); if (T[s]) l = s; } catch (e) {} }
+  if (!l) { var ls = navigator.languages || [navigator.language]; for (var j = 0; j < ls.length && !l; j++) l = pick(ls[j]); }
+  apply(l || 'en');
+  document.getElementById('lang').addEventListener('change', function () {
+    try { localStorage.setItem('statflow_lang', this.value); } catch (e) {}
+    apply(this.value);
+  });
+})();
+</script>
 </body>
 </html>
