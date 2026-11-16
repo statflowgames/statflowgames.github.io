@@ -1,8 +1,8 @@
 // 비밀 아지트: 훔친 물건을 모아 둔 고양이의 방. 쓰다듬기·간식·놀아 주기 — 벌칙 없이 반응만 좋아진다.
 // 배경 그림(img/den-bg.webp)이 있으면 그걸, 없으면 코드로 방을 그린다.
-import { IMG, sprite } from './assets.js?v=1115234513';
-import { Sound } from './audio.js?v=1115234513';
-import { FONT } from './render.js?v=1115234513';
+import { IMG, sprite } from './assets.js?v=1116094016';
+import { Sound } from './audio.js?v=1116094016';
+import { FONT } from './render.js?v=1116094016';
 
 const OUT = '#2a1f2e';
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -185,6 +185,7 @@ export function startDen(cv, opts) {
   }
 
   function draw() {
+    if (W < 40 || H < 40) return; // 화면이 아직 자리를 못 잡았으면 그리지 않는다 (반지름이 음수가 되어 멈추는 것 방지)
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, W, H);
     room();

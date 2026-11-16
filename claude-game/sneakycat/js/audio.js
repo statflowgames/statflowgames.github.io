@@ -85,8 +85,33 @@ const SFX = {
   clank() { osc('square', 900, 700, 0.05, 0.03, 0, sfx, ['bandpass', 1800, 3]); osc('square', 1300, 1100, 0.04, 0.02, 0.05, sfx, ['bandpass', 2400, 3]); },
   peek() { osc('sine', 520, 1040, 0.22, 0.07); osc('triangle', 1560, 2350, 0.16, 0.035, 0.09); osc('sine', 2093, 2093, 0.2, 0.025, 0.18); },
   click() { osc('triangle', 880, 660, 0.05, 0.08); },
-  // 골골: 낮게 웅웅 떨리는 소리 (짧은 저음 잡음을 빠르게 이어 붙인다)
-  purr() { for (let i = 0; i < 34; i++) { const e = Math.sin((i / 34) * Math.PI); noise(0.03, 0.16 * e, 'lowpass', 180 + (i % 2) * 40, i * 0.042, 1.2); } osc('sine', 52, 48, 1.4, 0.05); },
+  // 골골: 들숨·날숨 두 번. 휴대폰 스피커에서도 들리게 소리 높이를 120~600Hz 쪽에 두고, 1초에 25번 떨리게 한다
+  purr() {
+    const t0 = ac.currentTime;
+    for (const [at, dur, f, v] of [[0, 0.62, 118, 1], [0.7, 0.8, 100, 0.9]]) {
+      const t = t0 + at;
+      const out = ac.createGain(), trem = ac.createGain(), lfo = ac.createOscillator(), depth = ac.createGain();
+      // 떨림: 소리 크기를 0~1 사이로 빠르게 오르내린다
+      trem.gain.value = 0.5; lfo.type = 'sine'; lfo.frequency.value = 25; depth.gain.value = 0.5;
+      lfo.connect(depth); depth.connect(trem.gain);
+      // 숨 모양: 천천히 커졌다 잦아든다
+      out.gain.setValueAtTime(0.0001, t);
+      out.gain.exponentialRampToValueAtTime(0.55 * v, t + dur * 0.3);
+      out.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      trem.connect(out); out.connect(sfx);
+      // 몸통 울림: 톱니파를 둥글게 깎아 낮게 웅웅
+      const o = ac.createOscillator(), lp = ac.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * 0.92, t + dur);
+      lp.type = 'lowpass'; lp.frequency.value = 650; lp.Q.value = 0.9;
+      o.connect(lp); lp.connect(trem);
+      // 숨결: 거친 바람 소리
+      const n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
+      n.buffer = noiseBuf; bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = 0.8; ng.gain.value = 0.9;
+      n.connect(bp); bp.connect(ng); ng.connect(trem);
+      for (const x of [lfo, o]) { x.start(t); x.stop(t + dur + 0.05); }
+      n.start(t, Math.random() * 0.3); n.stop(t + dur + 0.05);
+    }
+  },
   star() { osc('triangle', 1175, 1568, 0.25, 0.16); },
 };
 

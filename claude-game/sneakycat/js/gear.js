@@ -1,6 +1,6 @@
 // 옷장 장비: 생선뼈로 사서 부위마다 하나씩 입는다. 효과는 "실수를 조금 봐주는" 정도로만.
 // 단계마다 3~5% 에서 시작해 조금씩 좋아진다. 어려움 스테이지에서는 효과가 절반.
-import { IMG } from './assets.js?v=1115234513';
+import { IMG } from './assets.js?v=1116094016';
 
 export const SLOTS = [
   { id: 'feet', name: '발', stat: '발소리', key: 'quiet', emoji: '🧦', sign: '−',
