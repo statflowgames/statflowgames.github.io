@@ -1,16 +1,16 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1116094016';
-import { Game } from './game.js?v=1116094016';
-import { Renderer, FONT } from './render.js?v=1116094016';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1116094016';
-import { Sound } from './audio.js?v=1116094016';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1116094016';
-import { actIcon, buttonHTML } from './icons.js?v=1116094016';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1116094016';
-import { startDen } from './den.js?v=1116094016';
-import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1116094016';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1116094016';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1116094016';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1116094211';
+import { Game } from './game.js?v=1116094211';
+import { Renderer, FONT } from './render.js?v=1116094211';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1116094211';
+import { Sound } from './audio.js?v=1116094211';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1116094211';
+import { actIcon, buttonHTML } from './icons.js?v=1116094211';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1116094211';
+import { startDen } from './den.js?v=1116094211';
+import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1116094211';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1116094211';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1116094211';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -143,7 +143,9 @@ $('#bPause').addEventListener('click', () => { Sound.play('click'); pauseGame();
 const bLook = $('#bLook');
 bLook.addEventListener('pointerdown', (e) => { e.preventDefault(); try { bLook.setPointerCapture(e.pointerId); } catch { /* 무시 */ } setLook(true); });
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) bLook.addEventListener(ev, () => setLook(false));
-bLook.addEventListener('contextmenu', (e) => e.preventDefault());
+// 길게 누르면 휴대폰이 그림 저장·복사 메뉴를 띄우지 않게: 버튼 영역의 길게 누르기·끌기 기본 동작을 모두 막는다
+for (const ev of ['contextmenu', 'dragstart', 'selectstart']) $('#ctrl').addEventListener(ev, (e) => e.preventDefault());
+bLook.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
 function setLook(v) {
   v = !!v && !!game && scene === 'game' && !paused && !ended && game.state === 'play';
   if (v === looking) return;

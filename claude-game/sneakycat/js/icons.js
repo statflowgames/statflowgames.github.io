@@ -1,5 +1,5 @@
 // 아래 버튼 아이콘. assets 에 ui-<이름>.png 가 들어오면 그 그림을, 없으면 아래 코드 그림(SVG)을 쓴다.
-import { IMG } from './assets.js?v=1116094016';
+import { IMG } from './assets.js?v=1116094211';
 
 const L = 'stroke="#2a1f2e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
 const svg = (body) => `<svg viewBox="0 0 48 48" aria-hidden="true">${body}</svg>`;
@@ -61,7 +61,7 @@ export const actIcon = (label) => ACT[label] || 'paw';
 const B = { eye: 'map-b', meow: 'meow-b', paw: 'paw-b' };
 export function iconHTML(key) {
   if (B[key] && IMG['ui-' + B[key]]) key = B[key];
-  return IMG['ui-' + key] ? `<img src="img/ui-${key}.webp" alt="">` : SVG[key] || SVG.paw;
+  return IMG['ui-' + key] ? `<img src="img/ui-${key}.webp" alt="" draggable="false">` : SVG[key] || SVG.paw;
 }
 export function buttonHTML(key, label) {
   return `<span class="ic">${iconHTML(key)}</span><small>${label}</small>`;

@@ -318,3 +318,8 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .card .qres { margin: 6px auto 0; font-size: 14px; color: var(--sub); }
 .card .qres.ok { color: var(--green); }
 .card .qres b { font-weight: normal; color: var(--gold); }
+
+/* 버튼 그림을 길게 눌러도 저장·복사 메뉴가 뜨지 않게 (누르기는 버튼이 받는다) */
+#app img { -webkit-touch-callout: none; -webkit-user-drag: none; user-drag: none; }
+#ctrl, .rbtn { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.rbtn img, .rbtn svg, .rbtn small { pointer-events: none; }
