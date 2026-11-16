@@ -1,16 +1,16 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1116155619';
-import { Game } from './game.js?v=1116155619';
-import { Renderer, FONT } from './render.js?v=1116155619';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1116155619';
-import { Sound } from './audio.js?v=1116155619';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1116155619';
-import { actIcon, buttonHTML } from './icons.js?v=1116155619';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1116155619';
-import { startDen } from './den.js?v=1116155619';
-import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1116155619';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1116155619';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1116155619';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1116165058';
+import { Game } from './game.js?v=1116165058';
+import { Renderer, FONT } from './render.js?v=1116165058';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1116165058';
+import { Sound } from './audio.js?v=1116165058';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1116165058';
+import { actIcon, buttonHTML } from './icons.js?v=1116165058';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1116165058';
+import { startDen } from './den.js?v=1116165058';
+import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1116165058';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1116165058';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1116165058';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');

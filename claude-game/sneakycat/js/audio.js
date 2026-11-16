@@ -47,6 +47,32 @@ function noise(dur, vol, type, freq, at = 0, q = 1, dest = sfx) {
   s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
 }
 
+// 고양이 목소리: 톱니파 + 한 옥타브 위 삼각파를 "냐" 소리 울림(두 대역)으로 걸러 낸다.
+// curve: [[0~1 시점, 음높이], ...] · trill: 1초에 몇 번 "르르르" 떨지 (혀 굴리는 소리)
+function catVoice(at, dur, curve, vol, trill = 0) {
+  const t = ac.currentTime + at;
+  const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), mix = ac.createGain();
+  o.type = 'sawtooth'; o2.type = 'triangle'; o2.detune.value = 1200;
+  for (const x of [o, o2]) { x.frequency.setValueAtTime(curve[0][1], t); for (const [k, f] of curve.slice(1)) x.frequency.exponentialRampToValueAtTime(f, t + k * dur); }
+  const f1 = ac.createBiquadFilter(), f2 = ac.createBiquadFilter();
+  f1.type = 'bandpass'; f1.frequency.value = 1150; f1.Q.value = 1.8;
+  f2.type = 'bandpass'; f2.frequency.value = 2700; f2.Q.value = 3; mix.gain.value = 1;
+  o.connect(f1); o2.connect(f1); o.connect(f2);
+  const g2 = ac.createGain(); g2.gain.value = 0.5; f2.connect(g2); g2.connect(mix); f1.connect(mix);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.04, dur / 4));
+  g.gain.setValueAtTime(vol, t + dur * 0.7);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  let out = mix;
+  if (trill) {
+    const tr = ac.createGain(), lfo = ac.createOscillator(), dp = ac.createGain();
+    tr.gain.value = 0.55; lfo.frequency.value = trill; dp.gain.value = 0.45; lfo.connect(dp); dp.connect(tr.gain);
+    mix.connect(tr); out = tr; lfo.start(t); lfo.stop(t + dur + 0.05);
+  }
+  out.connect(g); g.connect(sfx);
+  o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+}
+
 const SFX = {
   step() { noise(0.05, 0.12, 'highpass', 2500); },
   hide() { noise(0.12, 0.12, 'bandpass', 900, 0, 2); osc('sine', 300, 180, 0.12, 0.05); },
@@ -116,6 +142,14 @@ const SFX = {
     }
   },
   star() { osc('triangle', 1175, 1568, 0.25, 0.16); },
+  // 놀이: 털실을 노려볼 때 "끼릭끼릭" 짧게 들뜬 소리
+  chirp() { catVoice(0, 0.1, [[0, 720], [1, 1080]], 0.24); catVoice(0.13, 0.09, [[0, 780], [1, 1180]], 0.2); },
+  // 놀이: 덮칠 때 "브르릅!" 혀 굴리며 올라가는 반가운 소리
+  trill() { catVoice(0, 0.3, [[0, 470], [0.65, 820], [1, 920]], 0.3, 26); },
+  // 간식: "음냠냠" 낮게 웅얼대며 오물오물 씹는 소리
+  yum() { catVoice(0, 0.35, [[0, 330], [0.5, 380], [1, 340]], 0.26, 22); for (let i = 0; i < 5; i++) { noise(0.035, 0.24, 'bandpass', 1900 + (i % 2) * 500, 0.38 + i * 0.17, 2); osc('sine', 260, 200, 0.05, 0.05, 0.38 + i * 0.17); } },
+  // 놀이 끝: "르릅—냐앙♪" 신나서 끝이 올라가는 야옹
+  happy() { catVoice(0, 0.18, [[0, 500], [1, 760]], 0.26, 26); catVoice(0.2, 0.6, [[0, 600], [0.25, 1050], [0.6, 900], [1, 1120]], 0.3); },
 };
 
 // ───────── 배경음악 ─────────

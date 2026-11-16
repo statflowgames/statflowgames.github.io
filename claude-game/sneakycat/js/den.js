@@ -1,8 +1,8 @@
 // 비밀 아지트: 훔친 물건을 모아 둔 고양이의 방. 쓰다듬기·간식·놀아 주기 — 벌칙 없이 반응만 좋아진다.
 // 배경 그림(img/den-bg.webp)이 있으면 그걸, 없으면 코드로 방을 그린다.
-import { IMG, sprite } from './assets.js?v=1116155619';
-import { Sound } from './audio.js?v=1116155619';
-import { FONT } from './render.js?v=1116155619';
+import { IMG, sprite } from './assets.js?v=1116165058';
+import { Sound } from './audio.js?v=1116165058';
+import { FONT } from './render.js?v=1116165058';
 
 const OUT = '#2a1f2e';
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -53,7 +53,7 @@ export function startDen(cv, opts) {
     cat.sq = Math.max(0, cat.sq - dt * 1.5);
     // 간식이 떨어지면 달려간다
     if (treat) {
-      if (!treat.land) { treat.vy += 2.4 * dt; treat.y += treat.vy * dt; if (treat.y >= 0.9) { treat.y = 0.9; treat.land = true; Sound.play('coin'); go(treat.x, true); } }
+      if (!treat.land) { treat.vy += 2.4 * dt; treat.y += treat.vy * dt; if (treat.y >= 0.9) { treat.y = 0.9; treat.land = true; Sound.play('coin'); Sound.play('chirp'); go(treat.x, true); } }
     }
     if (ball) {
       const d = ball.tx - ball.x;
@@ -77,8 +77,8 @@ export function startDen(cv, opts) {
         cat.walkT += dt * (cat.state === 'run' ? 2.6 : 1.6);
         if (Math.abs(d) <= sp) {
           cat.x = cat.tx; cat.sq = 0.15;
-          if (treat && treat.land && Math.abs(treat.x - cat.x) < 0.05) { treat = null; cat.state = 'eat'; cat.timer = 1.6; cat.pose = 'sprite-cat-fish'; Sound.play('fish'); word('♪', cat.x * W - 20, floorY() - H * 0.38, '#ff9fd0'); word('냠냠', cat.x * W + cat.face * 40, floorY() - H * 0.4, '#ffd27a', 15); }
-          else if (ball && Math.abs(ball.x - cat.x) < 0.06) { cat.state = 'pounce'; cat.timer = 0.55; cat.pose = 'sprite-cat-crouch'; }
+          if (treat && treat.land && Math.abs(treat.x - cat.x) < 0.05) { treat = null; cat.state = 'eat'; cat.timer = 1.6; cat.pose = 'sprite-cat-fish'; Sound.play('yum'); word('♪', cat.x * W - 20, floorY() - H * 0.38, '#ff9fd0'); word('냠냠', cat.x * W + cat.face * 40, floorY() - H * 0.4, '#ffd27a', 15); }
+          else if (ball && Math.abs(ball.x - cat.x) < 0.06) { cat.state = 'pounce'; cat.timer = 0.55; cat.pose = 'sprite-cat-crouch'; Sound.play('chirp'); }
           else if (cat.loaf) { cat.loaf = false; cat.state = 'pose'; cat.pose = 'sprite-cat-loaf'; cat.timer = rnd(5, 8); }
           else { cat.state = 'idle'; cat.timer = rnd(1.5, 3.5); }
         } else { cat.x += Math.sign(d) * sp; cat.face = Math.sign(d); }
@@ -86,8 +86,8 @@ export function startDen(cv, opts) {
       }
       case 'pounce':
         if ((cat.timer -= dt) <= 0) {
-          cat.state = 'hop'; cat.timer = 0.45; cat.pose = 'sprite-cat-run'; Sound.play('hide');
-          if (ball) { plays--; if (plays > 0) ball.tx = Math.max(0.1, Math.min(0.9, ball.x + (Math.random() < 0.5 ? -1 : 1) * rnd(0.25, 0.45))); else { ball.tx = ball.x < 0.5 ? -0.2 : 1.2; word('재밌다!', cat.x * W, floorY() - H * 0.42, '#9dffb0', 15); } }
+          cat.state = 'hop'; cat.timer = 0.45; cat.pose = 'sprite-cat-run'; Sound.play('hide'); if (plays > 1) { Sound.play('trill'); word('♪', cat.x * W - cat.face * 30, floorY() - H * 0.4, '#ff9fd0', 18); }
+          if (ball) { plays--; if (plays > 0) ball.tx = Math.max(0.1, Math.min(0.9, ball.x + (Math.random() < 0.5 ? -1 : 1) * rnd(0.25, 0.45))); else { ball.tx = ball.x < 0.5 ? -0.2 : 1.2; word('재밌다!', cat.x * W, floorY() - H * 0.42, '#9dffb0', 15); Sound.play('happy'); for (let i = 0; i < 3; i++) setTimeout(() => alive && word('♥', cat.x * W + rnd(-30, 30), floorY() - H * 0.34, '#ff8fc0', rnd(14, 20)), 200 + i * 150); } }
         }
         break;
       case 'hop':
@@ -99,7 +99,11 @@ export function startDen(cv, opts) {
         }
         break;
       case 'pose': case 'eat': case 'pet':
-        if ((cat.timer -= dt) <= 0) { cat.state = 'idle'; cat.timer = rnd(1.5, 3); }
+        if ((cat.timer -= dt) <= 0) {
+          // 다 먹으면 "르릅—냐앙♪" 하고 하트
+          if (cat.state === 'eat') { Sound.play('happy'); word('맛있다!', cat.x * W, floorY() - H * 0.42, '#ffd27a', 15); for (let i = 0; i < 3; i++) setTimeout(() => alive && word('♥', cat.x * W + rnd(-30, 30), floorY() - H * 0.34, '#ff8fc0', rnd(14, 20)), 200 + i * 150); }
+          cat.state = 'idle'; cat.timer = rnd(1.5, 3);
+        }
         break;
     }
     if (ball && (ball.x < -0.15 || ball.x > 1.15)) ball = null;
