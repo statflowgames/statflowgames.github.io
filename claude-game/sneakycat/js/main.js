@@ -1,16 +1,16 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1116094211';
-import { Game } from './game.js?v=1116094211';
-import { Renderer, FONT } from './render.js?v=1116094211';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1116094211';
-import { Sound } from './audio.js?v=1116094211';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1116094211';
-import { actIcon, buttonHTML } from './icons.js?v=1116094211';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1116094211';
-import { startDen } from './den.js?v=1116094211';
-import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1116094211';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1116094211';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1116094211';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1116155619';
+import { Game } from './game.js?v=1116155619';
+import { Renderer, FONT } from './render.js?v=1116155619';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1116155619';
+import { Sound } from './audio.js?v=1116155619';
+import { loadAll, IMG, spriteURL } from './assets.js?v=1116155619';
+import { actIcon, buttonHTML } from './icons.js?v=1116155619';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1116155619';
+import { startDen } from './den.js?v=1116155619';
+import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1116155619';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1116155619';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1116155619';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -410,7 +410,7 @@ function denScreen() {
 // ───────── 장 소개 (등장인물·물건) ─────────
 const guideRow = (e, isNew) => `<div class="gi ${isNew ? 'new' : ''}"><img src="${guideIcon(e.id)}" alt=""><div><b>${e.name}${isNew ? '<em>NEW</em>' : ''}</b><span>${e.desc}</span></div></div>`;
 function chapterScreen(chId, next) {
-  scene = 'chapter'; game = null; setHud(false);
+  scene = 'chapter'; game = null; setHud(false); musicCh = chId;
   save.seenCh[chId] = true; store();
   const ch = CHAPTERS[chId - 1], all = inChapter(chId), nw = newInChapter(chId);
   const sec = (kind, title) => {
@@ -442,7 +442,7 @@ function startLevel(i, skipIntro = false) {
     else if (name === 'alert' || name === 'siren') vib(40);
     else if (name === 'fish') vib(25);
   };
-  scene = 'game';
+  scene = 'game'; musicCh = L.ch;
   R.focus = game.fish;
   R.setGame(game, skinById(save.skin), wearOn());
   setHud(true);
@@ -731,6 +731,11 @@ function drawTitleBg(dt) {
 }
 
 // ───────── 루프 ─────────
+// 장마다 배경음: 집 · 박물관/백화점 · 시장/주방 · 놀이공원 · 연구소 · 성
+const CH_SONG = { 1: 'house', 2: 'house', 3: 'museum', 4: 'market', 5: 'market', 6: 'museum', 7: 'park', 8: 'lab', 9: 'castle' };
+let musicCh = 1;
+// 주소에 ?song=lab 처럼 붙이면 그 곡만 계속 (곡 들어 보기용)
+const SONG_TEST = new URLSearchParams(location.search).get('song');
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
@@ -738,16 +743,17 @@ function frame(now) {
   if (scene === 'game' && game) {
     if (!paused && !looking) {
       game.update(dt, game.state === 'play' ? readInput() : { dx: 0, dy: 0, mag: 0, run: false });
-      Sound.setTension(game.chased() ? 1 : 0);
+      Sound.setMood(game.chased(), game.danger(), game.state === 'play' && !!game.cat.hidden);
       if (!ended && game.state === 'caught' && game.endT > 1.2) endLevel(false);
       if (!ended && game.state === 'win' && game.endT > 0.5) endLevel(true);
     }
     R.draw(paused || looking ? 0 : dt, joy);
     updateHud();
   } else {
-    Sound.setTension(0);
+    Sound.setMood(false);
     drawTitleBg(dt);
   }
+  Sound.setSong(SONG_TEST || scene === 'den' ? 'den' : scene === 'game' || scene === 'chapter' ? CH_SONG[musicCh] || 'house' : 'title');
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
