@@ -34,7 +34,7 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 #goals .g { width: 30px; height: 30px; position: relative; opacity: 0.35; filter: grayscale(1); transition: 0.25s; }
 #goals .g.on { opacity: 1; filter: none; transform: scale(1.08); }
 #goals .g img { width: 100%; height: 100%; }
-#goals .eye { white-space: nowrap; opacity: 1; filter: none; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--green); border-left: 1px solid var(--line); margin-left: 2px; padding-left: 4px; width: 38px; line-height: 1.05; text-align: center; }
+#goals .eye { opacity: 1; filter: none; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--green); border-left: 1px solid var(--line); margin-left: 2px; padding-left: 4px; width: auto; min-width: 38px; max-width: 66px; white-space: normal; overflow-wrap: anywhere; line-height: 1.05; text-align: center; }
 #goals .eye.bad { color: var(--red); }
 
 /* ───── 버튼 ───── */
@@ -109,7 +109,7 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .starsum { color: var(--gold); font-size: 18px; }
 .chap { margin: 6px 14px 18px; background: var(--panel); border: 2px solid var(--line); border-radius: 20px; padding: 14px; }
 .chap h3 { margin: 0; font-weight: normal; font-size: 21px; display: flex; justify-content: space-between; }
-.chap h3 span { color: var(--gold); font-size: 16px; }
+.chap h3 span { color: var(--gold); font-size: 16px; white-space: nowrap; flex-shrink: 0; margin-left: 8px; }
 .chap p { margin: 2px 0 12px; color: var(--sub); font-size: 14px; }
 .lvgrid { display: flex; flex-direction: column; gap: 8px; }
 .lv { width: 100%; border-radius: 14px; background: var(--panel2); border: 2px solid #120e20; box-shadow: 0 3px 0 #120e20; display: flex; align-items: center; gap: 10px; font-size: 17px; padding: 10px 12px; text-align: left; }
@@ -357,7 +357,7 @@ button.srow:active { background: rgba(255,255,255,0.05); }
 .sets .danger h3 { color: #ff9db5; }
 .btn.warn { background: linear-gradient(#ff9db5, #e0607f); color: #3d0f1c; }
 .sets .btn.warn { margin: 0; max-width: none; }
-.tg.gear { padding-left: 18px; padding-right: 18px; }
+.tg.setbtn { padding-left: 18px; padding-right: 18px; }
 
 /* 스테이지 시작 카드: 카드를 화면 높이에 맞추고 내용만 안에서 스크롤 → '잠입 시작' 버튼은 늘 보인다 */
 .card.intro { display: flex; flex-direction: column; max-height: 100%; }
@@ -365,3 +365,31 @@ button.srow:active { background: rgba(255,255,255,0.05); }
 .card.intro .gobar { flex: none; position: relative; margin: 0 -18px -18px; padding: 10px 18px 18px; border-radius: 0 0 21px 21px; background: var(--panel); }
 .card.intro .gobar::before { content: ''; position: absolute; left: 0; right: 0; top: -16px; height: 16px; background: linear-gradient(rgba(36,29,59,0), var(--panel)); pointer-events: none; }
 .card.intro .gobar .btn { margin-top: 0; }
+
+/* 실패 화면 이어하기: 광고 또는 생선뼈 (하루 1번은 무료) */
+.revrow { display: flex; gap: 8px; max-width: 300px; margin: 8px auto 0; }
+.revrow .btn { margin: 0; flex: 1; padding: 10px 6px; font-size: 18px; }
+.btn.bonebtn { background: linear-gradient(#7a5c36, #533d22); color: #fff3d6; display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+.btn.bonebtn small { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.btn.bonebtn.poor { opacity: 0.55; }
+.btn.ad.free { background: linear-gradient(#ffe08a, #f0b84a); color: #3d2a05; }
+.revnote { margin-top: 4px; font-size: 12px; color: var(--sub); }
+.btn.bonebtn .bv { display: flex; align-items: center; gap: 2px; }
+
+/* 언어 고르기: 21개 언어를 두 줄씩 */
+.sets .toggles [data-l] { flex: 1 1 140px; }
+/* 긴 언어(독일어·러시아어 등)에서 버튼 글자가 넘치지 않게 */
+.btn, .tg, .srow { overflow-wrap: anywhere; }
+
+/* 아지트 애정도 */
+.love .lrow { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.love em { font-style: normal; font-size: 13px; padding: 1px 8px; border-radius: 10px; background: #2f2650; color: var(--sub); }
+.love em.happy { color: #ffd27a; } .love em.ok { color: #9dffb0; } .love em.sad, .love em.missed { color: #b8d4ff; }
+.love small { margin-top: 3px; }
+.love small i { font-style: normal; display: inline-block; min-width: 26px; opacity: 0.45; }
+.love small i.on { opacity: 1; color: var(--green); }
+.love .btn.gift { margin: 8px auto 0; background: linear-gradient(#ffe08a, #f0b84a); color: #3d2a05; animation: giftbob 1.2s ease-in-out infinite; }
+@keyframes giftbob { 50% { transform: translateY(-3px); } }
+.love .btn.special { margin: 8px auto 0; display: flex; flex-direction: row; justify-content: center; gap: 6px; }
+.love .btn.special b { background: rgba(0,0,0,0.15); border-radius: 10px; padding: 0 8px; color: #b0123f; font-weight: normal; }
+.love .btn.gift .gimg { width: 26px; height: 26px; vertical-align: -7px; }

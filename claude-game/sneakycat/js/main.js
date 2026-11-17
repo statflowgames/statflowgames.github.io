@@ -1,17 +1,18 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1117103129';
-import { Game } from './game.js?v=1117103129';
-import { Renderer, FONT } from './render.js?v=1117103129';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1117103129';
-import { Sound } from './audio.js?v=1117103129';
-import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1117103129';
-import { actIcon, buttonHTML } from './icons.js?v=1117103129';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1117103129';
-import { startDen } from './den.js?v=1117103129';
-import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct } from './i18n.js?v=1117103129';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1117103129';
-import { Reward } from './reward.js?v=1117103129';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1117103129';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1117150910';
+import { Game } from './game.js?v=1117150910';
+import { Renderer } from './render.js?v=1117150910';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1117150910';
+import { Sound } from './audio.js?v=1117150910';
+import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1117150910';
+import { actIcon, buttonHTML } from './icons.js?v=1117150910';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1117150910';
+import { startDen } from './den.js?v=1117150910';
+import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1117150910';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1117150910';
+import { Reward } from './reward.js?v=1117150910';
+import { Ads } from './ads.js?v=1117150910';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1117150910';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -37,7 +38,7 @@ if (save.bones == null) {
   store();
 }
 const wearOn = () => save.gear.on;
-initLang(save.lang);
+const langReady = initLang(save.lang);
 Sound.setSound(save.sound);
 Sound.setMusic(save.music);
 const vib = (p) => { if (save.vib && navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) try { navigator.vibrate(p); } catch { /* 무시 */ } };
@@ -163,11 +164,18 @@ function doMeow() { if (game && !paused && game.meow()) vib(15); }
 
 // ───────── 토스트 ─────────
 let toastT = null;
+// 전면 광고: 1장이 아닌 판을 2번 끝낼 때마다, 결과 화면에서 다음으로 넘어갈 때 (2분 간격은 ads.js)
+let adStages = 0;
+function atBreak(go) {
+  if (adStages >= 2 && Ads.canInterstitial()) { adStages = 0; Ads.interstitial().finally(go); }
+  else go();
+}
 function toast(msg, ms = 2200) {
   const t = $('#toast');
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms);
 }
+Reward.toast = (m) => toast(m, 2600);
 
 // ───────── 화면들 ─────────
 function show(html, cls = '') {
@@ -186,8 +194,8 @@ function titleScreen() {
       <button class="btn main" data-a="play">${totalStars() ? t('title.continue') : t('title.start')}</button>
       <button class="btn pink" data-a="skin">${t('title.ward')}</button>
       <button class="btn den" data-a="den">${t('title.den')}</button>
-      ${questsOpen() ? `<button class="btn quest" data-a="quest">📜 오늘의 의뢰 <small>${questDone()}/3</small></button>` : ''}
-      <div class="toggles"><button class="tg on gear" data-a="settings">⚙️ ${t('title.settings')}</button></div>
+      ${questsOpen() ? `<button class="btn quest" data-a="quest">📜 ${tr('오늘의 의뢰')} <small>${questDone()}/3</small></button>` : ''}
+      <div class="toggles"><button class="tg on setbtn" data-a="settings">⚙️ ${t('title.settings')}</button></div>
       <div class="credit">StatFlow Games</div>
     </div>`, 'center title');
   on(el, '[data-a=play]', () => levelScreen());
@@ -214,6 +222,7 @@ function settingsScreen() {
       <section><h3>🌐 ${t('set.lang')}</h3><div class="toggles">${LANGS.map((l) => `<button class="tg ${getLang() === l ? 'on' : ''}" data-l="${l}">${LANG_NAMES[l]}</button>`).join('')}</div></section>
       <section><h3>${t('set.info')}</h3>
         <button class="srow" data-a="privacy">🔒 ${t('set.privacy')}<span>›</span></button>
+        ${Ads.privacyRequired() ? `<button class="srow" data-a="adprivacy">🛡️ ${tr('광고 개인정보 설정')}<span>›</span></button>` : ''}
         <button class="srow" data-a="mail">✉️ ${t('set.contact')}<span>${CONTACT}</span></button>
         <div class="srow">🐾 ${t('set.maker')}<span>StatFlow Games</span></div>
         <div class="srow">ℹ️ ${t('set.version')}<span class="ver">${APP_VERSION}${isApp() ? '' : ` · ${t('set.web')}`}</span></div>
@@ -229,9 +238,10 @@ function settingsScreen() {
     if (k === 'lefty') app.classList.toggle('lefty', save.lefty);
     if (k === 'vib' && save.vib) vib(30);
   });
-  on(el, '[data-l]', (e, b) => { save.lang = b.dataset.l; setLang(save.lang); store(); paintButtons(); settingsScreen(); });
+  on(el, '[data-l]', (e, b) => { save.lang = b.dataset.l; setLang(save.lang).then(() => { store(); paintButtons(); settingsScreen(); }); });
   on(el, '[data-a=privacy]', () => openLink(PRIVACY_URL));
-  on(el, '[data-a=mail]', () => openLink(`mailto:${CONTACT}?subject=${encodeURIComponent('[도둑 고양이] 문의 (v' + APP_VERSION + ')')}`));
+  on(el, '[data-a=adprivacy]', () => Ads.showPrivacy());
+  on(el, '[data-a=mail]', () => openLink(`mailto:${CONTACT}?subject=${encodeURIComponent(tf('[몰래냥] 문의 (v{v})', { v: APP_VERSION }))}`));
   on(el, '[data-a=reset]', () => confirmReset());
   // 앱이면 실제 설치된 버전을 보여 준다
   const NA = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App;
@@ -254,10 +264,12 @@ function confirmReset() {
   });
 }
 
+// 장 제목: "1장 · 작은 집"
+const chTitle = (ch) => tf('{n}장 · {name}', { n: ch.id, name: tr(ch.name) });
 function levelScreen() {
   scene = 'levels'; game = null; setHud(false);
-  let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>스테이지</h2><div class="starsum">★ ${totalStars()}/${LEVELS.length * 3}</div></div>`;
-  if (save.ending) html += `<button class="btn endbtn" data-a="ending">🏆 엔딩 다시 보기</button>`;
+  let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>${tr('스테이지')}</h2><div class="starsum">★ ${totalStars()}/${LEVELS.length * 3}</div></div>`;
+  if (save.ending) html += `<button class="btn endbtn" data-a="ending">🏆 ${tr('엔딩 다시 보기')}</button>`;
   let nextShown = false;
   // 지금 할 스테이지가 있는 장만 펼치고 나머지는 접어 둔다
   const nextIdx = LEVELS.findIndex((l, i) => unlocked(i) && !cleared(l.id) && !skipped(l.id));
@@ -265,18 +277,18 @@ function levelScreen() {
   for (const ch of CHAPTERS) {
     const lv = LEVELS.map((l, i) => ({ l, i })).filter((x) => x.l.ch === ch.id);
     if (!lv.length) {
-      html += `<div class="chap soon"><h3>${ch.id}장 · ${ch.name}<span>준비 중</span></h3><p>${ch.sub} — 곧 열려요!</p></div>`;
+      html += `<div class="chap soon"><h3>${chTitle(ch)}<span>${tr('준비 중')}</span></h3><p>${tf('{sub} — 곧 열려요!', { sub: tr(ch.sub) })}</p></div>`;
       continue;
     }
     const got = lv.reduce((n, x) => n + starsOf(x.l.id).filter(Boolean).length, 0);
     const hard = lv.some((x) => x.l.hard);
-    html += `<div class="chap ${ch.id === openCh ? '' : 'fold'}" data-ch="${ch.id}">${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}<h3 data-f="${ch.id}">${ch.id}장 · ${ch.name}${hard ? ' <em class="hardtag">🔥</em>' : ''}<span>★ ${got}/${lv.length * 3} <b class="fa">▾</b></span></h3><p>${ch.sub}</p><button class="gbtn" data-c="${ch.id}">등장인물 · 물건 소개</button><div class="lvgrid">`;
+    html += `<div class="chap ${ch.id === openCh ? '' : 'fold'}" data-ch="${ch.id}">${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}<h3 data-f="${ch.id}">${chTitle(ch)}${hard ? ' <em class="hardtag">🔥</em>' : ''}<span>★ ${got}/${lv.length * 3} <b class="fa">▾</b></span></h3><p>${tr(ch.sub)}</p><button class="gbtn" data-c="${ch.id}">${tr('등장인물 · 물건 소개')}</button><div class="lvgrid">`;
     for (const { l, i } of lv) {
       const st = starsOf(l.id), ok = unlocked(i), cl = cleared(l.id);
       const sk = !cl && skipped(l.id);
       const nx = ok && !cl && !sk && !nextShown; if (nx) nextShown = true;
-      if (l.no === HARD_FROM) html += `<div class="hardline">🔥 여기부터 고난도 — 경비가 더 빠르고 더 멀리 봐요</div>`;
-      html += `<button class="lv ${cl ? 'clear' : ''} ${ok ? '' : 'lock'} ${nx ? 'next' : ''} ${sk ? 'skipped' : ''} ${l.hard ? 'hard' : ''}" data-i="${i}"><span class="no">${l.id}</span><span class="nm">${ok ? l.name : '잠겨 있음'}${sk ? '<small>건너뜀</small>' : ''}</span><span class="st">${st.map((s) => `<i class="${s ? 'on' : ''}">★</i>`).join('')}</span></button>`;
+      if (l.no === HARD_FROM) html += `<div class="hardline">🔥 ${tr('여기부터 고난도 — 경비가 더 빠르고 더 멀리 봐요')}</div>`;
+      html += `<button class="lv ${cl ? 'clear' : ''} ${ok ? '' : 'lock'} ${nx ? 'next' : ''} ${sk ? 'skipped' : ''} ${l.hard ? 'hard' : ''}" data-i="${i}"><span class="no">${l.id}</span><span class="nm">${ok ? tr(l.name) : tr('잠겨 있음')}${sk ? `<small>${tr('건너뜀')}</small>` : ''}</span><span class="st">${st.map((s) => `<i class="${s ? 'on' : ''}">★</i>`).join('')}</span></button>`;
     }
     html += '</div></div>';
   }
@@ -287,7 +299,7 @@ function levelScreen() {
   on(el, '[data-c]', (e, b) => chapterScreen(+b.dataset.c, null));
   on(el, '[data-i]', (e, b) => {
     const i = +b.dataset.i;
-    if (!unlocked(i)) { toast('앞 스테이지를 먼저 깨야 해요'); return; }
+    if (!unlocked(i)) { toast(tr('앞 스테이지를 먼저 깨야 해요')); return; }
     startLevel(i);
   });
   const nx = el.querySelector('.lv.next');
@@ -301,51 +313,65 @@ function skinScreen(tab = wardTab) {
   scene = 'skins'; game = null; setHud(false);
   const ts = totalStars();
   const right = tab === 'gear' ? `<div class="starsum bones">${BONE} ${save.bones}</div>` : `<div class="starsum">★ ${ts}</div>`;
-  let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>고양이 옷장</h2>${right}</div>
-    <div class="wtabs"><button class="${tab === 'skin' ? 'on' : ''}" data-t="skin">털색</button><button class="${tab === 'gear' ? 'on' : ''}" data-t="gear">장비</button></div>`;
+  let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>${t('title.ward')}</h2>${right}</div>
+    <div class="wtabs"><button class="${tab === 'skin' ? 'on' : ''}" data-t="skin">${tr('털색')}</button><button class="${tab === 'gear' ? 'on' : ''}" data-t="gear">${tr('장비')}</button></div>`;
   if (tab === 'gear') html += save.freeBox === today()
-    ? `<div class="freebox done">🎁 오늘의 무료 상자는 받았어요<small>내일 또 열려요</small></div>`
-    : `<button class="freebox" data-a="box">🎁 오늘의 무료 상자 <b>${BONE} +${FREE_BOX}</b><small>📺 광고 보고 열기</small></button>`;
+    ? `<div class="freebox done">🎁 ${tr('오늘의 무료 상자는 받았어요')}<small>${tr('내일 또 열려요')}</small></div>`
+    : `<button class="freebox" data-a="box">🎁 ${tr('오늘의 무료 상자')} <b>${BONE} +${FREE_BOX}</b><small>📺 ${tr('광고 보고 열기')}</small></button>`;
   if (tab === 'gear') html += gearHTML();
   else {
     html += '<div class="skins">';
     for (const s of SKINS) {
       const ok = skinOpen(s, ts);
-      html += `<button class="skin ${save.skin === s.id ? 'sel' : ''} ${ok ? '' : 'lock'}" data-s="${s.id}"><img src="${spriteURL(s.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat', s, false, ok ? wearOn() : null) || skinIcon(s)}" alt="">${ok ? (s.crown ? '👑 ' : '') + s.name : '???'}<small>${ok ? (save.skin === s.id ? '입는 중' : '입어 보기') : s.ending ? '엔딩을 보면 열려요' : s.quest ? `의뢰 조각 ${save.pieces || 0}/${s.quest}` : `별 ${s.need}개`}</small></button>`;
+      html += `<button class="skin ${save.skin === s.id ? 'sel' : ''} ${ok ? '' : 'lock'}" data-s="${s.id}"><img src="${spriteURL(s.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat', s, false, ok ? wearOn() : null) || skinIcon(s)}" alt="">${ok ? (s.crown ? '👑 ' : '') + tr(s.name) : '???'}<small>${ok ? (save.skin === s.id ? tr('입는 중') : tr('입어 보기')) : s.ending ? tr('엔딩을 보면 열려요') : s.quest ? tf('의뢰 조각 {have}/{need}', { have: save.pieces || 0, need: s.quest }) : tf('별 {n}개', { n: s.need })}</small></button>`;
     }
     html += '</div>';
   }
   const el = show(html, 'list');
+  animPreview(el);
   on(el, '[data-a=back]', () => titleScreen());
   on(el, '[data-t]', (e, b) => skinScreen(b.dataset.t));
   on(el, '[data-a=box]', async (e, b) => {
     b.disabled = true;
     if (!(await Reward.show('box'))) { b.disabled = false; return; }
     save.freeBox = today(); save.bones += FREE_BOX; store();
-    Sound.play('coin'); toast(`생선뼈 +${FREE_BOX}!`); skinScreen('gear');
+    Sound.play('coin'); toast(tf('생선뼈 +{n}!', { n: FREE_BOX })); skinScreen('gear');
   });
   on(el, '[data-s]', (e, b) => {
     const s = skinById(b.dataset.s);
-    if (!skinOpen(s, ts)) { toast(s.ending ? '99번째 스테이지를 깨고 엔딩을 보면 열려요' : s.quest ? `하루 의뢰 보너스 상자에서 조각 ${s.quest}개를 모으면 열려요` : `별 ${s.need}개를 모으면 열려요`); return; }
+    if (!skinOpen(s, ts)) { toast(s.ending ? tr('99번째 스테이지를 깨고 엔딩을 보면 열려요') : s.quest ? tf('하루 의뢰 보너스 상자에서 조각 {n}개를 모으면 열려요', { n: s.quest }) : tf('별 {n}개를 모으면 열려요', { n: s.need })); return; }
     save.skin = s.id; store(); skinScreen();
   });
   on(el, '[data-g]', (e, b) => gearTap(b.dataset.g));
 }
 
 const pct = (sl, v) => `${sl.sign}${v}%`;
+// 옷장 미리보기 고양이: 가끔 기지개·꼬리 흔들기 (입은 장비 그대로)
+function animPreview(el) {
+  const img = el.querySelector('.gpreview img'), sk = skinById(save.skin);
+  if (!img || (sk.crown && IMG['sprite-cat-king'])) return;
+  const poses = ['sprite-cat', 'sprite-cat-tail', 'sprite-cat', 'sprite-cat-stretch'].filter((n) => IMG[n]);
+  if (poses.length < 2) return;
+  let k = 0;
+  const iv = setInterval(() => {
+    if (!img.isConnected) { clearInterval(iv); return; }
+    k = (k + 1) % poses.length;
+    img.src = spriteURL(poses[k], sk, false, wearOn());
+  }, 2400);
+}
 function gearHTML() {
   const sk = skinById(save.skin), on = wearOn();
-  const sum = SLOTS.map((sl) => { const g = gearById(on[sl.id]); return g ? `${sl.stat} ${pct(sl, g.val)}` : null; }).filter(Boolean);
+  const sum = SLOTS.map((sl) => { const g = gearById(on[sl.id]); return g ? `${tr(sl.stat)} ${pct(sl, g.val)}` : null; }).filter(Boolean);
   let h = `<div class="gpreview"><img src="${spriteURL(sk.crown && IMG['sprite-cat-king'] ? 'sprite-cat-king' : 'sprite-cat', sk, false, on)}" alt="">
-    <div><b>지금 효과</b><span>${sum.length ? sum.join('<br>') : '아직 입은 장비가 없어요'}</span><small>🔥 어려움 스테이지에서는 효과가 절반이에요<br>${BONE} 생선뼈: 처음 깬 판 +${EARN.first}, 새 별 +${EARN.star}, 다시 깨기 +${EARN.again}</small></div></div>`;
+    <div><b>${tr('지금 효과')}</b><span>${sum.length ? sum.join('<br>') : tr('아직 입은 장비가 없어요')}</span><small>🔥 ${tr('어려움 스테이지에서는 효과가 절반이에요')}<br>${BONE} ${tf('생선뼈: 처음 깬 판 +{first}, 새 별 +{star}, 다시 깨기 +{again}', { first: EARN.first, star: EARN.star, again: EARN.again })}</small></div></div>`;
   for (const sl of SLOTS) {
-    h += `<div class="gslot"><h4>${sl.emoji} ${sl.name} · ${sl.stat}</h4><p>${sl.desc}</p><div class="grow">`;
+    h += `<div class="gslot"><h4>${sl.emoji} ${tr(sl.name)} · ${tr(sl.stat)}</h4><p>${tr(sl.desc)}</p><div class="grow">`;
     for (const g of GEAR.filter((x) => x.slot === sl.id)) {
       const own = save.gear.owned[g.id], wearing = on[sl.id] === g.id;
       const prevOk = g.tier === 1 || save.gear.owned[`${sl.id}${g.tier - 1}`];
       const st = wearing ? 'wear' : own ? 'own' : prevOk ? 'buy' : 'lock';
-      const lab = wearing ? '입는 중' : own ? '입기' : prevOk ? `${BONE}${g.price}` : '🔒';
-      h += `<button class="gitem t${g.tier} ${st} ${st === 'buy' && save.bones < g.price ? 'poor' : ''}" data-g="${g.id}"><span class="gic">${gearIcon(g)}</span><b>${g.name}</b><i>${pct(sl, g.val)}</i><small>${lab}</small></button>`;
+      const lab = wearing ? tr('입는 중') : own ? tr('입기') : prevOk ? `${BONE}${g.price}` : '🔒';
+      h += `<button class="gitem t${g.tier} ${st} ${st === 'buy' && save.bones < g.price ? 'poor' : ''}" data-g="${g.id}"><span class="gic">${gearIcon(g)}</span><b>${tr(g.name)}</b><i>${pct(sl, g.val)}</i><small>${lab}</small></button>`;
     }
     h += '</div></div>';
   }
@@ -353,12 +379,12 @@ function gearHTML() {
 }
 function gearTap(id) {
   const g = gearById(id), sl = slotById(g.slot), on = wearOn();
-  if (on[sl.id] === id) { delete on[sl.id]; store(); toast(`${g.name}을(를) 벗었어요`); skinScreen(); return; }
+  if (on[sl.id] === id) { delete on[sl.id]; store(); toast(tf('{name}을(를) 벗었어요', { name: tr(g.name) })); skinScreen(); return; }
   if (save.gear.owned[id]) { on[sl.id] = id; store(); skinScreen(); return; }
-  if (g.tier > 1 && !save.gear.owned[`${sl.id}${g.tier - 1}`]) { toast('앞 단계 장비를 먼저 사야 해요'); return; }
-  if (save.bones < g.price) { toast(`생선뼈가 ${g.price - save.bones}개 모자라요`); return; }
+  if (g.tier > 1 && !save.gear.owned[`${sl.id}${g.tier - 1}`]) { toast(tr('앞 단계 장비를 먼저 사야 해요')); return; }
+  if (save.bones < g.price) { toast(tf('생선뼈가 {n}개 모자라요', { n: g.price - save.bones })); return; }
   save.bones -= g.price; save.gear.owned[id] = true; on[sl.id] = id; store();
-  Sound.play('star'); toast(`${g.name}을(를) 샀어요! ${sl.stat} ${pct(sl, g.val)}`);
+  Sound.play('star'); toast(tf('{name}을(를) 샀어요! {stat} {val}', { name: tr(g.name), stat: tr(sl.stat), val: pct(sl, g.val) }));
   skinScreen();
 }
 
@@ -409,20 +435,20 @@ function questScreen() {
   const now = new Date(), mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const left = Math.max(0, mid - now), hh = Math.floor(left / 3600000), mm = Math.floor((left % 3600000) / 60000);
   const lvBy = (id) => LEVELS.findIndex((l) => l.id === id);
-  let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>오늘의 의뢰</h2><div class="starsum bones">${BONE} ${save.bones}</div></div>
-    <div class="qhead">이미 깬 스테이지를 조건대로 다시 깨면 생선뼈를 받아요.<small>새 의뢰까지 ${hh}시간 ${mm}분 · 바꾸기 ${!Q.rerolled ? '하루 1번 무료' : adRr ? `📺 광고 보고 ${adRr}번 더` : '오늘은 다 썼어요'}</small></div>`;
+  let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>${tr('오늘의 의뢰')}</h2><div class="starsum bones">${BONE} ${save.bones}</div></div>
+    <div class="qhead">${tr('이미 깬 스테이지를 조건대로 다시 깨면 생선뼈를 받아요.')}<small>${tf('새 의뢰까지 {h}시간 {m}분', { h: hh, m: mm })} · ${!Q.rerolled ? tr('바꾸기 하루 1번 무료') : adRr ? tf('바꾸기 📺 광고 보고 {n}번 더', { n: adRr }) : tr('바꾸기 오늘은 다 썼어요')}</small></div>`;
   Q.list.forEach((q, k) => {
     const i = lvBy(q.lv), L = LEVELS[i], ch = CHAPTERS[L.ch - 1], T = TIERS[q.tier];
     html += `<div class="qcard ${T.cls} ${q.done ? 'done' : ''}">
-      <div class="qtop"><span class="qt">${T.name}</span><span class="qr">${BONE} +${T.reward}</span></div>
+      <div class="qtop"><span class="qt">${tr(T.name)}</span><span class="qr">${BONE} +${T.reward}</span></div>
       <b>${condText(q, ch)}</b>
-      <p>${L.id} ${L.name}</p>
-      ${q.done ? '<div class="qdone">✓ 완료</div>' : `<div class="qbtns"><button class="btn sm main" data-q="${k}">도전하기</button>${!Q.rerolled ? `<button class="btn sm" data-r="${k}">바꾸기</button>` : adRr ? `<button class="btn sm ad" data-ra="${k}">📺 바꾸기</button>` : ''}</div>`}
+      <p>${L.id} ${tr(L.name)}</p>
+      ${q.done ? `<div class="qdone">✓ ${tr('완료')}</div>` : `<div class="qbtns"><button class="btn sm main" data-q="${k}">${tr('도전하기')}</button>${!Q.rerolled ? `<button class="btn sm" data-r="${k}">${tr('바꾸기')}</button>` : adRr ? `<button class="btn sm ad" data-ra="${k}">📺 ${tr('바꾸기')}</button>` : ''}</div>`}
     </div>`;
   });
   const n = Q.list.filter((q) => q.done).length, pc = save.pieces || 0;
-  html += `<div class="qbox ${Q.box ? 'open' : ''}">🎁 3개 모두 완료하면 보너스 상자 <b>${Q.box ? '받았어요!' : `${n} / 3`}</b>
-    <small>생선뼈 +${BOX.bones} · 달빛 도둑 조각 +${BOX.pieces} — 조각 ${Math.min(pc, PIECES_FOR_SKIN)} / ${PIECES_FOR_SKIN}${pc >= PIECES_FOR_SKIN ? ' (해금 완료)' : ''}</small>
+  html += `<div class="qbox ${Q.box ? 'open' : ''}">🎁 ${tr('3개 모두 완료하면 보너스 상자')} <b>${Q.box ? tr('받았어요!') : `${n} / 3`}</b>
+    <small>${tf('생선뼈 +{bones} · 달빛 도둑 조각 +{pieces} — 조각 {have} / {need}', { bones: BOX.bones, pieces: BOX.pieces, have: Math.min(pc, PIECES_FOR_SKIN), need: PIECES_FOR_SKIN })}${pc >= PIECES_FOR_SKIN ? ` (${tr('해금 완료')})` : ''}</small>
     <div class="pbar"><i style="width:${Math.min(100, (pc / PIECES_FOR_SKIN) * 100)}%"></i></div></div>`;
   const el = show(html, 'list');
   on(el, '[data-a=back]', () => titleScreen());
@@ -430,52 +456,127 @@ function questScreen() {
   on(el, '[data-r]', (e, b) => {
     const k = +b.dataset.r;
     Q.list[k] = rerollOne(Q.day, Q.list[k], questLevels(), Q.list); Q.rerolled = true; store();
-    toast('의뢰를 바꿨어요'); questScreen();
+    toast(tr('의뢰를 바꿨어요')); questScreen();
   });
   on(el, '[data-ra]', async (e, b) => {
     b.disabled = true;
     if (!(await Reward.show('reroll'))) { b.disabled = false; return; }
     const k = +b.dataset.ra;
     Q.list[k] = rerollOne(Q.day, Q.list[k], questLevels(), Q.list); Q.adRerolls = (Q.adRerolls || 0) + 1; store();
-    toast('의뢰를 바꿨어요'); questScreen();
+    toast(tr('의뢰를 바꿨어요')); questScreen();
   });
 }
 const AD_REROLLS = 2;
 
 // ───────── 비밀 아지트 ─────────
+// 애정도 0~100: 쓰다듬기·간식·놀이를 하루 한 번씩 하면 +5. 마지막으로 돌본 지 하루가 지나면 하루에 10씩 줄지만 20 아래로는 안 떨어진다.
+// 하루 넘게 못 봤으면 처음 돌봐 줄 때 반가워하며 +20. 줄어들어도 표정·행동만 바뀌고 게임 진행·생선뼈는 그대로.
+// 하트(0~5)가 처음 오를 때마다 아지트 장식이 하나씩 생기고(사라지지 않음), 하트 5칸이면 하루 한 번 선물(생선뼈 +20).
+const LOVE = { gain: 5, back: 20, decay: 10, floor: 20, gift: 20, special: 20 }; // special: 📺 특별 간식 (하루 1번)
+const DAY = 864e5;
+const DECOS = ['고양이 풀 화분', '털실 바구니', '고양이 액자', '반짝이 전구 줄', '생선 쿠션'];
+const heartsOf = (v) => Math.min(5, Math.floor((v + 10) / 20));
+function denData() {
+  const d = (save.den ||= { pets: 0, snacks: 0, plays: 0 });
+  if (d.love == null) { // 예전 기록: 쓰다듬은 횟수로 시작값을 정한다
+    d.love = Math.max(40, Math.min(100, (d.pets + d.snacks + d.plays) * 2));
+    d.lastCare = Date.now(); d.maxHearts = heartsOf(d.love);
+  }
+  return d;
+}
+const awayLong = (d) => Date.now() - d.lastCare > DAY;
+function loveNow(d) {
+  const away = Date.now() - d.lastCare;
+  if (away <= DAY) return d.love;
+  return Math.max(Math.min(d.love, LOVE.floor), d.love - LOVE.decay * (Math.floor((away - DAY) / DAY) + 1));
+}
+function moodOf(d) {
+  if (awayLong(d)) return 'missed';
+  const v = loveNow(d);
+  return v < 40 ? 'sad' : v < 70 ? 'ok' : 'happy';
+}
+// kind: pet | snack | play → { gain, back, newDeco }
+function careFor(kind) {
+  const d = denData(), back = awayLong(d), td = today();
+  if (d.careDay !== td) { d.careDay = td; d.did = {}; }
+  let gain = 0;
+  if (kind === 'special') { d.specialDay = td; gain += LOVE.special; }
+  else if (!d.did[kind]) { d.did[kind] = true; gain += LOVE.gain; }
+  if (back) gain += LOVE.back;
+  const before = d.maxHearts || 0;
+  d.love = Math.min(100, loveNow(d) + gain); d.lastCare = Date.now();
+  d.maxHearts = Math.max(before, heartsOf(d.love));
+  store();
+  return { gain, back, newDeco: d.maxHearts > before ? d.maxHearts : 0 };
+}
 let den = null;
 function denScreen() {
   scene = 'den'; game = null; setHud(false);
-  if (!save.den) save.den = { pets: 0, snacks: 0, plays: 0 };
+  const D = denData();
+  D.maxHearts = Math.max(D.maxHearts || 0, heartsOf(loveNow(D))); // 장식은 지금까지 오른 하트만큼
   const shelf = CHAPTERS.map((ch) => {
     const ls = LEVELS.filter((l) => l.ch === ch.id);
     return { ch, img: IMG['item-' + ch.bonus], n: ls.filter((l) => starsOf(l.id)[1]).length, all: ls.length, seen: ls.some((l) => cleared(l.id)) };
   });
   const got = shelf.reduce((n, x) => n + x.n, 0), all = shelf.reduce((n, x) => n + x.all, 0);
-  const love = save.den.pets + save.den.snacks + save.den.plays;
-  const hearts = Math.min(5, Math.floor(love / 15));
-  const el = show(`<div class="top"><button class="back" data-a="back">‹</button><h2>비밀 아지트</h2><div class="starsum bones">${BONE} ${save.bones}</div></div>
-    <div class="denwrap"><canvas id="denCv"></canvas><div class="dentip">고양이를 톡 누르면 쓰다듬어요 · 바닥을 누르면 그쪽으로 가요</div></div>
-    <div class="denbtns"><button class="btn sm" data-a="snack">🐟 간식 주기</button><button class="btn sm" data-a="play">🧶 놀아 주기</button><button class="btn sm" data-a="ward">👕 옷장</button></div>
-    <div class="love">친밀도 <span>${'♥'.repeat(hearts)}${'♡'.repeat(5 - hearts)}</span><small>쓰다듬기 ${save.den.pets} · 간식 ${save.den.snacks} · 놀이 ${save.den.plays}</small></div>
-    <div class="chap trophy"><h3>훔친 물건 진열장 <span>${got} / ${all}</span></h3><p>스테이지에서 보너스 물건을 모두 챙기면 하나씩 늘어나요.</p><div class="tgrid">
-    ${shelf.map((x) => `<div class="tcell ${x.n ? '' : 'none'}"><img src="${IMG['item-' + x.ch.bonus] ? `img/item-${x.ch.bonus}.webp` : ICON[x.ch.bonus]}" alt=""><b>${x.seen ? x.ch.bonusName : '???'}</b><small>${x.n} / ${x.all}</small></div>`).join('')}
-    <div class="tcell gold ${save.ending ? '' : 'none'}"><img src="${IMG['item-fish-gold'] ? 'img/item-fish-gold.webp' : ''}" alt=""><b>${save.ending ? '진짜 황금 생선' : '???'}</b><small>${save.ending ? '전설의 보물' : '엔딩을 보면'}</small></div>
+  const el = show(`<div class="top"><button class="back" data-a="back">‹</button><h2>${t('title.den')}</h2><div class="starsum bones">${BONE} ${save.bones}</div></div>
+    <div class="denwrap"><canvas id="denCv"></canvas><div class="dentip">${tr('고양이를 톡 누르면 쓰다듬어요 · 바닥을 누르면 그쪽으로 가요')}</div></div>
+    <div class="denbtns"><button class="btn sm" data-a="snack">🐟 ${tr('간식 주기')}</button><button class="btn sm" data-a="play">🧶 ${tr('놀아 주기')}</button><button class="btn sm" data-a="ward">👕 ${tr('옷장')}</button></div>
+    <div class="love"></div>
+    <div class="chap trophy"><h3>${tr('훔친 물건 진열장')} <span>${got} / ${all}</span></h3><p>${tr('스테이지에서 보너스 물건을 모두 챙기면 하나씩 늘어나요.')}</p><div class="tgrid">
+    ${shelf.map((x) => `<div class="tcell ${x.n ? '' : 'none'}"><img src="${IMG['item-' + x.ch.bonus] ? `img/item-${x.ch.bonus}.webp` : ICON[x.ch.bonus]}" alt=""><b>${x.seen ? tr(x.ch.bonusName) : '???'}</b><small>${x.n} / ${x.all}</small></div>`).join('')}
+    <div class="tcell gold ${save.ending ? '' : 'none'}"><img src="${IMG['item-fish-gold'] ? 'img/item-fish-gold.webp' : ''}" alt=""><b>${save.ending ? tr('진짜 황금 생선') : '???'}</b><small>${save.ending ? tr('전설의 보물') : tr('엔딩을 보면')}</small></div>
     </div></div>`, 'list');
   if (den) den.stop();
   den = startDen(el.querySelector('#denCv'), {
     skin: skinById(save.skin), wear: wearOn(), golden: !!save.ending,
     shelf: shelf.map((x) => ({ img: x.img, n: x.n })),
-    onPet: () => { save.den.pets++; store(); },
+    mood: moodOf(D), deco: D.maxHearts || 0,
+    onPet: () => { D.pets++; cared('pet'); },
   });
+  // 돌봐 준 뒤: 반가워 연출 · 새 장식 · 하트 줄 다시 그리기
+  function cared(kind) {
+    const r = careFor(kind);
+    if (r.back && kind !== 'special') den.cheer(); // 특별 간식은 츄릅 연출 끝에 '최고야!'로 반긴다
+    den.setMood(moodOf(D)); den.setDeco(D.maxHearts || 0);
+    if (r.newDeco) setTimeout(() => toast(tf('새 장식이 생겼어요: {deco}', { deco: tr(DECOS[r.newDeco - 1]) }), 2600), r.back ? 1400 : 300);
+    paintLove();
+  }
+  function paintLove() {
+    const box = el.querySelector('.love'); if (!box) return;
+    const v = loveNow(D), h = heartsOf(v), m = moodOf(D), td = today();
+    const did = D.careDay === td ? D.did || {} : {};
+    const MOOD = { happy: '기분 최고예요', ok: '기분 좋아요', sad: '조금 심심해해요', missed: '많이 보고 싶었대요…' };
+    const chk = (k, ic) => `<i class="${did[k] ? 'on' : ''}">${ic}${did[k] ? '✓' : ''}</i>`;
+    const next = D.maxHearts || 0;
+    const giftReady = h >= 5 && D.giftDay !== td;
+    box.innerHTML = `<div class="lrow">${tr('친밀도')} <span>${'♥'.repeat(h)}${'♡'.repeat(5 - h)}</span><em class="${m}">${tr(MOOD[m])}</em></div>
+      <small>${tr('오늘 돌봐 주기')} ${chk('pet', '👋')} ${chk('snack', '🐟')} ${chk('play', '🧶')}</small>
+      <small>${next < 5 ? tf('다음 장식: {deco} (♥{n})', { deco: tr(DECOS[next]), n: next + 1 }) : tr('장식을 모두 모았어요')}</small>
+      ${D.specialDay !== td ? `<button class="btn sm ad special" data-a="special">📺 ${tr('특별 간식')} <b>♥+${LOVE.special}</b></button>` : `<small>${tr('특별 간식은 내일 또 줄 수 있어요')}</small>`}
+      ${giftReady ? `<button class="btn sm gift" data-a="gift">${IMG['item-gift'] ? '<img class="gimg" src="img/item-gift.webp" alt="">' : '🎁'} ${tf('고양이가 선물을 물어 왔어요! {bone} +{n}', { bone: BONE, n: LOVE.gift })}</button>` : ''}`;
+    on(box, '[data-a=special]', async (e, b) => {
+      if (den.cat.state === 'eat' || den.cat.state === 'lick' || den.cat.state === 'pounce' || den.cat.state === 'hop') { toast(tr('지금은 먹는 중이에요')); return; }
+      b.disabled = true;
+      if (!(await Reward.show('treat')) || !den || !den.special()) { b.disabled = false; return; }
+      cared('special');
+    });
+    on(box, '[data-a=gift]', () => {
+      D.giftDay = today(); save.bones += LOVE.gift; store();
+      den.gift(); Sound.play('coin');
+      const b = el.querySelector('.top .bones'); if (b) b.innerHTML = `${BONE} ${save.bones}`;
+      paintLove();
+    });
+  }
+  paintLove();
   on(el, '[data-a=back]', () => { den.stop(); den = null; titleScreen(); });
   on(el, '[data-a=ward]', () => { den.stop(); den = null; skinScreen('gear'); });
-  on(el, '[data-a=snack]', () => { if (den.snack()) { save.den.snacks++; store(); } else toast('지금은 먹는 중이에요'); });
-  on(el, '[data-a=play]', () => { if (den.play()) { save.den.plays++; store(); } else toast('지금은 노는 중이에요'); });
+  on(el, '[data-a=snack]', () => { if (den.snack()) { D.snacks++; cared('snack'); } else toast(tr('지금은 먹는 중이에요')); });
+  on(el, '[data-a=play]', () => { if (den.play()) { D.plays++; cared('play'); } else toast(tr('지금은 노는 중이에요')); });
 }
 
 // ───────── 장 소개 (등장인물·물건) ─────────
-const guideRow = (e, isNew) => `<div class="gi ${isNew ? 'new' : ''}"><img src="${guideIcon(e.id)}" alt=""><div><b>${e.name}${isNew ? '<em>NEW</em>' : ''}</b><span>${e.desc}</span></div></div>`;
+const guideRow = (e, isNew) => `<div class="gi ${isNew ? 'new' : ''}"><img src="${guideIcon(e.id)}" alt=""><div><b>${tr(e.name)}${isNew ? '<em>NEW</em>' : ''}</b><span>${tr(e.desc)}</span></div></div>`;
 function chapterScreen(chId, next) {
   scene = 'chapter'; game = null; setHud(false); musicCh = chId;
   save.seenCh[chId] = true; store();
@@ -484,14 +585,14 @@ function chapterScreen(chId, next) {
     const list = all.filter((e) => e.kind === kind);
     return list.length ? `<h4>${title}</h4>${list.map((e) => guideRow(e, chId > 1 && nw.has(e.id))).join('')}` : '';
   };
-  const el = show(`<div class="top"><button class="back" data-a="back">‹</button><h2>${ch.id}장 · ${ch.name}</h2></div>
+  const el = show(`<div class="top"><button class="back" data-a="back">‹</button><h2>${chTitle(ch)}</h2></div>
     <div class="chap guide">
       ${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}
-      <p>${ch.sub} — 이번 장에서 만나는 것들이에요.</p>
-      ${sec('who', '등장인물')}
-      ${sec('item', '물건과 장치')}
+      <p>${tf('{sub} — 이번 장에서 만나는 것들이에요.', { sub: tr(ch.sub) })}</p>
+      ${sec('who', tr('등장인물'))}
+      ${sec('item', tr('물건과 장치'))}
     </div>
-    <div class="gfoot"><button class="btn main" data-a="go">${next ? '잠입하러 가기' : '알겠어요'}</button></div>`, 'list');
+    <div class="gfoot"><button class="btn main" data-a="go">${next ? tr('잠입하러 가기') : tr('알겠어요')}</button></div>`, 'list');
   on(el, '[data-a=back]', () => levelScreen());
   on(el, '[data-a=go]', () => (next ? next() : levelScreen()));
 }
@@ -515,35 +616,35 @@ function startLevel(i, skipIntro = false) {
   setHud(true);
   buildSides(L, i);
   buildGoals();
-  $('#lvTitle').textContent = `${L.id} ${L.name}`;
+  $('#lvTitle').textContent = `${L.id} ${tr(L.name)}`;
   const ch = CHAPTERS[L.ch - 1];
   const nw = skipIntro && firstOfChapter(i) ? [] : newInLevel(i), here = inLevel(L).filter((e) => e.id !== 'door');
   const el = show(`<div class="card intro"><div class="ibody">
       ${IMG['chapter-' + ch.id] ? `<div class="cbanner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}
-      <span class="tag">${ch.id}장 · ${ch.name}</span>${L.hard ? '<span class="tag hardt">🔥 고난도</span>' : ''}
-      <h1>${L.name}</h1>
-      <p class="tip">${L.hint}</p>
-      ${nw.length ? `<div class="newbox"><div class="nh">새로 등장!</div>${nw.map((e) => guideRow(e, false)).join('')}</div>` : ''}
-      <div class="chips"><span>이번 스테이지</span>${here.map((e) => `<button class="chip" data-e="${e.id}"><img src="${guideIcon(e.id)}" alt="${e.name}"></button>`).join('')}</div>
-      <div class="goalrow on"><span class="s">★</span>${L.golden ? '황금 생선' : '생선'}을 물고 고양이 문으로 탈출</div>
-      <div class="goalrow on"><span class="s">★</span>${ch.bonusName} 2개 모두 챙기기</div>
-      <div class="goalrow on"><span class="s">★</span>한 번도 들키지 않기 (!)</div>
-      ${questsFor(L.id).map((q) => `<div class="qline">📜 오늘의 의뢰: ${condText(q, ch)} <b>+${TIERS[q.tier].reward}</b></div>`).join('')}
-      </div><div class="gobar"><button class="btn main" data-a="go">잠입 시작</button></div>
+      <span class="tag">${chTitle(ch)}</span>${L.hard ? `<span class="tag hardt">🔥 ${tr('고난도')}</span>` : ''}
+      <h1>${tr(L.name)}</h1>
+      <p class="tip">${tr(L.hint)}</p>
+      ${nw.length ? `<div class="newbox"><div class="nh">${tr('새로 등장!')}</div>${nw.map((e) => guideRow(e, false)).join('')}</div>` : ''}
+      <div class="chips"><span>${tr('이번 스테이지')}</span>${here.map((e) => `<button class="chip" data-e="${e.id}"><img src="${guideIcon(e.id)}" alt="${tr(e.name)}"></button>`).join('')}</div>
+      <div class="goalrow on"><span class="s">★</span>${L.golden ? tr('황금 생선을 물고 고양이 문으로 탈출') : tr('생선을 물고 고양이 문으로 탈출')}</div>
+      <div class="goalrow on"><span class="s">★</span>${tf('{item} 2개 모두 챙기기', { item: tr(ch.bonusName) })}</div>
+      <div class="goalrow on"><span class="s">★</span>${tr('한 번도 들키지 않기 (!)')}</div>
+      ${questsFor(L.id).map((q) => `<div class="qline">📜 ${tf('오늘의 의뢰: {cond}', { cond: condText(q, ch) })} <b>+${TIERS[q.tier].reward}</b></div>`).join('')}
+      </div><div class="gobar"><button class="btn main" data-a="go">${tr('잠입 시작')}</button></div>
     </div>`, 'center dim');
   on(el, '[data-a=go]', () => startPlay());
-  on(el, '[data-e]', (e, b) => { const g = entry(b.dataset.e); toast(`${g.name} — ${g.desc}`, 3600); });
+  on(el, '[data-e]', (e, b) => { const g = entry(b.dataset.e); toast(`${tr(g.name)} — ${tr(g.desc)}`, 3600); });
 }
 // 가로 화면에서 맵 양옆 빈자리에 스테이지 정보와 조작법
 function buildSides(L, i) {
-  $('#sideL').innerHTML = `<h3>${L.id} ${L.name}</h3><p>${L.hint}</p>
-    <h4>이번 스테이지</h4>${inLevel(L).filter((e) => e.id !== 'door').map((e) => guideRow(e, newInLevel(i).includes(e))).join('')}`;
+  $('#sideL').innerHTML = `<h3>${L.id} ${tr(L.name)}</h3><p>${tr(L.hint)}</p>
+    <h4>${tr('이번 스테이지')}</h4>${inLevel(L).filter((e) => e.id !== 'door').map((e) => guideRow(e, newInLevel(i).includes(e))).join('')}`;
   const k = (a, b) => `<div class="key"><span>${a}</span><kbd>${b}</kbd></div>`;
-  $('#sideR').innerHTML = `<h3>조작</h3>${k('이동 (살금살금)', '방향키 · WASD')}${k('달리기', 'Shift')}${k('행동', 'Space')}${k('야옹', 'Q')}${k('맵 전체 보기', 'Tab 누르고 있기')}${k('일시정지', 'Esc')}${k('다시 하기 (끝난 뒤)', 'R')}
-    <h4>알아 두기</h4>
-    <p class="tipl">· 달리기 발소리, 야옹, 꽃병 소리는 문을 돌아 퍼져요.</p>
-    <p class="tipl">· 탁자·침대·상자 밑과 고양이 문 안은 안 보여요.</p>
-    <p class="tipl">· 화면을 끌어서 움직여도 돼요.</p>`;
+  $('#sideR').innerHTML = `<h3>${tr('조작')}</h3>${k(tr('이동 (살금살금)'), tr('방향키 · WASD'))}${k(tr('달리기'), 'Shift')}${k(tr('행동'), 'Space')}${k(tr('야옹'), 'Q')}${k(tr('맵 전체 보기'), tr('Tab 누르고 있기'))}${k(tr('일시정지'), 'Esc')}${k(tr('다시 하기 (끝난 뒤)'), 'R')}
+    <h4>${tr('알아 두기')}</h4>
+    <p class="tipl">· ${tr('달리기 발소리, 야옹, 꽃병 소리는 문을 돌아 퍼져요.')}</p>
+    <p class="tipl">· ${tr('탁자·침대·상자 밑과 고양이 문 안은 안 보여요.')}</p>
+    <p class="tipl">· ${tr('화면을 끌어서 움직여도 돼요.')}</p>`;
   placeSides();
 }
 function placeSides() {
@@ -593,7 +694,7 @@ function pauseGame() {
   paused = true; joy.active = false;
   const el = show(`<div class="card">
       <h1>${t('pause.title')}</h1>
-      <p>${game.L.id} ${game.L.name}</p>
+      <p>${game.L.id} ${tr(game.L.name)}</p>
       <button class="btn main" data-a="resume">${t('pause.resume')}</button>
       <button class="btn" data-a="retry">${t('pause.retry')}</button>
       <button class="btn" data-a="list">${t('pause.list')}</button>
@@ -622,35 +723,56 @@ function resumeGame() {
 // 같은 스테이지에서 잡힌 횟수 (이번에 켠 동안만): 3번째부터 건너뛰기 버튼
 const failCount = {};
 const SKIP_AFTER = 3;
+const REVIVE_BONES = 30; // 생선뼈로 바로 이어하기 값 (광고 대신)
 const FAIL = ['생선은 다음 기회에…', '고양이 털이 너무 눈에 띄었다', '살금살금이 부족했다!', '집사의 눈은 매서웠다'];
 function endLevel(win) {
   ended = true;
   const L = game.L;
+  if (L.ch > 1) adStages++;
   if (!win) {
     const fails = (failCount[L.id] = (failCount[L.id] || 0) + (game.revived ? 0 : 1));
     const canRevive = !game.revived;
+    const freeRevive = save.freeRevive !== today();
     const canSkip = fails >= SKIP_AFTER && !cleared(L.id) && !skipped(L.id) && !!LEVELS[levelIdx + 1];
     const el = show(`<div class="card">
         ${IMG.caught ? `<img class="hero" src="${spriteURL('caught', skinById(save.skin))}" alt="">` : '<div class="big">😿</div>'}
-        <h1>잡혔다!</h1>
-        <p>${FAIL[(Math.random() * FAIL.length) | 0]}</p>
-        ${canRevive ? `<button class="btn ad" data-a="revive">📺 이어하기<small>${game.cat.hasFish ? '생선은 잡힌 자리에 떨어져요' : '모은 보너스는 그대로'}</small></button>` : ''}
-        <button class="btn ${canRevive ? '' : 'main'}" data-a="retry">처음부터 다시</button>
-        ${canSkip ? `<button class="btn ad sm" data-a="skip">📺 이 스테이지 건너뛰기<small>별 없이 다음 스테이지가 열려요</small></button>` : ''}
-        <button class="btn sm" data-a="list">스테이지 목록</button>
+        <h1>${tr('잡혔다!')}</h1>
+        <p>${tr(FAIL[(Math.random() * FAIL.length) | 0])}</p>
+        ${canRevive ? (freeRevive
+          ? `<button class="btn ad free" data-a="revfree">🎁 ${tr('이어하기')}<small>${tr('오늘 1번 무료')}</small></button>`
+          : `<div class="revrow"><button class="btn ad" data-a="revive">📺 ${tr('이어하기')}<small>${tr('광고 보고 무료')}</small></button><button class="btn bonebtn ${save.bones < REVIVE_BONES ? 'poor' : ''}" data-a="revbone"><span class="bv">${BONE}${REVIVE_BONES}</span><small>${tr('바로 이어하기')}</small></button></div>`)
+          + `<div class="revnote">${game.cat.hasFish ? tr('생선은 잡힌 자리에 떨어져요') : tr('모은 보너스는 그대로예요')}</div>` : ''}
+        <button class="btn ${canRevive ? '' : 'main'}" data-a="retry">${tr('처음부터 다시')}</button>
+        ${canSkip ? `<button class="btn ad sm" data-a="skip">📺 ${tr('이 스테이지 건너뛰기')}<small>${tr('별 없이 다음 스테이지가 열려요')}</small></button>` : ''}
+        <button class="btn sm" data-a="list">${tr('스테이지 목록')}</button>
       </div>`, 'center dim');
-    on(el, '[data-a=retry]', () => startLevel(levelIdx));
-    on(el, '[data-a=list]', () => levelScreen());
+    on(el, '[data-a=retry]', () => atBreak(() => startLevel(levelIdx)));
+    on(el, '[data-a=list]', () => atBreak(() => levelScreen()));
     on(el, '[data-a=revive]', async (e, b) => {
       b.disabled = true;
       if (!(await Reward.show('revive')) || !game || !game.revive()) { b.disabled = false; return; }
       ended = false; hideLayer(); vib(20);
     });
+    // 하루 1번 무료 이어하기
+    on(el, '[data-a=revfree]', () => {
+      if (!game || !game.revive()) return;
+      save.freeRevive = today(); store();
+      ended = false; hideLayer(); vib(20);
+      toast(tr('오늘의 무료 이어하기를 썼어요'), 1800);
+    });
+    // 생선뼈로 바로 이어하기
+    on(el, '[data-a=revbone]', () => {
+      if (save.bones < REVIVE_BONES) { toast(tf('생선뼈가 {n}개 모자라요', { n: REVIVE_BONES - save.bones })); return; }
+      if (!game || !game.revive()) return;
+      save.bones -= REVIVE_BONES; store();
+      ended = false; hideLayer(); vib(20);
+      toast(tf('생선뼈 {n}개로 이어가요', { n: REVIVE_BONES }), 1800);
+    });
     on(el, '[data-a=skip]', async (e, b) => {
       b.disabled = true;
       if (!(await Reward.show('skip'))) { b.disabled = false; return; }
       (save.skipped ||= {})[L.id] = true; store();
-      toast(`${L.id} 건너뜀 — 나중에 언제든 다시 깰 수 있어요`, 2600);
+      toast(tf('{id} 건너뜀 — 나중에 언제든 다시 깰 수 있어요', { id: L.id }), 2600);
       startLevel(levelIdx + 1);
     });
     return;
@@ -673,23 +795,23 @@ function endLevel(win) {
   const last = !!L.final, golden = !!L.golden, fake = golden && !last;
   const nextL = LEVELS[levelIdx + 1];
   const soon = !last && !nextL;
-  const labels = ['생선 들고 탈출', `${ch.bonusName} 모두 챙김`, '한 번도 안 들킴'];
+  const labels = [tr('생선 들고 탈출'), tf('{item} 모두 챙김', { item: tr(ch.bonusName) }), tr('한 번도 안 들킴')];
   const el = show(`<div class="card">
       ${(() => { const nm = golden ? 'legend' : !nextL || nextL.ch !== L.ch ? (IMG['clear-' + L.ch] ? 'clear-' + L.ch : 'win') : 'win'; return IMG[nm] ? `<img class="hero" src="${spriteURL(nm, skinById(save.skin))}" alt="">` : ''; })()}
       <span class="tag">${L.id} · ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</span>
-      <h1>${last ? '전설의 도둑 고양이!' : fake ? '황금 생선…인데?' : '탈출 성공!'}</h1>
-      ${last ? '<p>진짜 황금 생선을 손에 넣었다! 99스테이지 모두 클리어!</p>' : ''}
-      ${fake ? '<p>훔친 황금 생선이 이상하게 가볍다. 톡톡… 플라스틱?! <b>진짜는 생선왕의 성에 있다!</b></p>' : ''}
-      ${soon ? '<p class="soonp">다음 장은 지금 준비 중이에요. 조금만 기다려 주세요!</p>' : ''}
+      <h1>${last ? tr('전설의 도둑 고양이!') : fake ? tr('황금 생선…인데?') : tr('탈출 성공!')}</h1>
+      ${last ? `<p>${tr('진짜 황금 생선을 손에 넣었다! 99스테이지 모두 클리어!')}</p>` : ''}
+      ${fake ? `<p>${tr('훔친 황금 생선이 이상하게 가볍다. 톡톡… 플라스틱?!')} <b>${tr('진짜는 생선왕의 성에 있다!')}</b></p>` : ''}
+      ${soon ? `<p class="soonp">${tr('다음 장은 지금 준비 중이에요. 조금만 기다려 주세요!')}</p>` : ''}
       ${labels.map((lb, i) => `<div class="goalrow hide" data-g="${i}"><span class="s">★</span>${lb}</div>`).join('')}
-      <div class="earn">${BONE} 생선뼈 +<b class="en">${earn}</b><small>모두 <b class="eb">${save.bones}</b></small></div>
-      <button class="btn ad sm dbl" data-a="double">📺 생선뼈 2배 받기 <b>+${earn}</b></button>
-      ${qres.map((r) => `<div class="qres ${r.ok ? 'ok' : ''}">📜 ${r.ok ? '의뢰 완료' : '의뢰 실패'}: ${r.text}${r.ok ? ` <b>+${r.reward}</b>` : ''}</div>`).join('')}
-      ${qres.box ? `<div class="unlock">🎁 오늘의 의뢰 3개 완료! 보너스 상자: 생선뼈 +${BOX.bones}, 달빛 도둑 조각 +${BOX.pieces} (${save.pieces}/${PIECES_FOR_SKIN})</div>` : ''}
-      ${qres.skin ? '<div class="unlock">새 고양이 해금: 달빛 도둑! (옷장에서 입기)</div>' : ''}
-      ${newSkins.map((s) => `<div class="unlock">새 고양이 해금: ${s.name}! (옷장에서 입기)</div>`).join('')}
-      ${last ? '<button class="btn main" data-a="ending">엔딩 보기</button>' : soon ? '' : `<button class="btn main" data-a="next">다음 스테이지${nextL.no === HARD_FROM ? ' 🔥' : ''}</button>`}
-      <div class="row2"><button class="btn sm" data-a="retry">다시 하기</button><button class="btn sm" data-a="list">목록</button></div>
+      <div class="earn">${BONE} ${tf('생선뼈 +{n}', { n: `<b class="en">${earn}</b>` })}<small>${tf('모두 {n}', { n: `<b class="eb">${save.bones}</b>` })}</small></div>
+      <button class="btn ad sm dbl" data-a="double">📺 ${tr('생선뼈 2배 받기')} <b>+${earn}</b></button>
+      ${qres.map((r) => `<div class="qres ${r.ok ? 'ok' : ''}">📜 ${r.ok ? tf('의뢰 완료: {cond}', { cond: r.text }) : tf('의뢰 실패: {cond}', { cond: r.text })}${r.ok ? ` <b>+${r.reward}</b>` : ''}</div>`).join('')}
+      ${qres.box ? `<div class="unlock">🎁 ${tf('오늘의 의뢰 3개 완료! 보너스 상자: 생선뼈 +{bones}, 달빛 도둑 조각 +{pieces} ({have}/{need})', { bones: BOX.bones, pieces: BOX.pieces, have: save.pieces, need: PIECES_FOR_SKIN })}</div>` : ''}
+      ${qres.skin ? `<div class="unlock">${tr('새 고양이 해금: 달빛 도둑! (옷장에서 입기)')}</div>` : ''}
+      ${newSkins.map((s) => `<div class="unlock">${tf('새 고양이 해금: {name}! (옷장에서 입기)', { name: tr(s.name) })}</div>`).join('')}
+      ${last ? `<button class="btn main" data-a="ending">${tr('엔딩 보기')}</button>` : soon ? '' : `<button class="btn main" data-a="next">${tr('다음 스테이지')}${nextL.no === HARD_FROM ? ' 🔥' : ''}</button>`}
+      <div class="row2"><button class="btn sm" data-a="retry">${tr('다시 하기')}</button><button class="btn sm" data-a="list">${tr('목록')}</button></div>
     </div>`, 'center dim');
   got.forEach((g, i) => setTimeout(() => {
     const r = el.querySelector(`[data-g="${i}"]`);
@@ -697,7 +819,7 @@ function endLevel(win) {
     r.classList.remove('hide');
     if (g) { r.classList.add('on'); Sound.play('star'); }
   }, 350 + i * 380));
-  on(el, '[data-a=next]', () => startLevel(levelIdx + 1));
+  on(el, '[data-a=next]', () => atBreak(() => startLevel(levelIdx + 1)));
   on(el, '[data-a=double]', async (e, b) => {
     b.disabled = true;
     if (!(await Reward.show('double'))) { b.disabled = false; return; }
@@ -707,8 +829,8 @@ function endLevel(win) {
     b.remove(); Sound.play('coin');
   });
   on(el, '[data-a=ending]', () => endingScreen(true));
-  on(el, '[data-a=retry]', () => startLevel(levelIdx));
-  on(el, '[data-a=list]', () => levelScreen());
+  on(el, '[data-a=retry]', () => atBreak(() => startLevel(levelIdx)));
+  on(el, '[data-a=list]', () => atBreak(() => levelScreen()));
 }
 
 // ───────── 엔딩 ─────────
@@ -718,7 +840,7 @@ const ENDING = [
   { img: 'ending-3', text: '새벽 지붕 위. 그동안 모은 보물을 하나하나 세어 본다.', bg: ['#3a2f6b', '#f2a65a'] },
   { img: 'ending-4', text: '아침. 집사는 아무것도 모른다. 오늘도 평화로운 하루.', bg: ['#f6d9a8', '#f2b8a0'] },
 ];
-const CREDITS = ['도둑 고양이', '', '기획 · 그림', 'StatFlow Games', '', '프로그램 · 레벨 디자인', 'Claude', '', '등장 인물', '잠옷 집사 · 정장 집사 · 강아지', '경비원 · 생선가게 사장님', '요리사 · 관리인 아저씨', '경비 로봇 · 생선왕의 기사', '', '그리고', '끝까지 살금살금 걸어 준 당신', '', '고마워요!'];
+const CREDITS = ['몰래냥', '', '기획 · 그림', 'StatFlow Games', '', '프로그램 · 레벨 디자인', 'Claude', '', '등장 인물', '잠옷 집사 · 정장 집사 · 강아지', '경비원 · 생선가게 사장님', '요리사 · 관리인 아저씨', '경비 로봇 · 생선왕의 기사', '', '그리고', '끝까지 살금살금 걸어 준 당신', '', '고마워요!'];
 function endingScreen(first) {
   scene = 'ending'; game = null; setHud(false);
   if (first && !save.ending) { save.ending = true; store(); }
@@ -729,12 +851,12 @@ function endingScreen(first) {
     const art = IMG[p.img]
       ? `<div class="eart" style="background-image:url(img/${p.img}.webp)"></div>`
       : `<div class="eart code" style="background:linear-gradient(${p.bg[0]},${p.bg[1]})"><img src="${spriteURL('legend', skinById(save.skin)) || skinIcon(skinById(save.skin))}" alt=""></div>`;
-    const el = show(`<div class="ending">${art}<div class="etext"><p>${p.text}</p><small>${i + 1} / ${ENDING.length} · 눌러서 계속</small></div></div>`, 'full');
+    const el = show(`<div class="ending">${art}<div class="etext"><p>${tr(p.text)}</p><small>${i + 1} / ${ENDING.length} · ${tr('눌러서 계속')}</small></div></div>`, 'full');
     el.querySelector('.ending').addEventListener('click', () => { Sound.play('click'); i++; if (i < ENDING.length) panel(); else credits(); });
   };
   const credits = () => {
     const bg = IMG['ending-bg'] ? `style="background-image:url(img/ending-bg.webp)"` : '';
-    const el = show(`<div class="credits" ${bg}><div class="roll">${CREDITS.map((l, k) => `<div class="${k === 0 ? 'ct' : l && CREDITS[k + 1] && !CREDITS[k - 1] ? 'ch' : ''}">${l || '&nbsp;'}</div>`).join('')}</div><small class="skip">눌러서 넘기기</small></div>`, 'full');
+    const el = show(`<div class="credits" ${bg}><div class="roll">${CREDITS.map((l, k) => `<div class="${k === 0 ? 'ct' : l && CREDITS[k + 1] && !CREDITS[k - 1] ? 'ch' : ''}">${l ? tr(l) : '&nbsp;'}</div>`).join('')}</div><small class="skip">${tr('눌러서 넘기기')}</small></div>`, 'full');
     const go = () => { clearTimeout(tm); record(); };
     const tm = setTimeout(go, 16000);
     el.querySelector('.credits').addEventListener('click', go);
@@ -743,12 +865,12 @@ function endingScreen(first) {
     const ts = totalStars(), all = LEVELS.length * 3, cl = LEVELS.filter((l) => cleared(l.id)).length;
     const el = show(`<div class="card">
         <span class="tag">THE END</span>
-        <h1>전설의 도둑 고양이</h1>
-        <div class="goalrow on"><span class="s">★</span>모은 별 ${ts} / ${all}</div>
-        <div class="goalrow on"><span class="s">✓</span>깬 스테이지 ${cl} / ${LEVELS.length}</div>
-        <div class="unlock">엔딩 보상: 👑 생선왕 고양이 (옷장에서 입기)</div>
-        <button class="btn main" data-a="skin">옷장 가기</button>
-        <button class="btn" data-a="list">스테이지 목록</button>
+        <h1>${tr('전설의 도둑 고양이')}</h1>
+        <div class="goalrow on"><span class="s">★</span>${tf('모은 별 {n} / {all}', { n: ts, all })}</div>
+        <div class="goalrow on"><span class="s">✓</span>${tf('깬 스테이지 {n} / {all}', { n: cl, all: LEVELS.length })}</div>
+        <div class="unlock">${tf('엔딩 보상: {crown} 생선왕 고양이 (옷장에서 입기)', { crown: '👑' })}</div>
+        <button class="btn main" data-a="skin">${tr('옷장 가기')}</button>
+        <button class="btn" data-a="list">${tr('스테이지 목록')}</button>
       </div>`, 'center dim');
     on(el, '[data-a=skin]', () => skinScreen());
     on(el, '[data-a=list]', () => levelScreen());
@@ -866,7 +988,7 @@ function drawTitleBg(dt) {
   c.scale(sc, sc);
   drawCat(c, { skin: skinById(save.skin), t: titleT, face: 1, moving: true, walkT: titleT * 0.6, fish: true });
   c.restore();
-  c.font = `14px ${FONT}`;
+  c.font = `14px ${fontStack()}`;
 }
 
 // ───────── 루프 ─────────
@@ -900,6 +1022,7 @@ requestAnimationFrame(frame);
 // 야옹 버튼 위 작은 고양이 귀 (B안)
 const EARS = '<svg class="ears" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><path class="ef" d="M12 30 L18 3 Q20 0 23 2 L44 30Z M88 30 L82 3 Q80 0 77 2 L56 30Z"/><path class="es" d="M12 30 L18 3 Q20 0 23 2 L44 30 M88 30 L82 3 Q80 0 77 2 L56 30"/></svg>';
 function paintButtons() {
+  document.title = t('title.name');
   $('#bLook').innerHTML = buttonHTML('eye', t('btn.map'));
   $('#bMeow').innerHTML = EARS + buttonHTML('meow', t('btn.meow'));
   $('#bAct').innerHTML = buttonHTML('paw', t('btn.act'));
@@ -909,21 +1032,27 @@ function paintButtons() {
   $('#bAct').setAttribute('aria-label', t('aria.act'));
   hudCache.a = undefined; hudCache.s = undefined; hudCache.e = undefined;
 }
-paintButtons();
-loadAll().then(() => {
+// 번역표와 그림을 다 불러온 뒤에 글자를 그린다
+Promise.all([loadAll(), langReady]).then(() => {
   paintButtons(); titleScreen();
   // 앱: 그림을 다 불러온 뒤 첫 화면이 그려지면 시작 화면(스플래시)을 걷는다
   const SP = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.SplashScreen;
   if (SP) requestAnimationFrame(() => requestAnimationFrame(() => SP.hide({ fadeOutDuration: 250 }).catch(() => {})));
+
+  // 광고 준비 (필요한 지역이면 Google 동의 창이 먼저 뜬다). 끝나면 설정 화면의 '광고 개인정보 설정' 버튼이 정해진다
+  setTimeout(() => Ads.init(), 600);
 });
 
 // 테스트용 핸들
 window.__sc = {
   get game() { return game; },
   get den() { return den; },
+  denData: () => denData(),
   end: (win) => { if (!ended) endLevel(win); },
   start: (i) => { startLevel(i, true); startPlay(); },
   intro: (i) => startLevel(i),
+  // 화면 바로 열기 (스토어 스크린샷·시험용)
+  go: { title: () => titleScreen(), levels: () => levelScreen(), den: () => denScreen(), skin: (tab) => skinScreen(tab), quest: () => questScreen() },
   step(dt = 1 / 60, inp = { dx: 0, dy: 0, mag: 0, run: false }) { game.update(dt, inp); R.draw(dt, joy); updateHud(); },
   save: () => save,
   ending: () => endingScreen(true),

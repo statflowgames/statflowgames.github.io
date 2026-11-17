@@ -1,5 +1,5 @@
 // 그림 파일 불러오기 + 고양이 색 바꾸기. 파일이 없으면 null 을 돌려주고, 그 자리는 코드 그림이 대신한다.
-import { drawWear, sockMask, paintSocks } from './wear.js?v=1117103129';
+import { drawWear, sockMask, paintSocks } from './wear.js?v=1117150910';
 const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 'legend',
   'sprite-cat', 'sprite-cat-fish', 'sprite-cat-run', 'sprite-cat-peek',
   'sprite-owner', 'sprite-owner-side', 'sprite-owner-back', 'sprite-owner-alert',
@@ -13,7 +13,8 @@ const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 
     'box', 'vase', 'vase-broken', 'roomba', 'camera', 'switch-on', 'switch-off', 'vent', 'cart', 'carousel', 'plate']
     .map((n) => `item-${n}`),
   ...[1, 2, 3, 4, 5, 6, 7, 8].map((i) => `clear-${i}`),
-  ...['yawn', 'groom', 'loaf', 'crouch', 'scared', 'happy'].map((n) => `sprite-cat-${n}`),
+  ...['yawn', 'groom', 'loaf', 'crouch', 'scared', 'happy', 'happy-pet', 'sad', 'lick', 'stretch', 'tail'].map((n) => `sprite-cat-${n}`),
+  ...['pot', 'basket', 'frame', 'lights', 'cushion'].map((n) => `deco-${n}`), 'item-gift',
   ...['eye', 'meow', 'paw', 'vent', 'ride', 'cart', 'carousel', 'unride', 'vase', 'switch', 'map-b', 'meow-b', 'paw-b'].map((n) => `ui-${n}`),
   ...['feet', 'body', 'neck', 'tail', 'head'].flatMap((s) => [1, 2, 3, 4, 5].map((i) => `gear-${s}${i}`)), 'den-bg'];
 export const IMG = {};

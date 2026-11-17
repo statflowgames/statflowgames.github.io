@@ -1,6 +1,7 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1117103129';
-import { CHAPTERS } from './levels.js?v=1117103129';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1117150910';
+import { CHAPTERS } from './levels.js?v=1117150910';
+import { tr } from './i18n.js?v=1117150910';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },
@@ -26,7 +27,7 @@ const LINES = {
   dogNoise: ['킁킁?', '으르릉…'], dogChase: ['멍멍!!', '왈왈왈!'], dogGive: ['킁…', '하암~'],
   alarm: ['경보다!', '침입자?!'],
 };
-const pick = (a) => a[(Math.random() * a.length) | 0];
+const pick = (a) => tr(a[(Math.random() * a.length) | 0]); // 경비 대사는 화면용이라 고를 때 바로 번역
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export class Game {
@@ -127,7 +128,7 @@ export class Game {
     for (const p of this.plates) {
       p.hot = Math.max(0, p.hot - 1 / 60);
       if (c.riding || p.hot > 0) continue;
-      if (Math.floor(c.x) === p.tx && Math.floor(c.y) === p.ty) { p.hot = 2.5; this.popup(p.x, p.y - 0.8, '딸깍!', '#ff8a8a'); this.alarm(c.x, c.y); }
+      if (Math.floor(c.x) === p.tx && Math.floor(c.y) === p.ty) { p.hot = 2.5; this.popup(p.x, p.y - 0.8, tr('딸깍!'), '#ff8a8a'); this.alarm(c.x, c.y); }
     }
   }
   makeSpot(route, i) {
@@ -277,11 +278,11 @@ export class Game {
       const tile = this.grid.c(Math.floor(c.x), Math.floor(c.y));
       if (tile === '%') {
         this.noise(c.x, c.y, 3.6 * (1 - this.perk.quiet), 'creak');
-        this.popup(c.x, c.y - 0.8, '삐걱!', '#e9b98a');
+        this.popup(c.x, c.y - 0.8, tr('삐걱!'), '#e9b98a');
         this.fx('creak');
       } else if (tile === 'w') {
         this.noise(c.x, c.y, 3.4 * (1 - this.perk.quiet), 'splash');
-        this.popup(c.x, c.y - 0.8, '첨벙!', '#9fdcff');
+        this.popup(c.x, c.y - 0.8, tr('첨벙!'), '#9fdcff');
         for (let i = 0; i < 8; i++) this.part(c.x, c.y, (Math.random() - 0.5) * 3, -Math.random() * 2.5, '#bfe8ff', 0.45);
         this.fx('splash');
       }
@@ -349,10 +350,10 @@ export class Game {
       const to = a.obj;
       for (const p of [a.from, to]) for (let i = 0; i < 8; i++) this.part(p.x, p.y, (Math.random() - 0.5) * 3, -Math.random() * 2.5, '#9aa3b8', 0.5);
       c.x = to.x; c.y = to.y; c.hidden = true; c.tileKey = Math.floor(c.x) + ',' + Math.floor(c.y);
-      this.popup(c.x, c.y - 0.9, '쏙!', '#c9d6f0'); this.fx('vent');
+      this.popup(c.x, c.y - 0.9, tr('쏙!'), '#c9d6f0'); this.fx('vent');
     } else if (a.kind === 'ride') {
       c.riding = a.obj; c.hidden = true;
-      this.popup(c.x, c.y - 0.9, a.obj.cart ? '쏙!' : a.obj.ride ? '히히힝~' : '탑승!', '#9fe7ff'); this.fx(a.obj.cart ? 'hide' : 'ride');
+      this.popup(c.x, c.y - 0.9, tr(a.obj.cart ? '쏙!' : a.obj.ride ? '히히힝~' : '탑승!'), '#9fe7ff'); this.fx(a.obj.cart ? 'hide' : 'ride');
     } else if (a.kind === 'unride') {
       const r = c.riding; c.riding = null;
       c.x = r.x; c.y = r.y;
@@ -364,18 +365,18 @@ export class Game {
       this.grid.knocked.add(v.tx + ',' + v.ty);
       this.noise(v.x, v.y, 8.5, 'crash');
       for (let i = 0; i < 14; i++) this.part(v.x, v.y - 0.3, (Math.random() - 0.5) * 4, -Math.random() * 3, i % 2 ? '#7fb6e8' : '#f3f0ff', 0.7);
-      this.popup(v.x, v.y - 1, '쨍그랑!', '#ffe08a'); this.fx('crash');
+      this.popup(v.x, v.y - 1, tr('쨍그랑!'), '#ffe08a'); this.fx('crash');
       c.face = v.x > c.x ? 1 : -1;
     } else if (a.kind === 'switch') {
       a.obj.on = false; this.power = false;
-      this.popup(a.obj.x, a.obj.y - 1, '보안 전원 OFF', '#9dffb0'); this.fx('power');
+      this.popup(a.obj.x, a.obj.y - 1, tr('보안 전원 OFF'), '#9dffb0'); this.fx('power');
     }
   }
   meow() {
     const c = this.cat;
     if (this.state !== 'play' || c.meowCD > 0) return false;
     c.meowCD = this.meowMax; this.stats.meows++;
-    c.bubble = { text: '야옹~', t: 1.2 };
+    c.bubble = { text: tr('야옹~'), t: 1.2 };
     this.noise(c.x, c.y, 6, 'meow');
     this.fx('meow');
     return true;
@@ -385,13 +386,13 @@ export class Game {
     const c = this.cat;
     if (!this.fish.taken && Math.hypot(this.fish.x - c.x, this.fish.y - c.y) < 0.6) {
       this.fish.taken = true; c.hasFish = true; c.joyT = 1.2;
-      this.popup(c.x, c.y - 1, this.L.golden ? '황금 생선!' : '생선 획득!', '#ffe27a');
+      this.popup(c.x, c.y - 1, tr(this.L.golden ? '황금 생선!' : '생선 획득!'), '#ffe27a');
       for (let i = 0; i < 16; i++) this.part(c.x, c.y - 0.3, (Math.random() - 0.5) * 5, -Math.random() * 4, '#ffe27a', 0.8);
       this.fx('fish');
     }
     for (const b of this.bonus) if (!b.taken && Math.hypot(b.x - c.x, b.y - c.y) < 0.6) {
       b.taken = true;
-      this.popup(b.x, b.y - 0.9, this.chapter.bonusName + '!', '#ffc1e3');
+      this.popup(b.x, b.y - 0.9, tr(this.chapter.bonusName) + '!', '#ffc1e3');
       for (let i = 0; i < 10; i++) this.part(b.x, b.y - 0.2, (Math.random() - 0.5) * 4, -Math.random() * 3, '#ffd6f0', 0.6);
       this.fx('coin');
     }
@@ -454,7 +455,7 @@ export class Game {
   alarm(x, y) {
     this.spotted = true;
     this.alarmFlash = 1;
-    this.popup(x, y - 1, '삐뽀삐뽀!', '#ff7a8a');
+    this.popup(x, y - 1, tr('삐뽀삐뽀!'), '#ff7a8a');
     this.fx('siren');
     for (const g of this.guards) {
       if (g.state === 'chase') continue;
@@ -613,7 +614,7 @@ export class Game {
     const s = this.ents.cat, c = this.cat;
     // 생선을 물고 있었다면 잡힌 자리에 떨어뜨린다 (시작 문 = 탈출 문이라 그대로 두면 바로 탈출해 버림)
     if (c.hasFish) { c.hasFish = false; Object.assign(this.fish, { taken: false, x: Math.floor(c.x) + 0.5, y: Math.floor(c.y) + 0.5 }); }
-    Object.assign(c, { x: s.x, y: s.y, vx: 0, vy: 0, moving: false, run: false, riding: null, hidden: true, stillT: 0, stopT: 0, bubble: { text: '다시 살금살금…', t: 2.2 } });
+    Object.assign(c, { x: s.x, y: s.y, vx: 0, vy: 0, moving: false, run: false, riding: null, hidden: true, stillT: 0, stopT: 0, bubble: { text: tr('다시 살금살금…'), t: 2.2 } });
     c.tileKey = Math.floor(c.x) + ',' + Math.floor(c.y);
     this.guardsMade = 0;
     this.guards = this.L.guards.map((g) => this.makeGuard(g));
@@ -628,8 +629,8 @@ export class Game {
   }
   caught(g) {
     this.state = 'caught'; this.endT = 0; this.catcher = g;
-    this.say(g, g.type === 'dog' ? '왈!!' : '잡았다!', '!', 9);
-    this.cat.bubble = { text: '냐앙…', t: 9 };
+    this.say(g, tr(g.type === 'dog' ? '왈!!' : '잡았다!'), '!', 9);
+    this.cat.bubble = { text: tr('냐앙…'), t: 9 };
     this.fx('caught');
   }
   clank(g, dt) {
@@ -676,7 +677,7 @@ export class Game {
         this.noises.push({ x: g.x + Math.cos(g.look[0]) * 0.7, y: g.y + Math.sin(g.look[0]) * 0.7, r: 1.3, t: 0, kind: 'chop' });
         if (Math.hypot(this.cat.x - g.x, this.cat.y - g.y) < 7) this.fx('chop');
       }
-      if (g.chopT <= 0) { g.chopping = false; g.chopT = this.hard ? 2.2 : 1.8; this.say(g, '…흠?', '?', 1); }
+      if (g.chopT <= 0) { g.chopping = false; g.chopT = this.hard ? 2.2 : 1.8; this.say(g, tr('…흠?'), '?', 1); }
     } else {
       g.aim = g.look.length > 1 ? g.look[1] : g.look[0] + Math.PI;
       if (g.chopT <= 0) { g.chopping = true; g.chopT = this.hard ? 2.6 : 3.4; g.tickT = 0; }

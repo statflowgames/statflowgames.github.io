@@ -1,6 +1,7 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1117103129';
-import { sprite, IMG } from './assets.js?v=1117103129';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1117150910';
+import { sprite, IMG } from './assets.js?v=1117150910';
+import { tr, tf, fontStack } from './i18n.js?v=1117150910';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -184,7 +185,7 @@ export class Renderer {
     c.moveTo(X + ts * 0.2, Y + ts * 0.3); c.lineTo(X + ts * 0.42, Y + ts * 0.45); c.lineTo(X + ts * 0.36, Y + ts * 0.62); c.lineTo(X + ts * 0.6, Y + ts * 0.78);
     c.moveTo(X + ts * 0.7, Y + ts * 0.15); c.lineTo(X + ts * 0.8, Y + ts * 0.32);
     c.stroke();
-    c.fillStyle = 'rgba(255,220,170,0.7)'; c.font = `${Math.round(8 * s)}px ${FONT}`; c.textAlign = 'center';
+    c.fillStyle = 'rgba(255,220,170,0.7)'; c.font = `${Math.round(8 * s)}px ${fontStack()}`; c.textAlign = 'center';
     c.fillText('~', X + ts * 0.78, Y + ts * 0.62);
     c.restore();
   }
@@ -348,7 +349,7 @@ export class Renderer {
         c.beginPath(); c.moveTo(X + 4 * s, Y + 7 * s); c.lineTo(X + 1 * s, Y + 2 * s); c.lineTo(X + W / 2, Y + 4 * s); c.lineTo(X + W / 2, Y + 7 * s); c.closePath(); c.fill(); c.lineWidth = lw * 0.8; c.strokeStyle = OUT; c.stroke();
         c.beginPath(); c.moveTo(X + W - 4 * s, Y + 7 * s); c.lineTo(X + W - 1 * s, Y + 2 * s); c.lineTo(X + W / 2, Y + 4 * s); c.lineTo(X + W / 2, Y + 7 * s); c.closePath(); c.fill(); c.stroke();
         c.fillStyle = '#efd3a0'; c.fillRect(X + W / 2 - 2 * s, Y + H - f - 1, 4 * s, f - 2 * s);
-        c.fillStyle = '#7a4f2a'; c.font = `${7 * s}px ${FONT}`; c.textAlign = 'center'; c.fillText('냥', X + W / 2 + 7 * s, Y + H - 6 * s);
+        c.fillStyle = '#7a4f2a'; c.font = `${7 * s}px ${fontStack()}`; c.textAlign = 'center'; c.fillText(tr('냥'), X + W / 2 + 7 * s, Y + H - 6 * s);
         break;
       }
       case 'S': {
@@ -538,7 +539,7 @@ export class Renderer {
     for (const p of G.popups) {
       const a = p.t < 1 ? 1 : 1 - (p.t - 1) / 0.4;
       c.globalAlpha = Math.max(0, a);
-      c.font = `${Math.round(15 * Math.max(0.85, s))}px ${FONT}`; c.textAlign = 'center';
+      c.font = `${Math.round(15 * Math.max(0.85, s))}px ${fontStack()}`; c.textAlign = 'center';
       c.lineWidth = 4; c.strokeStyle = 'rgba(20,14,30,0.9)';
       const y = p.y * ts - p.t * 22;
       c.strokeText(p.text, p.x * ts, y); c.fillStyle = p.color; c.fillText(p.text, p.x * ts, y);
@@ -565,8 +566,8 @@ export class Renderer {
         c.globalAlpha = 1;
       }
       if (G.boomFlash > 0) { c.fillStyle = `rgba(255,230,200,${G.boomFlash * 0.12})`; c.fillRect(0, 0, this.W, this.H); }
-      const f = G.fw, txt = f.on ? '🎆 펑! 지금은 소리가 안 들려요' : `🎆 다음 불꽃 ${f.t.toFixed(1)}초`;
-      c.font = `14px ${FONT}`; c.textAlign = 'center';
+      const f = G.fw, txt = f.on ? tr('🎆 펑! 지금은 소리가 안 들려요') : tf('🎆 다음 불꽃 {sec}초', { sec: f.t.toFixed(1) });
+      c.font = `14px ${fontStack()}`; c.textAlign = 'center';
       const w = c.measureText(txt).width + 24, y = this.top + 16;
       rr(c, this.W / 2 - w / 2, y - 13, w, 26, 13); c.fillStyle = f.on ? 'rgba(120,40,90,0.9)' : 'rgba(16,12,34,0.8)'; c.fill();
       c.fillStyle = f.on ? '#ffe08a' : '#d8e2ff'; c.fillText(txt, this.W / 2, y + 5);
@@ -681,8 +682,8 @@ export class Renderer {
     c.fillStyle = gr; c.fillRect(-W, -H * k, W * 2, H * 2 * k);
     c.restore();
     c.fillStyle = `rgba(110,150,255,${0.06 * o})`; c.fillRect(0, 0, W, H);
-    c.globalAlpha = o; c.font = `14px ${FONT}`; c.textAlign = 'center';
-    const msg = '고양이 눈으로 살피는 중 · 손을 떼면 계속';
+    c.globalAlpha = o; c.font = `14px ${fontStack()}`; c.textAlign = 'center';
+    const msg = tr('고양이 눈으로 살피는 중 · 손을 떼면 계속');
     const y = this.top + 18, w = c.measureText(msg).width + 26;
     rr(c, cx - w / 2, y - 13, w, 26, 13); c.fillStyle = 'rgba(16,12,34,0.82)'; c.fill();
     c.fillStyle = '#d8e2ff'; c.fillText(msg, cx, y + 5); c.globalAlpha = 1;
@@ -825,8 +826,8 @@ export class Renderer {
     if (mood.emote && !cat.bubble && G.state !== 'caught') this.catEmote(c, mood, cat.x, cat.y + so.dy, t);
     if (this.skin && this.skin.crown && !(this.skin && IMG['sprite-cat-king'])) { this.at(c, cat.x + cat.face * 0.12, cat.y - 0.55, 0.7); drawBonus(c, 'crown', 0); c.restore(); }
     if (cat.hidden && tile !== 'C') {
-      c.font = `${Math.round(10 * Math.max(0.9, s))}px ${FONT}`; c.textAlign = 'center';
-      c.fillStyle = 'rgba(170,255,200,0.9)'; c.fillText('숨는 중', cat.x * this.ts, (cat.y - 0.55) * this.ts);
+      c.font = `${Math.round(10 * Math.max(0.9, s))}px ${fontStack()}`; c.textAlign = 'center';
+      c.fillStyle = 'rgba(170,255,200,0.9)'; c.fillText(tr('숨는 중'), cat.x * this.ts, (cat.y - 0.55) * this.ts);
     }
   }
   // 고양이 기분: 가만히 있을 때 하품·그루밍·두리번·식빵, 경비 가까우면 웅크림, 들키면 털 곤두섬, 생선 물면 깡총
@@ -875,7 +876,7 @@ export class Renderer {
     c.save();
     c.textAlign = 'center'; c.lineJoin = 'round';
     const word = (txt, px, py, size, fill, a = 1) => {
-      c.globalAlpha = Math.max(0, a); c.font = `${Math.round(size * s)}px ${FONT}`;
+      c.globalAlpha = Math.max(0, a); c.font = `${Math.round(size * s)}px ${fontStack()}`;
       c.lineWidth = 3 * s; c.strokeStyle = '#1a1428'; c.strokeText(txt, px, py); c.fillStyle = fill; c.fillText(txt, px, py);
     };
     const side = this.game.cat.face >= 0 ? 1 : -1;
@@ -902,7 +903,7 @@ export class Renderer {
         word('z', X + side * (6 + k * 6) * s, Y - k * 12 * s, 9 + k * 5, '#cfd8ff', 1 - k);
       }
     } else if (m.emote === 'yawn') {
-      word('하암~', X + side * 12 * s, Y - 2 * s, 9, '#fffbe8', Math.min(1, (m.emoteK || 0) * 1.6));
+      word(tr('하암~'), X + side * 12 * s, Y - 2 * s, 9, '#fffbe8', Math.min(1, (m.emoteK || 0) * 1.6));
     } else if (m.emote === 'groom') {
       for (let i = 0; i < 3; i++) {
         const k = (t * 1.6 + i / 3) % 1;
@@ -931,7 +932,7 @@ export class Renderer {
     c.save();
     c.textAlign = 'center'; c.textBaseline = 'middle';
     if (b.kind === 'z') {
-      c.font = `${Math.round(11 * s)}px ${FONT}`;
+      c.font = `${Math.round(11 * s)}px ${fontStack()}`;
       for (let i = 0; i < 3; i++) {
         const p = ((t * 0.5 + i / 3) % 1);
         c.globalAlpha = Math.sin(p * Math.PI);
@@ -953,7 +954,7 @@ export class Renderer {
         c.restore();
       }
       c.lineWidth = 2; c.strokeStyle = OUT; c.stroke();
-      c.font = `${Math.round(15 * s)}px ${FONT}`;
+      c.font = `${Math.round(15 * s)}px ${fontStack()}`;
       c.fillStyle = red ? '#fff' : '#3a2730';
       c.fillText(red ? '!' : '?', X, Y + 1);
       if (b.text && b.text !== '?' && b.text !== '!') this.say(c, X, Y - r - 12 * s, b.text, s, red);
@@ -964,7 +965,7 @@ export class Renderer {
     c.restore();
   }
   say(c, X, Y, text, s, red, cat) {
-    c.font = `${Math.round(11 * s)}px ${FONT}`;
+    c.font = `${Math.round(11 * s)}px ${fontStack()}`;
     const w = c.measureText(text).width + 12 * s, h = 18 * s;
     rr(c, X - w / 2, Y - h / 2, w, h, 8 * s);
     c.fillStyle = cat ? '#ffe3f1' : red ? '#ffe1e4' : 'rgba(255,255,255,0.94)'; c.fill();
@@ -984,8 +985,8 @@ export class Renderer {
     c.beginPath(); c.arc(kx, ky, 20, 0, 7);
     c.fillStyle = j.run ? 'rgba(255,170,70,0.85)' : 'rgba(160,240,140,0.8)'; c.fill();
     c.lineWidth = 2; c.strokeStyle = 'rgba(30,20,40,0.6)'; c.stroke();
-    c.font = `12px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#2a1f2e';
-    c.fillText(j.run ? '달리기' : '살금', kx, ky + 1);
+    c.font = `12px ${fontStack()}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#2a1f2e';
+    c.fillText(tr(j.run ? '달리기' : '살금'), kx, ky + 1);
     c.restore();
   }
 }

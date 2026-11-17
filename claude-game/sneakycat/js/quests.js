@@ -1,5 +1,6 @@
 // 하루 도둑 의뢰: 날짜로 정해지는 의뢰 3개(쉬움·보통·어려움). 이미 깬 판에서만 나온다.
 // 같은 날이면 누구에게나 같은 의뢰가 나온다. 하루 한 번 의뢰 하나를 다른 것으로 바꿀 수 있다.
+import { tr, tf } from './i18n.js?v=1117150910';
 
 export const TIERS = [
   { name: '쉬움', reward: 30, cls: 'easy' },
@@ -11,14 +12,14 @@ export const PIECES_FOR_SKIN = 7;
 
 // 조건: 판 하나를 이 방법으로 깨기
 const CONDS = {
-  nomeow: { tier: 0, text: () => '야옹 없이 깨기', ok: (g) => g.stats.meows === 0 },
-  bonus: { tier: 0, text: (q, ch) => `${ch.bonusName} 모두 챙겨서 깨기`, ok: (g) => g.bonus.every((b) => b.taken) },
-  norun: { tier: 1, text: () => '한 번도 달리지 않고 깨기', ok: (g) => !g.stats.ran },
-  novase: { tier: 1, text: () => '꽃병을 깨뜨리지 않고 깨기', ok: (g) => g.stats.vases === 0, need: (info) => info.vases > 0 },
-  time: { tier: 1, text: (q) => `${q.param}초 안에 깨기`, ok: (g, q) => g.elapsed <= q.param },
-  unseen: { tier: 2, text: () => '한 번도 들키지 않고 깨기', ok: (g) => !g.spotted },
-  ghost: { tier: 2, text: () => '안 들키고, 달리지도 않고 깨기', ok: (g) => !g.spotted && !g.stats.ran },
-  naked: { tier: 2, text: () => '장비를 모두 벗고 안 들키고 깨기', ok: (g) => g.naked && !g.spotted },
+  nomeow: { tier: 0, text: () => tr('야옹 없이 깨기'), ok: (g) => g.stats.meows === 0 },
+  bonus: { tier: 0, text: (q, ch) => tf('{item} 모두 챙겨서 깨기', { item: tr(ch.bonusName) }), ok: (g) => g.bonus.every((b) => b.taken) },
+  norun: { tier: 1, text: () => tr('한 번도 달리지 않고 깨기'), ok: (g) => !g.stats.ran },
+  novase: { tier: 1, text: () => tr('꽃병을 깨뜨리지 않고 깨기'), ok: (g) => g.stats.vases === 0, need: (info) => info.vases > 0 },
+  time: { tier: 1, text: (q) => tf('{sec}초 안에 깨기', { sec: q.param }), ok: (g, q) => g.elapsed <= q.param },
+  unseen: { tier: 2, text: () => tr('한 번도 들키지 않고 깨기'), ok: (g) => !g.spotted },
+  ghost: { tier: 2, text: () => tr('안 들키고, 달리지도 않고 깨기'), ok: (g) => !g.spotted && !g.stats.ran },
+  naked: { tier: 2, text: () => tr('장비를 모두 벗고 안 들키고 깨기'), ok: (g) => g.naked && !g.spotted },
 };
 export const condText = (q, ch) => CONDS[q.cond].text(q, ch);
 export const condOk = (q, g) => CONDS[q.cond].ok(g, q);
