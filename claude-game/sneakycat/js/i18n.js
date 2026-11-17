@@ -1,6 +1,7 @@
 // 화면 글자: 언어별 묶음. 처음엔 기기 언어(한국어가 아니면 영어), 타이틀의 언어 버튼으로 바꿀 수 있다.
 // 지금은 버튼·상태 줄·타이틀·일시정지 메뉴까지. 스테이지 이름·설명·도감·대사는 아직 한국어만 있다.
 export const LANGS = ['ko', 'en'];
+export const LANG_NAMES = { ko: '한국어', en: 'English' };
 let lang = 'ko';
 
 const S = {
@@ -14,6 +15,12 @@ const S = {
     'title.ward': '고양이 옷장', 'title.den': '비밀 아지트',
     'tg.sound': '효과음', 'tg.music': '음악', 'tg.vib': '진동', 'tg.lefty': '왼손', 'tg.lang': '한국어',
     'pause.title': '일시정지', 'pause.resume': '계속하기', 'pause.retry': '처음부터', 'pause.list': '스테이지 목록',
+    'exit.again': '한 번 더 누르면 게임을 끝내요',
+    'title.settings': '설정',
+    'set.title': '설정', 'set.sound': '🔊 소리와 진동', 'set.play': '🎮 조작', 'set.leftyDesc': '야옹·행동 버튼을 왼쪽에 두고 오른손으로 고양이를 움직여요',
+    'set.lang': '언어', 'set.info': '정보', 'set.privacy': '개인정보처리방침', 'set.contact': '문의하기', 'set.maker': '만든 곳', 'set.version': '버전', 'set.web': '웹 체험판',
+    'set.data': '💾 데이터', 'set.reset': '모든 기록 지우기', 'set.resetDesc': '별·생선뼈·옷장·아지트·의뢰 기록이 모두 사라지고 처음부터 시작해요',
+    'set.resetQ': '정말 다 지울까요?', 'set.resetWarn': '지운 기록은 되돌릴 수 없어요.', 'set.resetYes': '네, 모두 지울래요', 'set.cancel': '취소',
   },
   en: {
     'btn.map': 'Map', 'btn.meow': 'Meow', 'btn.act': 'Action',
@@ -25,6 +32,12 @@ const S = {
     'title.ward': 'Wardrobe', 'title.den': 'Secret Hideout',
     'tg.sound': 'Sound', 'tg.music': 'Music', 'tg.vib': 'Vibration', 'tg.lefty': 'Left hand', 'tg.lang': 'English',
     'pause.title': 'Paused', 'pause.resume': 'Resume', 'pause.retry': 'Restart', 'pause.list': 'Stage list',
+    'exit.again': 'Press back again to quit',
+    'title.settings': 'Settings',
+    'set.title': 'Settings', 'set.sound': '🔊 Sound & vibration', 'set.play': '🎮 Controls', 'set.leftyDesc': 'Put the Meow and Action buttons on the left and steer with your right hand',
+    'set.lang': 'Language', 'set.info': 'About', 'set.privacy': 'Privacy policy', 'set.contact': 'Contact us', 'set.maker': 'Made by', 'set.version': 'Version', 'set.web': 'web trial',
+    'set.data': '💾 Data', 'set.reset': 'Erase all data', 'set.resetDesc': 'Stars, fish bones, wardrobe, hideout and heist records will be erased and you start over',
+    'set.resetQ': 'Erase everything?', 'set.resetWarn': 'This cannot be undone.', 'set.resetYes': 'Yes, erase it all', 'set.cancel': 'Cancel',
   },
 };
 // 행동 버튼 이름 (게임 규칙 쪽은 한국어 이름을 그대로 쓰고, 보여 줄 때만 바꾼다)

@@ -1,6 +1,6 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1116165058';
-import { CHAPTERS } from './levels.js?v=1116165058';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1117102242';
+import { CHAPTERS } from './levels.js?v=1117102242';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },
@@ -210,15 +210,17 @@ export class Game {
       return;
     }
     this.elapsed += dt;
+    this.graceT = Math.max(0, (this.graceT || 0) - dt);
+    const safe = this.graceT > 0;
     this.updateCat(dt, input);
     this.updateRoomba(dt);
     this.updateCarts(dt);
     this.updateDoors(dt);
-    this.updateSpots(dt, false);
+    this.updateSpots(dt, safe);
     this.updateRides(dt);
     this.updateFireworks(dt);
-    this.updatePlates();
-    this.updateSecurity(dt, false);
+    if (!safe) this.updatePlates();
+    this.updateSecurity(dt, safe);
     for (const g of this.guards) { this.updateGuard(g, dt); if (this.state !== 'play') return; }
     this.checkPickups();
   }
@@ -505,11 +507,11 @@ export class Game {
     if (g.bubble && g.bubble.kind !== 'z' && (g.bubble.t -= dt) <= 0) g.bubble = null;
     if (g.state === 'sleep') {
       g.moving = false;
-      if (!c.hidden && Math.hypot(c.x - g.x, c.y - g.y) < 0.75) this.wake(g);
+      if (!c.hidden && !this.graceT && Math.hypot(c.x - g.x, c.y - g.y) < 0.75) this.wake(g);
       return;
     }
     const d = Math.hypot(c.x - g.x, c.y - g.y);
-    const sees = this.canSee(g, d);
+    const sees = !this.graceT && this.canSee(g, d);
     if (sees) {
       let rate = 1.7 * (1.3 - Math.min(1, d / T.range)) * (c.run ? 1.5 : 1) * (this.hard ? 1.25 : 1) * (1 - this.perk.sneak);
       if (d < 0.75) rate = 12;
@@ -603,6 +605,26 @@ export class Game {
       this.investigate(g, L.x, L.y, false);
       if (!g.route.length) { g.state = 'search'; g.timer = 3; g.searchBase = g.face; }
     }
+  }
+  // 이어하기 (광고 보상): 고양이는 시작 문으로, 사람·장치는 처음 상태로. 보너스·깬 꽃병은 그대로.
+  // 다시 시작한 뒤 2.5초 동안은 아무도 고양이를 못 알아챔. 한 판에 한 번만.
+  revive() {
+    if (this.state !== 'caught' || this.revived) return false;
+    const s = this.ents.cat, c = this.cat;
+    // 생선을 물고 있었다면 잡힌 자리에 떨어뜨린다 (시작 문 = 탈출 문이라 그대로 두면 바로 탈출해 버림)
+    if (c.hasFish) { c.hasFish = false; Object.assign(this.fish, { taken: false, x: Math.floor(c.x) + 0.5, y: Math.floor(c.y) + 0.5 }); }
+    Object.assign(c, { x: s.x, y: s.y, vx: 0, vy: 0, moving: false, run: false, riding: null, hidden: true, stillT: 0, stopT: 0, bubble: { text: '다시 살금살금…', t: 2.2 } });
+    c.tileKey = Math.floor(c.x) + ',' + Math.floor(c.y);
+    this.guardsMade = 0;
+    this.guards = this.L.guards.map((g) => this.makeGuard(g));
+    for (const cam of this.cams) { cam.meter = 0; cam.alarmT = 0; }
+    for (const sp of this.spots) { sp.meter = 0; sp.alarmT = 0; }
+    for (const p of this.plates) p.hot = 0;
+    this.laserCD = 2.5; this.noises = []; this.alarmFlash = 0;
+    this.catcher = null; this.endT = 0;
+    this.graceT = 2.5; this.revived = true;
+    this.state = 'play';
+    return true;
   }
   caught(g) {
     this.state = 'caught'; this.endT = 0; this.catcher = g;

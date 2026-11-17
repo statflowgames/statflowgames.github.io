@@ -1,5 +1,5 @@
 // 그림 파일 불러오기 + 고양이 색 바꾸기. 파일이 없으면 null 을 돌려주고, 그 자리는 코드 그림이 대신한다.
-import { drawWear, sockMask, paintSocks } from './wear.js?v=1116165058';
+import { drawWear, sockMask, paintSocks } from './wear.js?v=1117102242';
 const NAMES = ['title', 'chapter-1', 'chapter-2', 'chapter-3', 'win', 'caught', 'legend',
   'sprite-cat', 'sprite-cat-fish', 'sprite-cat-run', 'sprite-cat-peek',
   'sprite-owner', 'sprite-owner-side', 'sprite-owner-back', 'sprite-owner-alert',
@@ -132,6 +132,8 @@ export function sprite(name, skin = null, golden = false, on = null) {
   cache.set(key, s);
   return s;
 }
+// 오래 뒤로 가 있던 사이 브라우저가 캔버스 메모리를 비우면 저장해 둔 그림이 투명해진다 → 다시 만들게 비운다
+export function resetSprites() { cache.clear(); }
 const urlCache = new Map();
 export function spriteURL(name, skin, golden, on = null) {
   const key = `${name}|${skin ? skin.id : ''}|${golden ? 1 : 0}|${wearKey(on)}`;

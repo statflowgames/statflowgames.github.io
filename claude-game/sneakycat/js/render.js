@@ -1,6 +1,6 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1116165058';
-import { sprite, IMG } from './assets.js?v=1116165058';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1117102242';
+import { sprite, IMG } from './assets.js?v=1117102242';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -809,6 +809,8 @@ export class Renderer {
     c.fillStyle = cat.hidden ? 'rgba(160,255,190,0.18)' : 'rgba(255,255,255,0.13)';
     c.beginPath(); c.ellipse(cat.x * this.ts, (cat.y + 0.22) * this.ts, 13 * s, 5 * s, 0, 0, 7); c.fill();
     if (cat.hidden) c.globalAlpha = tile === 'C' ? 0.75 : 0.5;
+    // 이어하기 직후 안 들키는 동안 깜빡깜빡
+    if (G.graceT > 0) c.globalAlpha *= 0.45 + 0.4 * (Math.sin(t * 18) > 0 ? 1 : 0);
     if (spr) {
       if (G.state === 'caught') so.rot = Math.sin(t * 30) * 0.06;
       this.sprite(c, spr, cat.x, cat.y + 0.24, 1.08, false, so);

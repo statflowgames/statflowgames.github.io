@@ -1,16 +1,17 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1116165058';
-import { Game } from './game.js?v=1116165058';
-import { Renderer, FONT } from './render.js?v=1116165058';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1116165058';
-import { Sound } from './audio.js?v=1116165058';
-import { loadAll, IMG, spriteURL } from './assets.js?v=1116165058';
-import { actIcon, buttonHTML } from './icons.js?v=1116165058';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1116165058';
-import { startDen } from './den.js?v=1116165058';
-import { initLang, setLang, nextLang, t, tAct } from './i18n.js?v=1116165058';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1116165058';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1116165058';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1117102242';
+import { Game } from './game.js?v=1117102242';
+import { Renderer, FONT } from './render.js?v=1117102242';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1117102242';
+import { Sound } from './audio.js?v=1117102242';
+import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1117102242';
+import { actIcon, buttonHTML } from './icons.js?v=1117102242';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1117102242';
+import { startDen } from './den.js?v=1117102242';
+import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct } from './i18n.js?v=1117102242';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1117102242';
+import { Reward } from './reward.js?v=1117102242';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1117102242';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -20,11 +21,13 @@ const R = new Renderer(cv);
 const KEY = 'sneakycat.claude.v1';
 let save = { stars: {}, best: {}, skin: 'gray', sound: true, music: true, vib: true, lefty: false, seenCh: {}, ending: false };
 try { Object.assign(save, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { /* 저장소 없음 */ }
-const store = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* 무시 */ } };
+let wiping = false;
+const store = () => { if (wiping) return; try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* 무시 */ } };
 const starsOf = (id) => save.stars[id] || [false, false, false];
 const totalStars = () => LEVELS.reduce((n, l) => n + starsOf(l.id).filter(Boolean).length, 0);
 const cleared = (id) => !!save.stars[id];
-const unlocked = (i) => i === 0 || cleared(LEVELS[i - 1].id) || cleared(LEVELS[i].id);
+const skipped = (id) => !!(save.skipped && save.skipped[id]);
+const unlocked = (i) => i === 0 || cleared(LEVELS[i - 1].id) || skipped(LEVELS[i - 1].id) || cleared(LEVELS[i].id);
 const skinById = (id) => SKINS.find((s) => s.id === id) || SKINS[0];
 const skinOpen = (s, ts = totalStars()) => (s.ending ? !!save.ending : s.quest ? (save.pieces || 0) >= s.quest : ts >= s.need);
 // 옷장 장비 + 생선뼈. 장비가 생기기 전 기록이 있으면 그만큼 생선뼈를 한 번 챙겨 준다
@@ -184,26 +187,70 @@ function titleScreen() {
       <button class="btn pink" data-a="skin">${t('title.ward')}</button>
       <button class="btn den" data-a="den">${t('title.den')}</button>
       ${questsOpen() ? `<button class="btn quest" data-a="quest">📜 오늘의 의뢰 <small>${questDone()}/3</small></button>` : ''}
-      <div class="toggles">
-        <button class="tg ${save.sound ? 'on' : ''}" data-t="sound">${t('tg.sound')}</button>
-        <button class="tg ${save.music ? 'on' : ''}" data-t="music">${t('tg.music')}</button>
-        <button class="tg ${save.vib ? 'on' : ''}" data-t="vib">${t('tg.vib')}</button>
-        <button class="tg ${save.lefty ? 'on' : ''}" data-t="lefty">${t('tg.lefty')}</button>
-        <button class="tg on" data-l="lang">🌐 ${t('tg.lang')}</button>
-      </div>
+      <div class="toggles"><button class="tg on gear" data-a="settings">⚙️ ${t('title.settings')}</button></div>
       <div class="credit">StatFlow Games</div>
     </div>`, 'center title');
   on(el, '[data-a=play]', () => levelScreen());
   on(el, '[data-a=skin]', () => skinScreen());
   on(el, '[data-a=den]', () => denScreen());
   on(el, '[data-a=quest]', () => questScreen());
-  on(el, '[data-l]', () => { save.lang = nextLang(); setLang(save.lang); store(); paintButtons(); titleScreen(); });
+  on(el, '[data-a=settings]', () => settingsScreen());
+}
+
+// ───────── 설정 ─────────
+const APP_VERSION = '1.0.0';
+const PRIVACY_URL = 'https://statflowgames.github.io/sneakycat/privacy.html';
+const CONTACT = 'statflow.games@gmail.com';
+const isApp = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+// 앱에서는 바깥 주소로 넘어가면 Capacitor 가 휴대폰 브라우저(메일 앱)로 열어 준다
+function openLink(url) { if (isApp()) location.href = url; else window.open(url, '_blank', 'noopener'); }
+function settingsScreen() {
+  scene = 'settings'; game = null; setHud(false);
+  const tg = (k, label) => `<button class="tg ${save[k] ? 'on' : ''}" data-t="${k}">${label}</button>`;
+  const el = show(`<div class="top"><button class="back" data-a="back">‹</button><h2>${t('set.title')}</h2></div>
+    <div class="sets">
+      <section><h3>${t('set.sound')}</h3><div class="toggles">${tg('sound', t('tg.sound'))}${tg('music', t('tg.music'))}${tg('vib', t('tg.vib'))}</div></section>
+      <section><h3>${t('set.play')}</h3><div class="toggles">${tg('lefty', t('tg.lefty'))}</div><small>${t('set.leftyDesc')}</small></section>
+      <section><h3>🌐 ${t('set.lang')}</h3><div class="toggles">${LANGS.map((l) => `<button class="tg ${getLang() === l ? 'on' : ''}" data-l="${l}">${LANG_NAMES[l]}</button>`).join('')}</div></section>
+      <section><h3>${t('set.info')}</h3>
+        <button class="srow" data-a="privacy">🔒 ${t('set.privacy')}<span>›</span></button>
+        <button class="srow" data-a="mail">✉️ ${t('set.contact')}<span>${CONTACT}</span></button>
+        <div class="srow">🐾 ${t('set.maker')}<span>StatFlow Games</span></div>
+        <div class="srow">ℹ️ ${t('set.version')}<span class="ver">${APP_VERSION}${isApp() ? '' : ` · ${t('set.web')}`}</span></div>
+      </section>
+      <section class="danger"><h3>${t('set.data')}</h3><button class="btn sm warn" data-a="reset">${t('set.reset')}</button><small>${t('set.resetDesc')}</small></section>
+    </div>`, 'list');
+  on(el, '[data-a=back]', () => titleScreen());
   on(el, '[data-t]', (e, b) => {
     const k = b.dataset.t; save[k] = !save[k]; store();
     b.classList.toggle('on', save[k]);
     if (k === 'sound') Sound.setSound(save.sound);
     if (k === 'music') Sound.setMusic(save.music);
     if (k === 'lefty') app.classList.toggle('lefty', save.lefty);
+    if (k === 'vib' && save.vib) vib(30);
+  });
+  on(el, '[data-l]', (e, b) => { save.lang = b.dataset.l; setLang(save.lang); store(); paintButtons(); settingsScreen(); });
+  on(el, '[data-a=privacy]', () => openLink(PRIVACY_URL));
+  on(el, '[data-a=mail]', () => openLink(`mailto:${CONTACT}?subject=${encodeURIComponent('[도둑 고양이] 문의 (v' + APP_VERSION + ')')}`));
+  on(el, '[data-a=reset]', () => confirmReset());
+  // 앱이면 실제 설치된 버전을 보여 준다
+  const NA = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App;
+  if (NA && isApp()) NA.getInfo().then((i) => { const v = el.querySelector('.ver'); if (v) v.textContent = `${i.version} (${i.build})`; }).catch(() => {});
+}
+function confirmReset() {
+  // '취소'를 ‹ 버튼과 같은 data-a=back 으로 두어 안드로이드 뒤로 가기도 취소가 되게 한다
+  const el = show(`<div class="card">
+      <div class="big">🙀</div>
+      <h1>${t('set.resetQ')}</h1>
+      <p>${t('set.resetWarn')}</p>
+      <button class="btn warn" data-a="wipe">${t('set.resetYes')}</button>
+      <button class="btn main" data-a="back">${t('set.cancel')}</button>
+    </div>`, 'center dim');
+  on(el, '[data-a=back]', () => settingsScreen());
+  on(el, '[data-a=wipe]', () => {
+    try { localStorage.removeItem(KEY); } catch { /* 무시 */ }
+    wiping = true; // 새로고침 전에 다시 저장되지 않게
+    location.reload();
   });
 }
 
@@ -213,7 +260,7 @@ function levelScreen() {
   if (save.ending) html += `<button class="btn endbtn" data-a="ending">🏆 엔딩 다시 보기</button>`;
   let nextShown = false;
   // 지금 할 스테이지가 있는 장만 펼치고 나머지는 접어 둔다
-  const nextIdx = LEVELS.findIndex((l, i) => unlocked(i) && !cleared(l.id));
+  const nextIdx = LEVELS.findIndex((l, i) => unlocked(i) && !cleared(l.id) && !skipped(l.id));
   const openCh = nextIdx >= 0 ? LEVELS[nextIdx].ch : LEVELS[LEVELS.length - 1].ch;
   for (const ch of CHAPTERS) {
     const lv = LEVELS.map((l, i) => ({ l, i })).filter((x) => x.l.ch === ch.id);
@@ -226,9 +273,10 @@ function levelScreen() {
     html += `<div class="chap ${ch.id === openCh ? '' : 'fold'}" data-ch="${ch.id}">${IMG['chapter-' + ch.id] ? `<div class="banner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}<h3 data-f="${ch.id}">${ch.id}장 · ${ch.name}${hard ? ' <em class="hardtag">🔥</em>' : ''}<span>★ ${got}/${lv.length * 3} <b class="fa">▾</b></span></h3><p>${ch.sub}</p><button class="gbtn" data-c="${ch.id}">등장인물 · 물건 소개</button><div class="lvgrid">`;
     for (const { l, i } of lv) {
       const st = starsOf(l.id), ok = unlocked(i), cl = cleared(l.id);
-      const nx = ok && !cl && !nextShown; if (nx) nextShown = true;
+      const sk = !cl && skipped(l.id);
+      const nx = ok && !cl && !sk && !nextShown; if (nx) nextShown = true;
       if (l.no === HARD_FROM) html += `<div class="hardline">🔥 여기부터 고난도 — 경비가 더 빠르고 더 멀리 봐요</div>`;
-      html += `<button class="lv ${cl ? 'clear' : ''} ${ok ? '' : 'lock'} ${nx ? 'next' : ''} ${l.hard ? 'hard' : ''}" data-i="${i}"><span class="no">${l.id}</span><span class="nm">${ok ? l.name : '잠겨 있음'}</span><span class="st">${st.map((s) => `<i class="${s ? 'on' : ''}">★</i>`).join('')}</span></button>`;
+      html += `<button class="lv ${cl ? 'clear' : ''} ${ok ? '' : 'lock'} ${nx ? 'next' : ''} ${sk ? 'skipped' : ''} ${l.hard ? 'hard' : ''}" data-i="${i}"><span class="no">${l.id}</span><span class="nm">${ok ? l.name : '잠겨 있음'}${sk ? '<small>건너뜀</small>' : ''}</span><span class="st">${st.map((s) => `<i class="${s ? 'on' : ''}">★</i>`).join('')}</span></button>`;
     }
     html += '</div></div>';
   }
@@ -247,6 +295,7 @@ function levelScreen() {
 }
 
 let wardTab = 'skin';
+const FREE_BOX = 40;
 function skinScreen(tab = wardTab) {
   wardTab = tab;
   scene = 'skins'; game = null; setHud(false);
@@ -254,6 +303,9 @@ function skinScreen(tab = wardTab) {
   const right = tab === 'gear' ? `<div class="starsum bones">${BONE} ${save.bones}</div>` : `<div class="starsum">★ ${ts}</div>`;
   let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>고양이 옷장</h2>${right}</div>
     <div class="wtabs"><button class="${tab === 'skin' ? 'on' : ''}" data-t="skin">털색</button><button class="${tab === 'gear' ? 'on' : ''}" data-t="gear">장비</button></div>`;
+  if (tab === 'gear') html += save.freeBox === today()
+    ? `<div class="freebox done">🎁 오늘의 무료 상자는 받았어요<small>내일 또 열려요</small></div>`
+    : `<button class="freebox" data-a="box">🎁 오늘의 무료 상자 <b>${BONE} +${FREE_BOX}</b><small>📺 광고 보고 열기</small></button>`;
   if (tab === 'gear') html += gearHTML();
   else {
     html += '<div class="skins">';
@@ -266,6 +318,12 @@ function skinScreen(tab = wardTab) {
   const el = show(html, 'list');
   on(el, '[data-a=back]', () => titleScreen());
   on(el, '[data-t]', (e, b) => skinScreen(b.dataset.t));
+  on(el, '[data-a=box]', async (e, b) => {
+    b.disabled = true;
+    if (!(await Reward.show('box'))) { b.disabled = false; return; }
+    save.freeBox = today(); save.bones += FREE_BOX; store();
+    Sound.play('coin'); toast(`생선뼈 +${FREE_BOX}!`); skinScreen('gear');
+  });
   on(el, '[data-s]', (e, b) => {
     const s = skinById(b.dataset.s);
     if (!skinOpen(s, ts)) { toast(s.ending ? '99번째 스테이지를 깨고 엔딩을 보면 열려요' : s.quest ? `하루 의뢰 보너스 상자에서 조각 ${s.quest}개를 모으면 열려요` : `별 ${s.need}개를 모으면 열려요`); return; }
@@ -347,18 +405,19 @@ function questCheck(L, win) {
 function questScreen() {
   scene = 'quest'; game = null; setHud(false);
   const Q = quests();
+  const adRr = Math.max(0, AD_REROLLS - (Q.adRerolls || 0));
   const now = new Date(), mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const left = Math.max(0, mid - now), hh = Math.floor(left / 3600000), mm = Math.floor((left % 3600000) / 60000);
   const lvBy = (id) => LEVELS.findIndex((l) => l.id === id);
   let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>오늘의 의뢰</h2><div class="starsum bones">${BONE} ${save.bones}</div></div>
-    <div class="qhead">이미 깬 스테이지를 조건대로 다시 깨면 생선뼈를 받아요.<small>새 의뢰까지 ${hh}시간 ${mm}분 · 바꾸기 ${Q.rerolled ? '오늘은 다 썼어요' : '하루 1번'}</small></div>`;
+    <div class="qhead">이미 깬 스테이지를 조건대로 다시 깨면 생선뼈를 받아요.<small>새 의뢰까지 ${hh}시간 ${mm}분 · 바꾸기 ${!Q.rerolled ? '하루 1번 무료' : adRr ? `📺 광고 보고 ${adRr}번 더` : '오늘은 다 썼어요'}</small></div>`;
   Q.list.forEach((q, k) => {
     const i = lvBy(q.lv), L = LEVELS[i], ch = CHAPTERS[L.ch - 1], T = TIERS[q.tier];
     html += `<div class="qcard ${T.cls} ${q.done ? 'done' : ''}">
       <div class="qtop"><span class="qt">${T.name}</span><span class="qr">${BONE} +${T.reward}</span></div>
       <b>${condText(q, ch)}</b>
       <p>${L.id} ${L.name}</p>
-      ${q.done ? '<div class="qdone">✓ 완료</div>' : `<div class="qbtns"><button class="btn sm main" data-q="${k}">도전하기</button>${Q.rerolled ? '' : `<button class="btn sm" data-r="${k}">바꾸기</button>`}</div>`}
+      ${q.done ? '<div class="qdone">✓ 완료</div>' : `<div class="qbtns"><button class="btn sm main" data-q="${k}">도전하기</button>${!Q.rerolled ? `<button class="btn sm" data-r="${k}">바꾸기</button>` : adRr ? `<button class="btn sm ad" data-ra="${k}">📺 바꾸기</button>` : ''}</div>`}
     </div>`;
   });
   const n = Q.list.filter((q) => q.done).length, pc = save.pieces || 0;
@@ -373,7 +432,15 @@ function questScreen() {
     Q.list[k] = rerollOne(Q.day, Q.list[k], questLevels(), Q.list); Q.rerolled = true; store();
     toast('의뢰를 바꿨어요'); questScreen();
   });
+  on(el, '[data-ra]', async (e, b) => {
+    b.disabled = true;
+    if (!(await Reward.show('reroll'))) { b.disabled = false; return; }
+    const k = +b.dataset.ra;
+    Q.list[k] = rerollOne(Q.day, Q.list[k], questLevels(), Q.list); Q.adRerolls = (Q.adRerolls || 0) + 1; store();
+    toast('의뢰를 바꿨어요'); questScreen();
+  });
 }
+const AD_REROLLS = 2;
 
 // ───────── 비밀 아지트 ─────────
 let den = null;
@@ -552,20 +619,40 @@ function resumeGame() {
   hideLayer();
 }
 
+// 같은 스테이지에서 잡힌 횟수 (이번에 켠 동안만): 3번째부터 건너뛰기 버튼
+const failCount = {};
+const SKIP_AFTER = 3;
 const FAIL = ['생선은 다음 기회에…', '고양이 털이 너무 눈에 띄었다', '살금살금이 부족했다!', '집사의 눈은 매서웠다'];
 function endLevel(win) {
   ended = true;
   const L = game.L;
   if (!win) {
+    const fails = (failCount[L.id] = (failCount[L.id] || 0) + (game.revived ? 0 : 1));
+    const canRevive = !game.revived;
+    const canSkip = fails >= SKIP_AFTER && !cleared(L.id) && !skipped(L.id) && !!LEVELS[levelIdx + 1];
     const el = show(`<div class="card">
         ${IMG.caught ? `<img class="hero" src="${spriteURL('caught', skinById(save.skin))}" alt="">` : '<div class="big">😿</div>'}
         <h1>잡혔다!</h1>
         <p>${FAIL[(Math.random() * FAIL.length) | 0]}</p>
-        <button class="btn main" data-a="retry">다시 도전</button>
-        <button class="btn" data-a="list">스테이지 목록</button>
+        ${canRevive ? `<button class="btn ad" data-a="revive">📺 이어하기<small>${game.cat.hasFish ? '생선은 잡힌 자리에 떨어져요' : '모은 보너스는 그대로'}</small></button>` : ''}
+        <button class="btn ${canRevive ? '' : 'main'}" data-a="retry">처음부터 다시</button>
+        ${canSkip ? `<button class="btn ad sm" data-a="skip">📺 이 스테이지 건너뛰기<small>별 없이 다음 스테이지가 열려요</small></button>` : ''}
+        <button class="btn sm" data-a="list">스테이지 목록</button>
       </div>`, 'center dim');
     on(el, '[data-a=retry]', () => startLevel(levelIdx));
     on(el, '[data-a=list]', () => levelScreen());
+    on(el, '[data-a=revive]', async (e, b) => {
+      b.disabled = true;
+      if (!(await Reward.show('revive')) || !game || !game.revive()) { b.disabled = false; return; }
+      ended = false; hideLayer(); vib(20);
+    });
+    on(el, '[data-a=skip]', async (e, b) => {
+      b.disabled = true;
+      if (!(await Reward.show('skip'))) { b.disabled = false; return; }
+      (save.skipped ||= {})[L.id] = true; store();
+      toast(`${L.id} 건너뜀 — 나중에 언제든 다시 깰 수 있어요`, 2600);
+      startLevel(levelIdx + 1);
+    });
     return;
   }
   const before = totalStars();
@@ -595,7 +682,8 @@ function endLevel(win) {
       ${fake ? '<p>훔친 황금 생선이 이상하게 가볍다. 톡톡… 플라스틱?! <b>진짜는 생선왕의 성에 있다!</b></p>' : ''}
       ${soon ? '<p class="soonp">다음 장은 지금 준비 중이에요. 조금만 기다려 주세요!</p>' : ''}
       ${labels.map((lb, i) => `<div class="goalrow hide" data-g="${i}"><span class="s">★</span>${lb}</div>`).join('')}
-      <div class="earn">${BONE} 생선뼈 +${earn}<small>모두 ${save.bones}</small></div>
+      <div class="earn">${BONE} 생선뼈 +<b class="en">${earn}</b><small>모두 <b class="eb">${save.bones}</b></small></div>
+      <button class="btn ad sm dbl" data-a="double">📺 생선뼈 2배 받기 <b>+${earn}</b></button>
       ${qres.map((r) => `<div class="qres ${r.ok ? 'ok' : ''}">📜 ${r.ok ? '의뢰 완료' : '의뢰 실패'}: ${r.text}${r.ok ? ` <b>+${r.reward}</b>` : ''}</div>`).join('')}
       ${qres.box ? `<div class="unlock">🎁 오늘의 의뢰 3개 완료! 보너스 상자: 생선뼈 +${BOX.bones}, 달빛 도둑 조각 +${BOX.pieces} (${save.pieces}/${PIECES_FOR_SKIN})</div>` : ''}
       ${qres.skin ? '<div class="unlock">새 고양이 해금: 달빛 도둑! (옷장에서 입기)</div>' : ''}
@@ -610,6 +698,14 @@ function endLevel(win) {
     if (g) { r.classList.add('on'); Sound.play('star'); }
   }, 350 + i * 380));
   on(el, '[data-a=next]', () => startLevel(levelIdx + 1));
+  on(el, '[data-a=double]', async (e, b) => {
+    b.disabled = true;
+    if (!(await Reward.show('double'))) { b.disabled = false; return; }
+    save.bones += earn; store();
+    el.querySelector('.earn .en').textContent = earn * 2;
+    el.querySelector('.earn .eb').textContent = save.bones;
+    b.remove(); Sound.play('coin');
+  });
   on(el, '[data-a=ending]', () => endingScreen(true));
   on(el, '[data-a=retry]', () => startLevel(levelIdx));
   on(el, '[data-a=list]', () => levelScreen());
@@ -660,10 +756,53 @@ function endingScreen(first) {
   panel();
 }
 
+// 한참 뒤에 돌아오면 브라우저가 비워 버렸을 수 있는 그림(고양이·경비 등)과 바닥 그림을 다시 만든다
+let hiddenAt = 0;
+function refreshArt() {
+  resetSprites();
+  if (R.game) R.buildStatic();
+}
+function backAfter() { if (hiddenAt && Date.now() - hiddenAt > 15000) refreshArt(); hiddenAt = 0; }
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { Sound.suspend(); if (scene === 'game' && game && game.state === 'play') pauseGame(); }
-  else Sound.resume();
+  if (document.hidden) { hiddenAt = Date.now(); Sound.suspend(); if (scene === 'game' && game && game.state === 'play') pauseGame(); }
+  else { Sound.resume(); backAfter(); }
 });
+// 화면 캔버스를 잃었다 되찾았을 때도 다시 만든다
+cv.addEventListener('contextrestored', refreshArt);
+
+// ───────── 앱(안드로이드)에서만 ─────────
+const NativeApp = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App;
+if (NativeApp) {
+  // 홈 버튼·전화 등으로 앱이 뒤로 가면: 소리 멈추고 게임 중이면 일시정지 (visibilitychange 가 안 오는 기기 대비)
+  NativeApp.addListener('appStateChange', ({ isActive }) => {
+    if (!isActive) { hiddenAt ||= Date.now(); Sound.suspend(); setLook(false); if (scene === 'game' && game && game.state === 'play') pauseGame(); }
+    else { Sound.resume(); backAfter(); }
+  });
+  // 뒤로 가기: 게임 중 → 일시정지/계속, 결과·시작 카드 → 스테이지 목록, 다른 화면 → 그 화면의 ‹ 버튼, 타이틀 → 두 번 누르면 종료
+  let exitAt = 0;
+  NativeApp.addListener('backButton', () => {
+    Sound.unlock();
+    if (scene === 'game') {
+      setLook(false);
+      if (ended || (game && game.state === 'intro' && !paused)) levelScreen();
+      else if (paused) resumeGame();
+      else pauseGame();
+      return;
+    }
+    if (scene === 'title') {
+      if (performance.now() - exitAt < 2000) NativeApp.exitApp();
+      else { exitAt = performance.now(); toast(t('exit.again'), 2000); }
+      return;
+    }
+    if (scene === 'ending') {
+      const step = layer.querySelector('.ending, .credits');
+      if (step) step.click(); else levelScreen();
+      return;
+    }
+    const back = layer.querySelector('[data-a=back]');
+    if (back) back.click(); else titleScreen();
+  });
+}
 
 // ───────── 타이틀 배경 ─────────
 const STARS = Array.from({ length: 60 }, (_, i) => [((i * 97) % 100) / 100, ((i * 57) % 60) / 100, (i % 3) + 1]);
@@ -771,7 +910,12 @@ function paintButtons() {
   hudCache.a = undefined; hudCache.s = undefined; hudCache.e = undefined;
 }
 paintButtons();
-loadAll().then(() => { paintButtons(); titleScreen(); });
+loadAll().then(() => {
+  paintButtons(); titleScreen();
+  // 앱: 그림을 다 불러온 뒤 첫 화면이 그려지면 시작 화면(스플래시)을 걷는다
+  const SP = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.SplashScreen;
+  if (SP) requestAnimationFrame(() => requestAnimationFrame(() => SP.hide({ fadeOutDuration: 250 }).catch(() => {})));
+});
 
 // 테스트용 핸들
 window.__sc = {
