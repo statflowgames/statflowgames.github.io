@@ -1,7 +1,7 @@
 // 보상형 광고 자리 — 게임은 이 파일의 Reward.show(kind) 만 부른다.
 // 지금은 광고가 없어서 잠깐 '광고 자리' 화면을 보여 준 뒤 보상을 준다.
 // AdMob 을 붙일 때는 show() 안만 보상형 광고(끝까지 봤으면 true, 닫았거나 실패면 false)로 바꾸면 된다.
-import { Sound } from './audio.js?v=1117102242';
+import { Sound } from './audio.js?v=1117103129';
 
 // 보상 종류 (광고 단위 하나를 같이 쓰고, 기록·분석할 때 구분용)
 export const KINDS = {

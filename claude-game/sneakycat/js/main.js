@@ -1,17 +1,17 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1117102242';
-import { Game } from './game.js?v=1117102242';
-import { Renderer, FONT } from './render.js?v=1117102242';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1117102242';
-import { Sound } from './audio.js?v=1117102242';
-import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1117102242';
-import { actIcon, buttonHTML } from './icons.js?v=1117102242';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1117102242';
-import { startDen } from './den.js?v=1117102242';
-import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct } from './i18n.js?v=1117102242';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1117102242';
-import { Reward } from './reward.js?v=1117102242';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1117102242';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1117103129';
+import { Game } from './game.js?v=1117103129';
+import { Renderer, FONT } from './render.js?v=1117103129';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1117103129';
+import { Sound } from './audio.js?v=1117103129';
+import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1117103129';
+import { actIcon, buttonHTML } from './icons.js?v=1117103129';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1117103129';
+import { startDen } from './den.js?v=1117103129';
+import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct } from './i18n.js?v=1117103129';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1117103129';
+import { Reward } from './reward.js?v=1117103129';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1117103129';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -518,7 +518,7 @@ function startLevel(i, skipIntro = false) {
   $('#lvTitle').textContent = `${L.id} ${L.name}`;
   const ch = CHAPTERS[L.ch - 1];
   const nw = skipIntro && firstOfChapter(i) ? [] : newInLevel(i), here = inLevel(L).filter((e) => e.id !== 'door');
-  const el = show(`<div class="card">
+  const el = show(`<div class="card intro"><div class="ibody">
       ${IMG['chapter-' + ch.id] ? `<div class="cbanner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}
       <span class="tag">${ch.id}장 · ${ch.name}</span>${L.hard ? '<span class="tag hardt">🔥 고난도</span>' : ''}
       <h1>${L.name}</h1>
@@ -529,7 +529,7 @@ function startLevel(i, skipIntro = false) {
       <div class="goalrow on"><span class="s">★</span>${ch.bonusName} 2개 모두 챙기기</div>
       <div class="goalrow on"><span class="s">★</span>한 번도 들키지 않기 (!)</div>
       ${questsFor(L.id).map((q) => `<div class="qline">📜 오늘의 의뢰: ${condText(q, ch)} <b>+${TIERS[q.tier].reward}</b></div>`).join('')}
-      <button class="btn main" data-a="go">잠입 시작</button>
+      </div><div class="gobar"><button class="btn main" data-a="go">잠입 시작</button></div>
     </div>`, 'center dim');
   on(el, '[data-a=go]', () => startPlay());
   on(el, '[data-e]', (e, b) => { const g = entry(b.dataset.e); toast(`${g.name} — ${g.desc}`, 3600); });
