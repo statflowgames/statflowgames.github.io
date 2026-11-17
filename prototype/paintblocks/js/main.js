@@ -1,7 +1,9 @@
-import { getStage, getDaily, todayStr, CHAPTERS, PER, STAGES, MIX } from './gen.js?v=1117195920';
-import { Game, drawArt } from './game.js?v=1117195920';
-import { Sound } from './audio.js?v=1117195920';
-import { initLang, setLang, getLang, tr, tf, LANGS, LANG_NAMES } from './i18n.js?v=1117195920';
+import { getStage, getDaily, todayStr, CHAPTERS, PER, STAGES, MIX } from './gen.js?v=1117200811';
+import { Game, drawArt } from './game.js?v=1117200811';
+import { Sound } from './audio.js?v=1117200811';
+import { initLang, setLang, getLang, tr, tf, LANGS, LANG_NAMES } from './i18n.js?v=1117200811';
+import { loadAll, imgUrl } from './assets.js?v=1117200811';
+import { LOGOS } from './logos.js?v=1117200811';
 
 const $ = s => document.querySelector(s);
 const layer = $('#layer'), hud = $('#hud'), cv = $('#cv'), coach = $('#coach'), toastEl = $('#toast');
@@ -67,9 +69,22 @@ function play(m) {
   hudTitle();
   game.load(puz);
   hideCoach();
-  if (m.kind === 'stage' && m.i % PER === 0 && !save.seen[m.i]) {
-    showCoach(tr(CHAPTERS[m.i / PER].tip), () => { save.seen[m.i] = 1; persist(); });
-  }
+  if (m.kind === 'stage' && m.i % PER === 0 && !save.seen[m.i]) showChapter(m.i / PER);
+}
+
+function showChapter(c) {
+  save.seen[c * PER] = 1; persist();
+  const el = screen(`
+    <div class="card chap">
+      <img class="chart" src="${imgUrl('chapter-' + (c + 1))}" alt="" onerror="this.remove()">
+      <h2>${esc(tf('{n}장 · {name}', { n: c + 1, name: chName(c) }))}</h2>
+      <p class="tip">${esc(tr(CHAPTERS[c].tip))}</p>
+      <img class="mascot think" src="${imgUrl('mascot-think')}" alt="" onerror="this.remove()">
+      <div class="row"><button class="btn sm primary" data-a="ok">${esc(tr('알겠어요'))}</button></div>
+    </div>`, 'dim');
+  el.onclick = e => {
+    if (e.target.closest('[data-a]') || e.target === el) { Sound.unlock(); Sound.play('click'); closeLayer(); }
+  };
 }
 
 function onWin({ hints, time }) {
@@ -87,7 +102,8 @@ function onWin({ hints, time }) {
   const el = screen(`
     <div class="card clear">
       <h2>${esc(isLast && first ? tr('모든 그림 완성!') : tr('완성!'))}</h2>
-      <canvas class="art"></canvas>
+      <div class="framed"><canvas class="art"></canvas><img class="cframe" src="${imgUrl('clear-frame')}" alt="" onerror="this.parentNode.classList.add('plain'); this.remove()"></div>
+      <img class="mascot cheer" src="${imgUrl('mascot-cheer')}" alt="" onerror="this.remove()">
       <div class="stars">${[0, 1, 2].map(k => `<i class="${k < stars ? 'on' : ''}" style="animation-delay:${0.15 + k * 0.15}s">★</i>`).join('')}</div>
       <p class="meta">${esc(tf('시간 {t}', { t: fmtTime(time) }))} · ${esc(hints ? tf('힌트 {n}번', { n: hints }) : tr('힌트 없이!'))}</p>
       ${isLast && first ? `<p class="meta">${esc(tf('{n}장의 그림을 모두 그렸어요. 오늘의 그림은 매일 새로 나와요.', { n: STAGES }))}</p>` : ''}
@@ -99,7 +115,9 @@ function onWin({ hints, time }) {
           : `<button class="btn sm primary" data-a="title">${esc(tr('처음으로'))}</button>`}
       </div>
     </div>`, 'dim');
-  drawArt(el.querySelector('.art'), game.puz, Math.min(220, window.innerWidth * 0.55));
+  const F = Math.min(250, window.innerWidth * 0.6);
+  el.querySelector('.framed').style.width = el.querySelector('.framed').style.height = F + 'px';
+  drawArt(el.querySelector('.art'), game.puz, Math.round(F * 0.66));
   el.onclick = e => {
     const a = e.target.closest('[data-a]')?.dataset.a;
     if (!a) return;
@@ -126,8 +144,10 @@ function showTitle() {
   const nx = nextStage(), today = todayStr();
   const el = screen(`
     <div class="logo">
-      <div class="blobs"><i class="r"></i><i class="y"></i><i class="b"></i></div>
-      <h1>${esc(tr('물감 블록'))}</h1>
+      <img class="mark" src="${imgUrl('logo-mark')}" alt="" onerror="this.outerHTML='<div class=&quot;blobs&quot;><i class=&quot;r&quot;></i><i class=&quot;y&quot;></i><i class=&quot;b&quot;></i></div>'">
+      ${LOGOS.includes(getLang())
+        ? `<h1 class="img"><img src="${imgUrl('logo-' + getLang())}" alt="${esc(tr('물감 블록'))}"></h1>`
+        : `<h1>${esc(tr('물감 블록'))}</h1>`}
       <p>${esc(tr('겹치면 색이 섞이는 두뇌 퍼즐'))}</p>
     </div>
     <div class="menu">
@@ -220,6 +240,7 @@ function showHelp(back) {
   ];
   const el = screen(`
     <div class="card help">
+      <img class="mascot idle" src="${imgUrl('mascot-idle')}" alt="" onerror="this.remove()">
       <h2>${esc(tr('하는 법'))}</h2>
       <ol>${steps.map(s => `<li>${esc(tr(s))}</li>`).join('')}</ol>
       <div class="mixes">
@@ -309,7 +330,8 @@ window.__pb = {
 };
 
 (async () => {
-  await initLang(save.lang);
+  await Promise.all([initLang(save.lang), loadAll()]);
   applyStaticText();
+  game.resize();
   showTitle();
 })();

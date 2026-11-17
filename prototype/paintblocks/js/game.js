@@ -1,7 +1,8 @@
 // 게임 판: 완성 그림 카드, 물감 판, 블록 서랍을 캔버스 하나에 그리고 끌어 놓기를 처리한다.
-import { MIX, rot, dims, key, paint } from './gen.js?v=1117195920';
-import { Sound } from './audio.js?v=1117195920';
-import { tr, tf, fontStack } from './i18n.js?v=1117195920';
+import { MIX, rot, dims, key, paint } from './gen.js?v=1117200811';
+import { Sound } from './audio.js?v=1117200811';
+import { tr, tf, fontStack } from './i18n.js?v=1117200811';
+import { IMG, CELL, nine } from './assets.js?v=1117200811';
 
 const EDGE = { 1: '#a9232a', 2: '#b98b0c', 4: '#1d4f9c' };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -25,8 +26,10 @@ function rr(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function paintCell(ctx, x, y, s, color, r) {
-  ctx.fillStyle = color;
+function paintCell(ctx, x, y, s, m, r) {
+  const im = IMG[CELL[m]];
+  if (im) { ctx.drawImage(im, x, y, s, s); return; }
+  ctx.fillStyle = MIX[m];
   rr(ctx, x, y, s, s, r); ctx.fill();
   const g = ctx.createLinearGradient(x, y, x + s, y + s);
   g.addColorStop(0, 'rgba(255,255,255,.34)');
@@ -55,7 +58,7 @@ function drawPiece(ctx, p, ox, oy, cs, alpha = 1) {
   ctx.save();
   ctx.globalAlpha = alpha;
   const gap = Math.max(1, cs * 0.04);
-  for (const [x, y] of p.cells) paintCell(ctx, ox + x * cs + gap, oy + y * cs + gap, cs - gap * 2, MIX[p.color], cs * 0.16);
+  for (const [x, y] of p.cells) paintCell(ctx, ox + x * cs + gap, oy + y * cs + gap, cs - gap * 2, p.color, cs * 0.16);
   ctx.strokeStyle = EDGE[p.color]; ctx.lineWidth = Math.max(1.5, cs * 0.07); ctx.lineCap = 'round';
   outline(ctx, p.cells, ox, oy, cs, gap + ctx.lineWidth / 2);
   ctx.restore();
@@ -75,8 +78,10 @@ function miniGrid(ctx, puz, x, y, s) {
   const n = puz.n, c = s / n, holes = new Set(puz.holes), gap = Math.max(0.6, c * 0.05);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
     const k = j * n + i, cx = x + i * c + gap, cy = y + j * c + gap, w = c - gap * 2;
-    if (holes.has(k)) { ctx.fillStyle = '#4a3f4d'; rr(ctx, cx, cy, w, w, c * 0.2); ctx.fill(); }
-    else if (puz.target[k]) paintCell(ctx, cx, cy, w, MIX[puz.target[k]], c * 0.16);
+    if (holes.has(k)) {
+      if (IMG.hole) ctx.drawImage(IMG.hole, cx, cy, w, w);
+      else { ctx.fillStyle = '#4a3f4d'; rr(ctx, cx, cy, w, w, c * 0.2); ctx.fill(); }
+    } else if (puz.target[k]) paintCell(ctx, cx, cy, w, puz.target[k], c * 0.16);
     else { ctx.fillStyle = '#efe5d5'; rr(ctx, cx, cy, w, w, c * 0.16); ctx.fill(); }
   }
 }
@@ -178,22 +183,26 @@ export class Game {
     if (!this.puz || !this.W) return;
     const W = this.W, H = this.H, n = this.n, k = this.pieces.length;
     const pad = clamp(Math.min(W, H) * 0.035, 10, 24);
+    // 판 틀 두께 + 틀과 칸 사이
+    this.frameT = IMG['board-frame'] ? clamp(Math.min(W, H) * 0.035, 10, 22) : 0;
+    this.frameGap = IMG['board-frame'] ? 5 : 0;
+    const fx = this.frameT + this.frameGap;
     if (H >= W * 1.05) {
       const tg = Math.round(clamp(Math.min(H * 0.16, W * 0.3), 74, 140));
       this.tgtR = { x: pad, y: pad * 0.5, w: W - pad * 2, h: tg };
       const trayH = Math.max(H * 0.25, 140);
-      let bs = Math.min(W - pad * 2, H - this.tgtR.y - tg - pad * 1.6 - trayH, 560);
+      let bs = Math.min(W - pad * 2 - fx * 2, H - this.tgtR.y - tg - pad * 1.6 - trayH - fx * 2, 560);
       bs = Math.max(bs, 140);
-      this.board = { x: (W - bs) / 2, y: this.tgtR.y + tg + pad, s: bs };
-      const ty = this.board.y + bs + pad * 0.6;
+      this.board = { x: (W - bs) / 2, y: this.tgtR.y + tg + pad + fx, s: bs };
+      const ty = this.board.y + bs + fx + pad * 0.6;
       this.trayR = { x: pad * 0.5, y: ty, w: W - pad, h: H - ty - pad * 0.4 };
     } else {
-      let bs = Math.min(H - pad * 2, W * 0.46, 640);
+      let bs = Math.min(H - pad * 2 - fx * 2, W * 0.46, 640);
       this.board = { x: (W - bs) / 2, y: (H - bs) / 2, s: bs };
-      const colW = this.board.x - pad * 2;
+      const colW = this.board.x - fx - pad * 2;
       const th = Math.min(colW * 1.25, H - pad * 2);
       this.tgtR = { x: pad, y: Math.max(pad, (H - th) / 2), w: colW, h: th };
-      const tx = this.board.x + bs + pad;
+      const tx = this.board.x + bs + fx + pad;
       this.trayR = { x: tx, y: pad, w: W - tx - pad * 0.6, h: H - pad * 2 };
     }
     this.cs = this.board.s / n;
@@ -380,7 +389,7 @@ export class Game {
     ctx.textBaseline = 'middle';
     if (horiz) {
       const gs = r.h - 18, gx = r.x + (r.w - gs) / 2, gy = r.y + 9;
-      miniGrid(ctx, this.puz, gx, gy, gs);
+      this.framedMini(gx, gy, gs);
       ctx.fillStyle = '#3b3340';
       // 왼쪽: 이름과 진행
       const lw = gx - r.x - 12, fs = clamp(lw * 0.15, 11, 18);
@@ -397,11 +406,20 @@ export class Game {
       const legH = mixes.length ? Math.min(r.h * 0.3, mixes.length * fs * 1.5) : 0;
       const gs = Math.min(r.w - 24, r.h - fs * 4.2 - legH);
       const gx = r.x + (r.w - gs) / 2, gy = r.y + fs * 2.1;
-      miniGrid(ctx, this.puz, gx, gy, gs);
+      this.framedMini(gx, gy, gs);
       ctx.fillStyle = ok === all ? '#2f9a55' : '#8a7c6d';
       fitText(ctx, tf('{ok} / {all} 칸', { ok, all }), r.x + r.w / 2, gy + gs + fs * 1.1, r.w - 16, fs * 1.1);
       if (legH) this.legend(mixes, r.x + 12, gy + gs + fs * 1.9, r.w - 24, legH);
     }
+  }
+  // 완성 그림: 작은 액자 안에 그린다 (액자 그림이 없으면 그냥)
+  framedMini(x, y, s) {
+    const ctx = this.ctx, fr = IMG['target-frame'];
+    if (!fr) { miniGrid(ctx, this.puz, x, y, s); return; }
+    const t = Math.max(5, s * 0.075), inset = t * 0.9 + 1;
+    ctx.fillStyle = '#fbf5ea'; ctx.fillRect(x + t * 0.5, y + t * 0.5, s - t, s - t);
+    miniGrid(ctx, this.puz, x + inset, y + inset, s - inset * 2);
+    nine(ctx, fr, 48, x, y, s, s, t);
   }
   legend(mixes, x, y, w, h) {
     if (!mixes.length || w < 40) return;
@@ -414,11 +432,11 @@ export class Game {
       const parts = [1, 2, 4].filter(b => m & b);
       // 오른쪽부터: 결과 = 앞 색들
       let cx = right - sq;
-      paintCell(ctx, cx, cy - sq / 2, sq, MIX[m], sq * 0.2);
+      paintCell(ctx, cx, cy - sq / 2, sq, m, sq * 0.2);
       const sign = (t, at) => { ctx.fillStyle = '#6f6253'; ctx.font = `${sq * 0.95}px ${fontStack()}`; ctx.fillText(t, at, cy + sq * 0.05); };
       cx -= sq * 0.7; sign('=', cx + sq * 0.35);
       for (let j = parts.length - 1; j >= 0; j--) {
-        cx -= sq; paintCell(ctx, cx, cy - sq / 2, sq, MIX[parts[j]], sq * 0.2);
+        cx -= sq; paintCell(ctx, cx, cy - sq / 2, sq, parts[j], sq * 0.2);
         if (j > 0) { cx -= sq * 0.6; sign('+', cx + sq * 0.3); }
       }
     });
@@ -426,7 +444,14 @@ export class Game {
 
   drawBoard(mix, extra) {
     const ctx = this.ctx, { x: bx, y: by, s } = this.board, n = this.n, cs = this.cs, t = this.puz.target;
-    this.card({ x: bx - 8, y: by - 8, w: s + 16, h: s + 16 }, 16);
+    const fr = IMG['board-frame'];
+    if (fr) {
+      const g = this.frameGap, t = this.frameT;
+      ctx.save(); ctx.shadowColor = 'rgba(80,56,30,.22)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 5;
+      ctx.fillStyle = '#fbf5ea'; ctx.fillRect(bx - g - 2, by - g - 2, s + (g + 2) * 2, s + (g + 2) * 2);
+      ctx.restore();
+      nine(ctx, fr, 64, bx - g - t, by - g - t, s + (g + t) * 2, s + (g + t) * 2, t);
+    } else this.card({ x: bx - 8, y: by - 8, w: s + 16, h: s + 16 }, 16);
     const gap = Math.max(1, cs * 0.045);
     const winAge = this.won ? this.now - this.winT : -1;
     for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
@@ -437,13 +462,14 @@ export class Game {
         if (ph > 0 && ph < 0.36) { const sc = 1 + 0.2 * Math.sin(ph / 0.36 * Math.PI); X -= w * (sc - 1) / 2; Y -= w * (sc - 1) / 2; w *= sc; }
       }
       if (this.holes.has(k)) {
+        if (IMG.hole) { ctx.drawImage(IMG.hole, X, Y, w, w); continue; }
         ctx.fillStyle = '#4a3f4d'; rr(ctx, X, Y, w, w, cs * 0.18); ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = Math.max(1.5, cs * 0.05); ctx.lineCap = 'round';
         const m = w * 0.32; ctx.beginPath();
         ctx.moveTo(X + m, Y + m); ctx.lineTo(X + w - m, Y + w - m); ctx.moveTo(X + w - m, Y + m); ctx.lineTo(X + m, Y + w - m); ctx.stroke();
         continue;
       }
-      if (mix[k]) paintCell(ctx, X, Y, w, MIX[mix[k]], cs * 0.16);
+      if (mix[k]) paintCell(ctx, X, Y, w, mix[k], cs * 0.16);
       else { ctx.fillStyle = '#efe5d5'; rr(ctx, X, Y, w, w, cs * 0.16); ctx.fill(); }
       // 칸 속 점: 이 칸에 와야 할 색 (맞으면 사라짐)
       if (!this.won && mix[k] !== t[k]) {
