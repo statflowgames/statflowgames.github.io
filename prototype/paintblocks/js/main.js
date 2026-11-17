@@ -1,9 +1,9 @@
-import { getStage, getDaily, todayStr, CHAPTERS, PER, STAGES, MIX } from './gen.js?v=1117200811';
-import { Game, drawArt } from './game.js?v=1117200811';
-import { Sound } from './audio.js?v=1117200811';
-import { initLang, setLang, getLang, tr, tf, LANGS, LANG_NAMES } from './i18n.js?v=1117200811';
-import { loadAll, imgUrl } from './assets.js?v=1117200811';
-import { LOGOS } from './logos.js?v=1117200811';
+import { getStage, getDaily, todayStr, CHAPTERS, PER, STAGES, MIX } from './gen.js?v=1117202354';
+import { Game, drawArt } from './game.js?v=1117202354';
+import { Sound } from './audio.js?v=1117202354';
+import { initLang, setLang, getLang, tr, tf, LANGS, LANG_NAMES } from './i18n.js?v=1117202354';
+import { loadAll, imgUrl } from './assets.js?v=1117202354';
+import { LOGOS } from './logos.js?v=1117202354';
 
 const $ = s => document.querySelector(s);
 const layer = $('#layer'), hud = $('#hud'), cv = $('#cv'), coach = $('#coach'), toastEl = $('#toast');

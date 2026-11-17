@@ -1,8 +1,8 @@
 // 게임 판: 완성 그림 카드, 물감 판, 블록 서랍을 캔버스 하나에 그리고 끌어 놓기를 처리한다.
-import { MIX, rot, dims, key, paint } from './gen.js?v=1117200811';
-import { Sound } from './audio.js?v=1117200811';
-import { tr, tf, fontStack } from './i18n.js?v=1117200811';
-import { IMG, CELL, nine } from './assets.js?v=1117200811';
+import { MIX, rot, dims, key, paint } from './gen.js?v=1117202354';
+import { Sound } from './audio.js?v=1117202354';
+import { tr, tf, fontStack } from './i18n.js?v=1117202354';
+import { IMG, CELL, nine } from './assets.js?v=1117202354';
 
 const EDGE = { 1: '#a9232a', 2: '#b98b0c', 4: '#1d4f9c' };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
