@@ -1,7 +1,7 @@
 // 보상형 광고 — 게임은 이 파일의 Reward.show(kind) 만 부른다. 끝까지 봤으면 true.
 // 앱: AdMob 보상형 광고 (ads.js). 웹 체험판: 광고 없이 바로 보상.
-import { Ads } from './ads.js?v=1117150910';
-import { tr } from './i18n.js?v=1117150910';
+import { Ads } from './ads.js?v=1117192200';
+import { tr } from './i18n.js?v=1117192200';
 
 // 보상 종류 (광고 단위 하나를 같이 쓰고, 기록·분석할 때 구분용)
 export const KINDS = {

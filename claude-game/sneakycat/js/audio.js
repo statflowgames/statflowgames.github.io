@@ -146,9 +146,28 @@ const SFX = {
   chirp() { catVoice(0, 0.1, [[0, 720], [1, 1080]], 0.24); catVoice(0.13, 0.09, [[0, 780], [1, 1180]], 0.2); },
   // 놀이: 덮칠 때 "브르릅!" 혀 굴리며 올라가는 반가운 소리
   trill() { catVoice(0, 0.3, [[0, 470], [0.65, 820], [1, 920]], 0.3, 26); },
-  // 간식: "음냠냠" 낮게 웅얼대며 오물오물 씹는 소리
-  yum() { catVoice(0, 0.35, [[0, 330], [0.5, 380], [1, 340]], 0.26, 22); for (let i = 0; i < 5; i++) { noise(0.035, 0.24, 'bandpass', 1900 + (i % 2) * 500, 0.38 + i * 0.17, 2); osc('sine', 260, 200, 0.05, 0.05, 0.38 + i * 0.17); } },
-  // 놀이 끝: "르릅—냐앙♪" 신나서 끝이 올라가는 야옹
+  // ── 아지트 돌봐 주기: 쓰다듬기 = 골골(purr) · 간식 = 철퍽→아작아작→냐아~ · 놀이 = 데굴→끼릭→르릅 · 특별 간식 = 츄릅츄릅→냐앙♪ ──
+  // 간식: 생선이 바닥에 "철퍽" 떨어지는 소리
+  plop() { osc('sine', 260, 110, 0.14, 0.16); noise(0.09, 0.22, 'lowpass', 900, 0, 1.2); noise(0.05, 0.1, 'bandpass', 2600, 0.02, 2); },
+  // 간식: 생선을 "아작아작" 씹는 소리 (목소리 없이 바삭바삭)
+  munch() { [0, 0.2, 0.36, 0.58, 0.74, 0.96].forEach((at, i) => { noise(0.045, 0.2, 'bandpass', 3000 + (i % 3) * 700, at, 1.6); osc('sine', 190, 130, 0.06, 0.05, at); }); },
+  // 간식 끝: "냐아~" 배불러서 느긋하게 내려가는 야옹
+  mmm() { catVoice(0, 0.6, [[0, 600], [0.3, 700], [1, 470]], 0.28); },
+  // 놀이: 털실이 "데구르르" 굴러오는 소리
+  roll() { noise(0.55, 0.13, 'bandpass', 520, 0, 0.9); for (let i = 0; i < 5; i++) osc('triangle', 300 + i * 25, 240, 0.05, 0.03, i * 0.1); },
+  // 놀이 끝: "르릅! 르르릅♪" 신나서 연달아 올라가는 소리
+  giggle() { catVoice(0, 0.16, [[0, 560], [1, 900]], 0.26, 28); catVoice(0.19, 0.26, [[0, 680], [0.6, 1150], [1, 1250]], 0.28, 28); },
+  // 특별 간식: 짜 먹는 간식을 "츄릅" 빨아들이는 소리 (혀 차는 소리 + 위로 쓸려 올라가는 물기)
+  slurp() {
+    const t = ac.currentTime;
+    const s = ac.createBufferSource(); s.buffer = noiseBuf;
+    const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 4;
+    f.frequency.setValueAtTime(700, t); f.frequency.exponentialRampToValueAtTime(2800, t + 0.2);
+    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+    s.connect(f); f.connect(g); g.connect(sfx); s.start(t, Math.random() * 0.5); s.stop(t + 0.3);
+    osc('sine', 1700, 900, 0.035, 0.06, 0.22);
+  },
+  // 특별 간식 끝·오랜만에 반가울 때: "르릅—냐앙♪" 끝이 올라가는 야옹
   happy() { catVoice(0, 0.18, [[0, 500], [1, 760]], 0.26, 26); catVoice(0.2, 0.6, [[0, 600], [0.25, 1050], [0.6, 900], [1, 1120]], 0.3); },
 };
 

@@ -1,18 +1,18 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM } from './levels.js?v=1117150910';
-import { Game } from './game.js?v=1117150910';
-import { Renderer } from './render.js?v=1117150910';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1117150910';
-import { Sound } from './audio.js?v=1117150910';
-import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1117150910';
-import { actIcon, buttonHTML } from './icons.js?v=1117150910';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1117150910';
-import { startDen } from './den.js?v=1117150910';
-import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1117150910';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1117150910';
-import { Reward } from './reward.js?v=1117150910';
-import { Ads } from './ads.js?v=1117150910';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1117150910';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM, TUTORIAL } from './levels.js?v=1117192200';
+import { Game } from './game.js?v=1117192200';
+import { Renderer } from './render.js?v=1117192200';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1117192200';
+import { Sound } from './audio.js?v=1117192200';
+import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1117192200';
+import { actIcon, buttonHTML } from './icons.js?v=1117192200';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1117192200';
+import { startDen } from './den.js?v=1117192200';
+import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1117192200';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1117192200';
+import { Reward } from './reward.js?v=1117192200';
+import { Ads } from './ads.js?v=1117192200';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1117192200';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -60,6 +60,7 @@ const skinIcon = (s) => icon(70, 56, (c) => { c.translate(31, 50); c.scale(1.7, 
 // ───────── 상태 ─────────
 let scene = 'title';
 let game = null, levelIdx = 0, paused = false, ended = false, looking = false;
+const tutOn = () => !!(game && game.L.tutorial);
 let titleT = 0;
 
 function resize() {
@@ -73,7 +74,7 @@ function resize() {
   // 세로로 짧은 화면(작은 폰·브라우저 주소줄)은 위아래 줄을 얇게
   const compact = !land && vh < 720;
   app.classList.toggle('compact', compact);
-  R.top = compact ? 54 : 66; R.bottom = compact ? 80 : 98;
+  R.top = (compact ? 54 : 66) + (tutOn() ? (compact ? 50 : 58) : 0); R.bottom = compact ? 80 : 98;
   // 가로 화면은 양옆 정보판 자리를 비우고 맵을 높이보다 1.3배 크게,
   // 세로 화면은 맵을 가로 폭에 맞추고 위아래가 넘치면 카메라가 고양이를 따라간다
   R.side = land ? Math.min(440, Math.max(0, (w - vh * 0.75) / 2)) : 0;
@@ -183,7 +184,7 @@ function show(html, cls = '') {
   return layer.firstElementChild;
 }
 function hideLayer() { layer.innerHTML = ''; }
-function setHud(on) { for (const id of ['#hud', '#ctrl', '#sideL', '#sideR']) $(id).classList.toggle('off', !on); }
+function setHud(on) { for (const id of ['#hud', '#ctrl', '#sideL', '#sideR']) $(id).classList.toggle('off', !on); $('#coach').classList.toggle('off', !on || !tutOn()); }
 const on = (el, sel, fn) => el.querySelectorAll(sel).forEach((b) => b.addEventListener('click', (e) => { Sound.unlock(); Sound.play('click'); fn(e, b); }));
 
 function titleScreen() {
@@ -198,7 +199,8 @@ function titleScreen() {
       <div class="toggles"><button class="tg on setbtn" data-a="settings">⚙️ ${t('title.settings')}</button></div>
       <div class="credit">StatFlow Games</div>
     </div>`, 'center title');
-  on(el, '[data-a=play]', () => levelScreen());
+  // 처음 설치해서 아무것도 안 깼으면 튜토리얼부터
+  on(el, '[data-a=play]', () => (!save.tut && !LEVELS.some((l) => cleared(l.id) || skipped(l.id)) ? startLevel(-1) : levelScreen()));
   on(el, '[data-a=skin]', () => skinScreen());
   on(el, '[data-a=den]', () => denScreen());
   on(el, '[data-a=quest]', () => questScreen());
@@ -270,6 +272,7 @@ function levelScreen() {
   scene = 'levels'; game = null; setHud(false);
   let html = `<div class="top"><button class="back" data-a="back">‹</button><h2>${tr('스테이지')}</h2><div class="starsum">★ ${totalStars()}/${LEVELS.length * 3}</div></div>`;
   if (save.ending) html += `<button class="btn endbtn" data-a="ending">🏆 ${tr('엔딩 다시 보기')}</button>`;
+  html += `<button class="tutbtn ${save.tut ? 'done' : ''}" data-a="tut"><span class="ti">🎓</span><span class="nm">${tr('튜토리얼')}<small>${tr(TUTORIAL.name)}</small></span><span class="tr">${save.tut ? '✓' : `${BONE}+${TUT_BONES}`}</span></button>`;
   let nextShown = false;
   // 지금 할 스테이지가 있는 장만 펼치고 나머지는 접어 둔다
   const nextIdx = LEVELS.findIndex((l, i) => unlocked(i) && !cleared(l.id) && !skipped(l.id));
@@ -295,6 +298,7 @@ function levelScreen() {
   const el = show(html, 'list');
   on(el, '[data-a=back]', () => titleScreen());
   on(el, '[data-a=ending]', () => endingScreen(false));
+  on(el, '[data-a=tut]', () => startLevel(-1));
   el.querySelectorAll('[data-f]').forEach((h) => h.addEventListener('click', () => { Sound.play('click'); h.parentElement.classList.toggle('fold'); }));
   on(el, '[data-c]', (e, b) => chapterScreen(+b.dataset.c, null));
   on(el, '[data-i]', (e, b) => {
@@ -598,10 +602,12 @@ function chapterScreen(chId, next) {
 }
 
 // ───────── 게임 ─────────
+// i = -1 이면 튜토리얼
 function startLevel(i, skipIntro = false) {
-  const L = LEVELS[i];
-  if (!skipIntro && firstOfChapter(i) && !save.seenCh[L.ch]) { chapterScreen(L.ch, () => startLevel(i, true)); return; }
+  const tut = i < 0, L = tut ? TUTORIAL : LEVELS[i];
+  if (!tut && !skipIntro && firstOfChapter(i) && !save.seenCh[L.ch]) { chapterScreen(L.ch, () => startLevel(i, true)); return; }
   levelIdx = i; paused = false; ended = false;
+  tutStep = -1; R.mark = null;
   looking = false; R.peek = false; app.classList.remove('looking');
   game = new Game(L, perksOf(save.gear));
   game.fx = (name) => {
@@ -612,13 +618,15 @@ function startLevel(i, skipIntro = false) {
   };
   scene = 'game'; musicCh = L.ch;
   R.focus = game.fish;
+  resize(); // 튜토리얼이면 위쪽에 안내줄 자리
   R.setGame(game, skinById(save.skin), wearOn());
   setHud(true);
   buildSides(L, i);
   buildGoals();
-  $('#lvTitle').textContent = `${L.id} ${tr(L.name)}`;
+  $('#lvTitle').textContent = tut ? `🎓 ${tr(L.name)}` : `${L.id} ${tr(L.name)}`;
   const ch = CHAPTERS[L.ch - 1];
-  const nw = skipIntro && firstOfChapter(i) ? [] : newInLevel(i), here = inLevel(L).filter((e) => e.id !== 'door');
+  const nw = tut || (skipIntro && firstOfChapter(i)) ? [] : newInLevel(i), here = inLevel(L).filter((e) => e.id !== 'door');
+  if (tut) { tutIntro(L, here); return; }
   const el = show(`<div class="card intro"><div class="ibody">
       ${IMG['chapter-' + ch.id] ? `<div class="cbanner" style="background-image:url(img/chapter-${ch.id}.webp)"></div>` : ''}
       <span class="tag">${chTitle(ch)}</span>${L.hard ? `<span class="tag hardt">🔥 ${tr('고난도')}</span>` : ''}
@@ -637,8 +645,8 @@ function startLevel(i, skipIntro = false) {
 }
 // 가로 화면에서 맵 양옆 빈자리에 스테이지 정보와 조작법
 function buildSides(L, i) {
-  $('#sideL').innerHTML = `<h3>${L.id} ${tr(L.name)}</h3><p>${tr(L.hint)}</p>
-    <h4>${tr('이번 스테이지')}</h4>${inLevel(L).filter((e) => e.id !== 'door').map((e) => guideRow(e, newInLevel(i).includes(e))).join('')}`;
+  $('#sideL').innerHTML = `<h3>${L.tutorial ? '🎓' : L.id} ${tr(L.name)}</h3><p>${tr(L.hint)}</p>
+    <h4>${tr('이번 스테이지')}</h4>${inLevel(L).filter((e) => e.id !== 'door').map((e) => guideRow(e, !L.tutorial && newInLevel(i).includes(e))).join('')}`;
   const k = (a, b) => `<div class="key"><span>${a}</span><kbd>${b}</kbd></div>`;
   $('#sideR').innerHTML = `<h3>${tr('조작')}</h3>${k(tr('이동 (살금살금)'), tr('방향키 · WASD'))}${k(tr('달리기'), 'Shift')}${k(tr('행동'), 'Space')}${k(tr('야옹'), 'Q')}${k(tr('맵 전체 보기'), tr('Tab 누르고 있기'))}${k(tr('일시정지'), 'Esc')}${k(tr('다시 하기 (끝난 뒤)'), 'R')}
     <h4>${tr('알아 두기')}</h4>
@@ -728,6 +736,7 @@ const FAIL = ['생선은 다음 기회에…', '고양이 털이 너무 눈에 �
 function endLevel(win) {
   ended = true;
   const L = game.L;
+  if (L.tutorial) { tutEnd(win); return; }
   if (L.ch > 1) adStages++;
   if (!win) {
     const fails = (failCount[L.id] = (failCount[L.id] || 0) + (game.revived ? 0 : 1));
@@ -831,6 +840,105 @@ function endLevel(win) {
   on(el, '[data-a=ending]', () => endingScreen(true));
   on(el, '[data-a=retry]', () => atBreak(() => startLevel(levelIdx)));
   on(el, '[data-a=list]', () => atBreak(() => levelScreen()));
+}
+
+// ───────── 튜토리얼 ─────────
+// 처음 깨면 생선뼈를 주고(설치 후 한 번), 잡혀도 광고 없이 몇 번이든 이어한다. 별·의뢰·전면 광고와는 상관없음.
+const TUT_BONES = 100; // 옷장 첫 장비(100) 하나 값
+// 단계: 안내 글 + 끝났는지 + 가리킬 곳(칸 좌표). 앞 단계는 한 번 끝나면 끝난 걸로 둔다 (live = 매번 확인)
+const TUT_STEPS = [
+  { text: '화면 아무 곳이나 누른 채 끌어 보세요. 살짝 끌면 살금살금 걸어요.',
+    done: (G) => Math.hypot(G.cat.x - G.ents.cat.x, G.cat.y - G.ents.cat.y) > 1.6 },
+  { text: '털실 뭉치 2개를 챙겨요. 다 챙기면 별 하나!',
+    done: (G) => G.bonus.every((b) => b.taken),
+    at: (G) => { const c = G.cat, d = (b) => Math.hypot(b.x - c.x, b.y - c.y); return G.bonus.filter((b) => !b.taken).sort((a, b) => d(a) - d(b))[0]; } },
+  { text: '위쪽 탁자 밑으로 쏙! 숨어 있으면 불빛에 비춰도 안 보여요.',
+    done: (G) => G.cat.hidden && Math.floor(G.cat.x) === 5 && Math.floor(G.cat.y) === 6,
+    at: () => ({ x: 5.5, y: 6.5 }) },
+  { text: '집사의 노란 불빛이 지나가면 등 뒤로 살금살금, 위쪽 부엌으로! 막히면 [야옹]으로 집사를 불러낼 수도 있어요.',
+    done: (G) => G.cat.y < 4.6,
+    at: () => ({ x: 5.5, y: 4.5 }) },
+  { text: '생선을 물어요!', live: true,
+    done: (G) => G.cat.hasFish,
+    at: (G) => G.fish },
+  { text: '생선을 물고 고양이 문으로 돌아가면 성공! 끝까지 끌면 달리지만 발소리가 나요.', live: true,
+    done: () => false,
+    at: (G) => ({ x: G.ents.cat.x, y: G.ents.cat.y }) },
+];
+let tutStep = -1, tutDone = [];
+function tutIntro(L, here) {
+  tutDone = [];
+  const el = show(`<div class="card intro"><div class="ibody">
+      <span class="tag">🎓 ${tr('튜토리얼')}</span>
+      <h1>${tr(L.name)}</h1>
+      <p class="tip">${tr('생선을 몰래 물고 고양이 문으로 돌아오는 연습이에요. 화면 위 안내와 노란 화살표를 따라가요.')}</p>
+      <div class="chips"><span>${tr('이번 스테이지')}</span>${here.map((e) => `<button class="chip" data-e="${e.id}"><img src="${guideIcon(e.id)}" alt="${tr(e.name)}"></button>`).join('')}</div>
+      <div class="goalrow on"><span class="s">★</span>${tr('생선을 물고 고양이 문으로 탈출')}</div>
+      <div class="tutnote">🎁 ${tr('연습이라 이어하기는 몇 번이든 무료예요 (광고 없음)')}</div>
+      ${save.tut ? '' : `<div class="tutnote gift">${BONE} ${tf('처음 끝내면 생선뼈 {n}개 선물!', { n: TUT_BONES })}</div>`}
+      </div><div class="gobar"><button class="btn main" data-a="go">${tr('연습 시작')}</button>
+      <button class="btn sm" data-a="skiptut">${save.tut ? tr('스테이지 목록') : tr('건너뛰고 1-1 바로 하기')}</button></div>
+    </div>`, 'center dim');
+  on(el, '[data-a=go]', () => startPlay());
+  on(el, '[data-a=skiptut]', () => (save.tut ? levelScreen() : startLevel(0)));
+  on(el, '[data-e]', (e, b) => { const g = entry(b.dataset.e); toast(`${tr(g.name)} — ${tr(g.desc)}`, 3600); });
+}
+// 매 프레임: 지금 단계 찾기 → 안내 글·화살표
+function tutTick() {
+  const G = game, N = TUT_STEPS.length;
+  // 앞으로만 간다: 뒤 단계를 먼저 해 버리면 그 앞 단계도 끝난 걸로
+  if (G.state === 'play') for (let j = N - 1; j >= 0; j--) {
+    const st = TUT_STEPS[j];
+    if (!st.live && !tutDone[j] && st.done(G)) { for (let m = 0; m <= j; m++) tutDone[m] = true; break; }
+  }
+  let k = 0;
+  while (k < N - 1 && !TUT_STEPS[k].live && tutDone[k]) k++;
+  if (TUT_STEPS[k].live && TUT_STEPS[k].done(G)) k = N - 1; // 생선을 물었으면 마지막 단계
+  const st = TUT_STEPS[k], at = G.state === 'play' && st.at ? st.at(G) : null;
+  R.mark = at ? { x: at.x, y: at.y } : null;
+  if (k !== tutStep) {
+    if (tutStep >= 0 && k > tutStep) Sound.play('star');
+    tutStep = k;
+    const el = $('#coach');
+    el.innerHTML = `<b>${k + 1}/${TUT_STEPS.length}</b><span>${tr(st.text)}</span>`;
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  }
+}
+function tutEnd(win) {
+  R.mark = null;
+  if (!win) {
+    const el = show(`<div class="card">
+        ${IMG.caught ? `<img class="hero" src="${spriteURL('caught', skinById(save.skin))}" alt="">` : '<div class="big">😿</div>'}
+        <h1>${tr('잡혔다!')}</h1>
+        <p>${tr('괜찮아요, 연습이니까요! 불빛에 오래 비치면 들켜요. 숨는 곳을 잘 써 봐요.')}</p>
+        <button class="btn main ad free" data-a="revive">🎁 ${tr('이어하기')}<small>${tr('연습이라 몇 번이든 무료')}</small></button>
+        <div class="revnote">${game.cat.hasFish ? tr('생선은 잡힌 자리에 떨어져요') : tr('모은 보너스는 그대로예요')}</div>
+        <button class="btn" data-a="retry">${tr('처음부터 다시')}</button>
+        <button class="btn sm" data-a="list">${tr('스테이지 목록')}</button>
+      </div>`, 'center dim');
+    on(el, '[data-a=revive]', () => { if (!game || !game.revive()) return; ended = false; hideLayer(); vib(20); });
+    on(el, '[data-a=retry]', () => startLevel(-1));
+    on(el, '[data-a=list]', () => levelScreen());
+    return;
+  }
+  const first = !save.tut;
+  save.tut = true;
+  if (first) save.bones += TUT_BONES;
+  store();
+  const el = show(`<div class="card">
+      ${IMG.win ? `<img class="hero" src="${spriteURL('win', skinById(save.skin))}" alt="">` : ''}
+      <span class="tag">🎓 ${tr('튜토리얼')}</span>
+      <h1>${tr('연습 완료!')}</h1>
+      <p>${tr('이제 진짜 잠입이에요. 잠옷 집사네 부엌에서 첫 생선을 노려 봐요!')}</p>
+      ${first ? `<div class="earn">${BONE} ${tf('생선뼈 +{n}', { n: `<b class="en">${TUT_BONES}</b>` })}<small>${tf('모두 {n}', { n: `<b class="eb">${save.bones}</b>` })}</small></div>
+      <div class="unlock">${tr('옷장에서 첫 장비를 하나 살 수 있어요!')}</div>` : ''}
+      <button class="btn main" data-a="next">${tr('1-1 시작하기')}</button>
+      <div class="row2"><button class="btn sm" data-a="retry">${tr('다시 하기')}</button><button class="btn sm" data-a="list">${tr('목록')}</button></div>
+    </div>`, 'center dim');
+  if (first) Sound.play('coin');
+  on(el, '[data-a=next]', () => startLevel(0));
+  on(el, '[data-a=retry]', () => startLevel(-1));
+  on(el, '[data-a=list]', () => levelScreen());
 }
 
 // ───────── 엔딩 ─────────
@@ -1008,6 +1116,7 @@ function frame(now) {
       if (!ended && game.state === 'caught' && game.endT > 1.2) endLevel(false);
       if (!ended && game.state === 'win' && game.endT > 0.5) endLevel(true);
     }
+    if (tutOn()) tutTick();
     R.draw(paused || looking ? 0 : dt, joy);
     updateHud();
   } else {
@@ -1051,6 +1160,7 @@ window.__sc = {
   end: (win) => { if (!ended) endLevel(win); },
   start: (i) => { startLevel(i, true); startPlay(); },
   intro: (i) => startLevel(i),
+  tut: () => startLevel(-1),
   // 화면 바로 열기 (스토어 스크린샷·시험용)
   go: { title: () => titleScreen(), levels: () => levelScreen(), den: () => denScreen(), skin: (tab) => skinScreen(tab), quest: () => questScreen() },
   step(dt = 1 / 60, inp = { dx: 0, dy: 0, mag: 0, run: false }) { game.update(dt, inp); R.draw(dt, joy); updateHud(); },

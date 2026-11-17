@@ -1,9 +1,9 @@
 // 비밀 아지트: 훔친 물건을 모아 둔 고양이의 방. 쓰다듬기·간식·놀아 주기 — 벌칙 없이 반응만 좋아진다.
 // 배경 그림(img/den-bg.webp)이 있으면 그걸, 없으면 코드로 방을 그린다.
-import { IMG, sprite } from './assets.js?v=1117150910';
-import { Sound } from './audio.js?v=1117150910';
-import { FONT } from './render.js?v=1117150910';
-import { tr, fontStack } from './i18n.js?v=1117150910';
+import { IMG, sprite } from './assets.js?v=1117192200';
+import { Sound } from './audio.js?v=1117192200';
+import { FONT } from './render.js?v=1117192200';
+import { tr, fontStack } from './i18n.js?v=1117192200';
 
 const OUT = '#2a1f2e';
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -59,8 +59,7 @@ export function startDen(cv, opts) {
   // 📺 특별 간식: 짜 먹는 간식을 츄릅츄릅
   function special() {
     if (treat || ball || cat.state === 'eat' || cat.state === 'lick' || cat.state === 'pounce' || cat.state === 'hop') return false;
-    cat.state = 'lick'; cat.timer = 3; cat.pose = IMG['sprite-cat-lick'] ? 'sprite-cat-lick' : 'sprite-cat'; cat.loaf = false; lickT = 0.3; cat.sq = 0.2;
-    Sound.play('yum');
+    cat.state = 'lick'; cat.timer = 3; cat.pose = IMG['sprite-cat-lick'] ? 'sprite-cat-lick' : 'sprite-cat'; cat.loaf = false; lickT = 0.3; cat.sq = 0.2; // '츄릅' 글자가 뜰 때마다 slurp
     return true;
   }
   function snack() {
@@ -71,7 +70,7 @@ export function startDen(cv, opts) {
   function play() {
     if (ball || cat.state === 'eat') return false;
     ball = { x: cat.x < 0.5 ? 0.92 : 0.08, vx: 0, tx: rnd(0.2, 0.8), spin: 0 };
-    plays = 3;
+    plays = 3; Sound.play('roll');
     return true;
   }
 
@@ -84,7 +83,7 @@ export function startDen(cv, opts) {
     cat.sq = Math.max(0, cat.sq - dt * 1.5);
     // 간식이 떨어지면 달려간다
     if (treat) {
-      if (!treat.land) { treat.vy += 2.4 * dt; treat.y += treat.vy * dt; if (treat.y >= 0.9) { treat.y = 0.9; treat.land = true; Sound.play('coin'); Sound.play('chirp'); go(treat.x, true); } }
+      if (!treat.land) { treat.vy += 2.4 * dt; treat.y += treat.vy * dt; if (treat.y >= 0.9) { treat.y = 0.9; treat.land = true; Sound.play('plop'); go(treat.x, true); } }
     }
     if (ball) {
       const d = ball.tx - ball.x;
@@ -110,7 +109,7 @@ export function startDen(cv, opts) {
         cat.walkT += dt * (cat.state === 'run' ? 2.6 : 1.6);
         if (Math.abs(d) <= sp) {
           cat.x = cat.tx; cat.sq = 0.15;
-          if (treat && treat.land && Math.abs(treat.x - cat.x) < 0.05) { treat = null; cat.state = 'eat'; cat.timer = 1.6; cat.pose = 'sprite-cat-fish'; Sound.play('yum'); word('♪', cat.x * W - 20, floorY() - H * 0.38, '#ff9fd0'); word(tr('냠냠'), cat.x * W + cat.face * 40, floorY() - H * 0.4, '#ffd27a', 15); }
+          if (treat && treat.land && Math.abs(treat.x - cat.x) < 0.05) { treat = null; cat.state = 'eat'; cat.timer = 1.6; cat.pose = 'sprite-cat-fish'; Sound.play('munch'); word('♪', cat.x * W - 20, floorY() - H * 0.38, '#ff9fd0'); word(tr('냠냠'), cat.x * W + cat.face * 40, floorY() - H * 0.4, '#ffd27a', 15); }
           else if (ball && Math.abs(ball.x - cat.x) < 0.06) { cat.state = 'pounce'; cat.timer = 0.55; cat.pose = 'sprite-cat-crouch'; Sound.play('chirp'); }
           else if (cat.loaf) { cat.loaf = false; cat.state = 'pose'; cat.pose = mood === 'missed' || mood === 'sad' ? sulkPose() : 'sprite-cat-loaf'; cat.timer = rnd(5, 8); }
           else { cat.state = 'idle'; cat.timer = rnd(1.5, 3.5); }
@@ -120,7 +119,7 @@ export function startDen(cv, opts) {
       case 'pounce':
         if ((cat.timer -= dt) <= 0) {
           cat.state = 'hop'; cat.timer = 0.45; cat.pose = 'sprite-cat-run'; Sound.play('hide'); if (plays > 1) { Sound.play('trill'); word('♪', cat.x * W - cat.face * 30, floorY() - H * 0.4, '#ff9fd0', 18); }
-          if (ball) { plays--; if (plays > 0) ball.tx = Math.max(0.1, Math.min(0.9, ball.x + (Math.random() < 0.5 ? -1 : 1) * rnd(0.25, 0.45))); else { ball.tx = ball.x < 0.5 ? -0.2 : 1.2; word(tr('재밌다!'), cat.x * W, floorY() - H * 0.42, '#9dffb0', 15); Sound.play('happy'); for (let i = 0; i < 3; i++) setTimeout(() => alive && word('♥', cat.x * W + rnd(-30, 30), floorY() - H * 0.34, '#ff8fc0', rnd(14, 20)), 200 + i * 150); } }
+          if (ball) { plays--; if (plays > 0) ball.tx = Math.max(0.1, Math.min(0.9, ball.x + (Math.random() < 0.5 ? -1 : 1) * rnd(0.25, 0.45))); else { ball.tx = ball.x < 0.5 ? -0.2 : 1.2; word(tr('재밌다!'), cat.x * W, floorY() - H * 0.42, '#9dffb0', 15); Sound.play('giggle'); for (let i = 0; i < 3; i++) setTimeout(() => alive && word('♥', cat.x * W + rnd(-30, 30), floorY() - H * 0.34, '#ff8fc0', rnd(14, 20)), 200 + i * 150); } }
         }
         break;
       case 'hop':
@@ -132,7 +131,7 @@ export function startDen(cv, opts) {
         }
         break;
       case 'lick':
-        if ((lickT -= dt) <= 0) { lickT = 0.6; cat.sq = 0.12; word(tr('츄릅'), cat.x * W + cat.face * 52, floorY() - H * 0.36 - rnd(0, 12), '#ffb3d9', 15, 1, -24); }
+        if ((lickT -= dt) <= 0) { lickT = 0.6; cat.sq = 0.12; Sound.play('slurp'); word(tr('츄릅'), cat.x * W + cat.face * 52, floorY() - H * 0.36 - rnd(0, 12), '#ffb3d9', 15, 1, -24); }
         if ((cat.timer -= dt) <= 0) {
           cat.state = 'pet'; cat.timer = 1.6; cat.pose = 'sprite-cat-happy-pet'; cat.sq = 0.3;
           word(tr('최고야!'), cat.x * W, floorY() - H * 0.5, '#ffd27a', 18, 1.8); Sound.play('happy');
@@ -141,8 +140,8 @@ export function startDen(cv, opts) {
         break;
       case 'pose': case 'eat': case 'pet':
         if ((cat.timer -= dt) <= 0) {
-          // 다 먹으면 "르릅—냐앙♪" 하고 하트
-          if (cat.state === 'eat') { Sound.play('happy'); word(tr('맛있다!'), cat.x * W, floorY() - H * 0.42, '#ffd27a', 15); for (let i = 0; i < 3; i++) setTimeout(() => alive && word('♥', cat.x * W + rnd(-30, 30), floorY() - H * 0.34, '#ff8fc0', rnd(14, 20)), 200 + i * 150); }
+          // 다 먹으면 "냐아~" 하고 하트
+          if (cat.state === 'eat') { Sound.play('mmm'); word(tr('맛있다!'), cat.x * W, floorY() - H * 0.42, '#ffd27a', 15); for (let i = 0; i < 3; i++) setTimeout(() => alive && word('♥', cat.x * W + rnd(-30, 30), floorY() - H * 0.34, '#ff8fc0', rnd(14, 20)), 200 + i * 150); }
           cat.state = 'idle'; cat.timer = rnd(1.5, 3);
         }
         break;

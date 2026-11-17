@@ -1,5 +1,5 @@
 // 아래 버튼 아이콘. assets 에 ui-<이름>.png 가 들어오면 그 그림을, 없으면 아래 코드 그림(SVG)을 쓴다.
-import { IMG } from './assets.js?v=1117150910';
+import { IMG } from './assets.js?v=1117192200';
 
 const L = 'stroke="#2a1f2e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
 const svg = (body) => `<svg viewBox="0 0 48 48" aria-hidden="true">${body}</svg>`;

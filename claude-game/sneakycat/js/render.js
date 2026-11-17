@@ -1,7 +1,7 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1117150910';
-import { sprite, IMG } from './assets.js?v=1117150910';
-import { tr, tf, fontStack } from './i18n.js?v=1117150910';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1117192200';
+import { sprite, IMG } from './assets.js?v=1117192200';
+import { tr, tf, fontStack } from './i18n.js?v=1117192200';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -545,6 +545,7 @@ export class Renderer {
       c.strokeText(p.text, p.x * ts, y); c.fillStyle = p.color; c.fillText(p.text, p.x * ts, y);
     }
     c.globalAlpha = 1;
+    if (this.mark) this.drawMark(c, t);
     if (this.peek) this.peekRings(c);
     c.restore();
 
@@ -576,6 +577,19 @@ export class Renderer {
     if (this.peek) this.peekEye(c);
     this.edgeMarks(c, t);
     if (joy && joy.active) this.drawJoy(c, joy);
+  }
+  // 튜토리얼: 갈 곳에 깜빡이는 고리 + 통통 튀는 화살표 (mark = {x, y} 칸 좌표)
+  drawMark(c, t) {
+    const ts = this.ts, s = ts / 32, X = this.mark.x * ts, Y = this.mark.y * ts;
+    const p = (t * 1.4) % 1;
+    c.strokeStyle = `rgba(255,226,122,${0.9 * (1 - p)})`; c.lineWidth = 3 * s;
+    c.beginPath(); c.arc(X, Y, ts * (0.35 + p * 0.45), 0, 7); c.stroke();
+    c.strokeStyle = 'rgba(255,226,122,0.85)'; c.lineWidth = 2 * s;
+    c.beginPath(); c.arc(X, Y, ts * 0.38, 0, 7); c.stroke();
+    const ay = Y - ts * 0.95 - Math.abs(Math.sin(t * 4)) * 7 * s;
+    c.beginPath(); c.moveTo(X, ay + 9 * s); c.lineTo(X - 8 * s, ay - 2 * s); c.lineTo(X - 3 * s, ay - 2 * s); c.lineTo(X - 3 * s, ay - 10 * s);
+    c.lineTo(X + 3 * s, ay - 10 * s); c.lineTo(X + 3 * s, ay - 2 * s); c.lineTo(X + 8 * s, ay - 2 * s); c.closePath();
+    c.fillStyle = '#ffe27a'; c.strokeStyle = 'rgba(20,14,30,0.9)'; c.lineWidth = 2.5 * s; c.stroke(); c.fill();
   }
   setPeek(v) {
     this.peek = v; this.peekT0 = performance.now() / 1000; this.peekCache = null;

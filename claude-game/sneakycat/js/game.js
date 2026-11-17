@@ -1,7 +1,7 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1117150910';
-import { CHAPTERS } from './levels.js?v=1117150910';
-import { tr } from './i18n.js?v=1117150910';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1117192200';
+import { CHAPTERS } from './levels.js?v=1117192200';
+import { tr } from './i18n.js?v=1117192200';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },
@@ -610,7 +610,7 @@ export class Game {
   // 이어하기 (광고 보상): 고양이는 시작 문으로, 사람·장치는 처음 상태로. 보너스·깬 꽃병은 그대로.
   // 다시 시작한 뒤 2.5초 동안은 아무도 고양이를 못 알아챔. 한 판에 한 번만.
   revive() {
-    if (this.state !== 'caught' || this.revived) return false;
+    if (this.state !== 'caught' || (this.revived && !this.L.tutorial)) return false; // 튜토리얼은 몇 번이든
     const s = this.ents.cat, c = this.cat;
     // 생선을 물고 있었다면 잡힌 자리에 떨어뜨린다 (시작 문 = 탈출 문이라 그대로 두면 바로 탈출해 버림)
     if (c.hasFish) { c.hasFish = false; Object.assign(this.fish, { taken: false, x: Math.floor(c.x) + 0.5, y: Math.floor(c.y) + 0.5 }); }

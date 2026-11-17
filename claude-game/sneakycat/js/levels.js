@@ -1,5 +1,5 @@
 // 도둑 고양이 — 스테이지 데이터 (1~3장 1~10번. 늘어난 스테이지는 levels2.js)
-import { EXTRA } from './levels2.js?v=1117150910';
+import { EXTRA } from './levels2.js?v=1117192200';
 //
 // 타일 기호
 //   #  벽            .  나무 바닥      ,  부엌 타일     _  카펫     :  대리석
@@ -673,6 +673,30 @@ const num = (L) => +L.id.split('-')[1];
 export const LEVELS = [...BASE, ...EXTRA].sort((a, b) => a.ch - b.ch || num(a) - num(b));
 export const HARD_FROM = 50;
 LEVELS.forEach((L, i) => { L.no = i + 1; L.hard = i + 1 >= HARD_FROM; L.final = L.id === '9-11'; });
+
+// 튜토리얼 (1-1 앞 연습판). LEVELS 에는 넣지 않는다 — 99판·별 개수·의뢰와 따로 논다.
+// 아래 방(시작) → 털실 2개 → 탁자 밑에 숨기 → 집사 복도 건너기 → 부엌 생선 → 고양이 문
+// 화면 안내 단계는 main.js 의 TUT_STEPS. 이어하기는 몇 번이든, 광고 없이.
+export const TUTORIAL = {
+  id: 'tut', ch: 1, no: 0, name: '살금살금 연습', tutorial: true,
+  hint: '화면 위 안내를 따라가 보세요. 연습이라 잡혀도 몇 번이든 이어할 수 있어요.',
+  map: [
+    '############',
+    '#,,,,,,,,,,#',
+    '#,KK,F,,KK,#',
+    '#,,,,,,,,,,#',
+    '#####,######',
+    '#1........2#',
+    '#....T.....#',
+    '#..........#',
+    '######.#####',
+    '#$.........#',
+    '#..B.....$.#',
+    '#..........#',
+    '######C#####',
+  ],
+  guards: [{ t: 'owner', p: '12' }],
+};
 
 export const SKINS = [
   { id: 'gray', name: '회색 줄무늬', need: 0, body: '#8f8b99', stripe: '#5d5869', belly: '#ece7ee', eye: '#9be86a' },

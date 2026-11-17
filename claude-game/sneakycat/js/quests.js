@@ -1,6 +1,6 @@
 // 하루 도둑 의뢰: 날짜로 정해지는 의뢰 3개(쉬움·보통·어려움). 이미 깬 판에서만 나온다.
 // 같은 날이면 누구에게나 같은 의뢰가 나온다. 하루 한 번 의뢰 하나를 다른 것으로 바꿀 수 있다.
-import { tr, tf } from './i18n.js?v=1117150910';
+import { tr, tf } from './i18n.js?v=1117192200';
 
 export const TIERS = [
   { name: '쉬움', reward: 30, cls: 'easy' },
