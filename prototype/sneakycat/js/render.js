@@ -1,7 +1,7 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1117192200';
-import { sprite, IMG } from './assets.js?v=1117192200';
-import { tr, tf, fontStack } from './i18n.js?v=1117192200';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1118010407';
+import { sprite, IMG } from './assets.js?v=1118010407';
+import { tr, tf, fontStack } from './i18n.js?v=1118010407';
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;

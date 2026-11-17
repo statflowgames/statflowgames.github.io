@@ -1,18 +1,18 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM, TUTORIAL } from './levels.js?v=1117192200';
-import { Game } from './game.js?v=1117192200';
-import { Renderer } from './render.js?v=1117192200';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1117192200';
-import { Sound } from './audio.js?v=1117192200';
-import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1117192200';
-import { actIcon, buttonHTML } from './icons.js?v=1117192200';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1117192200';
-import { startDen } from './den.js?v=1117192200';
-import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1117192200';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1117192200';
-import { Reward } from './reward.js?v=1117192200';
-import { Ads } from './ads.js?v=1117192200';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1117192200';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM, TUTORIAL } from './levels.js?v=1118010407';
+import { Game } from './game.js?v=1118010407';
+import { Renderer } from './render.js?v=1118010407';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1118010407';
+import { Sound } from './audio.js?v=1118010407';
+import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1118010407';
+import { actIcon, buttonHTML } from './icons.js?v=1118010407';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1118010407';
+import { startDen } from './den.js?v=1118010407';
+import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1118010407';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1118010407';
+import { Reward } from './reward.js?v=1118010407';
+import { Ads } from './ads.js?v=1118010407';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1118010407';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -83,7 +83,7 @@ function resize() {
   R.resize(w, vh);
   placeSides();
 }
-window.addEventListener('resize', resize);
+window.addEventListener('resize', () => { resize(); if (scene === 'title') fitLogo(); });
 resize();
 
 // ───────── 입력 ─────────
@@ -190,7 +190,7 @@ const on = (el, sel, fn) => el.querySelectorAll(sel).forEach((b) => b.addEventLi
 function titleScreen() {
   scene = 'title'; game = null; setHud(false);
   const el = show(`
-    <div class="logo">${t('title.name')}<small>${t('title.sub')}</small></div>
+    <div class="logo"><span class="lname">${t('title.name')}</span><small>${t('title.sub')}</small></div>
     <div class="tbtns">
       <button class="btn main" data-a="play">${totalStars() ? t('title.continue') : t('title.start')}</button>
       <button class="btn pink" data-a="skin">${t('title.ward')}</button>
@@ -205,6 +205,25 @@ function titleScreen() {
   on(el, '[data-a=den]', () => denScreen());
   on(el, '[data-a=quest]', () => questScreen());
   on(el, '[data-a=settings]', () => settingsScreen());
+  fitLogo();
+  if (document.fonts) document.fonts.ready.then(fitLogo);
+}
+// 언어마다 게임 이름 길이가 달라서(Schleichkatze, こっそりニャン…) 화면 폭에 맞춰 글자를 줄인다.
+// 한 줄을 우선하고, 너무 작아지면 띄어쓰기가 있는 이름만 두 줄로 나눈다.
+function fitLogo() {
+  const nm = layer.querySelector('.logo .lname');
+  if (!nm) return;
+  const lg = nm.parentElement, avail = lg.parentElement.clientWidth - 40;
+  const base = parseFloat(getComputedStyle(lg).fontSize);
+  nm.style.fontSize = ''; nm.style.whiteSpace = ''; nm.style.maxWidth = '';
+  const w = nm.scrollWidth;
+  if (w <= avail) return;
+  let fs = Math.floor(base * avail / w);
+  if (fs < base * 0.72 && /\s/.test(nm.textContent.trim())) {
+    nm.style.whiteSpace = 'normal'; nm.style.maxWidth = avail + 'px'; fs = base;
+  }
+  nm.style.fontSize = fs + 'px';
+  while (nm.scrollWidth > avail + 1 && fs > 18) nm.style.fontSize = (fs -= 2) + 'px';
 }
 
 // ───────── 설정 ─────────

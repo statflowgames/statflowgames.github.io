@@ -94,6 +94,7 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 /* 타이틀 */
 .title { justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 9vh); }
 .logo { font-size: clamp(48px, 15vw, 70px); line-height: 1; color: var(--gold); text-shadow: 0 4px 0 #6b3d10, 0 8px 18px rgba(0,0,0,0.6); letter-spacing: 2px; text-align: center; }
+.logo .lname { display: inline-block; white-space: nowrap; }
 .logo small { display: block; font-size: 0.32em; color: var(--ink); letter-spacing: 1px; margin-top: 10px; text-shadow: 0 2px 0 #000; }
 .tbtns { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 26px); padding: 0 24px; }
 .toggles { display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center; margin-top: 14px; }
