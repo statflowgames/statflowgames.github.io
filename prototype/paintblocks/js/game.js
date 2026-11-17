@@ -1,9 +1,17 @@
 // 게임 판: 완성 그림 카드, 물감 판, 블록 서랍을 캔버스 하나에 그리고 끌어 놓기를 처리한다.
-import { MIX, MIXNAME, rot, dims, key, paint } from './gen.js?v=1117192859';
-import { Sound } from './audio.js?v=1117192859';
+import { MIX, rot, dims, key, paint } from './gen.js?v=1117195920';
+import { Sound } from './audio.js?v=1117195920';
+import { tr, tf, fontStack } from './i18n.js?v=1117195920';
 
 const EDGE = { 1: '#a9232a', 2: '#b98b0c', 4: '#1d4f9c' };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// 글자가 maxW 보다 넓으면 글꼴을 줄여서 쓴다
+function fitText(ctx, text, x, y, maxW, size) {
+  ctx.font = `${size}px ${fontStack()}`;
+  const w = ctx.measureText(text).width;
+  if (w > maxW) ctx.font = `${Math.max(8, size * maxW / w)}px ${fontStack()}`;
+  ctx.fillText(text, x, y);
+}
 const inRect = (x, y, r) => r && x >= r.x && y >= r.y && x <= r.x + r.w && y <= r.y + r.h;
 
 function rr(ctx, x, y, w, h, r) {
@@ -377,24 +385,21 @@ export class Game {
       // 왼쪽: 이름과 진행
       const lw = gx - r.x - 12, fs = clamp(lw * 0.15, 11, 18);
       ctx.textAlign = 'center';
-      ctx.font = `${fs}px Jua, sans-serif`;
-      ctx.fillText('완성 그림', r.x + 6 + lw / 2, r.y + r.h * 0.36);
-      ctx.font = `${fs * 1.15}px Jua, sans-serif`;
+      fitText(ctx, tr('완성 그림'), r.x + 6 + lw / 2, r.y + r.h * 0.36, lw - 4, fs);
       ctx.fillStyle = ok === all ? '#2f9a55' : '#8a7c6d';
-      ctx.fillText(`${ok} / ${all}`, r.x + 6 + lw / 2, r.y + r.h * 0.66);
+      fitText(ctx, `${ok} / ${all}`, r.x + 6 + lw / 2, r.y + r.h * 0.66, lw - 4, fs * 1.15);
       // 오른쪽: 색 섞기 표
       this.legend(mixes, gx + gs + 10, r.y + 8, r.x + r.w - (gx + gs + 18), r.h - 16);
     } else {
       const fs = clamp(r.w * 0.09, 12, 20);
-      ctx.fillStyle = '#3b3340'; ctx.textAlign = 'center'; ctx.font = `${fs}px Jua, sans-serif`;
-      ctx.fillText('완성 그림', r.x + r.w / 2, r.y + fs * 1.1);
+      ctx.fillStyle = '#3b3340'; ctx.textAlign = 'center';
+      fitText(ctx, tr('완성 그림'), r.x + r.w / 2, r.y + fs * 1.1, r.w - 16, fs);
       const legH = mixes.length ? Math.min(r.h * 0.3, mixes.length * fs * 1.5) : 0;
       const gs = Math.min(r.w - 24, r.h - fs * 4.2 - legH);
       const gx = r.x + (r.w - gs) / 2, gy = r.y + fs * 2.1;
       miniGrid(ctx, this.puz, gx, gy, gs);
-      ctx.font = `${fs * 1.1}px Jua, sans-serif`;
       ctx.fillStyle = ok === all ? '#2f9a55' : '#8a7c6d';
-      ctx.fillText(`${ok} / ${all} 칸`, r.x + r.w / 2, gy + gs + fs * 1.1);
+      fitText(ctx, tf('{ok} / {all} 칸', { ok, all }), r.x + r.w / 2, gy + gs + fs * 1.1, r.w - 16, fs * 1.1);
       if (legH) this.legend(mixes, r.x + 12, gy + gs + fs * 1.9, r.w - 24, legH);
     }
   }
@@ -410,7 +415,7 @@ export class Game {
       // 오른쪽부터: 결과 = 앞 색들
       let cx = right - sq;
       paintCell(ctx, cx, cy - sq / 2, sq, MIX[m], sq * 0.2);
-      const sign = (t, at) => { ctx.fillStyle = '#6f6253'; ctx.font = `${sq * 0.95}px Jua, sans-serif`; ctx.fillText(t, at, cy + sq * 0.05); };
+      const sign = (t, at) => { ctx.fillStyle = '#6f6253'; ctx.font = `${sq * 0.95}px ${fontStack()}`; ctx.fillText(t, at, cy + sq * 0.05); };
       cx -= sq * 0.7; sign('=', cx + sq * 0.35);
       for (let j = parts.length - 1; j >= 0; j--) {
         cx -= sq; paintCell(ctx, cx, cy - sq / 2, sq, MIX[parts[j]], sq * 0.2);
@@ -527,4 +532,3 @@ export class Game {
   }
 }
 
-export { MIXNAME };

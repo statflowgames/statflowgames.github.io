@@ -7,12 +7,13 @@
   --yel: #f5c33b;
   --blu: #3b7dd8;
   --hud: 60px;
+  --font: 'Jua', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body {
   margin: 0; height: 100%; overflow: hidden;
   background: var(--bg); color: var(--ink);
-  font-family: 'Jua', system-ui, sans-serif;
+  font-family: var(--font);
   user-select: none; -webkit-user-select: none; touch-action: none;
 }
 #app {
@@ -24,7 +25,7 @@ html, body {
     var(--bg);
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
-button { font-family: inherit; color: inherit; cursor: pointer; }
+button { font-family: var(--font); color: inherit; cursor: pointer; }
 .off { display: none !important; }
 
 /* ---------- HUD ---------- */
@@ -148,3 +149,11 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 @keyframes up { from { transform: translate(-50%, -14px); opacity: 0; } }
 @keyframes star { from { transform: scale(0) rotate(-40deg); } }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
+
+/* 언어 */
+.btn.lang { align-self: center; padding: 8px 14px; font-size: 15px; background: transparent; box-shadow: none; color: var(--soft); }
+.btn.lang svg, .card h2 svg, .pause .btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.langs h2 { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.lgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 58vh; overflow-y: auto; padding: 2px 2px 6px; }
+.lgrid .btn { font-size: 15px; padding: 10px 8px; }
+.btn { text-align: center; line-height: 1.2; }
