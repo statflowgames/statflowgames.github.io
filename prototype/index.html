@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Prototype</title>
+  <meta name="theme-color" content="#120d16" />
+  <link rel="icon" href="./paintblocks/icon.svg" />
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; min-height: 100vh; background: #120d16; color: #f6efe6; font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; }
+    main { max-width: 520px; margin: 0 auto; padding: 32px 16px 48px; }
+    h1 { font-size: 26px; margin: 0 0 6px; color: #ffd34d; }
+    p.lead { margin: 0 0 24px; color: #b9a9c6; }
+    a.card { display: flex; gap: 14px; align-items: center; text-decoration: none; color: inherit; background: #231a2b; border: 3px solid #000; border-radius: 16px; padding: 14px; box-shadow: inset 0 0 0 2px #4a3a57; }
+    a.card:active { transform: translateY(1px); }
+    a.card img { width: 72px; height: 72px; border-radius: 14px; image-rendering: pixelated; flex-shrink: 0; }
+    a.card b { font-size: 18px; display: block; }
+    a.card span { font-size: 13px; color: #b9a9c6; line-height: 1.4; }
+    .play { margin-left: auto; background: linear-gradient(#ffe08a, #ffb02e); color: #2a1606; font-weight: 900; border: 2px solid #000; border-radius: 10px; padding: 8px 12px; white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Prototype</h1>
+    <p class="lead">만들고 있는 게임 시험판 — 휴대폰 브라우저에서 바로 해 보세요</p>
+    <a class="card" href="./paintblocks/">
+      <img src="./paintblocks/icon.svg" alt="" style="image-rendering:auto" />
+      <div>
+        <b>물감 블록</b>
+        <span>빨강·노랑·파랑 블록을 겹쳐 색을 섞고, 완성 그림과 똑같이 칠하는 두뇌 퍼즐 (60스테이지 + 오늘의 그림)</span>
+      </div>
+      <div class="play">플레이</div>
+    </a>
+  </main>
+</body>
+</html>
