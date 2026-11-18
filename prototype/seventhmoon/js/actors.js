@@ -103,6 +103,7 @@ class Actor {
   showEmote(key, ms = 1200) {
     if (this.emote) this.emote.img.destroy();
     const img = this.scene.add.image(this.x, this.y, 'emote/' + key).setScale(0.0);
+    SFX.emote(this.px);
     this.scene.tweens.add({ targets: img, scale: 0.42, duration: 220, ease: 'Back.out' });
     this.emote = { img, t: ms };
   }
@@ -666,6 +667,7 @@ class Monster extends Actor {
     if (this.poise <= 0 && this.state !== 'stagger') {
       this.state = 'stagger'; this.st = 0; this.vx = 0; this.play('m_down', 120); this.setHead('head_shout');
       this.showEmote('dizzy', 2300); this.scene.floatText(this.x, this.y - this.height, '그로기!', '#ffd34d', 34);
+      SFX.bossWeak(this.px);
       this.scene.cameras.main.shake(200, 0.008);
       this.rig.setTintAll(null);
       return true;

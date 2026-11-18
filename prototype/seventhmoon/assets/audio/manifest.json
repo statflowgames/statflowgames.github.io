@@ -1,0 +1,178 @@
+{
+ "sfx": {
+  "swing_light": [
+   "swing_light_v1",
+   "swing_light_v2",
+   "swing_light_v3"
+  ],
+  "swing_heavy": [
+   "swing_heavy_v1",
+   "swing_heavy_v2",
+   "swing_heavy_v3"
+  ],
+  "hit_light": [
+   "hit_light"
+  ],
+  "hit_heavy": [
+   "hit_heavy"
+  ],
+  "hit_crit": [
+   "hit_crit"
+  ],
+  "hit_metal": [
+   "hit_metal"
+  ],
+  "block": [
+   "block"
+  ],
+  "parry": [
+   "parry"
+  ],
+  "shield_bash": [
+   "shield_bash"
+  ],
+  "shield_wall": [
+   "shield_wall"
+  ],
+  "awaken_warrior": [
+   "awaken_warrior"
+  ],
+  "cutin": [
+   "cutin"
+  ],
+  "ground_slam": [
+   "ground_slam"
+  ],
+  "launch": [
+   "launch"
+  ],
+  "knockdown": [
+   "knockdown"
+  ],
+  "jump": [
+   "jump"
+  ],
+  "land": [
+   "land"
+  ],
+  "roll": [
+   "roll"
+  ],
+  "step_dirt": [
+   "step_dirt_v1",
+   "step_dirt_v2",
+   "step_dirt_v3"
+  ],
+  "move_plate": [
+   "move_plate"
+  ],
+  "coin": [
+   "coin"
+  ],
+  "heal": [
+   "heal"
+  ],
+  "break_crate": [
+   "break_crate"
+  ],
+  "break_pot": [
+   "break_pot"
+  ],
+  "combo_milestone": [
+   "combo_milestone"
+  ],
+  "mon_alert": [
+   "mon_alert"
+  ],
+  "mon_grolin_shout": [
+   "mon_grolin_shout"
+  ],
+  "mon_grolin_die": [
+   "mon_grolin_die"
+  ],
+  "mon_taunt_laugh": [
+   "mon_taunt_laugh"
+  ],
+  "mon_flee": [
+   "mon_flee"
+  ],
+  "mon_dissolve": [
+   "mon_dissolve"
+  ],
+  "mon_group_cheer": [
+   "mon_group_cheer"
+  ],
+  "boss_giant_roar": [
+   "boss_giant_roar"
+  ],
+  "boss_down": [
+   "boss_down"
+  ],
+  "boss_phase": [
+   "boss_phase"
+  ],
+  "boss_weakpoint": [
+   "boss_weakpoint"
+  ],
+  "telegraph": [
+   "telegraph"
+  ],
+  "dagger_throw": [
+   "dagger_throw"
+  ],
+  "trap_spike": [
+   "trap_spike"
+  ],
+  "wall_crumble": [
+   "wall_crumble"
+  ],
+  "emote_pop": [
+   "emote_pop"
+  ],
+  "low_hp_heartbeat": [
+   "low_hp_heartbeat"
+  ],
+  "ui_tap": [
+   "ui_tap"
+  ],
+  "vo_warrior_atk": [
+   "vo_warrior_atk_v1",
+   "vo_warrior_atk_v2",
+   "vo_warrior_atk_v3"
+  ],
+  "vo_warrior_atk_big": [
+   "vo_warrior_atk_big_v1",
+   "vo_warrior_atk_big_v2",
+   "vo_warrior_atk_big_v3"
+  ],
+  "vo_warrior_hurt": [
+   "vo_warrior_hurt_v1",
+   "vo_warrior_hurt_v2",
+   "vo_warrior_hurt_v3"
+  ],
+  "vo_warrior_ko": [
+   "vo_warrior_ko_v1",
+   "vo_warrior_ko_v2",
+   "vo_warrior_ko_v3"
+  ],
+  "vo_warrior_victory": [
+   "vo_warrior_victory_v1",
+   "vo_warrior_victory_v2",
+   "vo_warrior_victory_v3"
+  ],
+  "vo_warrior_awaken": [
+   "vo_warrior_awaken_v1",
+   "vo_warrior_awaken_v2",
+   "vo_warrior_awaken_v3"
+  ]
+ },
+ "music": [
+  "bgm_title",
+  "bgm_c1_forest",
+  "bgm_boss_a",
+  "amb_forest",
+  "jgl_stage_clear",
+  "jgl_game_over",
+  "jgl_boss_warning"
+ ]
+}

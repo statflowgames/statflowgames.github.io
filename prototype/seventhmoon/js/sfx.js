@@ -2,6 +2,9 @@
 // 구성: 소리마다 여러 겹(타격 순간 딸깍 + 몸통 쿵 + 바스락 + 잔향)을 쌓고, 화면 위치로 좌우를 나누고, 매번 음높이를 조금씩 바꾼다.
 const SFX = (() => {
   const muted = new URLSearchParams(location.search).has('mute');
+  // ?silent: 엔진은 돌리되 스피커로는 내보내지 않는다 (개발 검사용)
+  const silent = new URLSearchParams(location.search).has('silent');
+  let final = null;
   let ctx = null, master = null, dry = null, verb = null, noiseBuf = null, distCurve = null;
   const last = {};
   let G = 1;   // 소리별 음량 보정 (on(f, k)에서 잠깐 바꾼다)
@@ -18,7 +21,8 @@ const SFX = (() => {
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.2;
       master = ctx.createGain(); master.gain.value = 0.8;
-      master.connect(comp); comp.connect(ctx.destination);
+      final = ctx.createGain(); final.gain.value = silent ? 0 : 1; final.connect(ctx.destination);
+      master.connect(comp); comp.connect(final);
       dry = ctx.createGain(); dry.connect(master);
       // 잔향: 지수 감쇠 노이즈로 만든 1.4초짜리 공간
       const len = ctx.sampleRate * 1.4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
@@ -32,7 +36,7 @@ const SFX = (() => {
       for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; distCurve[i] = Math.tanh(x * 3.5); }
     }
   }
-  function resume() { init(); if (ctx && ctx.state === 'suspended') ctx.resume(); if (ctx && wantAmb && (!amb || amb.mode !== wantAmb)) ambience(wantAmb); }
+  function resume() { init(); if (ctx && ctx.state === 'suspended') ctx.resume(); loadBank(); if (ctx && wantAmb && (!amb || amb.mode !== wantAmb)) ambience(wantAmb); }
   // 같은 소리가 너무 촘촘히 겹치지 않게
   function gate(key, ms) { if (!ctx) return false; const n = performance.now(); if (last[key] && n - last[key] < ms) return false; last[key] = n; return true; }
   // 출력 노드: 좌우(화면 x) + 잔향 비율
@@ -112,13 +116,13 @@ const SFX = (() => {
   const on = (f, k = 1) => (...a) => { if (!ctx) return; const g0 = G; G = g0 * k; try { f(...a); } catch (e) { if (window.SFX_DEBUG) throw e; } finally { G = g0; } };
   // 개발용: 소리를 파일로 렌더링해 크기·길이를 잰다 (SFX._render(() => SFX.hit(true), 1.5))
   async function render(fn, secs = 1.5) {
-    const saved = [ctx, master, dry, verb, noiseBuf, distCurve];
+    const saved = [ctx, master, dry, verb, noiseBuf, distCurve, final];
     for (const k in last) delete last[k];
     setup(new OfflineAudioContext(2, Math.ceil(44100 * secs), 44100));
     let err = null;
     try { fn(); } catch (e) { err = String(e); }
     const buf = await ctx.startRendering();
-    [ctx, master, dry, verb, noiseBuf, distCurve] = saved;
+    [ctx, master, dry, verb, noiseBuf, distCurve, final] = saved;
     const L = buf.getChannelData(0), R = buf.getChannelData(1);
     let peak = 0, sum = 0, lastLoud = 0, firstLoud = -1;
     for (let i = 0; i < L.length; i++) {
@@ -131,8 +135,76 @@ const SFX = (() => {
 
   // ---------------- 숲 환경음 ----------------
   let amb = null, wantAmb = null;
+
+  // ---------------- 납품 음원 (assets/audio) ----------------
+  const BASE = 'assets/audio/';
+  const bank = {};
+  let musicList = [], bankStarted = false, musicBus = null;
+  const chan = {};            // 'bgm', 'amb', 'jgl' → { name, el, g }
+  let wantMusic = undefined;
+  async function loadBank() {
+    if (bankStarted || !ctx || ctx instanceof OfflineAudioContext) return;
+    bankStarted = true;
+    try {
+      const man = await (await fetch(BASE + 'manifest.json')).json();
+      musicList = man.music || [];
+      if (wantMusic !== undefined) music(wantMusic.name, wantMusic.o);
+      if (wantAmb) ambience(wantAmb);
+      await Promise.all(Object.entries(man.sfx || {}).map(async ([k, files]) => {
+        const list = [];
+        for (const f of files) {
+          try {
+            const ab = await (await fetch(BASE + f + '.m4a')).arrayBuffer();
+            list.push(await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)));
+          } catch (e) { /* 이 파일은 합성음으로 대신 */ }
+        }
+        if (list.length) bank[k] = list;
+      }));
+    } catch (e) { /* 음원이 없으면 합성음만 쓴다 */ }
+  }
+  // 음원 재생. 없으면 false → 합성음으로 대신한다.
+  function sample(key, o = {}) {
+    const b = bank[key];
+    if (!b || !ctx) return false;
+    const s = ctx.createBufferSource();
+    s.buffer = b[Math.floor(Math.random() * b.length)];
+    s.playbackRate.value = (o.rate || 1) * vr(o.vary ?? 0.05);
+    if (o.loop) s.loop = true;
+    const g = ctx.createGain(); g.gain.value = o.vol ?? 1;
+    s.connect(g); g.connect(out(o.x, o.wet ?? 0.06));
+    s.start(ctx.currentTime + (o.delay || 0));
+    return { s, g };
+  }
+  function has(key) { return !!bank[key]; }
+  // 배경음악·환경음·징글: 긴 곡은 <audio>로 흘려보낸다 (메모리 절약)
+  function playChan(ch, name, o = {}) {
+    if (!ctx) return;
+    if (!musicBus) { musicBus = ctx.createGain(); musicBus.gain.value = 1; musicBus.connect(final); }
+    const cur = chan[ch], t = ctx.currentTime, fade = o.fade ?? 0.8;
+    if (cur && cur.name === name) { cur.g.gain.setTargetAtTime(o.vol ?? cur.vol, t, 0.3); cur.vol = o.vol ?? cur.vol; return; }
+    if (cur) { cur.g.gain.setTargetAtTime(0.0001, t, fade / 3); const el = cur.el; setTimeout(() => el.pause(), fade * 1000 + 300); chan[ch] = null; }
+    if (!name || !musicList.includes(name)) return;
+    const el = new Audio(BASE + name + '.m4a');
+    el.loop = o.loop ?? true; el.preload = 'auto';
+    const src = ctx.createMediaElementSource(el), g = ctx.createGain();
+    g.gain.value = 0.0001; src.connect(g); g.connect(musicBus);
+    g.gain.setTargetAtTime(o.vol ?? 0.6, t, (o.fadeIn ?? 0.4) / 3);
+    el.play().catch(() => {});
+    chan[ch] = { name, el, g, vol: o.vol ?? 0.6 };
+  }
+  // 배경음악(징글은 loop:false). null이면 끈다.
+  function music(name, o = {}) {
+    wantMusic = { name, o };
+    if (!ctx || !bankStarted) return;
+    if (o.jingle) { playChan('jgl', name, { loop: false, vol: o.vol ?? 0.8, fade: 0.2, fadeIn: 0.05 }); return; }
+    playChan('bgm', name, { vol: o.vol ?? 0.55, fade: o.fade ?? 1.0, loop: true });
+  }
   function ambience(mode) {
     if (!ctx) return;
+    if (musicList.includes('amb_forest')) {
+      playChan('amb', mode === 'off' ? null : 'amb_forest', { vol: mode === 'boss' ? 0.35 : 0.9, fade: 1.2, fadeIn: 1.5 });
+      return;
+    }
     if (!amb) {
       amb = { g: ctx.createGain(), birdT: null, drumT: null };
       amb.g.gain.value = 0.0001; amb.g.connect(master);
@@ -172,7 +244,7 @@ const SFX = (() => {
     }
   }
 
-  return {
+  const api = {
     resume,
     _render: render,
     ambience: mode => { wantAmb = mode; if (ctx) { try { ambience(mode); } catch (e) { /* 무시 */ } } },
@@ -337,4 +409,81 @@ const SFX = (() => {
     }),
     lose: on(() => [392, 330, 262, 196].forEach((f, i) => tone({ type: 'triangle', f0: f, f1: f * 0.97, dur: 0.45, g: 0.18, delay: i * 0.28, wet: 0.5 }))),
   };
+  // 음원이 있으면 음원을, 없으면 위의 합성음을 낸다
+  function prefer(name, fn) {
+    const synth = api[name];
+    api[name] = (...a) => { if (!ctx) return; let done = false; try { done = fn(...a); } catch (e) { if (window.SFX_DEBUG) throw e; } if (!done) synth(...a); };
+  }
+  prefer('swing', (big, x) => sample(big ? 'swing_heavy' : 'swing_light', { x, vol: 0.9 }));
+  // 음원이 있으면 간격 제한에 걸려도 합성음으로 넘어가지 않게 true를 돌려준다
+  const gated = (key, k, ms, fn) => { if (!has(key)) return false; if (gate(k, ms)) fn(); return true; };
+  prefer('hit', (heavy, x) => gated('hit_light', 'hitS', 25, () => sample(heavy ? 'hit_heavy' : 'hit_light', { x, vol: 1 })));
+  prefer('crit', x => sample('hit_crit', { x, vol: 0.9 }));
+  prefer('bash', x => sample('shield_bash', { x }));
+  prefer('guard', x => gated('block', 'guardS', 40, () => sample('block', { x })));
+  prefer('parry', x => sample('parry', { x }));
+  prefer('step', (kind = 'armor', x) => {
+    if (!has('step_dirt')) return false;
+    if (kind === 'giant') { sample('step_dirt', { x, rate: 0.5, vol: 1 }); tone({ f0: 60, f1: 32, dur: 0.4, g: 0.6, x, wet: 0.3 }); return true; }
+    if (kind === 'light') return sample('step_dirt', { x, rate: 1.35, vol: 0.35 });
+    sample('step_dirt', { x, vol: 0.55 });
+    if (Math.random() < 0.5) sample('move_plate', { x, vol: 0.25, delay: 0.02 });
+    return true;
+  });
+  prefer('jump', x => sample('jump', { x }));
+  prefer('land', (x, heavy) => gated('land', 'landS', 30, () => sample(heavy && has('knockdown') ? 'knockdown' : 'land', { x })));
+  prefer('roll', x => sample('roll', { x }));
+  prefer('heroAtk', (power = 1, x) => gated('vo_warrior_atk', 'heroVS', 120, () => sample(power > 0 ? 'vo_warrior_atk_big' : 'vo_warrior_atk', { x, vary: 0.03 })));
+  prefer('heroHurt', x => gated('vo_warrior_hurt', 'heroVS', 150, () => sample('vo_warrior_hurt', { x, vary: 0.03 })));
+  prefer('heroKO', x => sample('vo_warrior_ko', { x, vary: 0 }));
+  prefer('heroWin', () => sample('vo_warrior_victory', { vary: 0 }));
+  prefer('gob', (kind, x, pitch = 1) => {
+    if (!has('mon_grolin_shout')) return false;
+    if (!gate('gobS' + kind, 60)) return true;
+    const r = pitch * vr(0.06);
+    if (kind === 'atk') return sample('mon_grolin_shout', { x, rate: r, vol: 0.8 });
+    if (kind === 'hurt') return sample('mon_grolin_shout', { x, rate: r * 1.3, vol: 0.6 });
+    if (kind === 'die') return sample('mon_grolin_die', { x, rate: r });
+    if (kind === 'alert') return sample('mon_alert', { x, vol: 0.8 });
+    if (kind === 'laugh') return sample('mon_taunt_laugh', { x, rate: r });
+    if (kind === 'scared') return sample('mon_flee', { x, rate: r });
+    return false;   // 주문 영창은 합성음
+  });
+  prefer('brk', (x, kind = 'wood') => sample(kind === 'wood' ? 'break_crate' : 'break_pot', { x }));
+  prefer('coin', x => {
+    if (!has('coin')) return false;
+    if (!gate('coinS', 35)) return true;
+    const n = (api._coinN = ((api._coinN || 0) + 1) % 8);
+    return sample('coin', { x, rate: Math.pow(1.06, n), vary: 0, vol: 0.7 });
+  });
+  prefer('heal', () => sample('heal'));
+  prefer('die', x => sample('mon_dissolve', { x }));
+  prefer('throwS', x => sample('dagger_throw', { x, rate: 0.85 }));
+  prefer('roar', x => sample('boss_giant_roar', { x, vary: 0.02 }));
+  prefer('smash', x => { if (!has('ground_slam')) return false; sample('ground_slam', { x }); sample('wall_crumble', { x, vol: 0.6, delay: 0.05 }); return true; });
+  prefer('roots', x => sample('trap_spike', { x, rate: 0.8 }));
+  prefer('awaken', () => { if (!has('awaken_warrior')) return false; sample('cutin'); sample('vo_warrior_awaken', { vary: 0, delay: 0.05 }); sample('awaken_warrior', { delay: 0.15 }); return true; });
+  prefer('wall', x => sample('shield_wall', { x }));
+  prefer('combo', () => sample('combo_milestone'));
+  prefer('go', () => sample('ui_tap'));
+  prefer('win', () => { if (!musicList.includes('jgl_stage_clear')) return false; music(null, { fade: 0.3 }); music('jgl_stage_clear', { jingle: true }); return true; });
+  prefer('lose', () => { if (!musicList.includes('jgl_game_over')) return false; music(null, { fade: 0.3 }); music('jgl_game_over', { jingle: true }); return true; });
+  // 새 소리 (음원이 있을 때만)
+  api.emote = x => { if (ctx && gate('emote', 80)) sample('emote_pop', { x, vol: 0.6 }); };
+  api.telegraph = x => { if (ctx && gate('tele', 150)) sample('telegraph', { x, vol: 0.7 }); };
+  api.launch = x => { if (ctx) sample('launch', { x }); };
+  api.bossPhase = () => { if (ctx) sample('boss_phase'); };
+  api.bossWeak = x => { if (ctx) sample('boss_weakpoint', { x }); };
+  api.bossDown = x => { if (ctx) sample('boss_down', { x }); };
+  api.cheer = x => { if (ctx) sample('mon_group_cheer', { x, vol: 0.8 }); };
+  api.music = music;
+  api._debug = () => ({ bank: Object.keys(bank).length, music: musicList.length, chan: Object.fromEntries(Object.entries(chan).filter(([, c]) => c).map(([k, c]) => [k, c.name + (c.el.paused ? ' (멈춤)' : ' (재생)')])), state: ctx && ctx.state });
+  api.bossWarning = () => { if (!ctx) return; music(null, { fade: 0.6 }); music('jgl_boss_warning', { jingle: true }); };
+  let beat = null;
+  api.heartbeat = onoff => {
+    if (!ctx) return;
+    if (onoff && !beat && has('low_hp_heartbeat')) beat = sample('low_hp_heartbeat', { loop: true, vol: 0.6, vary: 0 });
+    if (!onoff && beat) { try { beat.s.stop(); } catch (e) { /* 이미 멈춤 */ } beat = null; }
+  };
+  return api;
 })();

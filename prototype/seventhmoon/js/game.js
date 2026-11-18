@@ -42,6 +42,7 @@ class Title extends Phaser.Scene {
     const st = this.add.text(W / 2 + 120, 400, '터치하거나 아무 키나 눌러 시작', { fontFamily: 'sans-serif', fontSize: 30, color: '#fff', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5);
     this.tweens.add({ targets: st, alpha: 0.3, yoyo: true, repeat: -1, duration: 700 });
     this.add.text(W / 2 + 120, 470, '이동 WASD·방향키   공격 J   점프 K   구르기 L\n가드 I (누르고 있기, 맞기 직전에 누르면 패리)   각성 O\n달리면서 공격 = 방패 돌진 · 위+공격 = 올려치기 · 아래+공격 = 내려찍기', { fontFamily: 'sans-serif', fontSize: 19, color: '#e8dcc8', align: 'center', stroke: '#000', strokeThickness: 4, lineSpacing: 8 }).setOrigin(0.5, 0);
+    SFX.music('bgm_title');
     const go = () => { SFX.resume(); SFX.go(); this.scene.start('game'); };
     this.input.keyboard.once('keydown', go);
     this.input.once('pointerdown', go);
@@ -76,6 +77,8 @@ class Game extends Phaser.Scene {
     this.cameras.main.fadeIn(400);
     this.banner('1장  안개 낀 숲길', '#ffe7a8');
     SFX.ambience('forest');
+    SFX.music('bgm_c1_forest');
+    SFX.heartbeat(false);
   }
   // ---------------- 무대 ----------------
   buildStage() {
@@ -337,6 +340,7 @@ class Game extends Phaser.Scene {
     img.setAlpha(0.8);
   }
   telegraph(x, y, s, ms) {
+    SFX.telegraph(x - this.cameras.main.scrollX);
     const img = this.add.image(x, y, 'fx/telegraph_circle').setDepth(998).setScale(s * 0.2, s * 0.08).setAlpha(0.2);
     this.tweens.add({ targets: img, scaleX: s * 0.55, scaleY: s * 0.22, alpha: 0.85, duration: ms * 0.8, ease: 'Cubic.out' });
     this.tweens.add({ targets: img, alpha: 0.4, yoyo: true, repeat: -1, duration: 120, delay: ms * 0.6 });
@@ -386,6 +390,7 @@ class Game extends Phaser.Scene {
       this.floatText(m.x, hy - 40, String(dmg), crit ? '#ffd34d' : '#ffffff', crit ? 40 : 30);
       const hpx = m.x - this.cameras.main.scrollX;
       if (a.swing === 's' || this.hero.atkName === 'dash' || h.state === 'parry') SFX.bash(hpx);
+      if (a.type === 'launch' && m.kind !== 'barkhaul') SFX.launch(hpx);
       SFX.hit(a.type !== 'light', hpx, a.swing === 's' || this.hero.atkName === 'dash' ? 'blunt' : 'blade');
       if (a.multi) { /* 돌진은 여러 명 */ }
     }
@@ -577,6 +582,7 @@ class Game extends Phaser.Scene {
   }
   // ---------------- 보스 ----------------
   bossIntro() {
+    SFX.bossWarning();
     this.time.delayedCall(700, () => {
       const c = this.add.container(0, 0).setScrollFactor(0).setDepth(7500);
       const g = this.add.graphics(); g.fillStyle(0x000000, 0.7).fillRect(0, 150, W, 120); g.fillStyle(0x9a2fd0).fillRect(0, 148, W, 4);
@@ -587,19 +593,23 @@ class Game extends Phaser.Scene {
       this.tweens.add({ targets: c, alpha: 1, x: 0, duration: 300, hold: 1800, yoyo: true, onComplete: () => { c.destroy(); this.bossBar = true; } });
       SFX.roar(this.boss ? this.boss.px : 900);
       SFX.ambience('boss');
+      this.time.delayedCall(2600, () => { if (!this.won && !this.lost) SFX.music('bgm_boss_a'); });
       this.cameras.main.shake(500, 0.006);
     });
   }
   bossRage(b) {
+    SFX.bossPhase();
     this.floatText(b.x, b.y - b.height - 40, '분노!', '#ff5a3a', 40);
     b.rig.setTintAll(0xffc8b0); b.rageTint = true;
     this.cameras.main.flash(200, 200, 40, 20);
   }
   summonGrunts(n) {
+    SFX.cheer(this.boss ? this.boss.px : 640);
     for (let i = 0; i < n; i++) this.time.delayedCall(i * 300, () => { if (!this.won) this.spawn('grunt', i % 2 ? 1 : -1); });
   }
   bossDefeated(b) {
     this.won = true;
+    SFX.bossDown(b.px); SFX.music(null, { fade: 1.2 }); SFX.heartbeat(false);
     this.slowmo = 1400;
     this.cameras.main.flash(300, 255, 255, 255);
     this.cameras.main.shake(800, 0.012);
@@ -626,7 +636,7 @@ class Game extends Phaser.Scene {
   }
   heroDied() {
     if (this.lost) return;
-    this.lost = true; SFX.lose(); SFX.ambience('off');
+    this.lost = true; SFX.heartbeat(false); SFX.lose(); SFX.ambience('off');
     this.time.delayedCall(1300, () => this.result(false));
   }
   result(win) {
@@ -667,6 +677,7 @@ class Game extends Phaser.Scene {
     for (const m of this.monsters) if (m.shake > 0) m.shake -= dt;
     if (this.boss && this.boss.rageTint && !this.boss.dead && this.boss.flashT <= 0) this.boss.rig.setTintAll(Math.floor(this.now / 200) % 2 ? 0xffb8a0 : 0xffd8c8);
     this.updateProjs(dt);
+    SFX.heartbeat(!this.won && !this.lost && this.hero.hp > 0 && this.hero.hp < this.hero.maxHp * 0.25);
     this.updatePickups(dt);
     this.checkWave();
     // 카메라
