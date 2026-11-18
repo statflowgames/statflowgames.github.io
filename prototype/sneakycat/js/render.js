@@ -1,7 +1,16 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1118010407';
-import { sprite, IMG } from './assets.js?v=1118010407';
-import { tr, tf, fontStack } from './i18n.js?v=1118010407';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1118013716';
+import { sprite, IMG } from './assets.js?v=1118013716';
+import { tr, tf, fontStack } from './i18n.js?v=1118013716';
+// 글자가 maxW 보다 넓으면 그만큼 글자 크기를 줄인다 (언어마다 길이가 달라서). 실제 폭을 돌려준다
+function fitFont(c, txt, px, maxW, min = 8) {
+  c.font = `${px}px ${fontStack()}`;
+  const w = c.measureText(txt).width;
+  if (w <= maxW) return w;
+  c.font = `${Math.max(min, Math.floor(px * maxW / w))}px ${fontStack()}`;
+  return c.measureText(txt).width;
+}
+const clampX = (x, half, lo, hi) => (hi - lo < half * 2 ? (lo + hi) / 2 : Math.min(hi - half, Math.max(lo + half, x)));
 
 const hash = (x, y, s = 0) => {
   let h = (x * 374761393 + y * 668265263 + s * 982451653) | 0;
@@ -56,6 +65,8 @@ export class Renderer {
     this.buildStatic();
     if (snap) { const [x, y] = this.camTarget(); this.ox = x; this.oy = y; }
   }
+  // 지금 화면에 보이는 맵 가로 범위 (맵 좌표). 긴 글자를 이 안으로 넣는다
+  visX() { const lo = Math.max(0, -Math.round(this.ox)), hi = Math.min(this.mapW, this.W - Math.round(this.ox)); return [lo, hi]; }
   camTarget() {
     const G = this.game, ts = this.ts;
     const f = this.focus || G.cat;
@@ -539,10 +550,11 @@ export class Renderer {
     for (const p of G.popups) {
       const a = p.t < 1 ? 1 : 1 - (p.t - 1) / 0.4;
       c.globalAlpha = Math.max(0, a);
-      c.font = `${Math.round(15 * Math.max(0.85, s))}px ${fontStack()}`; c.textAlign = 'center';
+      const [lo, hi] = this.visX();
+      const pw = fitFont(c, p.text, Math.round(15 * Math.max(0.85, s)), hi - lo - 8); c.textAlign = 'center';
       c.lineWidth = 4; c.strokeStyle = 'rgba(20,14,30,0.9)';
-      const y = p.y * ts - p.t * 22;
-      c.strokeText(p.text, p.x * ts, y); c.fillStyle = p.color; c.fillText(p.text, p.x * ts, y);
+      const y = p.y * ts - p.t * 22, px = clampX(p.x * ts, pw / 2 + 4, lo, hi);
+      c.strokeText(p.text, px, y); c.fillStyle = p.color; c.fillText(p.text, px, y);
     }
     c.globalAlpha = 1;
     if (this.mark) this.drawMark(c, t);
@@ -568,8 +580,8 @@ export class Renderer {
       }
       if (G.boomFlash > 0) { c.fillStyle = `rgba(255,230,200,${G.boomFlash * 0.12})`; c.fillRect(0, 0, this.W, this.H); }
       const f = G.fw, txt = f.on ? tr('🎆 펑! 지금은 소리가 안 들려요') : tf('🎆 다음 불꽃 {sec}초', { sec: f.t.toFixed(1) });
-      c.font = `14px ${fontStack()}`; c.textAlign = 'center';
-      const w = c.measureText(txt).width + 24, y = this.top + 16;
+      c.textAlign = 'center';
+      const w = fitFont(c, txt, 14, this.W - 48) + 24, y = this.top + 16;
       rr(c, this.W / 2 - w / 2, y - 13, w, 26, 13); c.fillStyle = f.on ? 'rgba(120,40,90,0.9)' : 'rgba(16,12,34,0.8)'; c.fill();
       c.fillStyle = f.on ? '#ffe08a' : '#d8e2ff'; c.fillText(txt, this.W / 2, y + 5);
     }
@@ -696,9 +708,9 @@ export class Renderer {
     c.fillStyle = gr; c.fillRect(-W, -H * k, W * 2, H * 2 * k);
     c.restore();
     c.fillStyle = `rgba(110,150,255,${0.06 * o})`; c.fillRect(0, 0, W, H);
-    c.globalAlpha = o; c.font = `14px ${fontStack()}`; c.textAlign = 'center';
+    c.globalAlpha = o; c.textAlign = 'center';
     const msg = tr('고양이 눈으로 살피는 중 · 손을 떼면 계속');
-    const y = this.top + 18, w = c.measureText(msg).width + 26;
+    const y = this.top + 18, w = fitFont(c, msg, 14, W - 50) + 26;
     rr(c, cx - w / 2, y - 13, w, 26, 13); c.fillStyle = 'rgba(16,12,34,0.82)'; c.fill();
     c.fillStyle = '#d8e2ff'; c.fillText(msg, cx, y + 5); c.globalAlpha = 1;
   }
@@ -979,12 +991,14 @@ export class Renderer {
     c.restore();
   }
   say(c, X, Y, text, s, red, cat) {
-    c.font = `${Math.round(11 * s)}px ${fontStack()}`;
-    const w = c.measureText(text).width + 12 * s, h = 18 * s;
+    const [lo, hi] = this.visX();
+    const w = fitFont(c, text, Math.round(11 * s), hi - lo - 16 * s) + 12 * s, h = 18 * s, X0 = X;
+    X = clampX(X, w / 2 + 2, lo, hi);
     rr(c, X - w / 2, Y - h / 2, w, h, 8 * s);
     c.fillStyle = cat ? '#ffe3f1' : red ? '#ffe1e4' : 'rgba(255,255,255,0.94)'; c.fill();
     c.lineWidth = 1.5; c.strokeStyle = OUT; c.stroke();
-    c.beginPath(); c.moveTo(X - 3 * s, Y + h / 2 - 0.5); c.lineTo(X, Y + h / 2 + 5 * s); c.lineTo(X + 3 * s, Y + h / 2 - 0.5); c.fill();
+    const tx = Math.min(X + w / 2 - 6 * s, Math.max(X - w / 2 + 6 * s, X0));
+    c.beginPath(); c.moveTo(tx - 3 * s, Y + h / 2 - 0.5); c.lineTo(tx, Y + h / 2 + 5 * s); c.lineTo(tx + 3 * s, Y + h / 2 - 0.5); c.fill();
     c.fillStyle = '#2a1f2e'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, X, Y + 0.5);
   }
   drawJoy(c, j) {
@@ -999,8 +1013,9 @@ export class Renderer {
     c.beginPath(); c.arc(kx, ky, 20, 0, 7);
     c.fillStyle = j.run ? 'rgba(255,170,70,0.85)' : 'rgba(160,240,140,0.8)'; c.fill();
     c.lineWidth = 2; c.strokeStyle = 'rgba(30,20,40,0.6)'; c.stroke();
-    c.font = `12px ${fontStack()}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#2a1f2e';
-    c.fillText(tr(j.run ? '달리기' : '살금'), kx, ky + 1);
+    const lbl = tr(j.run ? '달리기' : '살금');
+    fitFont(c, lbl, 12, 34); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#2a1f2e';
+    c.fillText(lbl, kx, ky + 1);
     c.restore();
   }
 }

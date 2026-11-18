@@ -1,9 +1,9 @@
 // 비밀 아지트: 훔친 물건을 모아 둔 고양이의 방. 쓰다듬기·간식·놀아 주기 — 벌칙 없이 반응만 좋아진다.
 // 배경 그림(img/den-bg.webp)이 있으면 그걸, 없으면 코드로 방을 그린다.
-import { IMG, sprite } from './assets.js?v=1118010407';
-import { Sound } from './audio.js?v=1118010407';
-import { FONT } from './render.js?v=1118010407';
-import { tr, fontStack } from './i18n.js?v=1118010407';
+import { IMG, sprite } from './assets.js?v=1118013716';
+import { Sound } from './audio.js?v=1118013716';
+import { FONT } from './render.js?v=1118013716';
+import { tr, fontStack } from './i18n.js?v=1118013716';
 
 const OUT = '#2a1f2e';
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -324,7 +324,12 @@ export function startDen(cv, opts) {
     for (const f of fx) {
       c.globalAlpha = Math.max(0, 1 - f.t / f.life);
       if (f.img) { c.drawImage(f.img, f.x - f.size / 2, f.y - f.size / 2, f.size, f.size); continue; }
-      c.font = `${f.size}px ${fontStack()}`; c.lineWidth = 3; c.strokeStyle = '#1a1428'; c.strokeText(f.txt, f.x, f.y); c.fillStyle = f.col; c.fillText(f.txt, f.x, f.y);
+      // 번역이 길면 글자를 줄이고, 고양이가 가장자리에 있어도 화면 안에 들어오게
+      c.font = `${f.size}px ${fontStack()}`;
+      let tw = c.measureText(f.txt).width;
+      if (tw > W - 16) { c.font = `${Math.max(9, Math.floor(f.size * (W - 16) / tw))}px ${fontStack()}`; tw = c.measureText(f.txt).width; }
+      const fx0 = Math.min(W - tw / 2 - 6, Math.max(tw / 2 + 6, f.x));
+      c.lineWidth = 3; c.strokeStyle = '#1a1428'; c.strokeText(f.txt, fx0, f.y); c.fillStyle = f.col; c.fillText(f.txt, fx0, f.y);
     }
     c.globalAlpha = 1;
   }

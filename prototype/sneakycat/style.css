@@ -47,6 +47,7 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .compact #hud { padding-top: calc(env(safe-area-inset-top) + 6px); }
 .compact .ibtn { width: 38px; height: 38px; border-radius: 12px; }
 .compact #lvTitle { font-size: 15px; }
+#lvTitle.two { white-space: normal; font-size: 13px; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
 .compact #goals .g { width: 26px; height: 26px; }
 .compact #goals .eye { width: auto; font-size: 11px; }
 .compact .rbtn { width: 56px; height: 56px; }
@@ -95,7 +96,7 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .title { justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 9vh); }
 .logo { font-size: clamp(48px, 15vw, 70px); line-height: 1; color: var(--gold); text-shadow: 0 4px 0 #6b3d10, 0 8px 18px rgba(0,0,0,0.6); letter-spacing: 2px; text-align: center; }
 .logo .lname { display: inline-block; white-space: nowrap; }
-.logo small { display: block; font-size: 0.32em; color: var(--ink); letter-spacing: 1px; margin-top: 10px; text-shadow: 0 2px 0 #000; }
+.logo small { text-wrap: balance; display: block; font-size: 0.32em; color: var(--ink); letter-spacing: 1px; margin-top: 10px; text-shadow: 0 2px 0 #000; }
 .tbtns { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 26px); padding: 0 24px; }
 .toggles { display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center; margin-top: 14px; }
 .toggles .tg { white-space: nowrap; }
@@ -159,6 +160,18 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .card .cbanner { margin: -20px -18px 12px; height: 0; padding-bottom: 33.3%; background-size: cover; background-position: center; border-radius: 20px 20px 0 0; position: relative; }
 .card .cbanner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 60%, var(--panel)); }
 .title .logo { margin-top: 2vh; }
+/* 타이틀 버튼은 작게 — 배경의 고양이와 생선이 버튼 위로 다 보이도록 */
+.title .tbtns { bottom: calc(env(safe-area-inset-bottom) + 16px); }
+.title .tbtns .btn { max-width: 280px; padding: 10px 14px; font-size: 18px; border-radius: 14px; margin-top: 7px; }
+.title .tbtns .btn.quest small { font-size: 13px; }
+.title .toggles { margin-top: 10px; }
+.title .tg { padding: 6px 14px; font-size: 14px; }
+.title .credit { margin-top: 8px; }
+/* 세로로 짧은 폰: 제목·버튼을 한 단계 더 줄여 고양이 자리를 넓힌다 */
+.compact .title { padding-top: calc(env(safe-area-inset-top) + 6vh); }
+.compact .logo { font-size: clamp(40px, 12vw, 56px); }
+.compact .title .tbtns .btn { padding: 8px 14px; font-size: 16px; margin-top: 6px; }
+.compact .title .tg { padding: 5px 12px; }
 .scr.list { background: rgba(21, 18, 40, 0.94); }
 
 /* ───── 가로 화면 (PC) ───── */
@@ -277,7 +290,7 @@ button { font-family: var(--font); color: inherit; border: 0; background: none; 
 .tgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
 .tcell { background: var(--panel2); border: 2px solid #120e20; border-radius: 14px; padding: 8px 4px; text-align: center; }
 .tcell img { width: 48px; height: 48px; object-fit: contain; display: block; margin: 0 auto 2px; }
-.tcell b { display: block; font-weight: normal; font-size: 13px; }
+.tcell b { display: block; font-weight: normal; font-size: 13px; overflow-wrap: anywhere; hyphens: auto; }
 .tcell small { color: var(--gold); font-size: 12px; }
 .tcell.none img { filter: brightness(0) opacity(0.4); }
 .tcell.none small, .tcell.none b { color: var(--sub); }

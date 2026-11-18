@@ -1,18 +1,18 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM, TUTORIAL } from './levels.js?v=1118010407';
-import { Game } from './game.js?v=1118010407';
-import { Renderer } from './render.js?v=1118010407';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1118010407';
-import { Sound } from './audio.js?v=1118010407';
-import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1118010407';
-import { actIcon, buttonHTML } from './icons.js?v=1118010407';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1118010407';
-import { startDen } from './den.js?v=1118010407';
-import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1118010407';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1118010407';
-import { Reward } from './reward.js?v=1118010407';
-import { Ads } from './ads.js?v=1118010407';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1118010407';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM, TUTORIAL } from './levels.js?v=1118013716';
+import { Game } from './game.js?v=1118013716';
+import { Renderer } from './render.js?v=1118013716';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1118013716';
+import { Sound } from './audio.js?v=1118013716';
+import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1118013716';
+import { actIcon, buttonHTML } from './icons.js?v=1118013716';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1118013716';
+import { startDen } from './den.js?v=1118013716';
+import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1118013716';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1118013716';
+import { Reward } from './reward.js?v=1118013716';
+import { Ads } from './ads.js?v=1118013716';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1118013716';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -83,7 +83,7 @@ function resize() {
   R.resize(w, vh);
   placeSides();
 }
-window.addEventListener('resize', () => { resize(); if (scene === 'title') fitLogo(); });
+window.addEventListener('resize', () => { resize(); if (scene === 'title') fitLogo(); if (game) fitHudTitle(); });
 resize();
 
 // ───────── 입력 ─────────
@@ -184,7 +184,13 @@ function show(html, cls = '') {
   return layer.firstElementChild;
 }
 function hideLayer() { layer.innerHTML = ''; }
-function setHud(on) { for (const id of ['#hud', '#ctrl', '#sideL', '#sideR']) $(id).classList.toggle('off', !on); $('#coach').classList.toggle('off', !on || !tutOn()); }
+function setHud(on) { for (const id of ['#hud', '#ctrl', '#sideL', '#sideR']) $(id).classList.toggle('off', !on); $('#coach').classList.toggle('off', !on || !tutOn()); if (on) fitHudTitle(); }
+// 스테이지 이름이 한 줄에 안 들어가면(긴 번역) 작은 글씨 두 줄로
+function fitHudTitle() {
+  const el = $('#lvTitle');
+  el.classList.remove('two');
+  if (el.scrollWidth > el.clientWidth + 1) el.classList.add('two');
+}
 const on = (el, sel, fn) => el.querySelectorAll(sel).forEach((b) => b.addEventListener('click', (e) => { Sound.unlock(); Sound.play('click'); fn(e, b); }));
 
 function titleScreen() {
@@ -210,9 +216,17 @@ function titleScreen() {
 }
 // 언어마다 게임 이름 길이가 달라서(Schleichkatze, こっそりニャン…) 화면 폭에 맞춰 글자를 줄인다.
 // 한 줄을 우선하고, 너무 작아지면 띄어쓰기가 있는 이름만 두 줄로 나눈다.
+const titleLay = { btn: 0, logo: 0 };
 function fitLogo() {
   const nm = layer.querySelector('.logo .lname');
   if (!nm) return;
+  fitLogoSize(nm);
+  // 배경 그림 위치를 정하려고 제목 아래끝·버튼 윗끝을 기억해 둔다
+  const lg = nm.parentElement, tb = layer.querySelector('.tbtns');
+  titleLay.logo = lg.offsetTop + lg.offsetHeight;
+  titleLay.btn = tb ? tb.offsetTop : 0;
+}
+function fitLogoSize(nm) {
   const lg = nm.parentElement, avail = lg.parentElement.clientWidth - 40;
   const base = parseFloat(getComputedStyle(lg).fontSize);
   nm.style.fontSize = ''; nm.style.whiteSpace = ''; nm.style.maxWidth = '';
@@ -643,6 +657,7 @@ function startLevel(i, skipIntro = false) {
   buildSides(L, i);
   buildGoals();
   $('#lvTitle').textContent = tut ? `🎓 ${tr(L.name)}` : `${L.id} ${tr(L.name)}`;
+  fitHudTitle();
   const ch = CHAPTERS[L.ch - 1];
   const nw = tut || (skipIntro && firstOfChapter(i)) ? [] : newInLevel(i), here = inLevel(L).filter((e) => e.id !== 'door');
   if (tut) { tutIntro(L, here); return; }
@@ -713,7 +728,12 @@ function updateHud() {
   $('#bMeow').style.setProperty('--cd', cd.toFixed(3));
   const chased = game.chased(), d = game.danger();
   const st = looking ? [t('st.look'), 'warn'] : chased ? [t('st.chase'), 'bad'] : game.cat.riding ? [t('st.ride'), ''] : game.cat.hidden && game.state === 'play' ? [t('st.hide'), ''] : d > 0.3 ? [t('st.sus'), 'warn'] : game.cat.hasFish ? [t('st.fish'), ''] : [t('st.sneak'), ''];
-  set('s', st.join('|'), () => { const s = $('#status'); s.textContent = st[0]; s.className = st[1]; });
+  set('s', st.join('|'), () => {
+    const s = $('#status'); s.textContent = st[0]; s.className = st[1];
+    // 한 단어가 긴 번역(Saklanıyorsun…)은 칸에 맞게 글자를 줄인다
+    s.style.fontSize = '';
+    for (let fs = parseFloat(getComputedStyle(s).fontSize); s.scrollWidth > s.clientWidth + 1 && fs > 10;) s.style.fontSize = --fs + 'px';
+  });
 }
 function pauseGame() {
   setLook(false);
@@ -1072,7 +1092,27 @@ function drawTitleBg(dt) {
       const fade = (x0, x1) => { const g = c.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, 'rgba(21,18,40,0)'); g.addColorStop(1, 'rgba(21,18,40,0.85)'); return g; };
       c.fillStyle = fade((W + w2) / 2 - 40, (W + w2) / 2); c.fillRect((W + w2) / 2 - 40, 0, 40, H);
       c.fillStyle = fade((W - w2) / 2 + 40, (W - w2) / 2); c.fillRect((W - w2) / 2, 0, 40, H);
-    } else c.drawImage(im, (W - w) / 2, (H - h) / 2 + bob, w, h);
+    } else {
+      // 세로 화면: 고양이(그림 높이 46~73%)가 버튼에 가리지 않게 그림을 위로 올린다.
+      // 귀는 제목 밑, 발은 첫 버튼 바로 위. 올려서 빈 아래쪽은 지붕 색으로 채운다.
+      // 짧은 화면(버튼이 많을 때)은 고양이가 제목과 버튼 사이에 다 들어오게 그림을 줄이고, 양옆은 흐린 배경으로
+      let dh = h, oy = (H - h) / 2;
+      if (titleLay.btn) {
+        const band = titleLay.btn - titleLay.logo - 12;
+        if (0.27 * h > band) dh = Math.max(H * 0.45, band / 0.27);
+        oy = Math.min((H - dh) / 2, Math.max(titleLay.btn - 6 - 0.73 * dh, titleLay.logo + 6 - 0.46 * dh));
+      }
+      const dw = im.width * dh / im.height, dx = (W - dw) / 2;
+      if (dw < W) { c.globalAlpha = 0.35; c.drawImage(im, (W - w) / 2, (H - h) / 2, w, h); c.globalAlpha = 1; }
+      c.drawImage(im, dx, oy + bob, dw, dh);
+      if (dw < W) {
+        for (const [x0, x1] of [[dx + 50, dx], [dx + dw - 50, dx + dw]]) {
+          const g = c.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, 'rgba(21,18,40,0)'); g.addColorStop(1, 'rgba(21,18,40,0.85)');
+          c.fillStyle = g; c.fillRect(Math.min(x0, x1), 0, 50, H);
+        }
+      }
+      if (oy + dh < H) { c.fillStyle = '#221834'; c.fillRect(0, oy + dh + bob - 1, W, H - oy - dh + 4); }
+    }
     for (const [x, y, s] of STARS.slice(0, 24)) {
       const a = Math.max(0, Math.sin(titleT * 1.3 + x * 31));
       c.globalAlpha = a * a * 0.9;
