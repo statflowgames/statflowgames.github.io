@@ -73,6 +73,7 @@ class Rig {
         pr = P.wr;
       }
       b.wx = px; b.wy = py;
+      if (b.abs) pr = this.map.root.wr;   // 발: 다리 각도와 상관없이 몸 기준으로 수평 유지
       b.wr = pr + ((b.r || 0) + (p[b.n] || 0)) * D2R;
       b.spr.setPosition(px, py);
       b.spr.setRotation(b.wr + (b.ir || 0) * D2R);
@@ -126,11 +127,11 @@ function humanoid(tex, o) {
     // 뒷다리
     { n: 'thb', sc: o.legSc, p: 'root', x: o.hipB[0], y: o.hipB[1], img: 'thigh', ax: o.thA[0], ay: o.thA[1], z: 20, dark: BACK },
     { n: 'shb', sc: o.legSc, p: 'thb', x: 0, y: o.thLen, img: 'shin', ax: o.shA[0], ay: o.shA[1], z: 21, dark: BACK },
-    { n: 'ftb', sc: o.legSc, p: 'shb', x: 0, y: o.shLen, img: 'foot', ax: o.ftA[0], ay: o.ftA[1], z: 22, dark: BACK },
+    { n: 'ftb', abs: true, sc: o.legSc, p: 'shb', x: 0, y: o.shLen, img: 'foot', ax: o.ftA[0], ay: o.ftA[1], z: 22, dark: BACK },
     // 앞다리
     { n: 'thf', sc: o.legSc, p: 'root', x: o.hipF[0], y: o.hipF[1], img: 'thigh', ax: o.thA[0], ay: o.thA[1], z: 40 },
     { n: 'shf', sc: o.legSc, p: 'thf', x: 0, y: o.thLen, img: 'shin', ax: o.shA[0], ay: o.shA[1], z: 41 },
-    { n: 'ftf', sc: o.legSc, p: 'shf', x: 0, y: o.shLen, img: 'foot', ax: o.ftA[0], ay: o.ftA[1], z: 42 },
+    { n: 'ftf', abs: true, sc: o.legSc, p: 'shf', x: 0, y: o.shLen, img: 'foot', ax: o.ftA[0], ay: o.ftA[1], z: 42 },
     // 앞팔
     { n: 'uaf', sc: o.armSc, p: 'torso', x: o.shoulderF[0], y: o.shoulderF[1], img: 'upper_arm', ax: o.uaA[0], ay: o.uaA[1], z: 80 },
     { n: 'faf', sc: o.armSc, p: 'uaf', x: 0, y: o.uaLen, img: 'forearm', ax: o.faA[0], ay: o.faA[1], z: 81 },
