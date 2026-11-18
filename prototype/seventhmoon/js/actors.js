@@ -21,6 +21,7 @@ class Actor {
     this.emote = null;
   }
   get sc() { return this.rig.def.scale; }
+  get px() { return this.x - this.scene.cameras.main.scrollX; }
   play(name, blend = 70) {
     if (name === 'm_walk' && this.kind === 'barkhaul') name = 'b_walk';
     if (this.anim === name) return;
@@ -53,6 +54,11 @@ class Actor {
   draw(dt, frozen) {
     if (!frozen) this.animT += dt * this.animRate();
     const clip = CLIPS[this.anim];
+    if (clip && clip.amp && !frozen && this.z <= 0) {
+      const ph = Math.floor((this.animT + clip.dur * 0.25) / (clip.dur / 2));
+      if (this.stepPh !== undefined && ph !== this.stepPh && this.onStep) this.onStep();
+      this.stepPh = ph;
+    }
     let pose = clip ? clip.at(this.animT) : this.baseStand;
     if (this.blendFrom && this.blendT < this.blendDur) {
       if (!frozen) this.blendT += dt;
@@ -171,8 +177,7 @@ class Hero extends Actor {
       if (inp.x) this.face = inp.x;
       if (inp.x || inp.y) {
         this.state = 'move'; this.play(run ? 'run' : 'walk', 120);
-        this.stepT = (this.stepT || 0) - dt;
-        if (this.stepT < 0) { this.stepT = run ? 240 : 320; SFX.step(); if (run) this.scene.fx('dust_run', this.x - this.face * 30, this.y, { s: 0.25, flip: this.face < 0, dur: 350, depth: this.y - 1 }); }
+        this.running = run;
       } else { this.state = 'idle'; this.play(this.hp < this.maxHp * 0.25 ? 'idle' : 'idle', 150); }
       this.physics(dt);
       return;
@@ -223,6 +228,10 @@ class Hero extends Actor {
     if (st === 'awaken') { this.updateAwaken(dt); return; }
     if (st === 'win') { return; }
   }
+  onStep() {
+    SFX.step('armor', this.px);
+    if (this.running) this.scene.fx('dust_run', this.x - this.face * 30, this.y, { s: 0.25, flip: this.face < 0, dur: 350, depth: this.y - 1 });
+  }
   pickCommand(inp) {
     if (inp.y < 0) return 'up';
     if (inp.y > 0 && inp.x === 0) return 'down';
@@ -234,15 +243,17 @@ class Hero extends Actor {
     this.state = 'atk'; this.st = 0; this.atk = a; this.atkName = k; this.hitSet.clear();
     this.chain = { a1: 'a2', a2: 'a3', a3: 'a4' }[k] || null;
     this.replay(a.clip, 40);
+    const power = { a3: 1, up: 1, dash: 1, a4: 2, down: 2 }[k] || 0;
+    if (power || Math.random() < 0.35) this.scene.time.delayedCall(Math.max(0, a.hit[0] - 60), () => this.state === 'atk' && SFX.heroAtk(power, this.px));
     this.vx = k === 'dash' ? this.face * 560 : 0;
     this.setHead(a.fin || k === 'down' || k === 'dash' ? 'head_shout' : 'head_attack');
     this.scene.time.delayedCall(a.hit[0] - 30, () => {
       if (this.state !== 'atk' || this.atk !== a) return;
       if (a.lunge) this.vx = this.face * a.lunge;
-      SFX.swing(a.fin || k === 'down');
+      SFX.swing(a.fin || k === 'down', this.px, a.swing === 's' ? 'shield' : 'blade');
       this.scene.swingFx(this, a);
     });
-    if (k === 'dash') { SFX.roll(); this.scene.fx('speed_lines', this.x - this.face * 80, this.y - 110, { s: 0.45, flip: this.face < 0, dur: 300, depth: this.y - 1 }); }
+    if (k === 'dash') { SFX.roll(this.px); this.scene.fx('speed_lines', this.x - this.face * 80, this.y - 110, { s: 0.45, flip: this.face < 0, dur: 300, depth: this.y - 1 }); }
   }
   checkHits(a) {
     if (this.st < a.hit[0] || this.st > a.hit[1]) return;
@@ -251,24 +262,24 @@ class Hero extends Actor {
   toIdle() { this.state = 'idle'; this.st = 0; this.play('idle', 120); this.setHead(null); this.gravMul = 1; }
   startJump(inp) {
     this.state = 'jump'; this.st = 0; this.vz = 860; this.z = 0.01; this.jumpAtkUsed = false;
-    this.play('w_jump', 60); SFX.jump(); this.kick(0, 0, 0.12);
+    this.play('w_jump', 60); SFX.jump(this.px); this.kick(0, 0, 0.12);
     this.scene.fx('dust_land', this.x, this.y, { s: 0.22, dur: 300, depth: this.y - 1 });
   }
   startRoll(inp) {
     this.sta -= 22;
     const d = inp.x || this.face; this.face = d;
     this.state = 'roll'; this.st = 0; this.vx = d * 560; this.vy = inp.y * 120; this.invuln = 380;
-    this.replay('w_roll', 30); SFX.roll();
+    this.replay('w_roll', 30); SFX.roll(this.px);
     this.scene.fx('dash_trail', this.x - d * 40, this.y - 60, { s: 0.35, flip: d < 0, dur: 320, depth: this.y - 1 });
   }
   startGuard() { this.state = 'guard'; this.st = 0; this.guardStart = this.scene.now; this.play('w_guard', 40); }
   onLand(v) {
     if (this.state === 'jump' || this.state === 'jatk') {
-      SFX.land(); this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 });
+      SFX.land(this.px); this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 });
       this.kick(4, 0, -0.14);
       this.toIdle();
     } else if (this.state === 'air') {
-      SFX.land(); this.scene.fx('dust_land', this.x, this.y, { s: 0.38, dur: 420, depth: this.y - 1 });
+      SFX.land(this.px, true); this.scene.fx('dust_land', this.x, this.y, { s: 0.38, dur: 420, depth: this.y - 1 });
       this.scene.cameras.main.shake(90, 0.004);
       this.kick(6, 0, -0.12);
       this.state = this.hp <= 0 ? 'dead' : 'down'; this.st = 0; this.play('w_down', 60); this.vx = 0; this.vy = 0;
@@ -298,6 +309,7 @@ class Hero extends Actor {
     this.face = kbDir === 0 ? this.face : -kbDir;
     this.flash(0xffffff, 80);
     this.kick(-7, 6, -0.08);
+    if (this.hp <= 0) SFX.heroKO(this.px); else SFX.heroHurt(this.px);
     this.setHead('head_hurt');
     if (type === 'heavy' || this.hp <= 0) {
       this.state = 'air'; this.st = 0; this.vz = 520; this.z = 1; this.vx = kbDir * 260; this.vy = 0;
@@ -345,6 +357,7 @@ class Monster extends Actor {
     this.state = 'enter'; this.st = 0;
     this.face = x > scene.hero.x ? -1 : 1;
     if (kind === 'barkhaul') { this.summon60 = false; this.summon30 = false; }
+    this.pitch = kind === 'shaman' ? 0.85 : kind === 'spear' ? 1.08 : 0.95 + Math.random() * 0.15;
   }
   setHead(img) { this.rig.setImg('head', img); }
   hurtFace() { if (this.def.face) this.setHead(this.def.face + '_hurt'); else this.setHead('head_shout'); }
@@ -375,7 +388,7 @@ class Monster extends Actor {
       this.x += this.vx * s;
       if (Math.abs(tx - this.x) < 10) {
         this.toIdle(); this.face = Math.sign(dx) || 1;
-        if (Math.random() < 0.5 || this.kind === 'barkhaul') this.showEmote('bang', 900);
+        if (Math.random() < 0.5 || this.kind === 'barkhaul') { this.showEmote('bang', 900); if (this.kind !== 'barkhaul') SFX.gob('alert', this.px, this.pitch); }
       }
       return;
     }
@@ -409,7 +422,7 @@ class Monster extends Actor {
       this.vx = Math.abs(mx) > 12 ? Math.sign(mx) * sp : 0;
       this.vy = Math.abs(my) > 6 ? Math.sign(my) * sp * 0.6 : 0;
       // 겁먹고 도망
-      if (this.hp < this.maxHp * 0.25 && !this.fled && Math.random() < 0.01) { this.fled = true; this.showEmote('sweat', 1500); this.state = 'flee'; this.st = 0; return; }
+      if (this.hp < this.maxHp * 0.25 && !this.fled && Math.random() < 0.01) { this.fled = true; this.showEmote('sweat', 1500); SFX.gob('scared', this.px, this.pitch); this.state = 'flee'; this.st = 0; return; }
       if (this.vx || this.vy) { this.state = 'move'; this.play('m_walk', 100); } else { this.state = 'idle'; this.play('m_idle', 140); }
       this.separate();
       this.physics(dt);
@@ -424,7 +437,7 @@ class Monster extends Actor {
     if (st === 'taunt') { if (this.st > 900) { this.setHead(null); this.toIdle(); } return; }
     if (st === 'windup') {
       if (this.st > 420) {
-        this.state = 'stab'; this.st = 0; this.replay('m_stab', 30); this.hitSet.clear(); SFX.swing(false); this.setHead('head_shout');
+        this.state = 'stab'; this.st = 0; this.replay('m_stab', 30); this.hitSet.clear(); SFX.swing(false, this.px, 'blade'); this.setHead('head_shout');
         this.scene.time.delayedCall(30, () => { if (this.state === 'stab') this.vx = this.face * 240; });
       }
       return;
@@ -437,7 +450,7 @@ class Monster extends Actor {
     }
     if (st === 'throwup') {
       if (this.st > 520) {
-        this.state = 'throw'; this.st = 0; this.replay('m_throw', 30); SFX.throwS(); this.setHead('head_shout');
+        this.state = 'throw'; this.st = 0; this.replay('m_throw', 30); SFX.throwS(this.px); SFX.gob('atk', this.px, this.pitch); this.setHead('head_shout');
         this.scene.projectile(this, 'spear/javelin', { vx: this.face * 720, z: 105, dmg: this.def.dmg, rot: 90, sc: 0.32, life: 1500 });
         this.rig.setVisible('wpn', false);
       }
@@ -449,7 +462,7 @@ class Monster extends Actor {
     }
     if (st === 'cast') {
       if (this.st > 750 && !this.castDone) {
-        this.castDone = true; SFX.magic();
+        this.castDone = true; SFX.magic(this.px);
         if (this.castTarget && !this.castTarget.dead) {
           const t = this.castTarget; t.hp = Math.min(t.maxHp, t.hp + t.maxHp * 0.35);
           this.scene.fx('crit_flash', t.x, t.y - t.height * 0.5, { s: 0.25, dur: 500, tint: 0x88ff88, depth: 4000 });
@@ -461,6 +474,10 @@ class Monster extends Actor {
       if (this.st > 1100) { this.cool = 3000 + Math.random() * 1500; this.toIdle(); }
       return;
     }
+  }
+  onStep() {
+    if (this.kind === 'barkhaul') { SFX.step('giant', this.px); this.scene.cameras.main.shake(80, 0.002); }
+    else SFX.step('light', this.px);
   }
   separate() {
     for (const o of this.scene.monsters) {
@@ -474,11 +491,12 @@ class Monster extends Actor {
   startWindup() {
     this.state = 'windup'; this.st = 0; this.vx = this.vy = 0; this.play('m_windup', 60);
     this.rig.setTintAll(0xff9a8a);
+    if (Math.random() < 0.7) SFX.gob('atk', this.px, this.pitch);
     this.scene.time.delayedCall(260, () => { if (this.state === 'windup') this.rig.setTintAll(null); });
   }
-  startTaunt() { this.state = 'taunt'; this.st = 0; this.vx = this.vy = 0; this.play('m_taunt', 80); this.setHead(this.def.face + '_taunt'); this.showEmote('laugh', 900); SFX.yelp(); }
+  startTaunt() { this.state = 'taunt'; this.st = 0; this.vx = this.vy = 0; this.play('m_taunt', 80); this.setHead(this.def.face + '_taunt'); this.showEmote('laugh', 900); SFX.gob('laugh', this.px, this.pitch); }
   startThrow() { this.state = 'throwup'; this.st = 0; this.vx = this.vy = 0; this.play('m_throwup', 80); this.rig.setTintAll(0xff9a8a); this.scene.time.delayedCall(260, () => this.state === 'throwup' && this.rig.setTintAll(null)); }
-  startCast(t) { this.state = 'cast'; this.st = 0; this.vx = this.vy = 0; this.castTarget = t; this.castDone = false; this.play('m_cast', 80); this.setHead('head_shout'); this.scene.fx('crit_flash', this.x + this.face * 30, this.y - this.height * 0.95, { s: 0.18, dur: 700, tint: t ? 0x88ff88 : 0xcc66ff, depth: this.y + 1001 }); }
+  startCast(t) { this.state = 'cast'; this.st = 0; this.vx = this.vy = 0; this.castTarget = t; this.castDone = false; this.play('m_cast', 80); SFX.gob('chant', this.px, this.pitch); this.setHead('head_shout'); this.scene.fx('crit_flash', this.x + this.face * 30, this.y - this.height * 0.95, { s: 0.18, dur: 700, tint: t ? 0x88ff88 : 0xcc66ff, depth: this.y + 1001 }); }
 
   // 플레이어 공격을 맞음
   takeHit(src, a, dmg) {
@@ -498,7 +516,7 @@ class Monster extends Actor {
     const boss = this.kind === 'barkhaul';
     if (boss) return this.bossHit(a, dir, dmg);
     this.hurtFace();
-    if (Math.random() < 0.25) SFX.yelp();
+    if (Math.random() < 0.6) SFX.gob('hurt', this.px, this.pitch);
     if (isDown) { this.vz = 260; this.z = 1; this.state = 'air'; this.st = 0; this.play('m_air', 30); return true; }
     if (this.state === 'air' || this.z > 0) {
       this.vz = Math.max(this.vz, a.type === 'launch' ? 700 : 380); this.vx = dir * 70; this.gravMul = 0.8;
@@ -523,18 +541,18 @@ class Monster extends Actor {
     if (this.state !== 'air') return;
     if (v < -500 && !this.bounced) {
       this.bounced = true; this.vz = 260; this.z = 1; this.vx *= 0.4; this.kick(8, 0, -0.15);
-      this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 }); SFX.land(); return;
+      this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 }); SFX.land(this.px); return;
     }
     this.bounced = false; this.gravMul = 1;
     this.kick(6, 0, -0.12);
     this.state = 'down'; this.st = 0; this.vx = 0; this.vy = 0; this.downTime = 750;
     this.play('m_down', 40);
-    this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 }); SFX.land();
+    this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 }); SFX.land(this.px, this.kind === 'barkhaul');
     if (this.hp <= 0) this.downTime = 350;
   }
   die() {
     this.dead = true; this.state = 'dying'; this.releaseTok();
-    SFX.die();
+    SFX.die(this.px); if (this.kind !== 'barkhaul') SFX.gob('die', this.px, this.pitch);
     this.scene.fx('death_dissolve', this.x, this.y - this.height * 0.3, { s: this.kind === 'barkhaul' ? 0.8 : 0.32, dur: 900, depth: this.y + 1001, grow: 1.3 });
     this.scene.tweens.add({ targets: this.rig.c, alpha: 0, duration: 450, onComplete: () => this.destroy() });
     this.scene.onMonsterDead(this);
@@ -573,7 +591,7 @@ class Monster extends Actor {
     }
     if (st === 'smash') {
       if (this.st > 110 && !this.hitDone) {
-        this.hitDone = true; SFX.smash();
+        this.hitDone = true; SFX.smash(this.px);
         this.scene.cameras.main.shake(260, 0.012);
         const px = this.x + this.face * 210;
         this.scene.fx('impact_ring', px, this.y, { s: 0.55, dur: 450, depth: this.y - 1, flat: true });
@@ -586,7 +604,7 @@ class Monster extends Actor {
     }
     if (st === 'rock') {
       if (this.st > 650 && !this.hitDone) {
-        this.hitDone = true; SFX.throwS(); this.rig.setVisible('rockh', false);
+        this.hitDone = true; SFX.throwS(this.px); SFX.bossGrunt(this.px);
         this.scene.lobRock(this, this.rockTarget);
       }
       if (this.st > 1100) { this.cool = rage ? 800 : 1400; this.toIdle(); }
@@ -607,7 +625,7 @@ class Monster extends Actor {
     this.toIdle();
   }
   startSmash() {
-    this.state = 'smashup'; this.st = 0; this.vx = this.vy = 0; this.play('b_smashup', 80); this.setHead('head_shout');
+    this.state = 'smashup'; this.st = 0; this.vx = this.vy = 0; this.play('b_smashup', 80); this.setHead('head_shout'); SFX.bossGrunt(this.px);
     const px = this.x + this.face * 210;
     this.scene.telegraph(px, this.y, 1.0, this.raged ? 650 : 900);
     this.rig.setTintAll(0xffb0a0);
@@ -629,11 +647,11 @@ class Monster extends Actor {
       this.scene.telegraph(x, y, 0.55, 1000 + i * 120);
       this.scene.time.delayedCall(1000 + i * 120, () => this.scene.rootBurst(this, x, y));
     });
-    this.scene.time.delayedCall(520, () => { SFX.land(); this.scene.cameras.main.shake(140, 0.006); });
+    this.scene.time.delayedCall(520, () => { SFX.step('giant', this.px); this.scene.cameras.main.shake(140, 0.006); });
   }
   startRoar(rage, n = 0) {
     this.state = 'roar'; this.st = 0; this.vx = this.vy = 0; this.play('b_roar', 80); this.setHead('head_shout');
-    SFX.roar(); this.scene.cameras.main.shake(700, 0.008);
+    SFX.roar(this.px); this.scene.cameras.main.shake(700, 0.008);
     this.showEmote('anger', 1300);
     if (rage) { this.rig.setTintAll(null); this.scene.bossRage(this); }
     if (n) this.scene.time.delayedCall(500, () => this.scene.summonGrunts(n));

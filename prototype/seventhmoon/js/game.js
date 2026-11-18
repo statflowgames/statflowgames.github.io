@@ -75,6 +75,7 @@ class Game extends Phaser.Scene {
     this.cameras.main.scrollX = Phaser.Math.Clamp(this.hero.x - W * 0.4, 0, STAGE_W - W);
     this.cameras.main.fadeIn(400);
     this.banner('1장  안개 낀 숲길', '#ffe7a8');
+    SFX.ambience('forest');
   }
   // ---------------- 무대 ----------------
   buildStage() {
@@ -287,6 +288,7 @@ class Game extends Phaser.Scene {
   addCombo() {
     this.comboN++; this.comboT = 1600; this.maxCombo = Math.max(this.maxCombo, this.comboN);
     this.comboText.setText(String(this.comboN)).setScale(1.35);
+    if (this.comboN % 10 === 0) SFX.combo(this.comboN);
     this.tweens.add({ targets: this.comboText, scale: 1, duration: 140 });
     this.comboSub.setText(this.comboN >= 30 ? 'HIT  굉장해!' : this.comboN >= 15 ? 'HIT  멋져요!' : 'HIT');
   }
@@ -379,10 +381,12 @@ class Game extends Phaser.Scene {
       h.awk = Math.min(100, h.awk + 3);
       const hx = m.x - f * 20, hy = m.y - m.z - m.height * (m.kind === 'barkhaul' ? 0.45 : 0.55);
       this.fx('hit_spark', hx, hy, { s: crit ? 0.42 : 0.3, rot: Phaser.Math.Between(0, 360), dur: 220, depth: 4200 });
-      if (crit) { this.fx('crit_flash', hx, hy, { s: 0.45, dur: 380, depth: 4201 }); SFX.crit(); }
+      if (crit) { this.fx('crit_flash', hx, hy, { s: 0.45, dur: 380, depth: 4201 }); SFX.crit(hx - this.cameras.main.scrollX); }
       if (a.type !== 'light') this.fx('impact_ring', hx, hy, { s: 0.35, dur: 300, depth: 4199 });
       this.floatText(m.x, hy - 40, String(dmg), crit ? '#ffd34d' : '#ffffff', crit ? 40 : 30);
-      SFX.hit(a.type !== 'light');
+      const hpx = m.x - this.cameras.main.scrollX;
+      if (a.swing === 's' || this.hero.atkName === 'dash' || h.state === 'parry') SFX.bash(hpx);
+      SFX.hit(a.type !== 'light', hpx, a.swing === 's' || this.hero.atkName === 'dash' ? 'blunt' : 'blade');
       if (a.multi) { /* 돌진은 여러 명 */ }
     }
     if (any) {
@@ -401,7 +405,7 @@ class Game extends Phaser.Scene {
   }
   hitProp(p, h) {
     p.hp--;
-    SFX.brk();
+    SFX.brk(p.x - this.cameras.main.scrollX, 'wood');
     this.hitstop = Math.max(this.hitstop, 40);
     this.tweens.add({ targets: p.img, x: p.x + h.face * 6, duration: 40, yoyo: true, repeat: 1 });
     if (p.hp > 0) return;
@@ -429,7 +433,7 @@ class Game extends Phaser.Scene {
       p.img.setPosition(p.x, p.y - p.z - 14 + bob).setDepth(1000 + p.y);
       if (p.t > 400 && Math.abs(p.x - h.x) < 50 && Math.abs(p.y - h.y) < 30 && h.z < 40 && h.state !== 'dead') {
         p.dead = true; p.img.destroy();
-        if (p.type === 'coin') { this.gold += 1; SFX.coin(); }
+        if (p.type === 'coin') { this.gold += 1; SFX.coin(p.x - this.cameras.main.scrollX); }
         else { h.hp = Math.min(h.maxHp, h.hp + 70); SFX.heal(); this.floatText(h.x, h.y - 240, '+70', '#8f8'); h.showEmote('heart', 700); }
       }
       if (p.t > 12000) { p.dead = true; p.img.destroy(); }
@@ -448,16 +452,16 @@ class Game extends Phaser.Scene {
     const r = h.takeHit(src, dmg, type, Math.sign(h.x - sx) || -h.face);
     const px = h.x + h.face * 40, py = h.y - h.z - 130;
     if (r === 'parry') {
-      SFX.parry(); this.fx('parry_flash', px, py, { s: 0.45, dur: 450, depth: 4300 });
+      SFX.parry(h.x - this.cameras.main.scrollX); this.fx('parry_flash', px, py, { s: 0.45, dur: 450, depth: 4300 });
       this.hitstop = 140; this.cameras.main.flash(80, 255, 230, 140);
       this.floatText(h.x, py - 60, '패리!', '#ffd34d', 36);
       if (src.takeHit && src.kind !== 'barkhaul' && !src.dead) { src.state = 'hurt'; src.st = 0; src.stun = 900; src.replay('m_flinch', 20); src.showEmote('dizzy', 900); src.releaseTok && src.releaseTok(); src.vx = -src.face * 150; }
       if (src.kind === 'barkhaul') src.poise -= 25;
     } else if (r === 'guard') {
-      SFX.guard(); this.fx('guard_flash', px, py, { s: 0.32, dur: 260, depth: 4300 });
+      SFX.guard(h.x - this.cameras.main.scrollX); this.fx('guard_flash', px, py, { s: 0.32, dur: 260, depth: 4300 });
       this.hitstop = 50;
     } else if (r === 'hit') {
-      SFX.hit(type === 'heavy');
+      SFX.hit(type === 'heavy', h.x - this.cameras.main.scrollX, 'blunt');
       this.fx('hit_spark', h.x, h.y - h.z - 120, { s: 0.3, dur: 220, tint: 0xff8080, depth: 4300 });
       this.floatText(h.x, h.y - 250, String(dmg), '#ff6060', 30);
       this.hitstop = type === 'heavy' ? 120 : 70;
@@ -479,7 +483,7 @@ class Game extends Phaser.Scene {
     this.fx('dust_land', x, y, { s: 0.35, dur: 400, depth: y + 1, tint: 0xb0d080 });
     const img = this.add.image(x, y + 10, 'barkhaul/forearm').setOrigin(0.5, 1).setScale(0.5, 0.1).setDepth(1000 + y).setTint(0xc8a070);
     this.tweens.add({ targets: img, scaleY: 0.55, duration: 120, ease: 'Back.out', yoyo: true, hold: 300, onComplete: () => img.destroy() });
-    SFX.brk();
+    SFX.roots(x - this.cameras.main.scrollX);
     const h = this.hero;
     if (Math.abs(h.x - x) < 70 && Math.abs(h.y - y) < 32 && h.z < 60) this.resolveHeroHit(src, 26, 'heavy', x - h.face, y);
   }
@@ -494,7 +498,7 @@ class Game extends Phaser.Scene {
       img.setPosition(x, y - z).setAngle(k * 540); sh.setPosition(x, y).setScale(0.3 + k * 0.4, 0.25 + k * 0.3);
     }, onComplete: () => {
       img.destroy(); sh.destroy();
-      SFX.smash(); this.cameras.main.shake(180, 0.008);
+      SFX.smash(t.x - this.cameras.main.scrollX); this.cameras.main.shake(180, 0.008);
       this.fx('dust_land', t.x, t.y, { s: 0.55, dur: 500, depth: t.y + 1 });
       this.spawnDebrisAt(t.x, t.y, 4, 'rock');
       this.areaHit(b, t.x, t.y, 100, 38, 30, 'heavy');
@@ -518,6 +522,7 @@ class Game extends Phaser.Scene {
       p.sh.setPosition(p.x, p.y);
       if (Math.abs(p.x - h.x) < 40 && Math.abs(p.y - h.y) < 24 && h.z < p.z + 40 && h.z + 200 > p.z) {
         const hit = this.resolveHeroHit(p.src, p.dmg, 'light', p.x - Math.sign(p.vx), p.y);
+        if (hit && p.key === 'orb') SFX.orbHit(p.x - this.cameras.main.scrollX);
         if (hit) { p.life = 0; if (p.key !== 'orb') this.spawnDebrisAt(p.x, p.y, 1, 'barrel'); }
       }
       if (p.life <= 0) { p.img.destroy(); p.sh.destroy(); p.dead = true; }
@@ -580,7 +585,8 @@ class Game extends Phaser.Scene {
       c.add(this.add.text(120, 206, '이끼거인 바크하울', { fontFamily: 'serif', fontSize: 48, color: '#f6ffd8', stroke: '#1d2a08', strokeThickness: 8 }));
       c.setAlpha(0); c.x = -200;
       this.tweens.add({ targets: c, alpha: 1, x: 0, duration: 300, hold: 1800, yoyo: true, onComplete: () => { c.destroy(); this.bossBar = true; } });
-      SFX.roar();
+      SFX.roar(this.boss ? this.boss.px : 900);
+      SFX.ambience('boss');
       this.cameras.main.shake(500, 0.006);
     });
   }
@@ -602,7 +608,7 @@ class Game extends Phaser.Scene {
     this.time.delayedCall(1700, () => {
       b.die();
       this.hero.state = 'win'; this.hero.play('w_win', 120); this.hero.setHead('head_victory'); this.hero.vx = this.hero.vy = 0;
-      SFX.win();
+      SFX.win(); SFX.heroWin(); SFX.ambience('forest');
       this.time.delayedCall(900, () => this.result(true));
     });
   }
@@ -620,7 +626,7 @@ class Game extends Phaser.Scene {
   }
   heroDied() {
     if (this.lost) return;
-    this.lost = true; SFX.lose();
+    this.lost = true; SFX.lose(); SFX.ambience('off');
     this.time.delayedCall(1300, () => this.result(false));
   }
   result(win) {
