@@ -22,14 +22,36 @@ class Actor {
   }
   get sc() { return this.rig.def.scale; }
   play(name, blend = 70) {
+    if (name === 'm_walk' && this.kind === 'barkhaul') name = 'b_walk';
     if (this.anim === name) return;
     this.blendFrom = this.lastPose; this.blendDur = blend; this.blendT = 0;
     this.anim = name; this.animT = 0;
   }
   replay(name, blend = 50) { this.anim = null; this.play(name, blend); }
   animDone() { const c = CLIPS[this.anim]; return c && !c.loop && this.animT >= c.dur; }
+  // 걷기·달리기 클립은 실제 이동 속도에 맞춰 재생 속도를 바꾼다 (발 미끄러짐 방지)
+  animRate() {
+    const c = CLIPS[this.anim];
+    if (!c || !c.amp) return 1;
+    const m = this.rig.map;
+    const leg = ((m.shf ? m.shf.y : 90) + (m.ftf ? m.ftf.y : 90)) * this.sc;
+    const stride = 2 * leg * Math.sin(c.amp * D2R);              // 반 주기 동안 발이 움직이는 거리
+    const nominal = stride / (c.dur / 2000);
+    const sp = Math.hypot(this.vx, this.vy * 1.3);
+    return Phaser.Math.Clamp(sp / nominal, 0.35, 1.8);
+  }
+  spring(o, target, k, damp, f) {
+    o.v += (target - o.x) * k * f;
+    o.v *= Math.pow(damp, f);
+    o.x += o.v * f;
+  }
+  // 외부에서 출렁임을 준다 (맞음, 착지 등)
+  kick(head = 0, cape = 0, sq = 0) {
+    const s = this.sec || (this.sec = { head: { x: 0, v: 0 }, cape: { x: 0, v: 0 }, sq: { x: 0, v: 0 } });
+    s.head.v += head; s.cape.v += cape; s.sq.x += sq;
+  }
   draw(dt, frozen) {
-    if (!frozen) this.animT += dt;
+    if (!frozen) this.animT += dt * this.animRate();
     const clip = CLIPS[this.anim];
     let pose = clip ? clip.at(this.animT) : this.baseStand;
     if (this.blendFrom && this.blendT < this.blendDur) {
@@ -37,10 +59,27 @@ class Actor {
       pose = mix(this.blendFrom, pose, Math.min(1, this.blendT / this.blendDur));
     }
     this.lastPose = pose;
-    this.rig.apply(pose);
+    // 2차 움직임: 망토는 이동·낙하 반대로 날리고, 머리와 몸은 스프링으로 출렁인다
+    const sec = this.sec || (this.sec = { head: { x: 0, v: 0 }, cape: { x: 0, v: 0 }, sq: { x: 0, v: 0 } });
+    const f = frozen ? 0 : dt / 16.67;
+    if (f > 0) {
+      const fwd = this.vx * this.face;
+      const capeT = Phaser.Math.Clamp(fwd * 0.08, -15, 45) + Phaser.Math.Clamp(this.vz * 0.04, -35, 35);
+      this.spring(sec.cape, capeT, 0.06, 0.86, f);
+      this.spring(sec.head, 0, 0.18, 0.78, f);
+      this.spring(sec.sq, 0, 0.22, 0.7, f);
+    }
+    const p2 = { ...pose, rx: 0, ry: 0 };
+    p2.cape = (p2.cape || 0) + sec.cape.x;
+    p2.head = (p2.head || 0) + sec.head.x;
+    this.rig.apply(p2);
+    // 땅 붙이기: 자세마다 몸의 가장 낮은 점을 바닥(또는 공중 높이)에 맞춘다
+    if (!frozen || this.groundOff === undefined) this.groundOff = this.rig.lowest();
+    const sq = Phaser.Math.Clamp((pose.sq || 0) + sec.sq.x, -0.18, 0.18);
+    const sy = this.sc * (1 + sq), sxs = this.sc * (1 - sq * 0.6);
     const sx = this.shake > 0 ? (Math.random() - 0.5) * 8 : 0;
-    this.rig.c.setPosition(this.x + sx, this.y - this.z - this.rig.foot * this.sc);
-    this.rig.c.setScale(this.sc * this.face, this.sc);
+    this.rig.c.setPosition(this.x + sx, this.y - this.z - this.groundOff * sy);
+    this.rig.c.setScale(sxs * this.face, sy);
     this.rig.c.setDepth(1000 + this.y);
     const h = Math.max(0.35, 1 - this.z / 500);
     this.shadow.setPosition(this.x, this.y + 2).setDepth(999 + this.y * 0.001).setScale(this.shadowW * h, this.shadowW * h * 0.9).setAlpha(this.dead ? 0 : 0.55 * h);
@@ -81,20 +120,20 @@ class Actor {
 // 하르반 (방패전사)
 // ---------------------------------------------------------------------------
 const HERO_ATK = {
-  a1: { clip: 'w_atk1', dur: 300, hit: [90, 170], dmg: 14, reach: [10, 175], dz: 34, kb: 120, type: 'light', stop: 55, next: 150, swing: 'h' },
-  a2: { clip: 'w_atk2', dur: 300, hit: [90, 170], dmg: 14, reach: [10, 175], dz: 34, kb: 120, type: 'light', stop: 55, next: 150, swing: 'u' },
-  a3: { clip: 'w_atk3', dur: 330, hit: [110, 190], dmg: 16, reach: [10, 150], dz: 34, kb: 200, type: 'light', stop: 75, next: 170, swing: 's', stun: 520 },
-  a4: { clip: 'w_atk4', dur: 470, hit: [170, 250], dmg: 30, reach: [10, 200], dz: 40, kb: 420, type: 'knock', stop: 110, shake: 6, swing: 'v', fin: true },
+  a1: { clip: 'w_atk1', dur: 320, hit: [105, 190], dmg: 14, reach: [10, 175], dz: 34, kb: 120, type: 'light', stop: 55, next: 160, swing: 'h', lunge: 230 },
+  a2: { clip: 'w_atk2', dur: 320, hit: [105, 190], dmg: 14, reach: [10, 175], dz: 34, kb: 120, type: 'light', stop: 55, next: 160, swing: 'u', lunge: 210 },
+  a3: { clip: 'w_atk3', dur: 340, hit: [115, 200], dmg: 16, reach: [10, 150], dz: 34, kb: 200, type: 'light', stop: 75, next: 180, swing: 's', stun: 520, lunge: 320 },
+  a4: { clip: 'w_atk4', dur: 490, hit: [215, 290], dmg: 30, reach: [10, 200], dz: 40, kb: 420, type: 'knock', stop: 110, shake: 6, swing: 'v', fin: true, lunge: 380 },
   dash: { clip: 'w_dash', dur: 420, hit: [40, 380], dmg: 22, reach: [0, 120], dz: 36, kb: 460, type: 'knock', stop: 80, shake: 4, multi: true },
-  up: { clip: 'w_up', dur: 400, hit: [120, 210], dmg: 18, reach: [0, 140], dz: 36, kb: 60, type: 'launch', stop: 80, swing: 's' },
-  down: { clip: 'w_slam', dur: 540, hit: [200, 280], dmg: 26, reach: [-40, 190], dz: 44, kb: 160, type: 'slam', stop: 110, shake: 8, otg: true },
-  jump: { clip: 'w_jumpatk', dur: 400, hit: [90, 220], dmg: 20, reach: [0, 165], dz: 38, kb: 280, type: 'knock', stop: 80, swing: 'v', zr: 200 },
+  up: { clip: 'w_up', dur: 400, hit: [130, 220], dmg: 18, reach: [0, 140], dz: 36, kb: 60, type: 'launch', stop: 80, swing: 's', lunge: 150 },
+  down: { clip: 'w_slam', dur: 540, hit: [225, 300], dmg: 26, reach: [-40, 190], dz: 44, kb: 160, type: 'slam', stop: 110, shake: 8, otg: true, lunge: 200 },
+  jump: { clip: 'w_jumpatk', dur: 400, hit: [130, 250], dmg: 20, reach: [0, 165], dz: 38, kb: 280, type: 'knock', stop: 80, swing: 'v', zr: 200 },
 };
 
 class Hero extends Actor {
   constructor(scene, x, y) {
     super(scene, 'warrior', x, y);
-    this.maxHp = 320; this.hp = this.maxHp;
+    this.maxHp = 360; this.hp = this.maxHp;
     this.sta = 100; this.awk = 0;
     this.combo = 0; this.buffer = 0; this.holdDir = 0; this.holdT = 0;
     this.guardStart = -9999; this.blink = 2500;
@@ -140,7 +179,7 @@ class Hero extends Actor {
     }
     if (st === 'atk') {
       const a = this.atk;
-      this.vx *= Math.pow(0.0005, s); this.vy = 0;
+      this.vx *= Math.pow(0.0008, s); this.vy = 0;
       if (a === HERO_ATK.dash) this.vx = this.face * (this.st < 330 ? 560 : 120);
       this.checkHits(a);
       if (a.next && this.st >= a.next && this.buffer > 0 && this.chain) {
@@ -195,10 +234,11 @@ class Hero extends Actor {
     this.state = 'atk'; this.st = 0; this.atk = a; this.atkName = k; this.hitSet.clear();
     this.chain = { a1: 'a2', a2: 'a3', a3: 'a4' }[k] || null;
     this.replay(a.clip, 40);
-    this.vx = k === 'dash' ? this.face * 560 : this.face * 40;
+    this.vx = k === 'dash' ? this.face * 560 : 0;
     this.setHead(a.fin || k === 'down' || k === 'dash' ? 'head_shout' : 'head_attack');
     this.scene.time.delayedCall(a.hit[0] - 30, () => {
       if (this.state !== 'atk' || this.atk !== a) return;
+      if (a.lunge) this.vx = this.face * a.lunge;
       SFX.swing(a.fin || k === 'down');
       this.scene.swingFx(this, a);
     });
@@ -211,7 +251,7 @@ class Hero extends Actor {
   toIdle() { this.state = 'idle'; this.st = 0; this.play('idle', 120); this.setHead(null); this.gravMul = 1; }
   startJump(inp) {
     this.state = 'jump'; this.st = 0; this.vz = 860; this.z = 0.01; this.jumpAtkUsed = false;
-    this.play('w_jump', 60); SFX.jump();
+    this.play('w_jump', 60); SFX.jump(); this.kick(0, 0, 0.12);
     this.scene.fx('dust_land', this.x, this.y, { s: 0.22, dur: 300, depth: this.y - 1 });
   }
   startRoll(inp) {
@@ -225,10 +265,12 @@ class Hero extends Actor {
   onLand(v) {
     if (this.state === 'jump' || this.state === 'jatk') {
       SFX.land(); this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 });
+      this.kick(4, 0, -0.14);
       this.toIdle();
     } else if (this.state === 'air') {
       SFX.land(); this.scene.fx('dust_land', this.x, this.y, { s: 0.38, dur: 420, depth: this.y - 1 });
       this.scene.cameras.main.shake(90, 0.004);
+      this.kick(6, 0, -0.12);
       this.state = this.hp <= 0 ? 'dead' : 'down'; this.st = 0; this.play('w_down', 60); this.vx = 0; this.vy = 0;
       if (this.hp <= 0) this.scene.heroDied();
     }
@@ -255,6 +297,7 @@ class Hero extends Actor {
     this.awk = Math.min(100, this.awk + 6);
     this.face = kbDir === 0 ? this.face : -kbDir;
     this.flash(0xffffff, 80);
+    this.kick(-7, 6, -0.08);
     this.setHead('head_hurt');
     if (type === 'heavy' || this.hp <= 0) {
       this.state = 'air'; this.st = 0; this.vz = 520; this.z = 1; this.vx = kbDir * 260; this.vy = 0;
@@ -382,13 +425,13 @@ class Monster extends Actor {
     if (st === 'windup') {
       if (this.st > 420) {
         this.state = 'stab'; this.st = 0; this.replay('m_stab', 30); this.hitSet.clear(); SFX.swing(false); this.setHead('head_shout');
-        this.vx = this.face * 200;
+        this.scene.time.delayedCall(30, () => { if (this.state === 'stab') this.vx = this.face * 240; });
       }
       return;
     }
     if (st === 'stab') {
       this.vx *= Math.pow(0.001, s); this.physics(dt);
-      if (this.st > 60 && this.st < 170) this.scene.enemyMelee(this, { dmg: this.def.dmg, reach: [0, 130], dz: 22, type: 'light' });
+      if (this.st > 50 && this.st < 160) this.scene.enemyMelee(this, { dmg: this.def.dmg, reach: [0, 130], dz: 22, type: 'light' });
       if (this.st > 520) { this.setHead(null); this.releaseTok(); this.cool = 1100 + Math.random() * 1400; this.toIdle(); }
       return;
     }
@@ -445,6 +488,7 @@ class Monster extends Actor {
     if (this.state === 'dying') return false;
     this.hp -= dmg;
     this.flash(0xffffff, 70);
+    this.kick(-8, 0, -0.1);
     this.shake = a.stop || 60;
     this.releaseTok();
     this.rig.setTintAll(null);
@@ -478,10 +522,11 @@ class Monster extends Actor {
   onLand(v) {
     if (this.state !== 'air') return;
     if (v < -500 && !this.bounced) {
-      this.bounced = true; this.vz = 260; this.z = 1; this.vx *= 0.4;
+      this.bounced = true; this.vz = 260; this.z = 1; this.vx *= 0.4; this.kick(8, 0, -0.15);
       this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 }); SFX.land(); return;
     }
     this.bounced = false; this.gravMul = 1;
+    this.kick(6, 0, -0.12);
     this.state = 'down'; this.st = 0; this.vx = 0; this.vy = 0; this.downTime = 750;
     this.play('m_down', 40);
     this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 }); SFX.land();

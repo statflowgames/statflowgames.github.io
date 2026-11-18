@@ -5,7 +5,7 @@
 const P = {
   // 하르반: 검은 앞으로, 방패는 가슴 앞
   stand: { torso: 0, head: 0, uab: -18, fab: -55, hb: 0, wpn: 0, uaf: -12, faf: -70, thb: -6, shb: 6, ftb: 0, thf: 8, shf: 4, ftf: -6, cape: 0 },
-  standMon: { torso: 8, head: -6, uab: -10, fab: -45, uaf: 10, faf: -20, thb: -10, shb: 14, ftb: -4, thf: 14, shf: 10, ftf: -14, ry: 6 },
+  standMon: { torso: 8, head: -6, uab: -10, fab: -45, uaf: 10, faf: -20, thb: -10, shb: 14, ftb: -4, thf: 14, shf: 10, ftf: -14 },
 };
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -24,18 +24,29 @@ const ease = {
   back: t => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2),
 };
 
+// 부위별 시간차(ms): 몸통이 먼저 움직이고 팔·손·머리·망토가 한 박자씩 늦게 따라온다
+const LAG = { head: 30, uab: 12, fab: 24, hb: 36, wpn: 36, uaf: 10, faf: 20, hf: 30, cape: 60, shd: 30, neck: 40 };
+
+function sampleKeys(keys, t, k) {
+  if (t <= keys[0][0]) return keys[0][1][k] ?? 0;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const [t0, p0] = keys[i], [t1, p1, e] = keys[i + 1];
+    if (t <= t1) return lerp(p0[k] ?? 0, p1[k] ?? 0, (ease[e || 'io'])((t - t0) / Math.max(1, t1 - t0)));
+  }
+  return keys[keys.length - 1][1][k] ?? 0;
+}
 // 키프레임 클립: keys = [[ms, pose, easeName]]
-function keyClip(keys, loop = false) {
+function keyClip(keys, loop = false, lag = true) {
   const dur = keys[keys.length - 1][0];
+  const names = new Set();
+  for (const [, p] of keys) for (const k in p) names.add(k);
   return {
     dur, loop,
     at(t) {
-      if (loop) t = t % dur; else t = Math.min(t, dur);
-      for (let i = 0; i < keys.length - 1; i++) {
-        const [t0, p0] = keys[i], [t1, p1, e] = keys[i + 1];
-        if (t <= t1) return mix(p0, p1, (ease[e || 'io'])((t - t0) / Math.max(1, t1 - t0)));
-      }
-      return keys[keys.length - 1][1];
+      if (loop) t = t % dur; else t = Math.min(t, dur + 80);
+      const o = {};
+      for (const k of names) o[k] = sampleKeys(keys, t - (lag ? (LAG[k] || 0) : 0), k);
+      return o;
     },
   };
 }
@@ -47,82 +58,95 @@ const CLIPS = {
   // ---------- 공통 순환 동작 ----------
   idle: { loop: true, dur: 1600, at(t, base = P.stand) {
     const s = Math.sin(t / 1600 * Math.PI * 2);
-    return add(base, { torso: s * 1.5, head: -s * 1.5, ry: s * 2.5, uab: s * 3, uaf: -s * 2, cape: s * 3, shb: s * 2, shf: s * 2, thb: -s, thf: -s });
+    return add(base, { torso: s * 1.5, head: -s * 1.5, uab: s * 3, uaf: -s * 2, cape: s * 3, thb: -s * 2, shb: s * 4, thf: -s * 2, shf: s * 4, sq: s * 0.012 });
   } },
-  walk: { loop: true, dur: 640, at(t, base = P.stand) {
+  walk: { loop: true, dur: 640, amp: 24, at(t, base = P.stand, amp = 24) {
     const ph = t / 640 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
     return add(base, {
-      thf: -s * 26, shf: Math.max(0, c) * 30, ftf: s * 8,
-      thb: s * 26, shb: Math.max(0, -c) * 30, ftb: -s * 8,
-      uab: s * 10, uaf: -s * 6, torso: 4, ry: -Math.abs(c) * 6 + 3, cape: 8 + c * 6, rr: 2,
+      thf: -s * amp, shf: Math.max(0, c) * amp * 1.3, ftf: s * amp * 0.35,
+      thb: s * amp, shb: Math.max(0, -c) * amp * 1.3, ftb: -s * amp * 0.35,
+      uab: s * amp * 0.4, uaf: -s * amp * 0.25, torso: 4 + Math.abs(c) * 2, head: -Math.abs(c) * 2, cape: 8 + c * 5, rr: 2,
     });
   } },
-  run: { loop: true, dur: 480, at(t, base = P.stand) {
-    const ph = t / 480 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
+  run: { loop: true, dur: 520, amp: 34, at(t, base = P.stand, amp = 34) {
+    const ph = t / 520 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
     return add(base, {
-      thf: -s * 40 - 10, shf: Math.max(0, c) * 55 + 10, ftf: s * 10,
-      thb: s * 40 - 10, shb: Math.max(0, -c) * 55 + 10, ftb: -s * 10,
-      uab: s * 18 - 10, uaf: -s * 10, torso: 10, head: -6, ry: -Math.abs(c) * 10 + 6, cape: 25 + c * 8, rr: 4,
+      thf: -s * amp - 12, shf: Math.max(0, c) * amp * 1.5 + 12, ftf: s * 12,
+      thb: s * amp - 12, shb: Math.max(0, -c) * amp * 1.5 + 12, ftb: -s * 12,
+      uab: s * amp * 0.5 - 10, uaf: -s * amp * 0.3, torso: 12 + Math.abs(c) * 3, head: -8, cape: 28 + c * 8, rr: 4,
+      sq: Math.abs(s) * 0.03,
     });
   } },
 };
 
 // ---------- 하르반 동작 ----------
 // 검 방향 = (uab + fab + hb) - 90. 0=아래, -90=앞, -180=위, 90=뒤
-const A1E = { torso: 10, uab: -45, fab: -10, hb: 95, rr: 3, rx: 10, thf: -16, shf: 16, uaf: -20, faf: -60 };
-const A2E = { torso: -6, uab: -140, fab: -20, hb: 100, rr: -3, rx: 8, head: -6 };
-const A3E = { torso: 14, uaf: -62, faf: -30, rr: 6, rx: 24, thf: -24, shf: 20, thb: 16, uab: 20, fab: -50, hb: 0 };
-const A4E = { torso: 24, uab: -40, fab: -5, hb: 85, rr: 12, rx: 30, ry: 10, thf: -36, shf: 46, thb: 28, uaf: 0, faf: -50 };
+const A1E = { torso: 10, uab: -45, fab: -10, hb: 95, rr: 2, thf: -16, shf: 16, uaf: -20, faf: -60 };
+const A2E = { torso: -6, uab: -140, fab: -20, hb: 100, rr: -2, head: -6, thf: -10, shf: 10 };
+const A3E = { torso: 14, uaf: -62, faf: -30, rr: 3, thf: -28, shf: 26, thb: 20, uab: 20, fab: -50, hb: 0 };
+const A4E = { torso: 26, uab: -40, fab: -5, hb: 85, rr: 4, thf: -44, shf: 60, thb: 34, shb: 6, uaf: 0, faf: -50 };
 Object.assign(CLIPS, {
+  // 준비(빠르게) → 잠깐 멈춤 → 휘두름(아주 빠르게) → 끝자세 멈춤 → 복귀
   w_atk1: keyClip([ // 사선 내려베기
     [0, P.stand],
-    [70, S(0, { torso: -8, uab: -165, fab: -30, hb: 10, rr: -3, uaf: 0, faf: -50, head: -4 }), 'out'],
-    [150, S(0, { torso: 12, uab: -75, fab: -10, hb: 80, rr: 4, rx: 12, thf: -20, shf: 20, uaf: -20, faf: -60 }), 'out'],
-    [300, S(0, A1E), 'out'],
+    [55, S(0, { torso: -10, uab: -160, fab: -30, hb: 10, rr: -2, uaf: 0, faf: -50, head: -4, thf: 6, shb: 10, sq: -0.04 }), 'out'],
+    [85, S(0, { torso: -12, uab: -168, fab: -34, hb: 6, rr: -3, uaf: 4, faf: -48, head: -5, thf: 6, shb: 12, sq: -0.05 }), 'lin'],
+    [125, S(0, { torso: 14, uab: -55, fab: -8, hb: 90, rr: 3, thf: -24, shf: 24, uaf: -24, faf: -62, sq: 0.04 }), 'out'],
+    [200, S(0, { ...A1E, torso: 12, uab: -48 }), 'out'],
+    [320, S(0, A1E), 'io'],
   ]),
   w_atk2: keyClip([ // 올려베기
     [0, S(0, A1E)],
-    [80, S(0, { torso: 6, uab: 25, fab: -10, hb: 100, rr: 2, rx: 6, thf: -10, shf: 10 }), 'out'],
-    [160, S(0, { torso: -10, uab: -155, fab: -20, hb: 95, rr: -5, rx: 10, head: -10, thf: -14, shf: 10 }), 'out'],
-    [300, S(0, A2E), 'out'],
+    [60, S(0, { torso: 8, uab: 28, fab: -8, hb: 100, rr: 2, thf: -18, shf: 22, sq: -0.05 }), 'out'],
+    [85, S(0, { torso: 9, uab: 32, fab: -8, hb: 102, rr: 2, thf: -18, shf: 24, sq: -0.05 }), 'lin'],
+    [125, S(0, { torso: -12, uab: -158, fab: -20, hb: 96, rr: -3, head: -12, thf: -14, shf: 10, sq: 0.05 }), 'out'],
+    [200, S(0, { ...A2E, uab: -150 }), 'out'],
+    [320, S(0, A2E), 'io'],
   ]),
   w_atk3: keyClip([ // 방패 치기
     [0, S(0, A2E)],
-    [80, S(0, { torso: -12, uaf: 30, faf: -60, rr: -4, rx: -6, uab: 20, fab: -60, hb: 0 }), 'out'],
-    [150, S(0, { torso: 18, uaf: -78, faf: -18, rr: 8, rx: 26, thf: -30, shf: 26, thb: 20, uab: 25, fab: -50, hb: 0 }), 'back'],
-    [320, S(0, A3E), 'out'],
+    [70, S(0, { torso: -14, uaf: 34, faf: -62, rr: -3, uab: 20, fab: -60, hb: 0, thb: -10, shb: 20, sq: -0.05 }), 'out'],
+    [100, S(0, { torso: -15, uaf: 36, faf: -64, rr: -3, uab: 22, fab: -60, hb: 0, thb: -12, shb: 22, sq: -0.06 }), 'lin'],
+    [135, S(0, { torso: 20, uaf: -82, faf: -14, rr: 4, thf: -34, shf: 30, thb: 24, uab: 25, fab: -50, hb: 0, sq: 0.05 }), 'back'],
+    [210, S(0, { ...A3E, torso: 18, uaf: -74 }), 'out'],
+    [330, S(0, A3E), 'io'],
   ]),
   w_atk4: keyClip([ // 크게 내려찍기
     [0, S(0, A3E)],
-    [140, S(0, { torso: -16, uab: -195, fab: -35, hb: 100, rr: -8, ry: -6, head: -10, uaf: 10, faf: -40, rx: 4 }), 'out'],
-    [210, S(0, { ...A4E, uab: -50 }), 'in'],
-    [460, S(0, A4E), 'out'],
+    [140, S(0, { torso: -18, uab: -195, fab: -35, hb: 100, rr: -4, head: -12, uaf: 10, faf: -40, thf: -20, shf: 30, thb: 10, shb: 20, sq: -0.07 }), 'out'],
+    [190, S(0, { torso: -20, uab: -200, fab: -36, hb: 102, rr: -4, head: -13, uaf: 12, faf: -40, thf: -22, shf: 32, thb: 10, shb: 22, sq: -0.08 }), 'lin'],
+    [235, S(0, { ...A4E, uab: -48, sq: 0.06 }), 'in'],
+    [360, S(0, { ...A4E, sq: -0.04 }), 'out'],
+    [490, S(0, A4E), 'io'],
   ]),
   w_dash: keyClip([ // 방패 돌진
     [0, S(0, { torso: 20, uaf: -82, faf: -10, rr: 10, thf: -30, shf: 30, thb: 30, uab: 30, fab: -40, hb: 0 })],
     [400, S(0, { torso: 22, uaf: -84, faf: -10, rr: 12, thf: -36, shf: 34, thb: 34, uab: 32, fab: -40, hb: 0 })],
   ]),
   w_up: keyClip([ // 방패 올려치기
-    [0, S(0, { torso: 10, uaf: 0, faf: -40, ry: 10, thf: -20, shf: 30, thb: 10, shb: 30 })],
-    [90, S(0, { torso: 18, uaf: 20, faf: -30, ry: 16, thf: -30, shf: 50, thb: 20, shb: 40, rr: 6, uab: 20, fab: -40 }), 'out'],
-    [170, S(0, { torso: -16, uaf: -170, faf: -10, ry: -14, rr: -8, head: -14, thf: -10, uab: -10, fab: -40 }), 'back'],
-    [380, S(0, { torso: -12, uaf: -150, faf: -20, ry: -8, rr: -6, uab: -10, fab: -40 }), 'out'],
+    [0, S(0, { torso: 10, uaf: 0, faf: -40, thf: -30, shf: 50, thb: 16, shb: 40, sq: -0.04 })],
+    [90, S(0, { torso: 20, uaf: 20, faf: -30, thf: -44, shf: 76, thb: 26, shb: 60, rr: 4, uab: 20, fab: -40, sq: -0.07 }), 'out'],
+    [170, S(0, { torso: -16, uaf: -170, faf: -10, rr: -5, head: -14, thf: -4, shf: 0, thb: 4, shb: 0, uab: -10, fab: -40, sq: 0.07 }), 'back'],
+    [380, S(0, { torso: -12, uaf: -150, faf: -20, rr: -4, uab: -10, fab: -40 }), 'out'],
   ]),
   w_slam: keyClip([ // 대지 내려찍기
     [0, P.stand],
-    [140, S(0, { torso: -14, uab: -195, fab: -30, hb: 100, uaf: -150, faf: -20, ry: -20, rr: -6, head: -12 }), 'out'],
-    [220, S(0, { torso: 36, uab: -25, fab: 0, hb: 75, uaf: -40, rr: 18, ry: 26, thf: -60, shf: 80, thb: 40, shb: 40, rx: 16 }), 'in'],
-    [520, S(0, { torso: 30, uab: -25, fab: 0, hb: 75, uaf: -40, rr: 14, ry: 22, thf: -56, shf: 74, thb: 36, shb: 36, rx: 16 }), 'out'],
+    [150, S(0, { torso: -16, uab: -195, fab: -30, hb: 100, uaf: -150, faf: -20, rr: -4, head: -12, sq: 0.06 }), 'out'],
+    [200, S(0, { torso: -18, uab: -200, fab: -32, hb: 102, uaf: -155, faf: -20, rr: -4, head: -13, sq: 0.07 }), 'lin'],
+    [245, S(0, { torso: 40, uab: -25, fab: 0, hb: 75, uaf: -40, rr: 6, thf: -70, shf: 95, thb: 46, shb: 50, sq: -0.08 }), 'in'],
+    [420, S(0, { torso: 36, uab: -25, fab: 0, hb: 75, uaf: -40, rr: 5, thf: -66, shf: 90, thb: 44, shb: 46 }), 'out'],
+    [540, S(0, { torso: 30, uab: -25, fab: 0, hb: 75, uaf: -40, rr: 4, thf: -56, shf: 74, thb: 36, shb: 36 }), 'io'],
   ]),
   w_jumpatk: keyClip([
     [0, S(0, { thf: -50, shf: 70, thb: 20, shb: 60 })],
-    [80, S(0, { torso: -10, uab: -195, fab: -35, hb: 100, thf: -50, shf: 70, thb: 20, shb: 60 }), 'out'],
-    [170, S(0, { torso: 20, uab: -45, fab: -5, hb: 85, rr: 12, thf: -60, shf: 80, thb: 10, shb: 70 }), 'out'],
-    [400, S(0, { torso: 16, uab: -45, fab: -5, hb: 85, rr: 10, thf: -60, shf: 80, thb: 10, shb: 70 })],
+    [70, S(0, { torso: -12, uab: -195, fab: -35, hb: 100, thf: -50, shf: 70, thb: 20, shb: 60 }), 'out'],
+    [110, S(0, { torso: -14, uab: -200, fab: -36, hb: 102, thf: -52, shf: 72, thb: 20, shb: 62 }), 'lin'],
+    [160, S(0, { torso: 22, uab: -45, fab: -5, hb: 85, rr: 10, thf: -60, shf: 80, thb: 10, shb: 70, sq: 0.05 }), 'out'],
+    [400, S(0, { torso: 16, uab: -45, fab: -5, hb: 85, rr: 8, thf: -60, shf: 80, thb: 10, shb: 70 })],
   ]),
   w_guard: keyClip([
     [0, P.stand],
-    [60, S(0, { torso: 8, uaf: -50, faf: -60, ry: 8, thf: -20, shf: 24, thb: 16, shb: 16, rr: 2, uab: 10, fab: -40 }), 'out'],
+    [60, S(0, { torso: 10, uaf: -50, faf: -60, thf: -28, shf: 40, thb: 22, shb: 26, rr: 1, uab: 10, fab: -40, head: 4, sq: -0.03 }), 'out'],
   ]),
   w_parry: keyClip([
     [0, S(0, { torso: 8, uaf: -50, faf: -60, ry: 8 })],
@@ -142,15 +166,17 @@ function reactClips(base, pre) {
   const A = d => add(base, d);
   CLIPS[pre + 'hurt'] = keyClip([
     [0, base],
-    [60, A({ torso: -24, head: -20, rr: -10, rx: -12, uab: 40, uaf: 30, faf: 20, cape: 20 }), 'out'],
-    [260, A({ torso: -10, head: -8, rr: -4, rx: -6 }), 'io'],
+    [50, A({ torso: -26, head: -24, rr: -6, uab: 40, uaf: 30, faf: 20, cape: 20, thf: -10, shb: 16, sq: -0.06 }), 'out'],
+    [110, A({ torso: -20, head: -16, rr: -5, uab: 30, uaf: 24, sq: -0.03 }), 'lin'],
+    [280, A({ torso: -6, head: -4, rr: -2 }), 'io'],
   ]);
   CLIPS[pre + 'air'] = { loop: true, dur: 400, at() { return A({ rr: -40, torso: -20, head: -20, uab: 60, fab: 40, uaf: 50, faf: 30, thf: -40, shf: 50, thb: 20, shb: 40, cape: 40 }); } };
   CLIPS[pre + 'down'] = { loop: true, dur: 400, at() { return A({ rr: -88, ry: 0, torso: -6, head: -10, uab: 140, fab: 10, uaf: 130, faf: 20, thf: -10, shf: 10, thb: 6, shb: 10, cape: 70 }); } };
   CLIPS[pre + 'getup'] = keyClip([
-    [0, A({ rr: -88, torso: -6, head: -10, uab: 140, uaf: 130 })],
-    [220, A({ rr: -30, torso: 30, ry: 30, thf: -80, shf: 110, thb: -40, shb: 120, uab: 20, uaf: -20 }), 'out'],
-    [420, base, 'io'],
+    [0, A({ rr: -88, torso: -6, head: -10, uab: 140, uaf: 130, thf: -10, shf: 10 })],
+    [180, A({ rr: -50, torso: 40, head: 10, thf: -90, shf: 120, thb: -60, shb: 120, uab: 60, uaf: 40 }), 'out'],
+    [320, A({ rr: -8, torso: 30, thf: -70, shf: 100, thb: -10, shb: 90, uab: 20, uaf: -20, sq: -0.06 }), 'io'],
+    [440, base, 'out'],
   ]);
   CLIPS[pre + 'jump'] = { loop: true, dur: 400, at() { return A({ thf: -50, shf: 70, thb: 20, shb: 60, uab: -40, uaf: -40, cape: 30, torso: 4 }); } };
   CLIPS[pre + 'roll'] = { loop: false, dur: 380, at(t) { const k = Math.min(1, t / 380); return A({ rr: k * 360, torso: 30, head: 20, thf: -100, shf: 120, thb: -80, shb: 120, uab: -30, uaf: -40, ry: 30 }); } };
@@ -162,10 +188,11 @@ reactClips(P.standMon, 'm_');
 // ---------- 몬스터 동작 ----------
 Object.assign(CLIPS, {
   m_idle: { loop: true, dur: 1000, at(t) { return CLIPS.idle.at(t * 1.6, P.standMon); } },
-  m_walk: { loop: true, dur: 640, at(t) { return CLIPS.walk.at(t, P.standMon); } },
-  m_run: { loop: true, dur: 480, at(t) { return CLIPS.run.at(t, P.standMon); } },
-  m_windup: keyClip([[0, P.standMon], [200, M({ torso: -16, uab: 50, fab: -90, hb: 50, rr: -6, rx: -10, head: -6 }), 'out'], [400, M({ torso: -18, uab: 56, fab: -95, hb: 55, rr: -7, rx: -12 })]]),
-  m_stab: keyClip([[0, M({ torso: -18, uab: 56, fab: -95, hb: 55, rr: -7, rx: -12 })], [90, M({ torso: 24, uab: -95, fab: -5, hb: 95, rr: 10, rx: 24, thf: -30, shf: 30, thb: 20 }), 'back'], [360, M({ torso: 18, uab: -80, fab: -10, hb: 90, rr: 8, rx: 20 }), 'out']]),
+  m_walk: { loop: true, dur: 640, amp: 26, at(t) { return CLIPS.walk.at(t, P.standMon, 26); } },
+  b_walk: { loop: true, dur: 900, amp: 15, at(t) { const p = CLIPS.walk.at(t * 640 / 900, P.standMon, 15); p.sq = -Math.abs(Math.cos(t / 900 * Math.PI * 2)) * 0.03; return p; } },
+  m_run: { loop: true, dur: 520, amp: 32, at(t) { return CLIPS.run.at(t, P.standMon, 32); } },
+  m_windup: keyClip([[0, P.standMon], [200, M({ torso: -16, uab: 50, fab: -90, hb: 50, rr: -6, rx: -10, head: -6 }), 'out'], [400, M({ torso: -18, uab: 56, fab: -95, hb: 55, rr: -7, thb: -4, shb: 24, sq: -0.06 })]]),
+  m_stab: keyClip([[0, M({ torso: -18, uab: 56, fab: -95, hb: 55, rr: -7, rx: -12 })], [70, M({ torso: 26, uab: -95, fab: -5, hb: 95, rr: 4, thf: -36, shf: 36, thb: 24, sq: 0.06 }), 'back'], [360, M({ torso: 18, uab: -80, fab: -10, hb: 90, rr: 8, rx: 20 }), 'out']]),
   m_throwup: keyClip([[0, P.standMon], [300, M({ torso: -20, uab: -150, fab: -70, hb: -130, rr: -8, rx: -8, head: -10 }), 'out'], [500, M({ torso: -22, uab: -155, fab: -75, hb: -130, rr: -9, rx: -10 })]]),
   m_throw: keyClip([[0, M({ torso: -22, uab: -155, fab: -75, hb: -130, rr: -9 })], [90, M({ torso: 24, uab: -60, fab: -10, rr: 10, rx: 16, thf: -24, shf: 24 }), 'out'], [400, M({ torso: 10, uab: -20, fab: -30, rr: 4, rx: 8 }), 'out']]),
   m_cast: { loop: true, dur: 500, at(t) { const s = Math.sin(t / 500 * Math.PI * 2); return M({ torso: -12 + s * 3, uab: -150 + s * 10, fab: -20, uaf: -120 - s * 10, faf: -30, head: -14, ry: -4 + s * 3 }); } },

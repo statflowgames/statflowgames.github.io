@@ -39,18 +39,23 @@ class Rig {
   measure(pose) {
     // 서 있는 자세에서 발바닥까지의 거리(컨테이너 로컬 픽셀)
     this.apply(pose);
-    let bottom = 0;
-    for (const n of ['ftf', 'ftb']) {
-      const b = this.map[n]; if (!b) continue;
+    this.foot = this.lowest();
+    return this.foot;
+  }
+  // 지금 자세에서 몸(무기·망토 제외)의 가장 낮은 점. 컨테이너 로컬 y.
+  lowest() {
+    let bottom = -1e9;
+    for (const b of this.bones) {
+      if (NO_GROUND.has(b.n) || !b.spr.visible) continue;
       const s = b.spr, w = s.width * b.sc, h = s.height * b.sc;
       const cos = Math.cos(s.rotation), sin = Math.sin(s.rotation);
-      for (const [u, v] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      for (const [u, v] of CORNERS) {
         const lx = (u - s.originX) * w, ly = (v - s.originY) * h;
-        bottom = Math.max(bottom, s.y + lx * sin + ly * cos);
+        const y = s.y + lx * sin + ly * cos;
+        if (y > bottom) bottom = y;
       }
     }
-    this.foot = bottom - 4;
-    return this.foot;
+    return bottom - 3;
   }
   setVisible(n, v) { if (this.map[n]) this.map[n].spr.setVisible(v); }
   apply(p) {
@@ -91,6 +96,11 @@ class Rig {
   }
   destroy() { this.c.destroy(); }
 }
+
+// 땅에 닿는 판정에서 빼는 부위 (무기, 방패, 망토, 장식)
+const NO_GROUND = new Set(['wpn', 'shd', 'cape', 'fitem', 'quiver', 'neck', 'shoulder']);
+// 부품 사각형 모서리를 살짝 안쪽으로 잡는다 (투명 여백과 둥근 끝 감안)
+const CORNERS = [[0.15, 0.15], [0.85, 0.15], [0.15, 0.85], [0.85, 0.85], [0.5, 0.97], [0.03, 0.5], [0.97, 0.5]];
 
 function mulTint(a, b) {
   const r = ((a >> 16) & 255) * ((b >> 16) & 255) / 255;

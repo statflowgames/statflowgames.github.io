@@ -325,14 +325,14 @@ class Game extends Phaser.Scene {
   swingFx(h, a) {
     const f = h.face, top = h.y - h.z;
     const conf = {
-      h: { dx: 95, dy: -115, rot: 0, s: 0.42 },
-      u: { dx: 85, dy: -140, rot: -40, s: 0.42 },
+      h: { dx: 115, dy: -110, rot: 10, s: 0.32 },
+      u: { dx: 105, dy: -140, rot: -40, s: 0.32 },
       s: { dx: 70, dy: -120, rot: 0, s: 0.3 },
-      v: { dx: 90, dy: -130, rot: 50, s: 0.5 },
+      v: { dx: 110, dy: -120, rot: 50, s: 0.38 },
     }[a.swing];
     if (!conf || a.swing === 's') return;
-    const img = this.fx('smear_warrior', h.x + f * conf.dx, top + conf.dy, { s: conf.s, flip: f < 0, rot: f * conf.rot, dur: 220, depth: h.y + 1002 });
-    img.setAlpha(0.9);
+    const img = this.fx('smear_warrior', h.x + f * conf.dx, top + conf.dy, { s: conf.s, flip: f < 0, rot: f * conf.rot, dur: 150, depth: h.y + 1002 });
+    img.setAlpha(0.8);
   }
   telegraph(x, y, s, ms) {
     const img = this.add.image(x, y, 'fx/telegraph_circle').setDepth(998).setScale(s * 0.2, s * 0.08).setAlpha(0.2);
@@ -462,7 +462,8 @@ class Game extends Phaser.Scene {
       this.floatText(h.x, h.y - 250, String(dmg), '#ff6060', 30);
       this.hitstop = type === 'heavy' ? 120 : 70;
       this.cameras.main.shake(type === 'heavy' ? 220 : 110, type === 'heavy' ? 0.01 : 0.005);
-      this.cameras.main.flash(60, 120, 0, 0);
+      const red = this.add.rectangle(0, 0, W, H, 0xc01010, 0.22).setOrigin(0).setScrollFactor(0).setDepth(4900);
+      this.tweens.add({ targets: red, alpha: 0, duration: 220, onComplete: () => red.destroy() });
       this.comboN = 0; this.comboT = Math.min(this.comboT, 300);
       return true;
     }
@@ -682,4 +683,4 @@ window.game = new Phaser.Game({
 });
 
 // 테스트용: 숨은 창에서도 프레임을 직접 진행한다
-window.step = async (n = 1, dt = 16.6) => { let t = performance.now(); for (let i = 0; i < n; i++) { t += dt; game.step(t, dt); if (i % 20 === 19) await new Promise(r => setTimeout(r, 0)); } };
+window.step = async (n = 1, dt = 16.6) => { window._t = Math.max(window._t || 0, performance.now()); for (let i = 0; i < n; i++) { window._t += dt; game.step(window._t, dt); if (i % 20 === 19) await new Promise(r => setTimeout(r, 0)); } };
