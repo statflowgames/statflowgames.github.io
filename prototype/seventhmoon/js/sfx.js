@@ -202,7 +202,10 @@ const SFX = (() => {
   function ambience(mode) {
     if (!ctx) return;
     if (musicList.includes('amb_forest')) {
-      playChan('amb', mode === 'off' ? null : 'amb_forest', { vol: mode === 'boss' ? 0.35 : 0.9, fade: 1.2, fadeIn: 1.5 });
+      // mode: 'forest' 같은 환경음 이름, 'boss'(지금 소리를 줄임), 'off'
+      if (mode === 'boss') { if (chan.amb) playChan('amb', chan.amb.name, { vol: 0.3 }); return; }
+      const name = mode === 'off' ? null : musicList.includes('amb_' + mode) ? 'amb_' + mode : 'amb_forest';
+      playChan('amb', name, { vol: 0.85, fade: 1.2, fadeIn: 1.5 });
       return;
     }
     if (!amb) {
@@ -468,6 +471,9 @@ const SFX = (() => {
   prefer('go', () => sample('ui_tap'));
   prefer('win', () => { if (!musicList.includes('jgl_stage_clear')) return false; music(null, { fade: 0.3 }); music('jgl_stage_clear', { jingle: true }); return true; });
   prefer('lose', () => { if (!musicList.includes('jgl_game_over')) return false; music(null, { fade: 0.3 }); music('jgl_game_over', { jingle: true }); return true; });
+  // 메뉴·성장 소리 (음원이 있을 때만)
+  api.ui = (k, x) => { if (ctx) sample(k, { x, vol: 0.8, vary: 0.02 }); };
+  api.jingle = name => { if (ctx && musicList.includes(name)) music(name, { jingle: true }); };
   // 새 소리 (음원이 있을 때만)
   api.emote = x => { if (ctx && gate('emote', 80)) sample('emote_pop', { x, vol: 0.6 }); };
   api.telegraph = x => { if (ctx && gate('tele', 150)) sample('telegraph', { x, vol: 0.7 }); };

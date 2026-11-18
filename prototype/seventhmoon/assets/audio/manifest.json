@@ -135,6 +135,51 @@
   "ui_tap": [
    "ui_tap"
   ],
+  "chest_open": [
+   "chest_open"
+  ],
+  "equip_weapon": [
+   "equip_weapon"
+  ],
+  "equip_cloth": [
+   "equip_cloth"
+  ],
+  "equip_jewel": [
+   "equip_jewel"
+  ],
+  "potion": [
+   "potion"
+  ],
+  "revive": [
+   "revive"
+  ],
+  "fire_explode": [
+   "fire_explode"
+  ],
+  "use_scroll": [
+   "use_scroll"
+  ],
+  "ui_open": [
+   "ui_open"
+  ],
+  "ui_close": [
+   "ui_close"
+  ],
+  "ui_equip": [
+   "ui_equip"
+  ],
+  "ui_error": [
+   "ui_error"
+  ],
+  "ui_enhance_ok": [
+   "ui_enhance_ok"
+  ],
+  "ui_enhance_fail": [
+   "ui_enhance_fail"
+  ],
+  "ui_map_select": [
+   "ui_map_select"
+  ],
   "vo_warrior_atk": [
    "vo_warrior_atk_v1",
    "vo_warrior_atk_v2",
@@ -168,11 +213,54 @@
  },
  "music": [
   "bgm_title",
+  "bgm_map",
+  "bgm_camp",
   "bgm_c1_forest",
+  "bgm_c1_village",
+  "bgm_c1_swamp",
+  "bgm_c2_harbor",
+  "bgm_c2_sewer",
+  "bgm_c3_desert",
+  "bgm_c3_tomb",
+  "bgm_c4_frost",
+  "bgm_c4_dwarf",
+  "bgm_c5_tower",
+  "bgm_c6_abyss",
   "bgm_boss_a",
+  "bgm_boss_b",
+  "bgm_boss_mid",
+  "bgm_boss_orvex",
+  "bgm_boss_azmal",
+  "bgm_boss_azmal_rage",
+  "bgm_boss_void",
+  "bgm_story_lise",
+  "bgm_story_orvex",
+  "bgm_story_tension",
+  "bgm_end_seal",
+  "bgm_end_true",
+  "bgm_end_dark",
+  "bgm_end_sacrifice",
+  "bgm_tower_a",
+  "bgm_tower_b",
   "amb_forest",
+  "amb_village_fire",
+  "amb_swamp",
+  "amb_harbor",
+  "amb_sewer",
+  "amb_desert",
+  "amb_tomb",
+  "amb_blizzard",
+  "amb_forge",
+  "amb_tower",
+  "amb_abyss",
+  "amb_camp",
   "jgl_stage_clear",
   "jgl_game_over",
-  "jgl_boss_warning"
+  "jgl_boss_warning",
+  "jgl_chapter_clear",
+  "jgl_level_up",
+  "jgl_legendary",
+  "jgl_moonstone",
+  "jgl_rank_s"
  ]
 }

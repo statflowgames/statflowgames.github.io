@@ -1,0 +1,243 @@
+// 저장, 성장, 장비. 저장은 localStorage(나중에 Capacitor Preferences로 바꾼다).
+const SAVE_KEY = 'seventhmoon.save.v1';
+const SLOTS = ['weapon', 'offhand', 'head', 'body', 'acc1', 'acc2'];
+const SLOT_KO = { weapon: '무기', offhand: '보조', head: '머리', body: '몸', acc1: '장신구', acc2: '장신구' };
+const RARITY = [
+  { ko: '일반', col: '#e8e4dc', hex: 0xe8e4dc, aff: 0 },
+  { ko: '고급', col: '#7ee07a', hex: 0x7ee07a, aff: 1 },
+  { ko: '희귀', col: '#6ab0ff', hex: 0x6ab0ff, aff: 2 },
+  { ko: '영웅', col: '#c87aff', hex: 0xc87aff, aff: 3 },
+  { ko: '전설', col: '#ff9a3a', hex: 0xff9a3a, aff: 3 },
+  { ko: '세트', col: '#3ae0c8', hex: 0x3ae0c8, aff: 2 },
+];
+const MATS = { low: '하급 마석', mid: '중급 마석', high: '상급 마석', abyss: '심연 마석' };
+// 아이템 벨트에 넣는 소모품 (DB.consumables 이름과 맞춘다)
+const BELT = {
+  potion: { ko: '회복약', fx: '체력 40% 회복', price: 40, icon: 'potion' },
+  dagger: { ko: '투척 단검', fx: '일직선 관통', price: 25, icon: 'dagger' },
+  oil: { ko: '기름병', fx: '깨지면 화염 장판', price: 45, icon: 'oil' },
+  scroll: { ko: '화염 두루마리', fx: '전방 화염 폭발', price: 90, icon: 'scroll_fire' },
+  feather: { ko: '부활 깃털', fx: '쓰러지면 자동 부활 (스테이지당 1개)', price: 150, icon: 'feather' },
+};
+const BELT_ORDER = ['potion', 'dagger', 'oil', 'scroll'];
+
+const expNeed = lv => Math.round(90 * Math.pow(1.12, lv));
+const LV_CAP = 30;
+
+function newSave(hero = 'warrior') {
+  const s = {
+    v: 1, hero, lv: 1, exp: 0, gold: 0, mats: { low: 0, mid: 0, high: 0, abyss: 0 },
+    bag: [], eq: {}, nextId: 1, belt: { potion: 2, dagger: 3, oil: 0, scroll: 0, feather: 0 },
+    sp: 0, skills: {}, active: [null, null],
+    ch: 1, at: 'camp', cleared: {}, route: {}, grades: {}, moons: {}, flags: {}, lise: 0,
+    endings: {}, unlocked: { warrior: true, mage: true }, seen: {}, play: 0, runs: 1,
+  };
+  // 시작 장비: 견습 무기·보조·머리·몸 (일반)
+  for (const slot of ['weapon', 'offhand', 'head', 'body']) {
+    const it = makeItem(s, { cls: hero, slot, tier: 0, rar: 0 });
+    s.eq[slot] = it.id;
+  }
+  return s;
+}
+
+const Save = {
+  data: null,
+  has() { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } },
+  load() {
+    try { const t = localStorage.getItem(SAVE_KEY); if (t) this.data = JSON.parse(t); } catch (e) { this.data = null; }
+    if (this.data && this.data.v !== 1) this.data = null;
+    return this.data;
+  },
+  write() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); } catch (e) { /* 저장 실패는 조용히 */ } },
+  fresh(hero) { this.data = newSave(hero); this.write(); return this.data; },
+  wipe() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 무시 */ } this.data = null; },
+  // 백업 코드 (내보내기·불러오기)
+  exportCode() { return btoa(unescape(encodeURIComponent(JSON.stringify(this.data)))); },
+  importCode(code) { const d = JSON.parse(decodeURIComponent(escape(atob(code.trim())))); if (d.v !== 1) throw new Error('버전'); this.data = d; this.write(); },
+};
+
+// ---------------- 아이템 ----------------
+const AFF_ROLL = DB.affixes.map(a => {
+  const m = a.range.match(/(-?)([\d.]+)~([\d.]+)/);
+  const neg = !!m && m[1] === '-';
+  return { lo: m ? +m[2] : 1, hi: m ? +m[3] : 1, neg, unit: a.range.includes('초') ? '초' : a.range.includes('%') ? '%' : '' };
+});
+function affText(a) {
+  const d = DB.affixes[a.i], r = AFF_ROLL[a.i];
+  const sign = r.neg ? '-' : d.range.startsWith('+') ? '+' : '';
+  return `${d.name} ${sign}${a.v}${r.unit}`;
+}
+function rollAffixes(cls, n) {
+  const pool = DB.affixes.map((a, i) => i).filter(i => {
+    const nm = DB.affixes[i].name;
+    if (!nm.startsWith('[')) return true;
+    return nm.startsWith('[' + DB.heroes[cls]?.name + ']');
+  });
+  const out = [];
+  while (out.length < n && pool.length) {
+    const i = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    const r = AFF_ROLL[i];
+    const step = r.hi - r.lo <= 1 ? 0.1 : 1;
+    const v = Math.round((r.lo + Math.random() * (r.hi - r.lo)) / step) * step;
+    out.push({ i, v: +v.toFixed(1) });
+  }
+  return out;
+}
+const BASE_STAT = {
+  weapon: [8, 18, 30, 46], offhand: [4, 9, 15, 22], head: [3, 7, 12, 18], body: [6, 14, 24, 36], acc: [0, 0, 0, 0],
+};
+// o: { cls, slot, tier, rar, legend:bool }
+function makeItem(s, o) {
+  const id = s.nextId++;
+  const slot = o.slot.startsWith('acc') ? 'acc' : o.slot;
+  const rar = o.rar ?? 0, tier = o.tier ?? 0;
+  const it = { id, cls: slot === 'acc' ? 'acc' : o.cls, slot, tier, rar, plus: 0 };
+  if (slot === 'acc') {
+    const kind = o.kind || (Math.random() < 0.5 ? 'ring' : 'amulet');
+    it.kind = kind;
+    if (rar === 4) { const L = DB.accessory.legend.filter(l => l.kind === kind); const l = L[Math.floor(Math.random() * L.length)]; it.name = l.name; it.fx = l.fx; }
+    else if (rar === 5) { const S = DB.accessory.sets[Math.floor(Math.random() * DB.accessory.sets.length)]; it.name = S.pieces[kind === 'ring' ? 0 : 1]; it.set = S.name; }
+    else it.name = DB.accessory[kind][tier];
+  } else {
+    const g = DB.gear[it.cls];
+    if (rar === 4) { it.name = g.legend[slot].name; it.fx = g.legend[slot].fx; }
+    else if (rar === 5) { it.name = g.set.pieces[slot]; it.set = g.set.name; }
+    else it.name = g.tiers[slot][tier];
+  }
+  it.base = Math.round(BASE_STAT[slot][tier] * (1 + rar * 0.1));
+  it.aff = rollAffixes(it.cls === 'acc' ? s.hero : it.cls, RARITY[rar].aff + (slot === 'acc' ? 1 : 0));
+  s.bag.push(it);
+  return it;
+}
+function itemById(s, id) { return s.bag.find(i => i.id === id); }
+function itemPower(it) { return Math.round(it.base * (1 + it.plus * 0.08)); }
+function itemLabel(it) { return (it.plus ? `+${it.plus} ` : '') + it.name; }
+// 드롭 희귀도: bonus는 스테이지 등급·보스 보정
+function rollRarity(ch, bonus = 0, boss = false) {
+  const w = [50, 30, 14 + bonus * 3, 5 + bonus * 2, boss ? 4 + bonus : 0, boss && ch >= 3 ? 3 : 0];
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return i; }
+  return 0;
+}
+function rollDrop(s, ch, bonus = 0, boss = false) {
+  const tier = Math.min(3, Math.floor((ch - 1) / 2));
+  const slots = ['weapon', 'offhand', 'head', 'body', 'acc'];
+  const slot = slots[Math.floor(Math.random() * slots.length)];
+  // 지금 직업 장비 70%, 나머지는 다른 직업(나중에 그 직업으로 할 때 쓴다)
+  const owned = Object.keys(s.unlocked).filter(k => s.unlocked[k]);
+  const cls = Math.random() < 0.7 ? s.hero : owned[Math.floor(Math.random() * owned.length)];
+  return makeItem(s, { cls, slot, tier, rar: rollRarity(ch, bonus, boss) });
+}
+
+// ---------------- 능력치 ----------------
+// 장비 옵션 이름 → 능력치 키
+const AFF_KEY = {
+  '공격력': 'atkPct', '치명타 확률': 'crit', '치명타 피해': 'critDmg', '공격 속도': 'aspd', '띄운 적에게 피해': 'vsAir',
+  '다운된 적에게 피해': 'vsDown', '등 뒤 공격 피해': 'vsBack', '10콤보 이상일 때 피해': 'vsCombo', '정예에게 피해': 'vsElite',
+  '보스에게 피해': 'vsBoss', '최대 체력': 'hpPct', '방어력': 'defPct', '원거리 피해 감소': 'redRange', '근접 피해 감소': 'redMelee',
+  '가드 스태미나 소모': 'guardCost', '일어날 때 무적 시간': 'getupInv', '받는 회복 효과': 'healPct', '처치 시 체력 회복': 'leech',
+  '금화 획득': 'goldPct', '경험치': 'expPct', '이동 속도': 'spd', '스태미나 회복': 'staRegen', '각성 충전': 'awkPct',
+  '스킬 쿨다운': 'cdr', '투척 아이템 피해': 'throwPct', '[하르반] 저스트 가드 판정': 'parryWin',
+};
+function heroStats(s) {
+  const st = { lv: s.lv, atk: 10 + s.lv * 2, def: 0, hp: 340 + s.lv * 20, crit: 8, critDmg: 80 };
+  for (const k of Object.values(AFF_KEY)) st[k] = st[k] || 0;
+  const sets = {};
+  for (const slot of SLOTS) {
+    const it = s.eq[slot] && itemById(s, s.eq[slot]);
+    if (!it) continue;
+    const p = itemPower(it);
+    if (it.slot === 'weapon') st.atk += p; else st.def += p;
+    if (it.slot === 'body') st.hp += p * 3;
+    for (const a of it.aff) {
+      const nm = DB.affixes[a.i].name, k = AFF_KEY[nm];
+      if (k) st[k] += Math.abs(a.v);
+    }
+    if (it.set) sets[it.set] = (sets[it.set] || 0) + 1;
+  }
+  // 스킬 패시브 (방패전사 1차 구현)
+  const sk = s.skills || {};
+  const has = name => (DB.skills[s.hero]?.list || []).some((x, i) => x.name === name && sk[i]);
+  if (has('강철 피부')) st.defPct += 15;
+  if (has('약점 포착')) st.vsDown += 35;
+  if (has('백전노장')) st.awkPct += 30;
+  if (has('철벽의 달인')) st.parryWin += 50;
+  st.atk = Math.round(st.atk * (1 + st.atkPct / 100));
+  st.def = Math.round(st.def * (1 + st.defPct / 100));
+  st.hp = Math.round(st.hp * (1 + st.hpPct / 100));
+  st.crit += 0; st.sets = sets;
+  st.dmgMul = st.atk / 20;
+  st.red = st.def / (st.def + 60);
+  st.power = Math.round(st.atk * 3 + st.def * 2 + st.hp / 10);
+  return st;
+}
+function gainExp(s, n) {
+  const ups = [];
+  s.exp += n;
+  while (s.lv < LV_CAP && s.exp >= expNeed(s.lv)) { s.exp -= expNeed(s.lv); s.lv++; s.sp++; ups.push(s.lv); }
+  if (s.lv >= LV_CAP) s.exp = Math.min(s.exp, expNeed(s.lv));
+  return ups;
+}
+
+// ---------------- 대장간 ----------------
+function matOf(it) { return it.rar >= 4 ? 'abyss' : ['low', 'low', 'mid', 'high'][it.tier]; }
+function enhanceCost(it) {
+  const n = it.plus + 1;
+  return { gold: 20 * n * (it.tier + 1), mat: n <= 4 ? 'low' : n <= 7 ? 'mid' : 'high', cnt: n <= 4 ? n : n <= 7 ? n - 4 : n - 7 };
+}
+function enhanceRate(it) { return [100, 100, 100, 90, 80, 70, 60, 50, 40, 30][it.plus] || 0; }
+function tryEnhance(s, it) {
+  if (it.plus >= 10) return 'max';
+  const c = enhanceCost(it);
+  if (s.gold < c.gold || (s.mats[c.mat] || 0) < c.cnt) return 'cost';
+  s.gold -= c.gold; s.mats[c.mat] -= c.cnt;
+  if (Math.random() * 100 < enhanceRate(it)) { it.plus++; return 'ok'; }
+  return 'fail';   // 실패해도 부서지지 않는다
+}
+function dismantle(s, it) {
+  if (Object.values(s.eq).includes(it.id)) return null;
+  const m = matOf(it), n = 1 + it.rar + Math.floor(it.plus / 2);
+  s.mats[m] = (s.mats[m] || 0) + n;
+  s.bag = s.bag.filter(x => x !== it);
+  return { m, n };
+}
+function rerollCost(it) { return { mat: it.rar >= 4 ? 'abyss' : 'mid', cnt: 1, gold: 60 * (it.tier + 1) }; }
+function reroll(s, it, k) {
+  const c = rerollCost(it);
+  if (!it.aff[k] || s.gold < c.gold || (s.mats[c.mat] || 0) < c.cnt) return false;
+  s.gold -= c.gold; s.mats[c.mat] -= c.cnt;
+  const keep = it.aff.filter((_, i) => i !== k).map(a => a.i);
+  let a;
+  for (let t = 0; t < 30; t++) { a = rollAffixes(it.cls === 'acc' ? s.hero : it.cls, 1)[0]; if (!keep.includes(a.i)) break; }
+  it.aff[k] = a;
+  return true;
+}
+
+// ---------------- 진행 ----------------
+function nodeCleared(s, ch, id) { return (s.cleared['c' + ch] || []).includes(id); }
+function clearNode(s, ch, id) {
+  const k = 'c' + ch;
+  s.cleared[k] = s.cleared[k] || [];
+  if (!s.cleared[k].includes(id)) s.cleared[k].push(id);
+}
+// 지금 갈 수 있는 노드
+function openNodes(s, ch) {
+  const nodes = chapterNodes(ch), done = s.cleared['c' + ch] || [];
+  if (!done.length) return ['s1'];
+  const out = new Set();
+  for (const id of done) for (const nx of nodes[id].next) {
+    if (done.includes(nx)) continue;
+    // 갈림길은 한 번 고르면 그 장에서는 다른 쪽을 막는다
+    const r = nodes[nx].route, chosen = s.route['c' + ch];
+    if (r && chosen && r !== chosen) continue;
+    out.add(nx);
+  }
+  return [...out];
+}
+function endingFor(s) {
+  if (s.flags.accepted) return 'end_dark';
+  const moons = Object.keys(s.moons).length;
+  if (moons >= 6) return 'end_true';
+  if (s.lise >= 3) return 'end_sacrifice';
+  return 'end_seal';
+}

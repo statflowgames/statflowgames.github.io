@@ -3,9 +3,11 @@ const GRAV = 2300;
 const FLOOR_TOP = 478, FLOOR_BOT = 690;
 
 class Actor {
-  constructor(scene, rigName, x, y) {
+  constructor(scene, rigName, x, y, o = {}) {
     this.scene = scene;
-    this.rig = new Rig(scene, RIGS[rigName]());
+    const def = RIGS[rigName]();
+    if (o.sc) { def.scale *= o.sc; }
+    this.rig = new Rig(scene, def);
     this.kind = rigName;
     this.x = x; this.y = y; this.z = 0;
     this.vx = 0; this.vy = 0; this.vz = 0;
@@ -140,7 +142,8 @@ const HERO_ATK = {
 class Hero extends Actor {
   constructor(scene, x, y) {
     super(scene, 'warrior', x, y);
-    this.maxHp = 360; this.hp = this.maxHp;
+    this.st8 = scene.stats || { hp: 360, parryWin: 0, staRegen: 0, spd: 0 };
+    this.maxHp = this.st8.hp; this.hp = this.maxHp;
     this.sta = 100; this.awk = 0;
     this.combo = 0; this.buffer = 0; this.holdDir = 0; this.holdT = 0;
     this.guardStart = -9999; this.blink = 2500;
@@ -153,7 +156,7 @@ class Hero extends Actor {
     this.st += dt;
     if (this.invuln > 0) this.invuln -= dt;
     if (this.shake > 0) this.shake -= dt;
-    if (this.state !== 'guard') this.sta = Math.min(100, this.sta + 38 * s);
+    if (this.state !== 'guard') this.sta = Math.min(100, this.sta + 38 * (1 + this.st8.staRegen / 100) * s);
     if (this.buffer > 0) this.buffer -= dt;
     if (inp.atkP) this.buffer = 260;
     // 방향 유지 시간 (달리기 판정)
@@ -168,12 +171,14 @@ class Hero extends Actor {
     if (st === 'idle' || st === 'move') {
       if (this.scene.won) { this.vx = this.vy = 0; return; }
       if (inp.awkP && this.awk >= 100) return this.startAwaken();
+      if ((inp.sk1P || inp.sk2P) && this.scene.useSkill(inp.sk1P ? 0 : 1)) return;
+      if (inp.itemN) this.scene.useItem(inp.itemN - 1);
       if (inp.jumpP) return this.startJump(inp);
       if (inp.rollP && this.sta >= 22) return this.startRoll(inp);
       if (inp.guard) return this.startGuard();
       if (this.buffer > 0) { this.buffer = 0; return this.startAttack(this.pickCommand(inp)); }
       const run = this.holdT > 320 && inp.x !== 0;
-      const sp = run ? 330 : 200;
+      const sp = (run ? 330 : 200) * (1 + (this.st8.spd || 0) / 100);
       this.vx = inp.x * sp; this.vy = inp.y * 150;
       if (inp.x) this.face = inp.x;
       if (inp.x || inp.y) {
@@ -292,13 +297,13 @@ class Hero extends Actor {
     if (this.invuln > 0 || this.state === 'roll' || this.state === 'awaken' || this.state === 'dead' || this.state === 'down' || this.state === 'getup' || this.scene.won) return 'miss';
     const fromFront = Math.sign(src.x - this.x) === this.face || src.x === this.x;
     if ((this.state === 'guard' || this.state === 'parry') && fromFront) {
-      if (this.scene.now - this.guardStart < 170 && this.state === 'guard') {
+      if (this.scene.now - this.guardStart < 170 * (1 + (this.st8.parryWin || 0) / 100) && this.state === 'guard') {
         this.state = 'parry'; this.st = 0; this.replay('w_parry', 30);
         this.atk = { hit: [40, 160], dmg: 24, reach: [0, 170], dz: 40, kb: 300, type: 'knock', stop: 90, shake: 3 };
         this.hitSet.clear(); this.awk = Math.min(100, this.awk + 12);
         return 'parry';
       }
-      this.sta -= type === 'heavy' ? 40 : 14;
+      this.sta -= (type === 'heavy' ? 40 : 14) * (1 - (this.st8.guardCost || 0) / 100);
       this.x -= this.face * (type === 'heavy' ? 40 : 14);
       this.awk = Math.min(100, this.awk + 2);
       if (this.sta <= 0) { this.sta = 0; this.state = 'hurt'; this.st = -300; this.play('w_hurt', 40); this.showEmote('dizzy', 900); }
@@ -337,18 +342,19 @@ class Hero extends Actor {
 // ---------------------------------------------------------------------------
 // 몬스터
 // ---------------------------------------------------------------------------
-const MON = {
-  grunt: { hp: 70, speed: 150, face: 'faces/grunt', role: 'melee', dmg: 14, reach: 120, gold: [2, 5] },
-  spear: { hp: 60, speed: 140, face: 'faces/spear', role: 'ranged', dmg: 18, gold: [3, 6] },
-  shaman: { hp: 55, speed: 120, face: 'faces/shaman', role: 'support', dmg: 16, gold: [4, 8] },
-  barkhaul: { hp: 1500, speed: 85, role: 'boss', dmg: 44, gold: [40, 60] },
-};
+// 몬스터 수치는 js/data/campaign.js 의 MONDEF
 
 class Monster extends Actor {
-  constructor(scene, kind, x, y) {
-    super(scene, kind, x, y);
-    this.def = MON[kind];
-    this.maxHp = this.def.hp * (scene.hard ? 1.4 : 1); this.hp = this.maxHp;
+  constructor(scene, id, x, y) {
+    const base = MONDEF[id] || MONDEF.grunt;
+    super(scene, base.rig, x, y, { sc: base.sc });
+    const k = scene.monScale || { hp: 1, dmg: 1 };
+    this.id = id;
+    this.def = { ...base, dmg: Math.round(base.dmg * k.dmg) };
+    this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
+    this.maxHp = Math.round(base.hp * k.hp); this.hp = this.maxHp;
+    if (base.tint) { for (const b of this.rig.bones) b.baseTint = mulTint(b.baseTint, base.tint); this.rig.setTintAll(null); }
+    const kind = base.rig;
     this.side = 'mon';
     this.cool = 600 + Math.random() * 900;
     this.think = 0;
@@ -552,6 +558,7 @@ class Monster extends Actor {
     if (this.hp <= 0) this.downTime = 350;
   }
   die() {
+    if (this.dead) return;
     this.dead = true; this.state = 'dying'; this.releaseTok();
     SFX.die(this.px); if (this.kind !== 'barkhaul') SFX.gob('die', this.px, this.pitch);
     this.scene.fx('death_dissolve', this.x, this.y - this.height * 0.3, { s: this.kind === 'barkhaul' ? 0.8 : 0.32, dur: 900, depth: this.y + 1001, grow: 1.3 });
