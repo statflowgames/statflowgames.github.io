@@ -118,7 +118,7 @@ class Game extends Phaser.Scene {
       }
     } else {
       // 테마 소품: 부서지는 통·상자를 뺀 나머지를 뒤쪽 가장자리에 늘어놓는다
-      const names = Object.keys(MAN).filter(k => k.startsWith(grp + '/')).filter(k => !/\/(barrel|crate|fish_barrel|frozen_barrel)$/.test(k));
+      const names = Object.keys(MAN).filter(k => k.startsWith(grp + '/')).filter(k => !/\/(barrel|crate|fish_barrel|frozen_barrel)$/.test(k) && this.textures.exists(k));
       let k = Math.floor(Math.random() * names.length);
       while (x < STAGE_W && names.length) {
         const key = names[k++ % names.length], m = MAN[key];
