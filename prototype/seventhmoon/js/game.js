@@ -59,10 +59,14 @@ class Game extends Phaser.Scene {
     const s = Save.data || Save.load() || Save.fresh('warrior');
     this.save = s;
     this.stats = heroStats(s);
-    this.def = STAGES[this.cfg.stage] || STAGES.c1_s1;
-    this.ch = this.cfg.ch;
+    this.def = this.cfg.def || STAGES[this.cfg.stage] || STAGES.c1_s1;
+    this.tower = this.def.tower || 0;
+    this.rule = this.def.rule || {};
+    this.ch = this.tower ? this.def.chScale : this.cfg.ch;
     this.theme = THEMES[this.def.theme] || THEMES.forest;
     this.monScale = chapterScale(this.ch, Q.has('hard') ? 2 : 1);
+    if (this.tower) { const f = this.def.floorMul; this.monScale = { hp: this.monScale.hp * f * (this.rule.hpMul || 1), dmg: this.monScale.dmg * Math.sqrt(f) * (this.rule.dmgMul || 1) }; }
+    this.speedMul = this.rule.speedMul || 1;
     this.now = 0; this.hitstop = 0; this.won = false; this.lost = false; this.paused = false;
     this.god = Q.has('god');
     this.gold = 0; this.expGain = 0; this.loot = []; this.dmgTaken = 0;
@@ -77,6 +81,13 @@ class Game extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, STAGE_W, H);
     this.buildStage();
     this.hero = new Hero(this, 260, 600);
+    if (this.cfg.hp) this.hero.hp = Math.min(this.hero.maxHp, this.cfg.hp);
+    // AI 동료
+    this.ally = null; this.allyCmd = s.allyCmd || 'cover'; this.allyBonus = null;
+    if (s.ally && s.ally !== s.hero && s.unlocked[s.ally] && RIGS[s.ally]) {
+      this.ally = new Ally(this, s.ally, 150, 650);
+      this.allyBonus = allyCombo(s.hero, s.ally);
+    }
     this.isTouch = Q.has('touch') || this.sys.game.device.input.touch;
     this.buildHud();
     this.buildInput();
@@ -85,9 +96,10 @@ class Game extends Phaser.Scene {
     if (skip) { this.waveIdx = skip; this.hero.x = this.waves[skip - 1].end - 300; }
     this.cameras.main.scrollX = Phaser.Math.Clamp(this.hero.x - W * 0.4, 0, STAGE_W - W);
     this.cameras.main.fadeIn(400);
-    this.banner(`${this.ch}장  ${this.def.name}`, '#ffe7a8');
+    if (this.tower) this.banner(`심연의 탑  ${this.def.name}`, '#d8b8ff', this.rule.ko ? '규칙: ' + this.rule.ko : null);
+    else this.banner(`${this.ch}장  ${this.def.name}`, '#ffe7a8', this.allyBonus ? `동료 조합 「${this.allyBonus}」 피해 +15%` : null);
     SFX.ambience(this.theme.amb);
-    SFX.music(this.theme.bgm);
+    SFX.music(this.tower ? (this.def.boss ? 'bgm_tower_b' : 'bgm_tower_a') : this.theme.bgm);
     SFX.heartbeat(false);
   }
   // ---------------- 무대 ----------------
@@ -210,7 +222,8 @@ class Game extends Phaser.Scene {
   // ---------------- 입력 ----------------
   buildInput() {
     const kb = this.input.keyboard;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,J,K,L,I,O,U,H,Z,X,C,V,SHIFT,SPACE,P,ESC,R,ENTER,ONE,TWO,THREE,FOUR');
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,J,K,L,I,O,U,H,Z,X,C,V,SHIFT,SPACE,P,ESC,R,ENTER,ONE,TWO,THREE,FOUR,G');
+    this.keys.G.on('down', () => this.cycleAllyCmd());
     this.touch = { x: 0, y: 0, atk: false, jump: false, roll: false, guard: false, awk: false, sk1: false, sk2: false, item: 0 };
     this.prev = {};
     if (this.isTouch) this.buildTouch();
@@ -351,6 +364,21 @@ class Game extends Phaser.Scene {
       this.skillUi.push({ g, x, y, k });
     });
     if (!this.isTouch) hud.add(this.add.text(W / 2, H - 14, '이동 WASD · 공격 J · 점프 K · 구르기 L · 가드 I · 각성 O · 스킬 U H · 아이템 1~4 · 일시정지 P', { fontFamily: 'sans-serif', fontSize: 15, color: '#f3e6cc', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1).setAlpha(0.8));
+    if (this.ally) {
+      const al = this.ally;
+      const ag = this.add.graphics();
+      ag.fillStyle(0x1a0f08, 0.78).fillRoundedRect(16, 132, 300, 56, 12).lineStyle(2, 0x6a9ac8).strokeRoundedRect(16, 132, 300, 56, 12);
+      hud.add(ag);
+      const ak = this.textures.exists(al.key + '/head') ? al.key + '/head' : 'warrior/head';
+      const ai = this.add.image(46, 160, ak); ai.setScale(Math.min(44 / ai.width, 44 / ai.height)); hud.add(ai);
+      hud.add(this.add.text(76, 138, DB.heroes[al.key].name, { fontFamily: 'sans-serif', fontSize: 16, color: '#9ae0ff', fontStyle: 'bold' }));
+      this.allyCmdT = this.add.text(304, 138, '', { fontFamily: 'sans-serif', fontSize: 15, color: '#ffe7a8' }).setOrigin(1, 0);
+      hud.add(this.allyCmdT);
+      const zone = this.add.zone(16, 132, 300, 56).setOrigin(0).setInteractive();
+      zone.on('pointerdown', () => this.cycleAllyCmd());
+      hud.add(zone);
+      this.allyBar = this.add.graphics(); hud.add(this.allyBar);
+    }
     this.hud = hud;
   }
   drawHud() {
@@ -397,6 +425,13 @@ class Game extends Phaser.Scene {
       if (this.comboT <= 0) this.comboN = 0;
     }
     this.goldText.setText(String(this.gold));
+    if (this.ally) {
+      const al = this.ally;
+      const ab = this.allyBar; ab.clear();
+      ab.fillStyle(0x000000, 0.6).fillRoundedRect(74, 160, 224, 14, 4).fillStyle(0x2a1a10).fillRect(76, 162, 220, 10);
+      ab.fillStyle(al.state === 'down' ? 0x6a5a5a : 0x4aa0e0).fillRect(76, 162, 220 * Phaser.Math.Clamp(al.hp / al.maxHp, 0, 1), 10);
+      this.allyCmdT.setText((this.isTouch ? '' : 'G: ') + ALLY_CMD_KO[this.allyCmd] + (al.state === 'down' ? ' · 쓰러짐' : ''));
+    }
   }
   addCombo() {
     this.comboN++; this.comboT = 1600; this.maxCombo = Math.max(this.maxCombo, this.comboN);
@@ -486,6 +521,8 @@ class Game extends Phaser.Scene {
     if (m.markT > 0) k *= 1 + (m.markV || 0.25);
     if (elem) k *= 1 + st.elemPct / 100;
     if (this.buffs.eclipse > 0) k *= 1.25;
+    if (this.allyBonus) k *= 1.15;
+    if (this.rule.heroDmg) k *= this.rule.heroDmg;
     if (m.state === 'down' || m.state === 'hurt' && m.stun > 500) k *= 1 + st.vsDown / 100;
     if (m.z > 0) k *= 1 + st.vsAir / 100;
     if (m.def.boss) k *= 1 + st.vsBoss / 100;
@@ -512,11 +549,12 @@ class Game extends Phaser.Scene {
       const crit = behind || Math.random() * 100 < this.stats.crit || (a.fin && this.comboN > 0 && this.comboN % 10 === 9);
       let dmg = this.heroDamage(a.dmg * (0.9 + Math.random() * 0.2) * (m.state === 'down' ? 1.4 : 1), m, crit, this.cls.elem);
       if (behind) dmg = Math.round(dmg * (1.3 + this.stats.vsBack / 100));
+      if (h.side === 'ally') dmg = Math.max(1, Math.round(dmg * 0.7));
       if (!m.takeHit(h, a, dmg)) continue;
       this.afterHeroHit(m, dmg, this.buffs.poison > 0 ? 'poison' : this.cls.elem);
       h.hitSet.add(m); any = true;
       this.addCombo();
-      h.awk = Math.min(100, h.awk + 3 * (1 + this.stats.awkPct / 100));
+      if (h === this.hero) h.awk = Math.min(100, h.awk + 3 * (1 + this.stats.awkPct / 100) * (this.rule.awkMul || 1));
       const hx = m.x - f * 20, hy = m.y - m.z - m.height * (big ? 0.45 : 0.55);
       this.fx('hit_spark', hx, hy, { s: crit ? 0.42 : 0.3, rot: Phaser.Math.Between(0, 360), dur: 220, depth: 4200 });
       if (crit) { this.fx('crit_flash', hx, hy, { s: 0.45, dur: 380, depth: 4201 }); SFX.crit(hx - this.cameras.main.scrollX); }
@@ -528,7 +566,7 @@ class Game extends Phaser.Scene {
       SFX.hit(a.type !== 'light', hpx, a.swing === 's' || this.hero.atkName === 'dash' ? 'blunt' : 'blade');
     }
     if (any) {
-      this.hitstop = Math.max(this.hitstop, a.stop || 60);
+      this.hitstop = Math.max(this.hitstop, h.side === 'ally' ? 25 : a.stop || 60);
       h.shake = 0;
       if (a.shake) this.cameras.main.shake(120, a.shake * 0.0018);
       if (a.otg && h.state === 'atk') { this.fx('dust_land', h.x + f * 120, h.y, { s: 0.5, dur: 420, depth: h.y + 2 }); }
@@ -559,7 +597,7 @@ class Game extends Phaser.Scene {
       return;
     }
     const r = Math.random();
-    if (r < 0.35) this.dropPickup(p.x, p.y, 'heal');
+    if (r < 0.35 && !this.rule.noHeal) this.dropPickup(p.x, p.y, 'heal');
     else if (r < 0.42) this.dropPickup(p.x, p.y, 'loot');
     const n = Phaser.Math.Between(3, 6);
     for (let i = 0; i < n; i++) this.dropPickup(p.x, p.y, 'coin');
@@ -607,7 +645,22 @@ class Game extends Phaser.Scene {
     }
     this.pickups = this.pickups.filter(p => !p.dead);
   }
+  // 몬스터가 노리는 상대: 주인공 또는 동료 (가까운 쪽, 잠깐씩 유지)
+  targetOf(m) {
+    const h = this.hero, al = this.ally;
+    if (!al || al.state === 'down' || al.state === 'getup') return h;
+    m.tgtT = (m.tgtT || 0) - 16;
+    if (m.tgt && m.tgtT > 0 && !(m.tgt === al && al.state === 'down')) return m.tgt;
+    const dh = Math.abs(h.x - m.x) + Math.abs(h.y - m.y) * 2, da = Math.abs(al.x - m.x) + Math.abs(al.y - m.y) * 2;
+    m.tgt = da < dh * 0.7 ? al : h; m.tgtT = 2500;
+    return m.tgt;
+  }
   enemyMelee(m, a) {
+    const al = this.ally;
+    if (al && al.state !== 'down' && !m.hitSet.has(al)) {
+      const rel = (al.x - m.x) * m.face;
+      if (rel >= a.reach[0] - 10 && rel <= a.reach[1] && Math.abs(al.y - m.y) <= a.dz) { m.hitSet.add(al); al.takeHit(m, a.dmg, a.type, Math.sign(al.x - m.x) || 1); }
+    }
     if (m.hitSet.has(this.hero)) return;
     const h = this.hero, rel = (h.x - m.x) * m.face;
     if (rel < a.reach[0] - 10 || rel > a.reach[1] || Math.abs(h.y - m.y) > a.dz || h.z > 120) return;
@@ -656,6 +709,8 @@ class Game extends Phaser.Scene {
   areaHit(src, x, y, rx, ry, dmg, type) {
     const h = this.hero;
     if (Math.abs(h.x - x) < rx && Math.abs(h.y - y) < ry && h.z < 90) this.resolveHeroHit(src, dmg, type, src.x, src.y);
+    const al = this.ally;
+    if (al && Math.abs(al.x - x) < rx && Math.abs(al.y - y) < ry) al.takeHit(src, dmg, type, Math.sign(al.x - x) || 1);
   }
   // 주인공 쪽 범위 공격 (스킬·아이템)
   heroArea(x, y, rx, ry, base, o = {}) {
@@ -733,7 +788,9 @@ class Game extends Phaser.Scene {
       if (p.spin && !p.mine) p.img.angle += 720 * s;
       p.sh.setPosition(p.x, p.y);
       if (p.mine) this.updateHeroProj(p, dt);
-      else if (Math.abs(p.x - h.x) < 40 && Math.abs(p.y - h.y) < 24 && h.z < p.z + 40 && h.z + 200 > p.z) {
+      else if (this.ally && this.ally.state !== 'down' && Math.abs(p.x - this.ally.x) < 40 && Math.abs(p.y - this.ally.y) < 24) {
+        if (this.ally.takeHit(p.src, p.dmg, 'light', Math.sign(p.vx)) === 'hit') p.life = 0;
+      } else if (Math.abs(p.x - h.x) < 40 && Math.abs(p.y - h.y) < 24 && h.z < p.z + 40 && h.z + 200 > p.z) {
         const hit = this.resolveHeroHit(p.src, p.dmg, 'light', p.x - Math.sign(p.vx), p.y);
         if (hit && p.key === 'orb') SFX.orbHit(p.x - this.cameras.main.scrollX);
         if (hit) { p.life = 0; if (p.key !== 'orb') this.spawnDebrisAt(p.x, p.y, 1, 'barrel'); }
@@ -757,6 +814,7 @@ class Game extends Phaser.Scene {
     if (!k || !(s.belt[k] > 0) || this.won || this.lost) return;
     s.belt[k]--;
     const f = h.face;
+    if (k === 'potion' && this.rule.noHeal) { s.belt[k]++; this.floatText(h.x, h.y - 250, '이 층에서는 회복할 수 없어요', '#ff9a8a', 22); return; }
     if (k === 'potion') {
       const v = Math.round(h.maxHp * 0.4 * (1 + this.stats.healPct / 100));
       h.hp = Math.min(h.maxHp, h.hp + v); SFX.ui('potion'); SFX.heal();
@@ -1206,8 +1264,8 @@ class Game extends Phaser.Scene {
       const c = this.add.container(0, 0).setScrollFactor(0).setDepth(7500);
       const g = this.add.graphics(); g.fillStyle(0x000000, 0.7).fillRect(0, 150, W, 120); g.fillStyle(0x9a2fd0).fillRect(0, 148, W, 4);
       c.add(g);
-      c.add(this.add.text(120, 178, d.mid ? '중간 보스' : kind === 'void_shadow' ? '숨은 보스' : `${this.ch}장 보스`, { fontFamily: 'sans-serif', fontSize: 22, color: '#d8b8ff' }));
-      c.add(this.add.text(120, 206, d.ko, { fontFamily: 'serif', fontSize: 48, color: '#f6ffd8', stroke: '#1d2a08', strokeThickness: 8 }));
+      c.add(this.add.text(120, 178, this.tower ? `심연의 탑 ${this.tower}층 강화 보스` : d.mid ? '중간 보스' : kind === 'void_shadow' ? '숨은 보스' : `${this.ch}장 보스`, { fontFamily: 'sans-serif', fontSize: 22, color: '#d8b8ff' }));
+      c.add(this.add.text(120, 206, (this.tower ? '강화 ' : '') + d.ko, { fontFamily: 'serif', fontSize: 48, color: '#f6ffd8', stroke: '#1d2a08', strokeThickness: 8 }));
       c.setAlpha(0); c.x = -200;
       this.tweens.add({ targets: c, alpha: 1, x: 0, duration: 300, hold: 1800, yoyo: true, onComplete: () => { c.destroy(); this.bossBar = true; } });
       SFX.roar(this.boss ? this.boss.px : 900);
@@ -1258,7 +1316,7 @@ class Game extends Phaser.Scene {
     const [a, b] = d.gold;
     const n = Phaser.Math.Between(a, b);
     for (let i = 0; i < Math.ceil(n / 2); i++) this.dropPickup(m.x, m.y, 'coin');
-    if (Math.random() < 0.1) this.dropPickup(m.x, m.y, 'heal');
+    if (Math.random() < 0.1 && !this.rule.noHeal) this.dropPickup(m.x, m.y, 'heal');
     if (Math.random() < (d.sc >= 1.3 ? 0.18 : 0.04)) this.dropPickup(m.x, m.y, 'loot');
     // 동료가 쓰러지면 남은 졸개가 움찔한다
     for (const o of this.monsters) if (!o.dead && o !== m && o.kind !== 'barkhaul' && (o.state === 'idle' || o.state === 'move') && Math.random() < 0.5) {
@@ -1304,6 +1362,7 @@ class Game extends Phaser.Scene {
       p.img.destroy();
     }
     this.pickups = [];
+    if (this.tower) return this.towerResult(win);
     const c = this.add.container(0, 0).setScrollFactor(0).setDepth(9000);
     c.add(this.add.rectangle(0, 0, W, H, 0x000000, 0.7).setOrigin(0).setInteractive());
     const sec = Math.round(this.now / 1000);
@@ -1333,7 +1392,7 @@ class Game extends Phaser.Scene {
     const ups = gainExp(s, this.expGain);
     // 마석: 스테이지마다 조금
     s.mats.low += 1 + bonus; if (this.ch >= 3) s.mats.mid += Math.floor(bonus / 2) + 1; if (this.ch >= 5) s.mats.high += 1;
-    if (this.cfg.node && this.cfg.node !== 'void') clearNode(s, this.ch, this.cfg.node);
+    if (this.cfg.node && this.cfg.node !== 'void' && !this.tower) clearNode(s, this.ch, this.cfg.node);
     Save.write();
     // 화면
     c.add(UI.text(this, W / 2, 86, '스테이지 클리어!', 60, '#ffe27a', { serif: true, st: 10 }).setOrigin(0.5));
@@ -1365,6 +1424,64 @@ class Game extends Phaser.Scene {
     c.each(o => o.setScrollFactor && o.setScrollFactor(0));
     this.time.delayedCall(600, () => this.input.keyboard.once('keydown-ENTER', go));
   }
+  // ---------------- 심연의 탑 결과 ----------------
+  towerResult(win) {
+    const s = this.save, n = this.tower, rw = this.rule.reward || 1;
+    s.tower = s.tower || { best: 0 };
+    const c = this.add.container(0, 0).setScrollFactor(0).setDepth(9000);
+    c.add(this.add.rectangle(0, 0, W, H, 0x0a0614, 0.78).setOrigin(0).setInteractive());
+    if (!win) {
+      s.gold += Math.floor(this.gold / 2);
+      this.loot.slice(0, Math.ceil(this.loot.length / 2)).forEach(it => s.bag.push(it));
+      gainExp(s, Math.floor(this.expGain / 2));
+      Save.write();
+      c.add(UI.text(this, W / 2, 190, `${n}층에서 쓰러졌다`, 64, '#ff9a8a', { serif: true, st: 10 }).setOrigin(0.5));
+      c.add(UI.text(this, W / 2, 290, `최고 기록 ${s.tower.best}층 · 얻은 것의 절반을 챙겼어요`, 26, '#e8dcc8').setOrigin(0.5));
+      c.add(UI.button(this, W / 2 - 170, 450, '탑 입구로', () => this.scene.start('towergate'), { w: 280 }));
+      c.add(UI.button(this, W / 2 + 170, 450, '지도로', () => this.scene.start('map'), { w: 280, col: 0x3a2a1a }));
+      c.each(o => o.setScrollFactor && o.setScrollFactor(0));
+      return;
+    }
+    // 보상: 층이 높을수록 좋은 장비, 10층마다 보스 상자
+    const reward = [];
+    const nItems = (this.def.boss ? 3 : 1) + (rw >= 2 ? 1 : 0);
+    for (let i = 0; i < nItems; i++) { const it = rollDrop(s, Math.min(6, this.ch + 1), Math.min(7, Math.floor(n / 5)) + (this.def.boss ? 2 : 0), this.def.boss || n >= 20); s.bag = s.bag.filter(b => b !== it); reward.push(it); }
+    // 보스 층은 좋은 장비를 하나 보장한다 (20층부터 영웅, 30층부터 전설)
+    if (this.def.boss) { const it = makeItem(s, { cls: s.hero, slot: ['weapon', 'offhand', 'head', 'body'][Math.floor(Math.random() * 4)], tier: Math.min(3, Math.floor(this.ch / 2)), rar: n >= 30 ? 4 : n >= 20 ? 3 : 2 }); s.bag = s.bag.filter(b => b !== it); reward.unshift(it); }
+    const all = [...this.loot, ...reward];
+    all.forEach(it => s.bag.push(it));
+    const gold = Math.round(this.gold * rw), exp = Math.round(this.expGain * rw);
+    s.gold += gold;
+    const lv0 = s.lv, ups = gainExp(s, exp);
+    s.mats.low += 1; if (n >= 10) s.mats.mid += 1; if (n >= 20) s.mats.high += 1; if (this.def.boss) s.mats.abyss += 1;
+    const record = n > s.tower.best;
+    if (record) s.tower.best = n;
+    Save.write();
+    c.add(UI.text(this, W / 2, 90, `${n}층 돌파!`, 64, '#d8b8ff', { serif: true, st: 10 }).setOrigin(0.5));
+    c.add(UI.text(this, W / 2, 160, record ? `새 기록! 최고 ${s.tower.best}층` : `최고 기록 ${s.tower.best}층`, 26, record ? '#ffe27a' : '#e8dcc8').setOrigin(0.5));
+    c.add(UI.text(this, W / 2, 210, `금화 +${gold}   경험치 +${exp}${rw > 1 ? `   (규칙 보상 ×${rw})` : ''}${ups.length ? `   레벨 업! Lv.${lv0}→${s.lv}` : ''}`, 22, '#fff').setOrigin(0.5));
+    all.slice(0, 10).forEach((it, i) => {
+      const slot = UI.itemSlot(this, W / 2 - (Math.min(10, all.length) - 1) * 48 + i * 96, 320, it, 84);
+      c.add(slot);
+      c.add(UI.text(this, slot.x, 370, it.name.slice(0, 6), 14, RARITY[it.rar].col).setOrigin(0.5, 0));
+    });
+    const next = towerFloor(n + 1, this.cfg.seed || 7);
+    c.add(UI.text(this, W / 2, 440, `다음: ${next.name}${next.rule ? '  ·  ' + next.rule.ko : ''}`, 22, '#d8c8ff').setOrigin(0.5));
+    c.add(UI.text(this, W / 2, 476, '체력은 이어지고, 층을 오를 때마다 25% 회복해요', 17, '#c8b8a0').setOrigin(0.5));
+    const hp = Math.min(this.hero.maxHp, this.hero.hp + this.hero.maxHp * (s.eq && Object.values(s.eq).some(id => (itemById(s, id) || {}).set === '순례자의 증표') ? 0.35 : 0.25));
+    const up = () => { SFX.music(null, { fade: 0.3 }); this.scene.restart({ stage: 'tower', ch: next.chScale, node: 'tower', def: next, hp, seed: this.cfg.seed }); };
+    c.add(UI.button(this, W / 2 + 170, 560, '다음 층 ▶', up, { w: 300, col: 0x4a2a7a }));
+    c.add(UI.button(this, W / 2 - 170, 560, '탑에서 나가기', () => this.scene.start('towergate'), { w: 280, col: 0x3a2a1a }));
+    c.each(o => o.setScrollFactor && o.setScrollFactor(0));
+    this.time.delayedCall(600, () => this.input.keyboard.once('keydown-ENTER', up));
+  }
+  cycleAllyCmd() {
+    if (!this.ally) return;
+    this.allyCmd = ALLY_CMDS[(ALLY_CMDS.indexOf(this.allyCmd) + 1) % ALLY_CMDS.length];
+    this.save.allyCmd = this.allyCmd; Save.write();
+    this.floatText(this.ally.x, this.ally.y - this.ally.height - 30, ALLY_CMD_KO[this.allyCmd], '#9ae0ff', 26);
+    this.ally.tgt = null; this.ally.retarget = 0;
+  }
   // ---------------- 갱신 ----------------
   update(time, rawDt) {
     if (this.paused) return;
@@ -1380,13 +1497,16 @@ class Game extends Phaser.Scene {
       this.hitstop -= rawDt;
       for (const m of this.monsters) if (!m.dead || m.state === 'dying') m.draw(dt, true);
       this.hero.draw(dt, true);
+      if (this.ally) this.ally.draw(dt, true);
       if (inp.atkP) this.hero.buffer = 260;
       this.drawHud();
       return;
     }
     this.hero.update(dt, inp);
+    if (this.ally) this.ally.update(dt);
     for (const m of this.monsters) if (!m.dead) m.update(dt);
     this.hero.draw(dt, false);
+    if (this.ally) this.ally.draw(dt, false);
     for (const m of this.monsters) if (!m.dead) m.draw(dt, false);
     this.monsters = this.monsters.filter(m => !m.dead);
     for (const m of this.monsters) if (m.shake > 0) m.shake -= dt;
@@ -1422,7 +1542,7 @@ class Game extends Phaser.Scene {
 window.game = new Phaser.Game({
   type: Phaser.AUTO, width: W, height: H, backgroundColor: '#140c18', parent: 'game',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [Boot, Title, MapScene, Camp, Game, Talk, Bag, Smithy, Shop, Skills, LiseMenu, Credits],
+  scene: [Boot, Title, MapScene, Camp, Game, Talk, Bag, Smithy, Shop, Skills, LiseMenu, Credits, TowerGate],
   input: { activePointers: 4 },
   render: { antialias: true },
 });

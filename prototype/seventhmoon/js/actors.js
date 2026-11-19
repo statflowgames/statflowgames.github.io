@@ -388,6 +388,8 @@ class Monster extends Actor {
     this.id = id;
     this.def = { ...base, dmg: Math.round(base.dmg * k.dmg) };
     this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
+    if (scene.speedMul && scene.speedMul !== 1) this.def.speed = base.speed * scene.speedMul;
+    if (scene.tower && base.boss) { this.def.ko = '강화 ' + base.ko; }
     this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) : k.hp)); this.hp = this.maxHp;
     if (real && MAN['faces/' + id + '_hurt']) this.def.face = 'faces/' + id;
     else if (real) this.def.face = null;
@@ -407,7 +409,7 @@ class Monster extends Actor {
   setHead(img) { this.rig.setImg('head', img); }
   hurtFace() { if (this.def.face) this.setHead(this.def.face + '_hurt'); else this.setHead('head_shout'); }
   update(dt) {
-    const s = dt / 1000, h = this.scene.hero;
+    const s = dt / 1000, h = this.scene.targetOf ? this.scene.targetOf(this) : this.scene.hero;
     this.st += dt; this.cool -= dt;
     if (this.invuln > 0) this.invuln -= dt;
     if (this.shake > 0) this.shake -= dt;
