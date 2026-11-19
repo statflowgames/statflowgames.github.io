@@ -4,7 +4,19 @@ const Q = new URLSearchParams(location.search);
 let STAGE_W = 6600;
 
 // 1280×720 기준. 그림 크기와 누르는 범위를 분리해 엄지는 편하고 중앙 시야는 비운다.
+// 설정의 버튼 크기 (작게·보통·크게)
+const BTN_SIZES = [0.88, 1, 1.14], BTN_ALPHAS = [0.7, 1, 1.3];
+function touchSizeK() { return typeof Settings !== 'undefined' ? (BTN_SIZES[Settings.d.btnSize ?? 1] || 1) : 1; }
 function touchControlLayout(safe = {}) {
+  const L = touchControlLayoutBase(safe), k = touchSizeK();
+  if (k === 1) return L;
+  const l=safe.left||0,r=safe.right||0,b=safe.bottom||0,ax=W-r,ay=H-b;
+  const st=L.stick, sx=v=>l+(v-l)*k, sy=v=>ay-(ay-v)*k;
+  Object.assign(st,{x:sx(st.x),y:sy(st.y),size:st.size*k,knobDiameter:st.knobDiameter*k,travel:st.travel*k,minX:sx(st.minX),maxX:sx(st.maxX),minY:sy(st.minY),maxY:sy(st.maxY)});
+  for (const d of L.buttons) { if (d.name === 'pause') continue; d.x = ax - (ax - d.x) * k; d.y = ay - (ay - d.y) * k; d.size *= k; d.radius *= k; }
+  return L;
+}
+function touchControlLayoutBase(safe = {}) {
   const l=safe.left||0,r=safe.right||0,b=safe.bottom||0,t=safe.top||0;
   return {
     stick:{x:132+l,y:614-b,size:138,knobDiameter:72,travel:54,deadX:15,deadY:18,
@@ -223,7 +235,8 @@ class Game extends Phaser.Scene {
   }
   spawn(kind, side) {
     const def = MONDEF[kind] || MONDEF.grunt;
-    const x = side > 0 ? this.bounds.r + 120 : this.bounds.l - 120;
+    const cx = this.cameras.main.scrollX;
+    const x = side > 0 ? Math.max(this.bounds.r, cx + W) + 120 : Math.min(this.bounds.l, cx) - 120;
     const y = def.boss ? 590 : Phaser.Math.Between(FLOOR_TOP + 20, FLOOR_BOT - 20);
     const m = new Monster(this, kind, x, y);
     this.monsters.push(m);
@@ -371,6 +384,42 @@ class Game extends Phaser.Scene {
       this.tweens.add({ targets: e, y: e.y - Phaser.Math.Between(80, 150), alpha: 0, scale: .3, duration: Phaser.Math.Between(500, 800), onComplete: () => e.destroy() });
     }
   }
+  // 버튼 뒤에 캐릭터·몬스터가 들어오면 그 버튼을 거의 투명하게 (누르는 건 그대로)
+  updateTouchFade() {
+    if (!this.btns || !this.btns.length) return;
+    const cam = this.cameras.main, dt = this.dtv || 16, on = Settings.d.autoFade !== false;
+    const ak = BTN_ALPHAS[Settings.d.btnAlpha ?? 1] || 1;
+    const boxes = [];
+    if (on) for (const a of [this.hero, this.ally, ...this.monsters]) {
+      if (!a || a.dead || !a.rig) continue;
+      const hh = a.height || 180, w = Math.max(60, hh * 0.55), x = (a.x - cam.scrollX) * cam.zoom, bot = a.y - (a.z || 0);
+      boxes.push([x - w / 2, x + w / 2, bot - hh, bot + 10]);
+    }
+    if (!this.fadeG) this.fadeG = this.add.graphics().setScrollFactor(0).setDepth(6005);
+    const fg = this.fadeG; fg.clear();
+    for (const b of this.btns) {
+      if (b.name2 === 'pause') continue;
+      const held = b.pointerIds && b.pointerIds.size > 0;
+      const r = (b.restScale || 1) * Math.max(b.width, b.height) * 0.5;
+      let hit = false;
+      for (const [x0, x1, y0, y1] of boxes) {
+        const cx = Phaser.Math.Clamp(b.x, x0, x1), cy = Phaser.Math.Clamp(b.y, y0, y1);
+        if ((cx - b.x) ** 2 + (cy - b.y) ** 2 < r * r * 0.8) { hit = true; break; }
+      }
+      const target = held ? 1 : hit ? 0.18 : 1;
+      b.fadeK = b.fadeK === undefined ? 1 : held ? 1 : b.fadeK + (target - b.fadeK) * Math.min(1, dt / 110);
+      const f = b.fadeK;
+      const base = b.name2 === 'awk' && !held ? (b.awkA ?? 1) : held ? 0.94 : b.restAlpha;
+      b.setAlpha(Math.min(1, base * ak) * f);
+      if (b.touchIcon) b.touchIcon.setAlpha(Math.min(1, (held ? 1 : 0.78) * ak) * f);
+      if (b.touchLabel) b.touchLabel.setAlpha((held ? 1 : 0.9) * f);
+      if (b.cdG) b.cdG.setAlpha(Math.max(f, 0.35));
+      if (b.cdT) b.cdT.setAlpha(Math.max(f, 0.6));
+      if (b === this.awkBtn) { if (this.awkRing) this.awkRing.setAlpha(Math.max(f, 0.45)); if (this.awkPct) this.awkPct.setAlpha(Math.max(f, 0.6)); }
+      // 투명해진 버튼은 얇은 테두리로 자리만 알려 준다
+      if (f < 0.7) fg.lineStyle(3, 0xfff4d8, (0.7 - f) * 1.1).strokeCircle(b.x, b.y, r);
+    }
+  }
   updateSkillButtons() {
     if (!this.btns) return;
     for (const b of this.btns) {
@@ -395,6 +444,7 @@ class Game extends Phaser.Scene {
   }
   updateAwkButton(h, full) {
     const b=this.awkBtn; if(!b||!this.awkRing) return;
+    b.awkA=full?1:(this.buffs.awk||0)>0?.9:.5;
     const v=Phaser.Math.Clamp(h.awk/100,0,1), held=b.pointerIds.size>0, g=this.awkRing;
     const r=b.restScale*Math.max(b.width,b.height)*.5+5;
     // 막 가득 찼을 때 한 번 알려 준다
@@ -612,6 +662,7 @@ class Game extends Phaser.Scene {
     this.awkHint.setText(full ? '각성 준비!' : '').setY(102);
     this.updateAwkButton(h, full);
     this.updateSkillButtons();
+    this.updateTouchFade();
     // 버프 표시
     const bt = Object.entries(this.buffs).filter(([, v]) => v > 0).map(([k, v]) => ({ shout: '함성', taunt: '도발', awk: `각성 상태 ${Math.ceil(v / 1000)}초` }[k])).filter(Boolean).join(' ');
     if (bt) this.awkHint.setText((full ? '각성 준비!  ' : '') + bt);
@@ -2016,7 +2067,8 @@ class Game extends Phaser.Scene {
     if (this.lock) target = Phaser.Math.Clamp(target, this.lock.l, this.lock.r - W);
     cam.scrollX = Phaser.Math.Linear(cam.scrollX, Phaser.Math.Clamp(target, 0, STAGE_W - W), 0.12);
     if (!this.lock) this.bounds = { l: cam.scrollX, r: Math.max(cam.scrollX + W, this.hero.x + 40) };
-    else this.bounds = { l: Math.max(this.lock.l, cam.scrollX), r: Math.min(this.lock.r, cam.scrollX + W) };
+    else { const k = touchSizeK(), pr = this.isTouch ? 210 * k : 0, pl = this.isTouch ? 50 * k : 0;
+      this.bounds = { l: Math.max(this.lock.l, cam.scrollX) + pl, r: Math.min(this.lock.r, cam.scrollX + W) - pr }; }
     this.drawHud();
   }
 }
