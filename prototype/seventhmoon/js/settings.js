@@ -1,7 +1,7 @@
 // 설정 (음량·진동·절전 모드)과 앱 저장소(Capacitor Preferences) 연결
 const Settings = {
   KEY: 'seventhmoon.settings',
-  d: { music: 0.8, sfx: 1, vib: true, low: false, btnSize: 1, btnAlpha: 1, autoFade: true },
+  d: { music: 0.8, sfx: 1, vib: true, low: false, btnAlpha: 1, autoFade: true },
   load() { try { Object.assign(this.d, JSON.parse(localStorage.getItem(this.KEY) || '{}')); } catch (e) { /* 기본값 */ } return this; },
   save() { try { const t = JSON.stringify(this.d); localStorage.setItem(this.KEY, t); NativeStore.mirror(this.KEY, t); } catch (e) { /* 무시 */ } this.apply(); },
   apply() {
@@ -65,13 +65,11 @@ function openSettings(scene, onClose) {
     tog(270, '진동', 'vib');
     tog(335, '절전 모드', 'low', '30프레임, 파편과 이펙트를 줄여 배터리와 발열을 아껴요');
     // 전투 버튼
-    const relayout = () => { if (scene.layoutTouchControls && scene.btns) scene.layoutTouchControls(); };
     const cyc = (y, label, k, names) => row(y, label, names[d[k] ?? 1],
-      () => { d[k] = Math.max(0, (d[k] ?? 1) - 1); Settings.save(); relayout(); draw(); },
-      () => { d[k] = Math.min(names.length - 1, (d[k] ?? 1) + 1); Settings.save(); relayout(); draw(); });
-    cyc(425, '버튼 크기', 'btnSize', ['작게', '보통', '크게']);
-    cyc(490, '버튼 진하기', 'btnAlpha', ['옅게', '보통', '진하게']);
-    tog(555, '자동 투명', 'autoFade', '버튼 뒤에 캐릭터나 몬스터가 오면 버튼이 투명해져요');
+      () => { d[k] = Math.max(0, (d[k] ?? 1) - 1); Settings.save(); draw(); },
+      () => { d[k] = Math.min(names.length - 1, (d[k] ?? 1) + 1); Settings.save(); draw(); });
+    cyc(440, '버튼 진하기', 'btnAlpha', ['옅게', '보통', '진하게']);
+    tog(520, '자동 투명', 'autoFade', '버튼 뒤에 캐릭터나 몬스터가 오면 버튼이 투명해져요');
     c.add(UI.button(scene, W / 2, 652, '닫기', () => { c.destroy(); if (onClose) onClose(); }, { w: 200, h: 52, size: 22 }));
     c.each(o => o.setScrollFactor && o.setScrollFactor(0));
   };

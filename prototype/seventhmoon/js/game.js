@@ -4,33 +4,21 @@ const Q = new URLSearchParams(location.search);
 let STAGE_W = 6600;
 
 // 1280×720 기준. 그림 크기와 누르는 범위를 분리해 엄지는 편하고 중앙 시야는 비운다.
-// 설정의 버튼 크기 (작게·보통·크게)
-const BTN_SIZES = [0.88, 1, 1.14], BTN_ALPHAS = [0.7, 1, 1.3];
-function touchSizeK() { return typeof Settings !== 'undefined' ? (BTN_SIZES[Settings.d.btnSize ?? 1] || 1) : 1; }
+// 설정의 버튼 진하기 (옅게·보통·진하게)
+const BTN_ALPHAS = [0.7, 1, 1.3];
 function touchControlLayout(safe = {}) {
-  const L = touchControlLayoutBase(safe), k = touchSizeK();
-  if (k === 1) return L;
-  const l=safe.left||0,r=safe.right||0,b=safe.bottom||0,ax=W-r,ay=H-b;
-  const st=L.stick, sx=v=>l+(v-l)*k, sy=v=>ay-(ay-v)*k;
-  Object.assign(st,{x:sx(st.x),y:sy(st.y),size:st.size*k,knobDiameter:st.knobDiameter*k,travel:st.travel*k,minX:sx(st.minX),maxX:sx(st.maxX),minY:sy(st.minY),maxY:sy(st.maxY)});
-  for (const d of L.buttons) { if (d.name === 'pause') continue; d.x = ax - (ax - d.x) * k; d.y = ay - (ay - d.y) * k; d.size *= k; d.radius *= k; }
-  return L;
-}
-function touchControlLayoutBase(safe = {}) {
   const l=safe.left||0,r=safe.right||0,b=safe.bottom||0,t=safe.top||0;
   return {
     stick:{x:132+l,y:614-b,size:138,knobDiameter:72,travel:54,deadX:15,deadY:18,
       minX:88+l,maxX:218+l,minY:560-b,maxY:640-b},
     buttons:[
-      // 오른손 엄지: 공격을 중심으로 두 겹의 고리.
-      // 안쪽 고리(공격에서 150) = 자주 쓰는 점프·회피·가드, 바깥 고리(250) = 스킬 2개와 각성
-      {name:'atk',key:'attack',x:1170-r,y:610-b,size:132,radius:82,alpha:.72},
-      {name:'jump',key:'jump',x:1021-r,y:623-b,size:86,radius:52,label:'점프'},
-      {name:'roll',key:'roll',x:1074-r,y:495-b,size:86,radius:52,label:'회피'},
-      {name:'guard',key:'skill_frame',x:1196-r,y:462-b,size:86,radius:52,label:'가드'},
-      {name:'sk1',key:'skill_frame',x:953-r,y:485-b,size:84,radius:50,label:'스킬 1',slot:0},
-      {name:'sk2',key:'skill_frame',x:1057-r,y:387-b,size:84,radius:50,label:'스킬 2',slot:1},
-      {name:'awk',key:'awaken',x:1192-r,y:361-b,size:84,radius:50,label:'각성'},
+      {name:'atk',key:'attack',x:1182-r,y:618-b,size:122,radius:74,alpha:.68},
+      {name:'jump',key:'jump',x:1040-r,y:652-b,size:88,radius:52,label:'점프'},
+      {name:'guard',key:'skill_frame',x:1010-r,y:540-b,size:88,radius:52,label:'가드'},
+      {name:'roll',key:'roll',x:1220-r,y:466-b,size:86,radius:51,label:'회피'},
+      {name:'sk1',key:'skill_frame',x:1008-r,y:428-b,size:82,radius:50,label:'스킬 1',slot:0},
+      {name:'sk2',key:'skill_frame',x:1116-r,y:454-b,size:82,radius:50,label:'스킬 2',slot:1},
+      {name:'awk',key:'awaken',x:1214-r,y:344-b,size:80,radius:50,label:'각성'},
       {name:'pause',key:'pause',x:1118-r,y:54+t,size:52,radius:50,alpha:.7},
     ],
   };
@@ -2067,7 +2055,7 @@ class Game extends Phaser.Scene {
     if (this.lock) target = Phaser.Math.Clamp(target, this.lock.l, this.lock.r - W);
     cam.scrollX = Phaser.Math.Linear(cam.scrollX, Phaser.Math.Clamp(target, 0, STAGE_W - W), 0.12);
     if (!this.lock) this.bounds = { l: cam.scrollX, r: Math.max(cam.scrollX + W, this.hero.x + 40) };
-    else { const k = touchSizeK(), pr = this.isTouch ? 210 * k : 0, pl = this.isTouch ? 50 * k : 0;
+    else { const pr = this.isTouch ? 210 : 0, pl = this.isTouch ? 50 : 0;
       this.bounds = { l: Math.max(this.lock.l, cam.scrollX) + pl, r: Math.min(this.lock.r, cam.scrollX + W) - pr }; }
     this.drawHud();
   }
