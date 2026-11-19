@@ -10,13 +10,15 @@ function touchControlLayout(safe = {}) {
     stick:{x:132+l,y:614-b,size:138,knobDiameter:72,travel:54,deadX:15,deadY:18,
       minX:88+l,maxX:218+l,minY:560-b,maxY:640-b},
     buttons:[
-      {name:'atk',key:'attack',x:1182-r,y:618-b,size:122,radius:74,alpha:.68},
-      {name:'jump',key:'jump',x:1040-r,y:652-b,size:88,radius:52,label:'점프'},
-      {name:'guard',key:'skill_frame',x:1010-r,y:540-b,size:88,radius:52,label:'가드'},
-      {name:'roll',key:'roll',x:1220-r,y:466-b,size:86,radius:51,label:'회피'},
-      {name:'sk1',key:'skill_frame',x:1008-r,y:428-b,size:82,radius:50,label:'스킬 1',slot:0},
-      {name:'sk2',key:'skill_frame',x:1116-r,y:454-b,size:82,radius:50,label:'스킬 2',slot:1},
-      {name:'awk',key:'awaken',x:1214-r,y:344-b,size:80,radius:50,label:'각성'},
+      // 오른손 엄지: 공격을 중심으로 두 겹의 고리.
+      // 안쪽 고리(공격에서 150) = 자주 쓰는 점프·회피·가드, 바깥 고리(250) = 스킬 2개와 각성
+      {name:'atk',key:'attack',x:1170-r,y:610-b,size:132,radius:82,alpha:.72},
+      {name:'jump',key:'jump',x:1021-r,y:623-b,size:86,radius:52,label:'점프'},
+      {name:'roll',key:'roll',x:1074-r,y:495-b,size:86,radius:52,label:'회피'},
+      {name:'guard',key:'skill_frame',x:1196-r,y:462-b,size:86,radius:52,label:'가드'},
+      {name:'sk1',key:'skill_frame',x:953-r,y:485-b,size:84,radius:50,label:'스킬 1',slot:0},
+      {name:'sk2',key:'skill_frame',x:1057-r,y:387-b,size:84,radius:50,label:'스킬 2',slot:1},
+      {name:'awk',key:'awaken',x:1192-r,y:361-b,size:84,radius:50,label:'각성'},
       {name:'pause',key:'pause',x:1118-r,y:54+t,size:52,radius:50,alpha:.7},
     ],
   };
@@ -282,7 +284,7 @@ class Game extends Phaser.Scene {
       const idx=this.save.active[d.slot];
       if(d.slot!==undefined&&(idx===null||idx===undefined))continue;
       const button=this.add.image(d.x,d.y,'ui/'+d.key).setScrollFactor(0).setDepth(6000);
-      Object.assign(button,{name2:d.name,restAlpha:d.alpha||.56,touchOwner:this,pointerIds:new Set()});
+      Object.assign(button,{name2:d.name,slot:d.slot,restAlpha:d.alpha||.56,touchOwner:this,pointerIds:new Set()});
       if(d.label)button.touchLabel=this.add.text(d.x,d.y+d.size*.31,d.label,{fontFamily:'sans-serif',fontSize:18,color:'#fff4d8',stroke:'#000',strokeThickness:3,fontStyle:'bold'}).setOrigin(.5).setScrollFactor(0).setDepth(6002);
       const icon=d.name==='guard'
         ? ['offhand_0','shield_0','weapon_0'].map(n=>this.save.hero+'/'+n).find(k=>this.textures.exists(k))||'warrior/shield_0'
@@ -293,6 +295,10 @@ class Game extends Phaser.Scene {
     }
     // 각성 버튼: 테두리가 게이지만큼 차오르고, 가득 차면 빛난다
     this.awkBtn=this.btns.find(b=>b.name2==='awk');
+    this.atkBtn=this.btns.find(b=>b.name2==='atk');
+    // 스킬 버튼: 쿨다운 동안 어두운 부채꼴과 남은 초
+    for(const b of this.btns)if(b.slot!==undefined){b.cdG=this.add.graphics().setScrollFactor(0).setDepth(6003);
+      b.cdT=this.add.text(0,0,'',{fontFamily:'sans-serif',fontSize:26,color:'#ffffff',stroke:'#000',strokeThickness:5,fontStyle:'bold'}).setOrigin(.5).setScrollFactor(0).setDepth(6004);}
     if(this.awkBtn){this.awkRing=this.add.graphics().setScrollFactor(0).setDepth(6003);
       this.awkPct=this.add.text(0,0,'',{fontFamily:'sans-serif',fontSize:16,color:'#ffe7a8',stroke:'#000',strokeThickness:4,fontStyle:'bold'}).setOrigin(.5).setScrollFactor(0).setDepth(6004);}
     this.layoutTouchControls();
@@ -363,6 +369,28 @@ class Game extends Phaser.Scene {
       this.awkEmber = 90;
       const e = this.add.circle(h.x + Phaser.Math.Between(-45, 45), h.y - Phaser.Math.Between(10, 120), Phaser.Math.Between(3, 6), col, 1).setDepth(h.y + 1004).setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets: e, y: e.y - Phaser.Math.Between(80, 150), alpha: 0, scale: .3, duration: Phaser.Math.Between(500, 800), onComplete: () => e.destroy() });
+    }
+  }
+  updateSkillButtons() {
+    if (!this.btns) return;
+    for (const b of this.btns) {
+      if (!b.cdG) continue;
+      const idx = this.save.active[b.slot], sk = DB.skills[this.save.hero].list[idx];
+      const cd = this.cds[b.slot] || 0, max = ((sk && (SKILL_CD[sk.name] || SKILL_FX[sk.name]?.cd)) || 1) * (1 - this.stats.cdr / 100);
+      const r = b.restScale * Math.max(b.width, b.height) * .5 - 2, g = b.cdG;
+      g.clear();
+      if (cd > 0) {
+        const v = Phaser.Math.Clamp(cd / Math.max(1, max), 0, 1);
+        g.fillStyle(0x000000, .6).slice(b.x, b.y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * v, false).fillPath();
+        b.cdT.setPosition(b.x, b.y - 6).setText(String(Math.ceil(cd / 1000)));
+        if (b.touchIcon) b.touchIcon.setAlpha(.45);
+        b.wasCd = true;
+      } else {
+        b.cdT.setText('');
+        // 쿨다운이 막 끝나면 한 번 반짝
+        if (b.wasCd) { b.wasCd = false; b.readyFlash = this.now + 300; }
+        if ((b.readyFlash || 0) > this.now) g.lineStyle(5, 0x9ae0ff, (b.readyFlash - this.now) / 300).strokeCircle(b.x, b.y, r + 4);
+      }
     }
   }
   updateAwkButton(h, full) {
@@ -475,6 +503,11 @@ class Game extends Phaser.Scene {
       guard: !!ti.guard || k.I.isDown || k.SHIFT.isDown || k.SPACE.isDown || t.guard,
     };
     for (const n of ['atk', 'jump', 'roll', 'awk', 'sk1', 'sk2']) inp[n + 'P'] = cur[n] && !this.prev[n];
+    // 공격 버튼을 누르고 있으면 0.13초마다 다시 누른 것으로 친다 (연타 대신 꾹)
+    if (this.atkBtn && this.atkBtn.pointerIds.size > 0 && !inp.atkP) {
+      this.atkHoldT = (this.atkHoldT || 0) + (this.dtv || 16);
+      if (this.atkHoldT >= 130) { this.atkHoldT = 0; inp.atkP = true; }
+    } else this.atkHoldT = 0;
     inp.itemN = t.item || ti.item || [1, 2, 3, 4].find(i => cur['i' + i] && !this.prev['i' + i]) || 0;
     this.prev = cur;
     t.atk = t.jump = t.roll = t.awk = t.sk1 = t.sk2 = false; t.item = 0;
@@ -578,6 +611,7 @@ class Game extends Phaser.Scene {
     bar(132, 92, 296, 7, h.awk / 100, full ? (Math.floor(this.now / 120) % 2 ? 0xfff2a0 : 0xffb020) : 0xe0a030);
     this.awkHint.setText(full ? '각성 준비!' : '').setY(102);
     this.updateAwkButton(h, full);
+    this.updateSkillButtons();
     // 버프 표시
     const bt = Object.entries(this.buffs).filter(([, v]) => v > 0).map(([k, v]) => ({ shout: '함성', taunt: '도발', awk: `각성 상태 ${Math.ceil(v / 1000)}초` }[k])).filter(Boolean).join(' ');
     if (bt) this.awkHint.setText((full ? '각성 준비!  ' : '') + bt);
