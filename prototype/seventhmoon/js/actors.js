@@ -160,6 +160,8 @@ class Hero extends Actor {
     this.key = key;
     this.cls = classOf(key);
     this.atkSet = this.cls.atk;
+    this.baseStand = STANCE[key] || P.stand; this.rig.measure(this.baseStand);
+    this.mv = HERO_MOVE[key] || HERO_MOVE.warrior; this.idleT = 0; this.habitT = 4000 + Math.random() * 3000;
     this.st8 = scene.stats || { hp: 360, parryWin: 0, staRegen: 0, spd: 0 };
     this.maxHp = this.st8.hp; this.hp = this.maxHp;
     this.sta = 100; this.awk = 0;
@@ -197,13 +199,22 @@ class Hero extends Actor {
       if (inp.guard) return this.startGuard();
       if (this.buffer > 0) { this.buffer = 0; return this.startAttack(this.pickCommand(inp)); }
       const run = this.holdT > 320 && inp.x !== 0;
-      const sp = (run ? 330 : 200) * (1 + (this.st8.spd || 0) / 100);
+      const sp = (run ? this.mv[1] : this.mv[0]) * (1 + (this.st8.spd || 0) / 100);
       this.vx = inp.x * sp; this.vy = inp.y * 150;
       if (inp.x) this.face = inp.x;
       if (inp.x || inp.y) {
         this.state = 'move'; this.play(run ? 'run' : 'walk', 120);
         this.running = run;
-      } else { this.state = 'idle'; this.play(this.hp < this.maxHp * 0.25 ? 'idle' : 'idle', 150); }
+      } else {
+        // 가만히 있으면 가끔 직업별 버릇
+        if (this.state !== 'idle') { this.idleT = 0; this.habit = null; }
+        this.state = 'idle'; this.idleT += dt;
+        if (this.habit) { if (this.animDone()) { this.habit = null; this.play('idle', 200); } }
+        else if (this.idleT > this.habitT && !this.scene.won && this.scene.monsters.every(m => m.dead || Math.abs(m.x - this.x) > 500)) {
+          const hs = HABITS[this.key]; this.habit = hs[Math.floor(Math.random() * hs.length)]; this.replay(this.habit, 200);
+          this.idleT = 0; this.habitT = 5000 + Math.random() * 4000;
+        } else this.play('idle', 150);
+      }
       this.physics(dt);
       return;
     }
@@ -292,7 +303,7 @@ class Hero extends Actor {
   }
   toIdle() { this.state = 'idle'; this.st = 0; this.play('idle', 120); this.setHead(null); this.gravMul = 1; }
   startJump(inp) {
-    this.state = 'jump'; this.st = 0; this.vz = 860; this.z = 0.01; this.jumpAtkUsed = false; this.dj = false;
+    this.state = 'jump'; this.st = 0; this.vz = this.mv ? this.mv[2] : 860; this.z = 0.01; this.jumpAtkUsed = false; this.dj = false;
     this.play('w_jump', 60); SFX.jump(this.px); this.kick(0, 0, 0.12);
     this.scene.fx('dust_land', this.x, this.y, { s: 0.22, dur: 300, depth: this.y - 1 });
   }

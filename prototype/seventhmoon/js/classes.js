@@ -23,25 +23,28 @@ function makeClasses() {
   C.mage = {
     hp: 0.82, smear: 'smear_mage', awaken: 'meteors', ranged: true, guardFx: 'holy_ring',
     atk: {
-      a1: { clip: 'c_cast', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_fire', 'fire', 13) },
-      a2: { clip: 'c_cast', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_ice', 'ice', 13) },
-      a3: { clip: 'c_cast', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_bolt', 'bolt', 13) },
-      a4: { clip: 'c_big', dur: 560, hit: [380, 390], dmg: 0, special: 'burst', sdmg: 34, fin: true, shake: 6 },
-      dash: { clip: 'c_cast', dur: 300, hit: [60, 70], dmg: 0, special: 'blink' },
-      up: { clip: 'c_big', dur: 460, hit: [300, 310], dmg: 0, special: 'icepillar', sdmg: 24 },
-      down: { clip: 'c_cast', dur: 380, hit: [150, 160], dmg: 0, special: 'firefield', sdmg: 9 },
-      jump: { clip: 'c_cast', dur: 360, hit: [150, 160], dmg: 0, proj: { ...bolt('crystal_fire', 'fire', 18), vy: 260 } },
+      a1: { clip: 'mg_atk1', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_fire', 'fire', 13) },
+      a2: { clip: 'mg_atk2', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_ice', 'ice', 13) },
+      a3: { clip: 'mg_atk3', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_bolt', 'bolt', 13) },
+      a4: { clip: 'mg_big', dur: 560, hit: [380, 390], dmg: 0, special: 'burst', sdmg: 34, fin: true, shake: 6 },
+      dash: { clip: 'mage_roll', dur: 300, hit: [60, 70], dmg: 0, special: 'blink' },
+      up: { clip: 'mg_big', dur: 460, hit: [300, 310], dmg: 0, special: 'icepillar', sdmg: 24 },
+      down: { clip: 'mg_atk2', dur: 380, hit: [150, 160], dmg: 0, special: 'firefield', sdmg: 9 },
+      jump: { clip: 'mg_atk1', dur: 360, hit: [150, 160], dmg: 0, proj: { ...bolt('crystal_fire', 'fire', 18), vy: 260 } },
     },
   };
   // ---- 성기사: 묵직한 망치와 신성 ----
   const pal = cloneAtk(W, { dur: 1.08, dmg: 1.15 });
   pal.up.special = 'holyup'; pal.down.special = 'sanctuary';
+  ['a1', 'a2', 'a3', 'a4'].forEach((k, i) => { pal[k].clip = 'pa_atk' + (i + 1); });
+  pal.a3.swing = 's';
   C.paladin = { atk: pal, hp: 1.12, smear: 'smear_warrior', smearTint: 0xfff0b0, awaken: 'holyDescent', elem: 'holy', guardFx: 'guard_flash' };
   // ---- 그림자도적: 빠른 쌍단검, 등 뒤 치명타 ----
   const rog = cloneAtk(W, { dur: 0.74, dmg: 0.78 });
   rog.a3 = { ...rog.a2, swing: 'h', dmg: 12, lunge: 260 };
   rog.a4 = { ...rog.a4, dmg: 30 };
-  rog.dash = { clip: 'w_atk1', dur: 330, hit: [90, 150], dmg: 26, reach: [0, 160], dz: 40, kb: 200, type: 'knock', stop: 70, special: 'shadowstep' };
+  ['a1', 'a2', 'a3', 'a4'].forEach((k, i) => { rog[k].clip = 'ro_atk' + (i + 1); });
+  rog.dash = { clip: 'ro_dash', dur: 330, hit: [90, 150], dmg: 26, reach: [0, 160], dz: 40, kb: 200, type: 'knock', stop: 70, special: 'shadowstep' };
   rog.up = { ...rog.up, special: 'spin', type: 'launch' };
   rog.down = { clip: 'r_volley', dur: 420, hit: [200, 210], dmg: 0, special: 'daggerrain', sdmg: 12 };
   C.rogue = { atk: rog, hp: 0.86, smear: 'smear_warrior', smearTint: 0xc8a0ff, awaken: 'moonDance', critAdd: 8, backstab: true, guardFx: 'guard_flash' };
@@ -50,10 +53,10 @@ function makeClasses() {
   C.ranger = {
     hp: 0.86, smear: 'smear_warrior', awaken: 'arrowRain', ranged: true, guardFx: 'guard_flash',
     atk: {
-      a1: { clip: 'r_shoot', dur: 300, hit: [180, 190], dmg: 0, next: 170, proj: arrow(13) },
-      a2: { clip: 'r_shoot', dur: 300, hit: [180, 190], dmg: 0, next: 170, proj: arrow(13) },
-      a3: { clip: 'r_shoot', dur: 300, hit: [180, 190], dmg: 0, next: 170, proj: arrow(14) },
-      a4: { clip: 'r_shoot', dur: 460, hit: [180, 190], dmg: 0, fin: true, proj: arrow(15, { n: 3, spread: 70 }) },
+      a1: { clip: 'rg_atk1', dur: 300, hit: [180, 190], dmg: 0, next: 170, proj: arrow(13) },
+      a2: { clip: 'rg_atk2', dur: 300, hit: [180, 190], dmg: 0, next: 170, proj: arrow(13) },
+      a3: { clip: 'rg_atk3', dur: 300, hit: [180, 190], dmg: 0, next: 170, proj: arrow(14) },
+      a4: { clip: 'rg_atk4', dur: 460, hit: [180, 190], dmg: 0, fin: true, proj: arrow(15, { n: 3, spread: 70 }) },
       dash: { clip: 'w_up', dur: 380, hit: [120, 200], dmg: 18, reach: [0, 130], dz: 36, kb: 380, type: 'knock', stop: 70, special: 'backflip' },
       up: { clip: 'r_volley', dur: 420, hit: [220, 230], dmg: 0, special: 'volley', sdmg: 14 },
       down: { clip: 'w_atk3', dur: 340, hit: [115, 200], dmg: 16, reach: [10, 150], dz: 34, kb: 300, type: 'knock', stop: 75, swing: 's', lunge: 200 },
@@ -63,6 +66,8 @@ function makeClasses() {
   // ---- 흑월술사: 대검, 체력이 낮을수록 강해진다 ----
   const hex = cloneAtk(W, { dur: 1.18, dmg: 1.35 });
   hex.down.special = 'voidslam';
+  ['a1', 'a2', 'a3', 'a4'].forEach((k, i) => { hex[k].clip = 'hx_atk' + (i + 1); });
+  hex.a1.swing = 'h'; hex.a2.swing = 'u'; hex.a3.swing = 'v'; hex.a4.swing = 'h';
   C.hexblade = { atk: hex, hp: 1.0, smear: 'smear_warrior', smearTint: 0xb070ff, awaken: 'blackMoon', frenzy: true, guardFx: 'guard_flash' };
   // 내려찍기(바닥 충격) 표시
   for (const c of Object.values(C)) if (c.atk.down && !c.ranged) c.atk.down.slam = true;
@@ -117,6 +122,7 @@ function heroRig(key) {
     });
   }
   // 부품 시트에 없는 장식은 autoHumanoid가 건너뛴다
+  base.clips = HERO_CLIPMAP[key];
   return autoHumanoid(key, base);
 }
 
