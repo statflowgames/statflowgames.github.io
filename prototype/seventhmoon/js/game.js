@@ -753,6 +753,8 @@ class Game extends Phaser.Scene {
   heroArea(x, y, rx, ry, base, o = {}) {
     const h = this.hero;
     let n = 0;
+    // 범위 공격에 걸린 통·상자는 한 번에 깨진다
+    for (const pr of this.props) if (pr.hp > 0 && !(o.hitSet && o.hitSet.has(pr)) && Math.abs(pr.x - x) < rx + 30 && Math.abs(pr.y - y) < ry + 20) { if (o.hitSet) o.hitSet.add(pr); pr.hp = 1; this.hitProp(pr, h); }
     for (const m of this.monsters) {
       if (m.dead || (o.hitSet && o.hitSet.has(m))) continue;
       if (Math.abs(m.x - x) > rx + (m.kind === 'barkhaul' ? 60 : 0) || Math.abs(m.y - y) > ry) continue;
@@ -978,6 +980,13 @@ class Game extends Phaser.Scene {
         if (p.poise && m.kind === 'barkhaul') m.poise -= p.poise;
         if (p.chain) this.chainBolt(m, dmg * 0.5, p.chain);
       }
+      if (!p.pierce) { p.life = 0; break; }
+    }
+    // 통·상자도 깨진다
+    if (p.life > 0) for (const pr of this.props) {
+      if (pr.hp <= 0 || p.hit.has(pr) || Math.abs(p.x - pr.x) > 50 || Math.abs(p.y - pr.y) > 40) continue;
+      p.hit.set(pr, this.now);
+      this.hitProp(pr, h);
       if (!p.pierce) { p.life = 0; break; }
     }
     if (p.life <= 0 && p.boom) {
