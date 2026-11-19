@@ -35,7 +35,6 @@ class Title extends Phaser.Scene {
     y += 90;
     UI.button(this, W / 2 + 30, y, '조작법', () => this.help(), { w: 175, h: 56, size: 22, col: 0x3a2a1a });
     UI.button(this, W / 2 + 210, y, '설정', () => openSettings(this), { w: 175, h: 56, size: 22, col: 0x2a3a5a });
-    UI.text(this, W - 16, H - 12, 'M1 준비판 · 그림이 아직 없는 몬스터는 색을 바꾼 그롤린으로 대신해요', 15, '#c8b8a0').setOrigin(1, 1);
     SFX.music('bgm_title');
     this.input.keyboard.once('keydown-ENTER', () => (has ? this.cont() : this.newGame(false)));
   }
@@ -82,20 +81,41 @@ class Title extends Phaser.Scene {
     runTalk(this, 'opening', () => this.scene.start('game', { stage: 'c1_s1', ch: 1, node: 's1' }));
   }
   help() {
+    // 실제 전투 화면의 버튼 자리를 그대로 그려서 보여 준다
     const c = this.add.container(0, 0).setDepth(100);
-    c.add(UI.blocker(this, 0.75));
-    c.add(UI.panel(this, 180, 110, 920, 500));
-    c.add(UI.text(this, W / 2, 150, '조작법', 38, '#ffe7a8', { serif: true }).setOrigin(0.5));
-    c.add(UI.text(this, 240, 210, [
-      '이동  WASD · 방향키 (위아래로 깊이 이동)',
-      '공격  J   점프  K   구르기  L   가드  I (맞기 직전에 누르면 패리)',
-      '각성기  O (게이지가 가득 찼을 때)',
-      '스킬  U · H     아이템 벨트  1 · 2 · 3 · 4     동료 명령  G',
-      '달리며 공격 = 방패 돌진 · 위+공격 = 올려치기 · 아래+공격 = 내려찍기',
-      '일시 정지  P · Esc',
-      '휴대폰: 왼쪽 아래 패드, 오른쪽 버튼',
-    ].join('\n'), 24, '#f4e4c0', { ls: 16 }));
-    c.add(UI.button(this, W / 2, 560, '닫기', () => c.destroy(), { w: 200, h: 52, size: 22 }));
+    c.add(UI.blocker(this, 0.96));
+    c.add(UI.text(this, W / 2, 40, '조작법', 38, '#ffe7a8', { serif: true }).setOrigin(0.5));
+    const g = this.add.graphics(); c.add(g);
+    g.lineStyle(2, 0x8a7a68, 0.8).strokeRoundedRect(60, 80, W - 120, 560, 16);
+    const sx = x => 60 + x * (W - 120) / W, sy = y => 80 + y * 560 / H;
+    const circ = (x, y, r, col, label, sub, left) => {
+      g.fillStyle(col, 0.85).fillCircle(sx(x), sy(y), r).lineStyle(3, 0xffe7a8).strokeCircle(sx(x), sy(y), r);
+      c.add(UI.text(this, sx(x), sy(y), label, Math.min(22, r * 0.55), '#fff', { bold: true, align: 'center' }).setOrigin(0.5));
+      if (sub && left) c.add(UI.text(this, sx(x) - r - 8, sy(y), sub, 14, '#e8dcc8', { align: 'right' }).setOrigin(1, 0.5));
+      else if (sub) c.add(UI.text(this, sx(x), sy(y) + r + 4, sub, 14, '#e8dcc8', { align: 'center', wrap: 200 }).setOrigin(0.5, 0));
+    };
+    // 왼쪽: 이동 패드
+    g.fillStyle(0x3a2a1a, 0.6).fillCircle(sx(170), sy(560), 70).lineStyle(3, 0xffe7a8, 0.8).strokeCircle(sx(170), sy(560), 70);
+    g.fillStyle(0xffe7a8, 0.8).fillCircle(sx(170), sy(560), 26);
+    c.add(UI.text(this, sx(170), sy(560) - 100, '이동 패드', 22, '#ffe7a8', { bold: true }).setOrigin(0.5));
+    c.add(UI.text(this, sx(170) + 90, sy(560) - 40, '화면 왼쪽 어디든 누른 채 끌기\n위아래로 끌면 깊이 이동\n한쪽으로 오래 밀면 달리기', 17, '#e8dcc8', { ls: 6 }));
+    // 오른쪽 버튼들 (전투 화면과 같은 자리)
+    circ(1110, 590, 50, 0x8a2a10, '공격', '연달아 누르면 4연타');
+    circ(960, 640, 32, 0x2a5a8a, '점프', '점프 중 공격 = 점프 공격', true);
+    circ(960, 500, 32, 0x5a5a6a, '가드', '누르고 있기 · 맞기 직전 = 패리', true);
+    circ(1190, 440, 30, 0x2a6a4a, '구르기', '구르는 동안 무적');
+    circ(1065, 395, 28, 0xa07010, '각성', '게이지 가득일 때');
+    circ(850, 420, 26, 0x4a3a7a, '스킬1', '스킬 (캠프 천막에서 장착)', true);
+    circ(1190, 300, 26, 0x4a3a7a, '스킬2', null);
+    circ(1228, 150, 18, 0x3a2a1a, 'II', '일시 정지');
+    // 위쪽 칸들
+    g.fillStyle(0x3a2a1a, 0.8).fillRoundedRect(sx(490), sy(20), sx(800) - sx(490), 50, 8);
+    c.add(UI.text(this, (sx(490) + sx(800)) / 2, sy(20) + 25, '아이템 벨트 (눌러서 사용)', 18, '#ffe7a8', { bold: true }).setOrigin(0.5));
+    g.fillStyle(0x1a2a3a, 0.8).fillRoundedRect(sx(16), sy(132), sx(316) - sx(16), 44, 8);
+    c.add(UI.text(this, (sx(16) + sx(316)) / 2, sy(132) + 22, '동료 칸: 눌러서 명령 바꾸기', 16, '#9ae0ff', { bold: true }).setOrigin(0.5));
+    // 커맨드
+    c.add(UI.text(this, W / 2, 668, '패드를 앞으로 밀며 공격 = 돌진  ·  패드 위 + 공격 = 올려치기  ·  패드 아래 + 공격 = 내려찍기', 19, '#ffd34d', { bold: true }).setOrigin(0.5));
+    c.add(UI.button(this, W - 130, 40, '닫기', () => c.destroy(), { w: 160, h: 50, size: 22 }));
   }
   update(t, dt) { this.t += dt; this.rig.apply(CLIPS.idle.at(this.t)); }
 }
@@ -373,7 +393,7 @@ class Camp extends Phaser.Scene {
     const c = this.add.container(0, 0).setDepth(200);
     c.add(UI.blocker(this, 0.82));
     c.add(UI.text(this, W / 2, 64, '동료 고르기', 40, '#ffe7a8', { serif: true, st: 7 }).setOrigin(0.5));
-    c.add(UI.text(this, W / 2, 110, '지금 직업이 아닌 한 명이 함께 싸워요. 전투 중 G키(휴대폰은 동료 칸 터치)로 명령을 바꿔요: 엄호 · 돌격 · 회복 우선', 17, '#d8c8b0', { align: 'center', wrap: 1100 }).setOrigin(0.5));
+    c.add(UI.text(this, W / 2, 110, '지금 직업이 아닌 한 명이 함께 싸워요. 전투 중 왼쪽 위 동료 칸을 누르면 명령이 바뀌어요: 엄호 · 돌격 · 회복 우선', 17, '#d8c8b0', { align: 'center', wrap: 1100 }).setOrigin(0.5));
     HERO_KEYS.forEach((k, i) => {
       const x = 130 + i * 204, y = 360, open = heroOpen(k, s) && k !== s.hero;
       const sel = s.ally === k;
@@ -709,12 +729,12 @@ class Skills extends MenuBase {
     const ai = UI.img(this, 740, 180, `icon/skill_${s.hero}_15`); if (ai) ai.setScale(80 / ai.height);
     UI.text(this, 740, 232, aw.name, 18, '#ffd34d').setOrigin(0.5, 0);
     // 장착한 액티브
-    UI.text(this, 740, 300, '장착 (U · H)', 20, '#ffe7a8', { bold: true }).setOrigin(0.5);
+    UI.text(this, 740, 300, '스킬 버튼 2칸', 20, '#ffe7a8', { bold: true }).setOrigin(0.5);
     s.active.forEach((a, k) => {
       const x = 690 + k * 100;
       UI.panel(this, x - 40, 330, 80, 80, { alpha: 0.8, inner: false, r: 10 });
       if (a !== null && a !== undefined) { const im = UI.img(this, x, 370, `icon/skill_${s.hero}_${a}`); if (im) im.setScale(70 / im.height); }
-      UI.text(this, x, 418, k === 0 ? 'U' : 'H', 16, '#c8b8a0').setOrigin(0.5, 0);
+      UI.text(this, x, 418, '스킬 ' + (k + 1), 16, '#c8b8a0').setOrigin(0.5, 0);
     });
     // 고른 스킬 설명
     UI.panel(this, 850, 110, 380, 440, { alpha: 0.6, line: 0x7a5a30 });
@@ -729,7 +749,7 @@ class Skills extends MenuBase {
         s.sp--; s.skills[i] = true; SFX.heal(); Save.write(); this.draw();
       }, { w: 260, h: 56, size: 22, disabled: !avail || s.sp < 1 });
       else if (info.kind === '액티브') {
-        [0, 1].forEach(k => UI.button(this, 960 + k * 150, 470, `${k === 0 ? 'U' : 'H'}에 장착`, () => {
+        [0, 1].forEach(k => UI.button(this, 960 + k * 150, 470, `${k + 1}번에 장착`, () => {
           s.active = s.active.map(a => (a === i ? null : a)); s.active[k] = i; Save.write(); this.draw();
         }, { w: 140, h: 52, size: 19 }));
       } else UI.text(this, 870, 460, '배운 패시브는 바로 적용돼요', 18, '#9ae07a');

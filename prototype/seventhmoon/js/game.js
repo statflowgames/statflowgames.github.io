@@ -19,13 +19,13 @@ const BOSS_ROOT = {
 };
 // 첫 스테이지 튜토리얼: 한 단계씩, 해 보면 다음으로
 const TUTORIAL = [
-  { pc: '이동: WASD 또는 방향키 (위아래로 깊이 이동)', touch: '이동: 왼쪽 아래를 눌러 끌기', done: g => Math.abs(g.hero.x - g.tut.x0) > 260 },
-  { pc: '공격: J를 연달아 눌러 4연타 콤보', touch: '공격: 오른쪽 큰 버튼을 연달아', done: g => g.maxCombo >= 4 },
-  { pc: '점프 K, 점프 중에 J로 점프 공격', touch: '점프 버튼, 공중에서 공격 버튼', done: g => g.tut.jatk },
-  { pc: '가드: I를 누르고 있기 (맞기 직전에 누르면 패리!)', touch: '방패 버튼을 누르고 있기 (맞기 직전 = 패리)', done: g => g.tut.guard },
-  { pc: '구르기: L (구르는 동안 무적)', touch: '구르기 버튼 (구르는 동안 무적)', done: g => g.tut.roll },
-  { pc: '각성 게이지가 가득! O로 각성기', touch: '각성 게이지가 가득! 각성 버튼', when: g => g.hero.awk >= 100, done: g => g.tut.awk },
-  { pc: '체력이 줄었어요. 1번으로 회복약', touch: '체력이 줄었어요. 화면 위 회복약을 터치', when: g => g.hero.hp < g.hero.maxHp * 0.6, done: g => g.tut.potion },
+  { pc: '이동: WASD 또는 방향키 (위아래로 깊이 이동)', touch: '이동: 화면 왼쪽을 누른 채 끌어요 (위아래로 깊이 이동)', done: g => Math.abs(g.hero.x - g.tut.x0) > 260 },
+  { pc: '공격: J를 연달아 눌러 4연타 콤보', touch: '공격: 오른쪽 아래 큰 버튼을 연달아 눌러 4연타', done: g => g.maxCombo >= 4 },
+  { pc: '점프 K, 점프 중에 J로 점프 공격', touch: '점프 버튼을 누르고, 공중에서 공격 버튼', done: g => g.tut.jatk },
+  { pc: '가드: I를 누르고 있기 (맞기 직전에 누르면 패리!)', touch: '가드 버튼을 누르고 있기 (맞기 직전에 누르면 패리!)', done: g => g.tut.guard },
+  { pc: '구르기: L (구르는 동안 무적)', touch: '구르기 버튼: 구르는 동안은 맞지 않아요', done: g => g.tut.roll },
+  { pc: '각성 게이지가 가득! O로 각성기', touch: '각성 게이지가 가득! 각성 버튼을 눌러요', when: g => g.hero.awk >= 100, done: g => g.tut.awk },
+  { pc: '체력이 줄었어요. 1번으로 회복약', touch: '체력이 줄었어요. 화면 위 회복약을 눌러요', when: g => g.hero.hp < g.hero.maxHp * 0.6, done: g => g.tut.potion },
 ];
 const SKILL_CD = { '도발의 외침': 12000, '대지 가르기': 8000, '전투 함성': 20000 };
 
@@ -105,7 +105,8 @@ class Game extends Phaser.Scene {
       this.ally = new Ally(this, s.ally, 150, 650);
       this.allyBonus = allyCombo(s.hero, s.ally);
     }
-    this.isTouch = Q.has('touch') || this.sys.game.device.input.touch;
+    // 모바일 전용: 터치 조작을 항상 보여 준다 (?kb는 개발용 키보드 화면)
+    this.isTouch = !Q.has('kb');
     this.buildHud();
     this.buildInput();
     this.waveIdx = 0; this.lock = null;
@@ -255,18 +256,22 @@ class Game extends Phaser.Scene {
     const base = this.add.image(170, 560, 'ui/stick_base').setScrollFactor(0).setDepth(6000).setAlpha(0.75).setScale(0.95);
     const knob = this.add.image(170, 560, 'ui/stick_knob').setScrollFactor(0).setDepth(6001).setAlpha(0.9).setScale(0.95);
     this.stick = { base, knob, id: null, cx: 170, cy: 560 };
-    const btn = (key, x, y, s, name) => {
+    const btn = (key, x, y, s, name, label) => {
       const b = this.add.image(x, y, 'ui/' + key).setScrollFactor(0).setDepth(6000).setScale(s).setAlpha(0.85);
-      b.r = b.displayWidth * 0.5; b.name2 = name; return b;
+      b.r = b.displayWidth * 0.5; b.name2 = name;
+      if (label) this.add.text(x, y + b.displayHeight * 0.5 - 4, label, { fontFamily: 'sans-serif', fontSize: 15, color: '#fff4d8', stroke: '#000', strokeThickness: 4, fontStyle: 'bold' }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(6002).setAlpha(0.9);
+      return b;
     };
-    this.btns = [btn('attack', 1110, 590, 0.85, 'atk'), btn('jump', 960, 640, 0.6, 'jump'), btn('roll', 1180, 430, 0.55, 'roll'), btn('skill_frame', 960, 490, 0.6, 'guard'), btn('awaken', 1050, 380, 0.5, 'awk')];
-    { const gk = ['offhand_0', 'shield_0', 'weapon_0'].map(n => this.save.hero + '/' + n).find(k => this.textures.exists(k)) || 'warrior/shield_0'; const gi = this.add.image(960, 490, gk).setScrollFactor(0).setDepth(6001); gi.setScale(70 / Math.max(gi.width, gi.height)); }
+    this.btns = [btn('attack', 1110, 590, 0.85, 'atk'), btn('jump', 960, 640, 0.6, 'jump', '점프'), btn('roll', 1190, 440, 0.55, 'roll', '구르기'), btn('skill_frame', 960, 500, 0.6, 'guard', '가드'), btn('awaken', 1065, 395, 0.5, 'awk', '각성')];
+    // 일시 정지
+    this.btns.push(btn('pause', 1228, 150, 0.42, 'pause'));
+    { const gk = ['offhand_0', 'shield_0', 'weapon_0'].map(n => this.save.hero + '/' + n).find(k => this.textures.exists(k)) || 'warrior/shield_0'; const gi = this.add.image(960, 500, gk).setScrollFactor(0).setDepth(6001); gi.setScale(70 / Math.max(gi.width, gi.height)); }
     // 스킬 버튼 2개
     const s = this.save;
-    [[850, 400, 'sk1'], [1180, 300, 'sk2']].forEach(([x, y, n], k) => {
+    [[850, 420, 'sk1'], [1190, 300, 'sk2']].forEach(([x, y, n], k) => {
       const idx = s.active[k];
       if (idx === null || idx === undefined) return;
-      const b = btn('skill_frame', x, y, 0.45, n); this.btns.push(b);
+      const b = btn('skill_frame', x, y, 0.45, n, '스킬 ' + (k + 1)); this.btns.push(b);
       const ic = UI.img(this, x, y, `icon/skill_${s.hero}_${idx}`); if (ic) ic.setScrollFactor(0).setDepth(6001).setScale(56 / ic.height);
     });
     this.input.on('pointerdown', p => this.onPointer(p));
@@ -294,6 +299,7 @@ class Game extends Phaser.Scene {
     }
     for (const b of this.btns) {
       if (Phaser.Math.Distance.Between(p.x, p.y, b.x, b.y) < b.r * 1.1) {
+        if (p.btn !== b && b.name2 === 'pause') { p.btn = b; this.togglePause(); continue; }
         if (p.btn !== b) { this.touch[b.name2] = true; p.btn = b; b.setScale(b.scale * 0.92); this.time.delayedCall(90, () => b.setScale(b.scale / 0.92)); }
       }
     }
@@ -417,10 +423,10 @@ class Game extends Phaser.Scene {
     bar(132, 78, 200, 9, h.sta / 100, 0x6fd06a);
     const full = h.awk >= 100;
     bar(132, 92, 296, 7, h.awk / 100, full ? (Math.floor(this.now / 120) % 2 ? 0xfff2a0 : 0xffb020) : 0xe0a030);
-    this.awkHint.setText(full ? '각성 준비! (O)' : '').setY(102);
+    this.awkHint.setText(full ? '각성 준비!' : '').setY(102);
     // 버프 표시
     const bt = Object.entries(this.buffs).filter(([, v]) => v > 0).map(([k]) => ({ shout: '함성', taunt: '도발' }[k])).join(' ');
-    if (bt) this.awkHint.setText((full ? '각성 준비! (O)  ' : '') + bt);
+    if (bt) this.awkHint.setText((full ? '각성 준비!  ' : '') + bt);
     for (const b of this.beltUi) { const n = this.save.belt[b.k] || 0; b.t.setText(String(n)); if (b.ic) b.ic.setAlpha(n ? 1 : 0.3); }
     for (const sk of this.skillUi) {
       sk.g.clear();
