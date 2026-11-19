@@ -18,7 +18,7 @@ function autoHumanoid(tex, o = {}) {
     uaA: [0.5, 0.18], uaLen: uah * 0.66 * armSc, faA: [0.5, 0.14], faLen: fah * 0.72 * armSc, handA: [0.2, 0.5], armSc,
     hipB: [pw * 0.09, ph * 0.09], hipF: [-pw * 0.09, ph * 0.09], legSc,
     thA: [0.5, 0.17], thLen: thh * 0.72 * legSc, shA: [0.5, 0.13], shLen: shh * 0.75 * legSc, ftA: [0.3, 0.3],
-    gripImg: 'hand_grip', frontHand: HAS(tex, 'hand_open') ? 'hand_open' : 'hand_grip',
+    gripImg: 'hand_grip', frontHand: o.frontHand || (HAS(tex, 'hand_open') ? 'hand_open' : 'hand_grip'),
   };
   if (!HAS(tex, 'head_shout')) p.headShout = null;
   const raw = hh * 0.88 + th * 0.75 * torsoSc + ph * 0.35 + p.thLen + p.shLen + fth * 0.55;

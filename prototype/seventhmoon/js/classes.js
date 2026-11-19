@@ -84,6 +84,7 @@ function heroRig(key) {
   const W0 = HAS(key, 'weapon_0') ? 'weapon_0' : null;
   const OFF = HAS(key, 'offhand_0') ? 'offhand_0' : null;
   const base = { h: 214, extra: [], alias: {} };
+  if (key !== 'mage') base.frontHand = 'hand_grip';
   const capeImg = HAS(key, 'cape') ? 'cape' : null;
   if (key === 'mage') {
     Object.assign(base, {

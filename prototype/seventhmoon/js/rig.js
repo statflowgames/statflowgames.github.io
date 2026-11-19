@@ -46,32 +46,42 @@ class Rig {
     return this.foot;
   }
   // 지금 자세에서 몸(무기·망토 제외)의 가장 낮은 점. 컨테이너 로컬 y.
-  lowest() {
-    let bottom = -1e9;
-    const only = this.def.ground;
+  lowest(groundBones) {
+    return this.bodyBounds(groundBones).bottom - 3;
+  }
+  bodyBounds(groundBones) {
+    const bounds = { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity };
+    const only = groundBones || this.def.ground;
     for (const b of this.bones) {
-      if (only ? !only.includes(b.n) : NO_GROUND.has(b.n) || !b.spr.visible) continue;
-      const s = b.spr, w = s.width * b.sc, h = s.height * b.sc;
+      if (!b.spr.visible || (only ? !only.includes(b.n) : NO_GROUND.has(b.n))) continue;
+      const s = b.spr, w = s.width * s.scaleX, h = s.height * s.scaleY;
       const cos = Math.cos(s.rotation), sin = Math.sin(s.rotation);
       for (const [u, v] of CORNERS) {
         const lx = (u - s.originX) * w, ly = (v - s.originY) * h;
+        const x = s.x + lx * cos - ly * sin;
         const y = s.y + lx * sin + ly * cos;
-        if (y > bottom) bottom = y;
+        bounds.left = Math.min(bounds.left, x); bounds.right = Math.max(bounds.right, x);
+        bounds.top = Math.min(bounds.top, y); bounds.bottom = Math.max(bounds.bottom, y);
       }
     }
-    return bottom - 3;
+    return bounds;
   }
   setVisible(n, v) { if (this.map[n]) this.map[n].spr.setVisible(v); }
   apply(p) {
+    if (this.preparePose) p = this.preparePose(p);
     // p: {뼈이름: 각도, rx, ry, rr(몸 전체 회전), sx(좌우 스케일 보정)}
+    const torsoTurn = 1 - Math.abs(p.bodyTwist || 0) * 0.06;
     for (const b of this.bones) {
       let px, py, pr;
       if (!b.p) {
-        px = p.rx || 0; py = p.ry || 0; pr = (p.rr || 0) * D2R;
+        px = (p.rx || 0) + (p.hipX || 0); py = (p.ry || 0) + (p.hipY || 0); pr = (p.rr || 0) * D2R;
       } else {
         const P = this.map[b.p];
         const cos = Math.cos(P.wr), sin = Math.sin(P.wr);
-        const ox = b.x || 0, oy = b.y || 0;
+        // 상체의 체중 이동은 골반·접지 발과 분리한다. 지정하지 않은 기존 리그는 동일.
+        // 어깨를 따로 좌우로 밀지 않는다. 몸통 그림의 회전에 맞춰 같은 부착점을 유지.
+        const ox = (b.x || 0) * (b.p === 'torso' ? torsoTurn : 1) + (b.n === 'torso' ? (p.bodyX || 0) : 0);
+        const oy = (b.y || 0) + (b.n === 'torso' ? (p.bodyY || 0) : 0);
         px = P.wx + ox * cos - oy * sin;
         py = P.wy + ox * sin + oy * cos;
         pr = P.wr;
@@ -81,7 +91,9 @@ class Rig {
       b.wr = pr + ((b.r || 0) + (p[b.n] || 0)) * D2R;
       b.spr.setPosition(px, py);
       b.spr.setRotation(b.wr + (b.ir || 0) * D2R);
+      if (b.n === 'torso') b.spr.setScale(b.sc * torsoTurn, b.sc);
     }
+    if (this.finishPose) this.finishPose(p);
   }
   setFlash(on, color = 0xffffff) {
     for (const b of this.bones) {
@@ -98,6 +110,13 @@ class Rig {
     const cos = Math.cos(b.wr), sin = Math.sin(b.wr);
     const x = b.wx + lx * cos - ly * sin, y = b.wy + lx * sin + ly * cos;
     return { x: this.c.x + x * this.c.scaleX, y: this.c.y + y * this.c.scaleY };
+  }
+  imagePoint(n, u, v) {
+    const b = this.map[n], s = b.spr;
+    const lx = (u - s.originX) * s.width * s.scaleX, ly = (v - s.originY) * s.height * s.scaleY;
+    const cos = Math.cos(s.rotation), sin = Math.sin(s.rotation);
+    return { x: this.c.x + (s.x + lx * cos - ly * sin) * this.c.scaleX,
+      y: this.c.y + (s.y + lx * sin + ly * cos) * this.c.scaleY };
   }
   destroy() { this.c.destroy(); }
 }
@@ -163,6 +182,7 @@ const RIGS = {
     gripImg: 'hand_grip', frontHand: 'hand_grip',
   }),
   grunt: () => humanoid('grunt', {
+    clips: { m_down: 'gob_down', m_getup: 'gob_getup' },
     scale: 0.36, footY: 252, height: 520,
     pelvisA: [0.5, 0.3], waist: [0, -6], torsoA: [0.45, 0.86], neck: [10, -90], headA: [0.6, 0.86],
     shoulderB: [10, -74], shoulderF: [-6, -72],
@@ -172,6 +192,7 @@ const RIGS = {
     frontHand: 'hand_open',
   }),
   spear: () => humanoid('spear', {
+    clips: { m_down: 'gob_down', m_getup: 'gob_getup' },
     scale: 0.38, footY: 240, height: 500,
     pelvisA: [0.5, 0.3], waist: [0, -6], torsoA: [0.45, 0.86], neck: [10, -92], headA: [0.55, 0.86],
     shoulderB: [10, -80], shoulderF: [-6, -78],
@@ -182,6 +203,7 @@ const RIGS = {
     extra: [{ n: 'quiver', p: 'torso', x: -40, y: -70, img: 'quiver', ax: 0.5, ay: 0.4, z: 4, r: -20, sc: 0.8 }],
   }),
   shaman: () => humanoid('shaman', {
+    clips: { m_down: 'gob_down', m_getup: 'gob_getup' },
     scale: 0.6, footY: 160, height: 330,
     pelvisA: [0.5, 0.3], waist: [0, -4], torsoA: [0.45, 0.86], neck: [6, -58], headA: [0.6, 0.86],
     shoulderB: [6, -48], shoulderF: [-4, -46],

@@ -24,13 +24,44 @@ class Actor {
     this.emote = null;
   }
   get sc() { return this.rig.def.scale; }
+  get motionPolish() { return this.key === 'warrior' && this.side === 'hero'; }
+  get motionSync() { return this.motionPolish || (this.side === 'hero' && typeof HERO_MOTION_PROFILES !== 'undefined' && !!HERO_MOTION_PROFILES[this.key]); }
+  get enemyMotion() { return this.side === 'mon' && !!this.enemyMotionReady; }
   get px() { return this.x - this.scene.cameras.main.scrollX; }
   play(name, blend = 70) {
     const cm = this.rig.def.clips;
-    if (cm && cm[name]) name = cm[name];
+    if (this.enemyMotion) name = enemyActionClip(this, name);
+    else if (cm && cm[name]) name = cm[name];
+    if (this.enemyMotion && this.state === 'air' && !this.wasEnemyAir) {
+      this.airGroundOff = this.groundOff ?? this.rig.foot;
+      // 부유하던 높이도 실제 낙하 높이로 넘긴다. 착지 때 hover가 갑자기 사라지지 않는다.
+      this.z += this.groundHover || 0;
+    }
+    this.wasEnemyAir = this.enemyMotion && this.state === 'air';
+    if (this.motionPolish) name = HARVAN_ACTION_CLIPS[name] || name;
+    else if (this.motionSync) name = heroMotionAction(this, name);
+    if (this.skillMotion && name !== this.skillMotion.clip) { this.skillMotion = null; this.skillCues = []; }
+    if (this.motionPolish && !HARVAN_RELAXED_ANIMS.has(name)) this.shieldRecoveryT = undefined;
+    else if (!this.motionPolish && this.motionSync && ![this.key + '_idle', this.key + '_walk', this.key + '_run', this.motionClip('brake')].includes(name)) this.shieldRecoveryT = undefined;
+    const basicAttack = this.motionPolish && Object.values(HARVAN_ATTACK_CLIPS).includes(name);
+    const leaveSwitch = this.motionPolish && name !== 'idle' && !basicAttack && this.baseStand === HARVAN_SWITCH_STAND;
+    if (leaveSwitch) this.baseStand = HARVAN_STAND;
     if (this.anim === name) return;
+    const oldClip = CLIPS[this.anim], nextClip = CLIPS[name];
+    const gaitPhase = (this.motionSync || this.enemyMotion) && oldClip && oldClip.amp && nextClip && nextClip.amp
+      ? (this.animT % oldClip.dur) / oldClip.dur : 0;
     this.blendFrom = this.lastPose; this.blendDur = blend; this.blendT = 0;
-    this.anim = name; this.animT = 0;
+    if (leaveSwitch) {
+      // IK로 발을 바꿔 세운 실제 다리 각도에서 다음 동작으로 보간한다.
+      // 보정 전 원본 각도로 시작하면 첫 프레임에 다리가 원래 배치로 튄다.
+      this.blendFrom = { ...this.lastPose, power: 0 };
+      for (const name of LEGS) {
+        const bone = this.rig.map[name], parent = this.rig.map[bone.abs ? 'root' : bone.p];
+        this.blendFrom[name] = (bone.wr - parent.wr) / D2R - (bone.r || 0);
+      }
+    }
+    this.anim = name; this.animT = gaitPhase * (nextClip ? nextClip.dur : 0);
+    if (this.motionSync || this.enemyMotion) this.stepPh = undefined;
   }
   replay(name, blend = 50) { this.anim = null; this.play(name, blend); }
   animDone() { const c = CLIPS[this.anim]; return c && !c.loop && this.animT >= c.dur; }
@@ -63,11 +94,23 @@ class Actor {
       if (this.stepPh !== undefined && ph !== this.stepPh && this.onStep) this.onStep();
       this.stepPh = ph;
     }
-    let pose = clip ? clip.at(this.animT) : this.baseStand;
+    let pose = clip ? (this.motionPolish ? clip.at(this.animT, this.baseStand) : clip.at(this.animT)) : this.baseStand;
+    if (this.motionPolish) {
+      if (this.shieldRecoveryT !== undefined && !frozen) this.shieldRecoveryT += dt;
+      pose = harvanShieldPose(pose, this.anim, this.animT, this.shieldRecoveryT);
+      if (this.shieldRecoveryT >= HARVAN_SHIELD_RECOVERY.hold + HARVAN_SHIELD_RECOVERY.lower) this.shieldRecoveryT = undefined;
+    }
+    else if (this.motionSync) {
+      if (this.shieldRecoveryT !== undefined && !frozen) this.shieldRecoveryT += dt;
+      pose = heroMotionPose(this, pose);
+      if (this.shieldRecoveryT >= HARVAN_SHIELD_RECOVERY.hold + HARVAN_SHIELD_RECOVERY.lower) this.shieldRecoveryT = undefined;
+    }
     if (this.blendFrom && this.blendT < this.blendDur) {
       if (!frozen) this.blendT += dt;
-      pose = mix(this.blendFrom, pose, Math.min(1, this.blendT / this.blendDur));
+      const blendPose = this.motionPolish ? motionMix : this.motionSync || this.enemySignature ? heroMotionMix : mix;
+      pose = blendPose(this.blendFrom, pose, Math.min(1, this.blendT / this.blendDur));
     }
+    if (this.enemyMotion) pose = enemyPose(this, pose);
     this.lastPose = pose;
     // 2차 움직임: 망토는 이동·낙하 반대로 날리고, 머리와 몸은 스프링으로 출렁인다
     const sec = this.sec || (this.sec = { head: { x: 0, v: 0 }, cape: { x: 0, v: 0 }, sq: { x: 0, v: 0 } });
@@ -80,31 +123,60 @@ class Actor {
       this.spring(sec.sq, 0, 0.22, 0.7, f);
     }
     const p2 = { ...pose, rx: 0, ry: 0 };
+    if (this.motionSync || (this.enemyMotion && this.enemyHumanoid)) {
+      // 기존 rx/ry는 작은 상체 이동. 기본 공격의 골반 이동·디딤발은 별도로 계산한다.
+      p2.bodyX = Phaser.Math.Clamp((pose.rx || 0) - (this.turnT || 0) * 0.08, -14, 14);
+      p2.bodyY = Phaser.Math.Clamp(pose.ry || 0, -8, 8);
+      if (this.motionPolish) harvanTrackFeet(this, p2);
+    }
     // 저절로 움직이는 부위 (날개·꼬리·공전하는 구슬)
     const procs = this.rig.def.procs;
     if (procs) {
-      this.procT = (this.procT || 0) + (frozen ? 0 : dt);
+      const restingEnemy = this.enemyMotion && (['down','dying'].includes(this.state) || this.dead);
+      this.procT = (this.procT || 0) + (frozen || restingEnemy ? 0 : dt);
       for (const q of procs) {
         if (!this.rig.map[q.n]) continue;
         let v = (q.base || 0) + Math.sin(this.procT * (q.spd || 0.005) + (q.ph || 0) * D2R) * (q.amp || 0);
         if (q.spin) v += (this.procT * q.spin + (q.ph || 0)) % 360;
-        p2[q.n] = (p2[q.n] || 0) + v;
+        p2[q.n] = (p2[q.n] || 0) + v * (this.enemyMotion && typeof enemyProceduralWeight==='function' ? enemyProceduralWeight(this,q.n) : 1);
       }
     }
     p2.cape = (p2.cape || 0) + sec.cape.x;
     p2.head = (p2.head || 0) + sec.head.x;
     this.rig.apply(p2);
     // 땅 붙이기: 자세마다 몸의 가장 낮은 점을 바닥(또는 공중 높이)에 맞춘다
-    if (!frozen || this.groundOff === undefined) this.groundOff = this.rig.lowest();
+    if (!frozen || this.groundOff === undefined) {
+      const airborne = (this.motionSync && (this.state === 'jump' || this.state === 'jatk')) || (this.enemyMotion && this.state === 'air');
+      const feet = (this.motionSync || (this.enemyMotion && this.enemyHumanoid)) && !['roll', 'air', 'down', 'getup', 'dead', 'dying'].includes(this.state);
+      this.groundOff = airborne ? (this.airGroundOff ?? this.rig.foot) : this.rig.lowest(feet ? ['ftf', 'ftb'] : undefined);
+    }
     const sq = Phaser.Math.Clamp((pose.sq || 0) + sec.sq.x, -0.18, 0.18);
     const sy = this.sc * (1 + sq), sxs = this.sc * (1 - sq * 0.6);
     const sx = this.shake > 0 ? (Math.random() - 0.5) * 8 : 0;
-    const hov = this.rig.def.hover ? (this.rig.def.hover + Math.sin((this.procT || 0) * 0.004) * 8) * (this.state === 'down' || this.dead ? 0.2 : 1) : 0;
+    const physicalEnemy = this.enemyMotion && (['air','down','getup','dying'].includes(this.state) || this.dead);
+    const hov = !physicalEnemy && this.rig.def.hover ? (this.rig.def.hover + Math.sin((this.procT || 0) * 0.004) * 8) * (this.state === 'down' || this.dead ? 0.2 : 1) : 0;
+    this.groundHover = hov;
     this.rig.c.setPosition(this.x + sx, this.y - this.z - hov - this.groundOff * sy);
     this.rig.c.setScale(sxs * this.face, sy);
     this.rig.c.setDepth(1000 + this.y);
+    // 손/무기 좌표를 현재 프레임으로 갱신한 뒤 발사한다. 히트스톱 중에는 큐도 정지.
+    if (!frozen && this.state === 'skill') this.fireSkillCues();
+    if (!frozen && this.state === 'awaken') this.fireAwakenCue();
+    if (this.swingTrail) this.scene.updateSwingTrail(this, dt, frozen);
     const h = Math.max(0.35, 1 - this.z / 500);
-    this.shadow.setPosition(this.x, this.y + 2).setDepth(999 + this.y * 0.001).setScale(this.shadowW * h, this.shadowW * h * 0.9).setAlpha(this.dead ? 0 : 0.55 * h);
+    const prone = this.z <= 0 ? Phaser.Math.Clamp(pose.prone || 0, 0, 1) : 0;
+    let shadowX = this.x, shadowSX = this.shadowW * h, shadowSY = shadowSX * 0.9;
+    if (prone > 0) {
+      const bounds = this.rig.bodyBounds();
+      const center = this.rig.c.x + (bounds.left + bounds.right) * 0.5 * this.rig.c.scaleX;
+      const width = (bounds.right - bounds.left) * Math.abs(this.rig.c.scaleX) * 0.92;
+      shadowX = lerp(shadowX, center, prone);
+      shadowSX = lerp(shadowSX, width / this.shadow.width, prone);
+      shadowSY = lerp(shadowSY, 10 / this.shadow.height, prone);
+    }
+    const shadowAlpha = this.dead ? (this.enemyMotion ? lerp(.45,.34,prone) : prone * .34) * this.rig.c.alpha : lerp(0.55 * h, 0.34, prone);
+    this.shadow.setPosition(shadowX, this.y + 2).setDepth(999 + this.y * 0.001)
+      .setScale(shadowSX, shadowSY).setAlpha(shadowAlpha);
     if (this.flashT > 0) { this.flashT -= dt; if (this.flashT <= 0) this.rig.setFlash(false); }
     if (this.emote) {
       const e = this.emote; e.t -= dt;
@@ -136,7 +208,7 @@ class Actor {
     this.x = Phaser.Math.Clamp(this.x, cam.l + 30, cam.r - 30);
   }
   onLand() {}
-  destroy() { this.rig.destroy(); this.shadow.destroy(); if (this.emote) this.emote.img.destroy(); }
+  destroy() { this.rig.destroy(); this.shadow.destroy(); if (this.emote) this.emote.img.destroy(); if (this.swingTrail) this.swingTrail.g.destroy(); }
 }
 
 // ---------------------------------------------------------------------------
@@ -160,7 +232,13 @@ class Hero extends Actor {
     this.key = key;
     this.cls = classOf(key);
     this.atkSet = this.cls.atk;
-    this.baseStand = STANCE[key] || P.stand; this.rig.measure(this.baseStand);
+    if (key === 'warrior') {
+      harvanGripRig(this.rig);
+      this.atkSet = { ...this.atkSet };
+      for (const k in HARVAN_ATTACK_CLIPS) this.atkSet[k] = { ...this.atkSet[k], clip: HARVAN_ATTACK_CLIPS[k] };
+    }
+    this.baseStand = key === 'warrior' ? HARVAN_STAND : STANCE[key] || P.stand; this.rig.measure(this.baseStand);
+    if (key !== 'warrior' && typeof configureHeroMotion === 'function') configureHeroMotion(this);
     this.mv = HERO_MOVE[key] || HERO_MOVE.warrior; this.idleT = 0; this.habitT = 4000 + Math.random() * 3000;
     this.st8 = scene.stats || { hp: 360, parryWin: 0, staRegen: 0, spd: 0 };
     this.maxHp = this.st8.hp; this.hp = this.maxHp;
@@ -171,10 +249,12 @@ class Hero extends Actor {
     this.side = 'hero';
   }
   setHead(img) { this.rig.setImg('head', img); }
+  motionClip(phase) { return this.motionPolish ? 'harvan_' + phase : heroMotionClip(this, phase); }
   get rollCost() { return 22 * (1 - (this.st8.rollCost || 0) / 100); }
   update(dt, inp) {
     const s = dt / 1000;
     this.st += dt;
+    if (this.motionSync) this.turnT = Math.max(0, (this.turnT || 0) - dt);
     if (this.invuln > 0) this.invuln -= dt;
     if (this.shake > 0) this.shake -= dt;
     if (this.state !== 'guard') this.sta = Math.min(100, this.sta + 38 * (1 + this.st8.staRegen / 100) * s);
@@ -189,7 +269,7 @@ class Hero extends Actor {
 
     const st = this.state;
     if (st === 'dead') { this.physics(dt); return; }
-    if (st === 'idle' || st === 'move') {
+    if (st === 'idle' || st === 'move' || st === 'land') {
       if (this.scene.won) { this.vx = this.vy = 0; return; }
       if (inp.awkP && this.awk >= 100) return this.startAwaken();
       if ((inp.sk1P || inp.sk2P) && this.scene.useSkill(inp.sk1P ? 0 : 1)) return;
@@ -198,14 +278,27 @@ class Hero extends Actor {
       if (inp.rollP && this.sta >= this.rollCost) return this.startRoll(inp);
       if (inp.guard) return this.startGuard();
       if (this.buffer > 0) { this.buffer = 0; return this.startAttack(this.pickCommand(inp)); }
+      // 착지/급정지 연출은 입력을 잠그지 않는다. 공격·점프·가드·구르기 우선.
+      if (st === 'land' && this.st < 140 && !inp.x && !inp.y) {
+        this.vx = motionApproach(this.vx, 0, 4200 * s);
+        this.vy = motionApproach(this.vy, 0, 3000 * s);
+        this.physics(dt); return;
+      }
       const run = this.holdT > 320 && inp.x !== 0;
       const sp = (run ? this.mv[1] : this.mv[0]) * (1 + (this.st8.spd || 0) / 100);
-      this.vx = inp.x * sp; this.vy = inp.y * 150;
+      if (this.motionSync) {
+        if (inp.x && inp.x !== this.face) { this.vx *= 0.25; this.turnT = 100; }
+        this.vx = motionApproach(this.vx, inp.x * sp, (inp.x ? 3600 : 4200) * s);
+        this.vy = motionApproach(this.vy, inp.y * 150, 3000 * s);
+      } else { this.vx = inp.x * sp; this.vy = inp.y * 150; }
       if (inp.x) this.face = inp.x;
       if (inp.x || inp.y) {
         this.state = 'move'; this.play(run ? 'run' : 'walk', 120);
         this.running = run;
+      } else if (this.motionSync && (Math.hypot(this.vx, this.vy) > 1 || (this.anim === this.motionClip('brake') && !this.animDone()))) {
+        this.state = 'move'; this.running = false; this.play(this.motionClip('brake'), 40);
       } else {
+        this.running = false;
         // 가만히 있으면 가끔 직업별 버릇
         if (this.state !== 'idle') { this.idleT = 0; this.habit = null; }
         this.state = 'idle'; this.idleT += dt;
@@ -218,30 +311,52 @@ class Hero extends Actor {
       this.physics(dt);
       return;
     }
+    if (st === 'skill') { this.updateSkill(dt, inp); return; }
     if (st === 'atk') {
       const a = this.atk;
       this.vx *= Math.pow(0.0008, s); this.vy = 0;
       if (this.atkName === 'dash' && !a.special) this.vx = this.face * (this.st < 330 ? 560 : 120);
-      this.checkHits(a);
-      if (a.next && this.st >= a.next && this.buffer > 0 && this.chain) {
+      this.checkHits(a, dt);
+      // 사격은 투사체를 낸 뒤 최소 한 프레임의 놓는 동작을 보여 주고 다음 타로 연결한다.
+      const nextAt = this.motionSync && a.proj ? Math.max(a.next || 0, a.hit[0] + 20) : a.next;
+      if (a.next && this.st >= nextAt && this.buffer > 0 && this.chain) {
         this.buffer = 0;
         return this.startAttack(this.chain);
       }
-      if (this.st >= a.dur) { this.combo = 0; this.toIdle(); }
+      if (this.st >= a.dur) {
+        if (this.motionPolish && this.atkName === 'a4') {
+          this.baseStand = this.baseStand === HARVAN_SWITCH_STAND ? HARVAN_STAND : HARVAN_SWITCH_STAND;
+          this.vx = 0;
+        }
+        if (this.motionPolish && HARVAN_PLANTED_ATTACKS.has(this.atkName)) this.vx = 0;
+        this.combo = 0; this.toIdle();
+      }
       this.physics(dt);
       return;
     }
     if (st === 'jump' || st === 'jatk') {
-      this.vx = inp.x * 220 || this.vx * 0.98; if (inp.x && st === 'jump') this.face = inp.x;
+      this.vx = this.motionSync ? (inp.x ? motionApproach(this.vx, inp.x * 220, 1800 * s) : this.vx * Math.pow(0.98, dt / 16.67)) : inp.x * 220 || this.vx * 0.98;
+      if (inp.x && st === 'jump') this.face = inp.x;
       this.vy = inp.y * 90;
-      if (st === 'jump' && inp.atkP && !this.jumpAtkUsed) { this.jumpAtkUsed = true; this.state = 'jatk'; this.st = 0; this.atk = this.atkSet.jump; this.atkName = 'jump'; this.fired = false; this.hitSet.clear(); this.replay(this.atk.clip, 40); this.setHead('head_shout'); }
-      if (inp.jumpP && this.st8.doubleJump && !this.dj && this.z > 20) { this.dj = true; this.vz = 820; this.replay('w_jump', 40); SFX.jump(this.px); }
-      if (st === 'jatk') this.checkHits(this.atk);
+      if (st === 'jump' && inp.atkP && !this.jumpAtkUsed) { this.jumpAtkUsed = true; this.state = 'jatk'; this.st = 0; this.atk = this.atkSet.jump; this.atkName = 'jump'; this.fired = false; this.swingFired = false; this.voicePower = null; this.hitSet.clear(); this.replay(this.atk.clip, 40); this.setHead('head_shout'); }
+      if (inp.jumpP && this.st8.doubleJump && !this.dj && this.z > 20) {
+        this.dj = true; this.vz = 820;
+        if (this.motionSync) { this.state = 'jump'; this.st = 0; this.voicePower = null; this.setHead(null); }
+        this.replay(this.motionSync ? this.motionClip('rise') : 'w_jump', 40); SFX.jump(this.px);
+      }
+      if (this.state === 'jatk') this.checkHits(this.atk, dt);
       this.physics(dt);
+      if (this.motionSync) {
+        if (this.state === 'jatk' && this.st >= this.atk.dur) { this.state = 'jump'; this.setHead(null); }
+        if (this.state === 'jump') this.play(this.motionClip(this.vz > 180 ? 'rise' : this.vz < -180 ? 'fall' : 'apex'), 65);
+      }
       return;
     }
     if (st === 'roll') {
-      this.physics(dt);
+      const activeDt = this.motionSync ? Math.max(0, Math.min(dt, 380 - (this.st - dt))) : dt;
+      if (this.motionSync) this.vx = activeDt > 0
+        ? this.face * (harvanRollTravel(this.st) - harvanRollTravel(this.st - dt)) * 1000 / activeDt : 0;
+      this.physics(activeDt);
       if (this.st > 380) { this.vx = 0; this.vy = 0; this.toIdle(); }
       return;
     }
@@ -254,7 +369,7 @@ class Hero extends Actor {
       return;
     }
     if (st === 'parry') {
-      this.checkHits(this.atk);
+      this.checkHits(this.atk, dt);
       if (this.st > 320) this.toIdle();
       return;
     }
@@ -278,48 +393,77 @@ class Hero extends Actor {
   startAttack(k) {
     const a = this.atkSet[k];
     this.state = 'atk'; this.st = 0; this.atk = a; this.atkName = k; this.hitSet.clear(); this.fired = false;
+    this.swingFired = false; this.voicePower = null;
     this.chain = { a1: 'a2', a2: 'a3', a3: 'a4' }[k] || null;
     this.replay(a.clip, 40);
     const power = { a3: 1, up: 1, dash: 1, a4: 2, down: 2 }[k] || 0;
-    if (power || Math.random() < 0.35) this.scene.time.delayedCall(Math.max(0, a.hit[0] - 60), () => this.state === 'atk' && SFX.heroAtk(power, this.px));
+    if (power || Math.random() < 0.35) {
+      if (this.motionSync) this.voicePower = power;
+      else this.scene.time.delayedCall(Math.max(0, a.hit[0] - 60), () => this.state === 'atk' && SFX.heroAtk(power, this.px));
+    }
     this.vx = k === 'dash' && !a.special ? this.face * 560 : 0;
     this.setHead(a.fin || k === 'down' || k === 'dash' ? 'head_shout' : 'head_attack');
-    this.scene.time.delayedCall(a.hit[0] - 30, () => {
+    if (!this.motionSync) this.scene.time.delayedCall(a.hit[0] - 30, () => {
       if (this.state !== 'atk' || this.atk !== a) return;
       if (a.lunge) this.vx = this.face * a.lunge;
       if (!a.proj && !(a.special && !a.dmg)) { SFX.swing(a.fin || k === 'down', this.px, a.swing === 's' ? 'shield' : 'blade'); this.scene.swingFx(this, a); }
     });
     if (k === 'dash' && !a.special) { SFX.roll(this.px); this.scene.fx('speed_lines', this.x - this.face * 80, this.y - 110, { s: 0.45, flip: this.face < 0, dur: 300, depth: this.y - 1 }); }
   }
-  checkHits(a) {
-    if (this.st < a.hit[0] || this.st > a.hit[1]) return;
+  checkHits(a, dt = 0) {
+    if (this.motionSync) {
+      if (this.voicePower !== null && this.voicePower !== undefined && this.st >= a.hit[0] - 60) {
+        SFX.heroAtk(this.voicePower, this.px); this.voicePower = null;
+      }
+      if (!this.swingFired && this.st >= a.hit[0] - 30) {
+        this.swingFired = true;
+        // 1~3타는 발끝을 축으로 힘을 전달한다. 자동 전진을 줄여 보폭이 끌려가지 않게 한다.
+        if (a.lunge) this.vx = this.face * a.lunge * (this.motionPolish && HARVAN_PLANTED_ATTACKS.has(this.atkName) ? 0.06 : 1);
+        if (!a.proj && !(a.special && !a.dmg)) {
+          SFX.swing(a.fin || this.atkName === 'down', this.px, a.swing === 's' ? 'shield' : 'blade');
+          this.scene.swingFx(this, a);
+        }
+      }
+    }
+    const inWindow = this.st >= a.hit[0] && this.st <= a.hit[1];
+    // 짧은 발사 구간을 한 프레임이 통과해도 사격/주문은 한 번 발생한다.
+    const crossed = this.motionSync && this.st >= a.hit[0] && this.st - dt < a.hit[0];
+    if (!inWindow && !crossed) return;
     // 투사체·특수 동작은 맞는 순간에 한 번만 낸다
     if ((a.proj || a.special) && !this.fired) {
       this.fired = true;
       if (a.proj) this.scene.heroShoot(this, a.proj);
       if (a.special) this.scene.heroSpecial(this, a);
     }
-    if (a.dmg) this.scene.meleeHit(this, a);
+    if (inWindow && a.dmg) this.scene.meleeHit(this, a);
   }
-  toIdle() { this.state = 'idle'; this.st = 0; this.play('idle', 120); this.setHead(null); this.gravMul = 1; }
+  toIdle() {
+    if (this.motionSync && (this.motionPolish || this.key === 'paladin') && this.state === 'atk' && this.atk && this.st >= this.atk.dur) this.shieldRecoveryT = 0;
+    if ((this.motionPolish || this.key === 'paladin') && this.state === 'skill' && this.skillMotion && this.st >= this.skillMotion.freeAt) this.shieldRecoveryT = 0;
+    this.state = 'idle'; this.st = 0; this.play('idle', 120); this.setHead(null); this.gravMul = 1;
+  }
   startJump(inp) {
+    if (this.motionSync) this.airGroundOff = this.groundOff ?? this.rig.foot;
     this.state = 'jump'; this.st = 0; this.vz = this.mv ? this.mv[2] : 860; this.z = 0.01; this.jumpAtkUsed = false; this.dj = false;
-    this.play('w_jump', 60); SFX.jump(this.px); this.kick(0, 0, 0.12);
+    this.play(this.motionSync ? this.motionClip('rise') : 'w_jump', 45); SFX.jump(this.px); this.kick(0, 0, this.motionSync ? 0.035 : 0.12);
     this.scene.fx('dust_land', this.x, this.y, { s: 0.22, dur: 300, depth: this.y - 1 });
   }
   startRoll(inp) {
     this.sta -= this.rollCost;
     const d = inp.x || this.face; this.face = d;
     this.state = 'roll'; this.st = 0; this.vx = d * 560; this.vy = inp.y * 120; this.invuln = 380;
-    this.replay('w_roll', 30); SFX.roll(this.px);
+    this.replay(this.motionSync ? this.motionClip('roll') : 'w_roll', 30); SFX.roll(this.px);
     this.scene.fx('dash_trail', this.x - d * 40, this.y - 60, { s: 0.35, flip: d < 0, dur: 320, depth: this.y - 1 });
   }
   startGuard() { this.state = 'guard'; this.st = 0; this.guardStart = this.scene.now; this.play('w_guard', 40); }
   onLand(v) {
     if (this.state === 'jump' || this.state === 'jatk') {
       SFX.land(this.px); this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 });
-      this.kick(4, 0, -0.14);
-      this.toIdle();
+      this.kick(4, 0, this.motionSync ? -0.025 : -0.14);
+      if (this.motionSync) {
+        this.state = 'land'; this.st = 0; this.vx *= 0.35; this.vy *= 0.35;
+        this.gravMul = 1; this.setHead(null); this.play(this.motionClip('land'), 25);
+      } else this.toIdle();
     } else if (this.state === 'air') {
       SFX.land(this.px, true); this.scene.fx('dust_land', this.x, this.y, { s: 0.38, dur: 420, depth: this.y - 1 });
       this.scene.cameras.main.shake(90, 0.004);
@@ -362,17 +506,46 @@ class Hero extends Actor {
     }
     return 'hit';
   }
+  startSkill(name, fx) {
+    const motion = heroSkillMotion(this.key, name, fx, this.baseStand);
+    this.state = 'skill'; this.st = 0; this.vx = this.vy = 0;
+    this.skillMotion = motion; this.skillCues = []; this.atk = null; this.atkName = 'skill:' + name;
+    this.combo = 0; this.buffer = 0; this.hitSet.clear(); this.voicePower = null;
+    this.replay(motion.clip, 45); this.setHead('head_attack');
+    return motion;
+  }
+  queueSkillCue(at, fn) { this.skillCues.push({ at, fn }); this.skillCues.sort((a,b) => a.at-b.at); }
+  fireSkillCues() {
+    const motion = this.skillMotion;
+    while (this.state === 'skill' && this.skillMotion === motion && this.skillCues?.length && this.skillCues[0].at <= this.st) {
+      const cue = this.skillCues.shift(); cue.fn();
+    }
+  }
+  updateSkill(dt, inp) {
+    const motion = this.skillMotion;
+    if (!motion) return this.toIdle();
+    // 준비/방출은 끝까지 보이고, 회수 구간에서는 다음 행동을 즉시 받는다.
+    if (this.st >= motion.freeAt && (inp.x || inp.y || inp.atkP || this.buffer > 0 || inp.jumpP || inp.rollP || inp.guard || inp.sk1P || inp.sk2P || inp.awkP)) {
+      this.toIdle(); return this.update(0, inp);
+    }
+    this.vx *= Math.pow(.0008, dt/1000); this.vy = 0; this.physics(dt);
+    if (this.st >= motion.duration) this.toIdle();
+  }
   startAwaken() {
     this.awk = 0; this.state = 'awaken'; this.st = 0; this.vx = this.vy = 0; this.invuln = 1200;
-    this.replay('w_awaken', 40); this.setHead('head_shout');
+    this.awakenEnd = 1000;
+    this.awakenSequence = (this.awakenSequence || 0) + 1;
+    this.replay(typeof heroAwakenClip === 'function' ? heroAwakenClip(this.key, this.baseStand) : 'w_awaken', 40); this.setHead('head_shout');
     this.scene.awakenCutIn(this);
     if (this.scene.save) { Codex.init(this.scene.save); this.scene.save.stats.awaken = (this.scene.save.stats.awaken || 0) + 1; }
     SFX.awaken();
     this.awkFired = false;
   }
   updateAwaken(dt) {
-    if (this.st > 440 && !this.awkFired) { this.awkFired = true; this.scene.awakenFire(this); }
-    if (this.st > 1000) this.toIdle();
+    if (this.st > (this.awakenEnd || 1000)) this.toIdle();
+  }
+  fireAwakenCue() {
+    if (this.st >= 440 && !this.awkFired) { this.awkFired = true; this.scene.awakenFire(this); }
   }
 }
 
@@ -434,6 +607,7 @@ class Monster extends Actor {
     if (base.tint && !real) { for (const b of this.rig.bones) b.baseTint = mulTint(b.baseTint, base.tint); this.rig.setTintAll(null); }
     const kind = base.rig;
     this.side = 'mon';
+    if (typeof configureEnemyMotion === 'function') configureEnemyMotion(this);
     this.cool = 600 + Math.random() * 900;
     this.think = 0;
     this.slotOff = (Math.random() - 0.5) * 60;
@@ -446,11 +620,32 @@ class Monster extends Actor {
   }
   draw(dt, frozen) {
     super.draw(dt, frozen);
+    if(!frozen&&this.pendingEnemyProjectiles?.length) {
+      for(const shot of this.pendingEnemyProjectiles.splice(0))this.emitEnemyProjectile(shot.img,shot.opts,shot.vy,shot.tint,true);
+    }
+    if(!frozen&&this.pendingEnemyBeam) {
+      this.pendingEnemyBeam=false;
+      const muzzle=enemyProjectileMuzzle(this),end=this.x+this.face*1200;
+      for(let d=100;d<=1200;d+=110)this.scene.fx('lightning_bolt',lerp(muzzle.x,end,(d-100)/1100),muzzle.y,{s:.4,dur:350,depth:this.y+1002,rot:90});
+    }
+    if (!frozen && this.enemyMotion && this.state === 'throw' && this.st >= 90 && !this.throwFired) {
+      this.throwFired = true; SFX.throwS(this.px); SFX.gob('atk', this.px, this.pitch);
+      const pj = MON_PROJ[this.id] || MON_PROJ.spear;
+      this.scene.projectile(this, this.scene.textures.exists(pj.img) ? pj.img : 'spear/javelin', { vx:this.face*(pj.vx||720), z:this.height*.55, dmg:this.def.dmg, rot:pj.rot??90, sc:pj.sc||.32, life:1500, spin:pj.spin, muzzle:enemyProjectileMuzzle(this) });
+      if (!this.enemyLauncher) this.rig.setVisible('wpn', false);
+    }
+    if (!frozen && this.pendingRock) { const target=this.pendingRock; this.pendingRock=null; this.scene.lobRock(this,target); }
     if (this.eliteTag) {
       const hide = this.dead;
       this.eliteTag.setPosition(this.x, this.y - this.z - this.height - 12).setDepth(4000).setVisible(!hide);
       this.eliteGlow.setPosition(this.x, this.y + 2).setDepth(999 + this.y * 0.001).setVisible(!hide).setAlpha(0.25 + Math.sin((this.procT || this.st) * 0.008) * 0.1);
     }
+  }
+  emitEnemyProjectile(img,opts,vy=0,tint=null,drawn=false) {
+    if(this.enemyMotion&&!drawn){(this.pendingEnemyProjectiles||(this.pendingEnemyProjectiles=[])).push({img,opts,vy,tint});return;}
+    this.scene.projectile(this,img,{...opts,...(this.enemyMotion?{muzzle:enemyProjectileMuzzle(this)}:{})});
+    const p=this.scene.projs[this.scene.projs.length-1];
+    if(p){p.vy=vy;if(tint!==null)p.img.setTint(tint);}
   }
   destroy() { super.destroy(); if (this.eliteTag) { this.eliteTag.destroy(); this.eliteGlow.destroy(); } }
   setHead(img) { this.rig.setImg('head', img); }
@@ -471,7 +666,7 @@ class Monster extends Actor {
       }
       return;
     }
-    if (st === 'getup') { if (this.st > 420) { this.invuln = 300; this.toIdle(); } return; }
+    if (st === 'getup') { if (this.st >= (CLIPS[this.anim]?.dur || 420)) { this.invuln = 300; this.toIdle(); } return; }
     if (st === 'hurt') { this.vx *= Math.pow(0.003, s); this.physics(dt); if (this.st > (this.stun || 280)) this.toIdle(); return; }
     if (st === 'enter') {
       // 화면 밖에서 걸어 들어온다
@@ -532,11 +727,12 @@ class Monster extends Actor {
     if (st === 'windup') {
       if (this.st > 420) {
         this.state = 'stab'; this.st = 0; this.replay('m_stab', 30); this.hitSet.clear(); SFX.swing(false, this.px, 'blade'); this.setHead('head_shout');
-        this.scene.time.delayedCall(30, () => { if (this.state === 'stab') this.vx = this.face * 240; });
+        this.stabLunged = false;
       }
       return;
     }
     if (st === 'stab') {
+      if (!this.stabLunged && this.st >= 30) { this.stabLunged=true; this.vx=this.face*240; }
       this.vx *= Math.pow(0.001, s); this.physics(dt);
       if (this.st > 50 && this.st < 160) this.scene.enemyMelee(this, { dmg: this.def.dmg, reach: [0, 130], dz: 22, type: 'light' });
       if (this.st > 520) { this.setHead(null); this.releaseTok(); this.cool = 1100 + Math.random() * 1400; this.toIdle(); }
@@ -544,10 +740,13 @@ class Monster extends Actor {
     }
     if (st === 'throwup') {
       if (this.st > 520) {
-        this.state = 'throw'; this.st = 0; this.replay('m_throw', 30); SFX.throwS(this.px); SFX.gob('atk', this.px, this.pitch); this.setHead('head_shout');
-        const pj = MON_PROJ[this.id] || MON_PROJ.spear;
-        this.scene.projectile(this, this.scene.textures.exists(pj.img) ? pj.img : 'spear/javelin', { vx: this.face * (pj.vx || 720), z: this.height * 0.55, dmg: this.def.dmg, rot: pj.rot ?? 90, sc: pj.sc || 0.32, life: 1500, spin: pj.spin });
-        this.rig.setVisible('wpn', false);
+        this.state = 'throw'; this.st = 0; this.throwFired=false; this.replay('m_throw', 30); this.setHead('head_shout');
+        if (!this.enemyMotion) {
+          SFX.throwS(this.px); SFX.gob('atk', this.px, this.pitch);
+          const pj = MON_PROJ[this.id] || MON_PROJ.spear;
+          this.scene.projectile(this, this.scene.textures.exists(pj.img) ? pj.img : 'spear/javelin', { vx: this.face * (pj.vx || 720), z: this.height * 0.55, dmg: this.def.dmg, rot: pj.rot ?? 90, sc: pj.sc || 0.32, life: 1500, spin: pj.spin });
+          this.rig.setVisible('wpn', false);
+        }
       }
       return;
     }
@@ -563,7 +762,7 @@ class Monster extends Actor {
           this.scene.fx('crit_flash', t.x, t.y - t.height * 0.5, { s: 0.25, dur: 500, tint: 0x88ff88, depth: 4000 });
           t.showEmote('sparkle', 900); this.scene.floatText(t.x, t.y - t.height, '+' + Math.round(t.maxHp * 0.35), '#8f8');
         } else {
-          this.scene.projectile(this, 'orb', { vx: this.face * 330, z: 90, dmg: this.def.dmg, home: true, life: 2600 });
+          this.emitEnemyProjectile('orb', { vx: this.face * 330, z: 90, dmg: this.def.dmg, home: true, life: 2600 });
         }
       }
       if (this.st > 1100) { this.cool = 3000 + Math.random() * 1500; this.toIdle(); }
@@ -650,7 +849,8 @@ class Monster extends Actor {
     this.dead = true; this.state = 'dying'; this.releaseTok();
     SFX.die(this.px); if (this.kind !== 'barkhaul') SFX.gob('die', this.px, this.pitch);
     this.scene.fx('death_dissolve', this.x, this.y - this.height * 0.3, { s: this.kind === 'barkhaul' ? 0.8 : 0.32, dur: 900, depth: this.y + 1001, grow: 1.3 });
-    this.scene.tweens.add({ targets: this.rig.c, alpha: 0, duration: 450, onComplete: () => this.destroy() });
+    const targets = this.enemyMotion || (this.rig.def.clips && this.rig.def.clips.m_down === 'gob_down') ? [this.rig.c, this.shadow] : this.rig.c;
+    this.scene.tweens.add({ targets, alpha: 0, duration: 450, onComplete: () => this.destroy() });
     this.scene.onMonsterDead(this);
   }
   // ---------------- 바크하울 ----------------
@@ -701,9 +901,11 @@ class Monster extends Actor {
       return;
     }
     if (st === 'rock') {
+      if (this.st >= 500 && !this.rockPoseReleased) { this.rockPoseReleased=true; this.replay('m_throw',40); }
       if (this.st > 650 && !this.hitDone) {
         this.hitDone = true; SFX.throwS(this.px); SFX.bossGrunt(this.px);
-        this.scene.lobRock(this, this.rockTarget);
+        if (this.enemyMotion) this.pendingRock=this.rockTarget;
+        else this.scene.lobRock(this, this.rockTarget);
       }
       if (this.st > 1100) { this.cool = rage ? 800 : 1400; this.toIdle(); }
       return;
@@ -728,6 +930,7 @@ class Monster extends Actor {
     const sc = this.scene, h = sc.hero;
     this.state = 'sp'; this.st = 0; this.vx = this.vy = 0; this.sp = { type, step: 0, n: 0 };
     const sp = this.sp, rage = this.raged;
+    this.castPulseAt=undefined;
     this.setHead('head_shout');
     if (type === 'charge') {
       // 가로로 돌진: 선을 그어 예고한 뒤 화면 끝까지
@@ -802,7 +1005,9 @@ class Monster extends Actor {
       const wind = rage ? 700 : 1000;
       if (this.st >= wind && sp.step === 0) {
         sp.step = 1; SFX.ui('fire_explode', this.px); sc.cameras.main.flash(120, 200, 200, 255); sc.cameras.main.shake(200, 0.01);
-        for (let d = 100; d <= 1200; d += 110) sc.fx('lightning_bolt', this.x + this.face * d, this.y - 60, { s: 0.4, dur: 350, depth: this.y + 1002, rot: 90 });
+        this.castPulseAt=this.st;
+        if(this.enemyMotion)this.pendingEnemyBeam=true;
+        else for (let d = 100; d <= 1200; d += 110) sc.fx('lightning_bolt', this.x + this.face * d, this.y - 60, { s: 0.4, dur: 350, depth: this.y + 1002, rot: 90 });
         sc.areaHit(this, this.x + this.face * 650, this.y, 560, 40, Math.round(this.def.dmg * 0.8), 'heavy');
       }
       if (this.st > wind + 700) end(1700);
@@ -811,10 +1016,10 @@ class Monster extends Actor {
     if (t === 'orbs') {
       if (this.st > 500 && sp.n < (rage ? 3 : 2) && this.st > 500 + sp.n * 450) {
         sp.n++;
+        this.castPulseAt=this.st;
         const tint = (BOSS_ROCK[this.id] || {}).tint || 0xc080ff;
         for (let i = -2; i <= 2; i++) {
-          sc.projectile(this, 'orb', { vx: this.face * 420, z: this.height * 0.55, dmg: Math.round(this.def.dmg * 0.35), life: 2600 });
-          const p = sc.projs[sc.projs.length - 1]; p.vy = i * 70; p.img.setTint(tint);
+          this.emitEnemyProjectile('orb', { vx: this.face * 420, z: this.height * 0.55, dmg: Math.round(this.def.dmg * 0.35), life: 2600 },i*70,tint);
         }
       }
       if (this.st > 1700) end(1500);
@@ -823,6 +1028,7 @@ class Monster extends Actor {
     if (t === 'meteor') {
       for (const p of sp.pts) if (!p.done && this.st >= p.t) {
         p.done = true;
+        this.castPulseAt=this.st;
         const fxk = { hrimgar: 'ice_pillar', frost_wyvern: 'ice_pillar', orvex: 'holy_pillar', sehera: 'dust_land' }[this.id] || 'fire_burst';
         sc.fx(fxk, p.x, p.y - 70, { s: 0.5, dur: 500, depth: p.y + 1002 });
         sc.fx('impact_ring', p.x, p.y, { s: 0.4, dur: 400, depth: p.y - 1, flat: true });
@@ -869,7 +1075,11 @@ class Monster extends Actor {
       return;
     }
     if (t === 'cannon') {
-      if (this.st > 400 + sp.n * 280 && sp.n < 3) { sp.n++; this.replay('m_throw', 30); this.scene.lobRock(this, { x: h.x + (Math.random() - 0.5) * 240, y: Phaser.Math.Clamp(h.y + (Math.random() - 0.5) * 120, FLOOR_TOP, FLOOR_BOT) }); }
+      if (this.st > 400 + sp.n * 280 && sp.n < 3) {
+        sp.n++; this.replay('m_throw', 30);
+        const target={x:h.x+(Math.random()-.5)*240,y:Phaser.Math.Clamp(h.y+(Math.random()-.5)*120,FLOOR_TOP,FLOOR_BOT)};
+        if(this.enemyMotion)this.pendingRock=target;else this.scene.lobRock(this,target);
+      }
       if (this.st > 1600) end(1500);
       return;
     }
@@ -886,7 +1096,7 @@ class Monster extends Actor {
     const h = this.scene.hero;
     this.rockTarget = { x: h.x + h.vx * 0.5, y: h.y };
     this.scene.telegraph(this.rockTarget.x, this.rockTarget.y, 0.7, 1400);
-    this.scene.time.delayedCall(500, () => { if (this.state === 'rock') this.replay('m_throw', 40); });
+    this.rockPoseReleased=false;
   }
   startRoots() {
     this.state = 'roots'; this.st = 0; this.vx = this.vy = 0; this.replay('b_stomp', 60); this.setHead('head_shout');

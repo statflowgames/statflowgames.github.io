@@ -201,6 +201,19 @@ function reactClips(base, pre) {
 reactClips(P.stand, 'w_');
 reactClips(P.standMon, 'm_');
 
+// 고블린은 손·발로 몸을 떠받치던 공통 다운 자세 대신 몸통을 바닥에 내려놓는다.
+// 원래 공중 넉백/바운스와 전투 상태 시간은 유지하고, 이 자세는 착지 후에만 사용한다.
+const GOBLIN_PRONE = M({ rr: -88, torso: 0, head: 40,
+  uab: -120, fab: 130, hb: 70, uaf: -108, faf: 124,
+  thf: -18, shf: 26, thb: -32, shb: 60, ftf: 0, ftb: 0, prone: 1 });
+CLIPS.gob_down = { loop: true, dur: 400, at() { return GOBLIN_PRONE; } };
+CLIPS.gob_getup = keyClip([
+  [0, GOBLIN_PRONE],
+  [180, M({ rr: -50, torso: 40, head: 0, thf: -106, shf: 146, thb: -46, shb: 136, uab: 50, uaf: 50, prone: 0.5 }), 'out'],
+  [320, M({ rr: -8, torso: 42, thf: -86, shf: 126, thb: 4, shb: 106, uab: 10, uaf: -10, sq: -0.06 }), 'io'],
+  [440, P.standMon, 'out'],
+], false, false);
+
 // ---------- 몬스터 동작 ----------
 Object.assign(CLIPS, {
   m_idle: { loop: true, dur: 1000, at(t) { return CLIPS.idle.at(t * 1.6, P.standMon); } },
