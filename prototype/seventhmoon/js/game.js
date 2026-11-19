@@ -4,8 +4,18 @@ const Q = new URLSearchParams(location.search);
 let STAGE_W = 6600;
 
 // 구현된 스킬 (나머지는 '효과 준비 중'으로 보인다)
-const SKILL_IMPL = {
-  warrior: { '도발의 외침': 1, '대지 가르기': 1, '전투 함성': 1, '강철 피부': 1, '약점 포착': 1, '백전노장': 1, '철벽의 달인': 1, '불굴': 1, '최후의 보루': 1 },
+const SKILL_IMPL = new Proxy({}, { get: () => new Proxy({}, { get: () => 1 }) });   // 모든 스킬 구현됨
+// 보스마다 던지는 것과 땅에서 솟는 것
+const BOSS_ROCK = {
+  toothcrusher: { img: 'debris/d13' }, captain_mog: { img: 'orb', tint: 0x404040, sc: 0.8 }, gloob: { img: 'gloob/child', sc: 1.2 },
+  twinsting: { img: 'scorpion/stinger' }, sehera: { img: 'orb', tint: 0xffd060 }, frost_wyvern: { img: 'props_frost/ice_rock' },
+  hrimgar: { img: 'props_frost/ice_rock', sc: 1.4 }, golem7: { img: 'orb', tint: 0x80c0ff }, orvex: { img: 'orb', tint: 0xd0c0ff },
+  orvex_eclipse: { img: 'orb', tint: 0x8040c0 }, azmal: { img: 'fx/fire_burst', tint: 0xc070ff, sc: 1.4 }, void_shadow: { img: 'orb', tint: 0x6040a0 },
+};
+const BOSS_ROOT = {
+  gloob: { fx: 'poison_cloud' }, twinsting: { fx: 'dust_land', tint: 0xd0a060 }, sehera: { fx: 'dust_land', tint: 0xe0c070 },
+  frost_wyvern: { fx: 'ice_pillar' }, hrimgar: { fx: 'ice_pillar' }, golem7: { fx: 'lightning_bolt' }, orvex: { fx: 'holy_pillar', tint: 0xb0a0ff },
+  orvex_eclipse: { fx: 'void_crack' }, azmal: { fx: 'void_crack' }, void_shadow: { fx: 'shadow_smoke' }, captain_mog: { fx: 'fire_burst' },
 };
 const SKILL_CD = { '도발의 외침': 12000, '대지 가르기': 8000, '전투 함성': 20000 };
 
@@ -18,6 +28,8 @@ class Boot extends Phaser.Scene {
     this.load.json('man', 'assets/manifest.json');
     this.load.once('filecomplete-json-man', (k, ty, data) => {
       const ext = data.__ext || '.png';
+      MAN = data;
+      registerMonRigs();
       for (const key of Object.keys(data)) if (key !== '__ext') this.load.image(key, 'assets/' + key + ext);
     });
   }
@@ -30,7 +42,7 @@ class Boot extends Phaser.Scene {
     // 테스트 진입: ?stage=c2_s1 / ?scene=map|camp / ?play
     const st = Q.get('stage') || (Q.has('play') ? 'c1_s1' : null);
     if (st || Q.get('scene')) {
-      if (!Save.load()) Save.fresh('warrior');
+      if (Q.get('hero')) Save.fresh(Q.get('hero')); else if (!Save.load()) Save.fresh('warrior');
       if (Q.get('lv')) { Save.data.lv = +Q.get('lv'); Save.data.sp = Save.data.lv - 1; }
       if (Q.get('ch')) Save.data.ch = +Q.get('ch');
     }
@@ -56,7 +68,8 @@ class Game extends Phaser.Scene {
     this.gold = 0; this.expGain = 0; this.loot = []; this.dmgTaken = 0;
     this.comboN = 0; this.comboT = 0; this.maxCombo = 0;
     this.monsters = []; this.props = []; this.projs = []; this.pickups = []; this.tokens = new Set(); this.zones = [];
-    this.buffs = {}; this.cds = [0, 0]; this.featherUsed = false; this.unyielding = false;
+    this.buffs = {}; this.cds = [0, 0]; this.featherUsed = false; this.unyielding = false; this.reviveUsed = false; this.auras = []; this.healOnce = {};
+    this.cls = classOf(s.hero);
     this.boss = null; this.bossBar = null; this.bossName = null;
     this.spawning = false; this.quake = false; this.slowmo = 0; this.hpShow = undefined; this.bossShow = undefined; this.pauseUi = null;
     this.bounds = { l: 0, r: W };
@@ -81,7 +94,9 @@ class Game extends Phaser.Scene {
   tex(key, fb) { return this.textures.exists(key) ? key : fb; }
   buildStage() {
     const far = this.tex(this.theme.far, 'bg/far'), ground = this.tex(this.theme.ground, 'bg/ground');
-    const tint = this.theme.tint;
+    const tint = this.theme.tint || 0xffffff;
+    const grp = this.theme.props || 'props';
+    this.propGrp = grp;
     const fs = 0.74, fw = 1536 * fs;
     for (let i = 0; i * fw * 0.35 < STAGE_W * 0.35 + W; i++) {
       const im = this.add.image(i * fw, -40, far).setOrigin(0, 0).setScale(fs).setFlipX(i % 2 === 1).setScrollFactor(0.35, 1).setDepth(0);
@@ -92,14 +107,28 @@ class Game extends Phaser.Scene {
     if (this.theme.standin) gt.setTint(tint);
     const edge = this.add.graphics().setDepth(11);
     edge.fillGradientStyle(0x1a1a10, 0x1a1a10, 0x1a1a10, 0x1a1a10, 0.5, 0.5, 0, 0).fillRect(0, 448, STAGE_W, 34);
-    const back = [['oak', 0.95], ['bush', 0.7], ['lantern', 0.65], ['rock', 0.6], ['sign', 0.7], ['log', 0.6], ['bush', 0.8], ['oak', 1.05], ['wagon', 0.7], ['bush', 0.7]];
-    let x = 120, k = Math.floor(Math.random() * back.length);
-    while (x < STAGE_W) {
-      const [n, sc] = back[k++ % back.length];
-      if (this.def.theme === 'forest' || n !== 'oak') this.add.image(x, 470, 'props/' + n).setOrigin(0.5, 1).setScale(sc).setDepth(12 + (n === 'oak' ? 0 : 1)).setTint(tint);
-      x += 260 + Math.random() * 260;
+    let x = 120;
+    if (grp === 'props') {
+      const back = [['oak', 0.95], ['bush', 0.7], ['lantern', 0.65], ['rock', 0.6], ['sign', 0.7], ['log', 0.6], ['bush', 0.8], ['oak', 1.05], ['wagon', 0.7], ['bush', 0.7]];
+      let k = Math.floor(Math.random() * back.length);
+      while (x < STAGE_W) {
+        const [n, sc] = back[k++ % back.length];
+        this.add.image(x, 470, 'props/' + n).setOrigin(0.5, 1).setScale(sc).setDepth(12 + (n === 'oak' ? 0 : 1));
+        x += 260 + Math.random() * 260;
+      }
+    } else {
+      // 테마 소품: 부서지는 통·상자를 뺀 나머지를 뒤쪽 가장자리에 늘어놓는다
+      const names = Object.keys(MAN).filter(k => k.startsWith(grp + '/')).filter(k => !/\/(barrel|crate|fish_barrel|frozen_barrel)$/.test(k));
+      let k = Math.floor(Math.random() * names.length);
+      while (x < STAGE_W && names.length) {
+        const key = names[k++ % names.length], m = MAN[key];
+        const target = 150 + Math.random() * 110;
+        const sc = Math.min(1.2, target / m.h, 260 / m.w);
+        this.add.image(x, 474, key).setOrigin(0.5, 1).setScale(sc).setDepth(12);
+        x += 230 + Math.random() * 260;
+      }
     }
-    for (let fx = 200; fx < STAGE_W * 1.25; fx += 420 + Math.random() * 500) {
+    for (let fx = 200; grp === 'props' && fx < STAGE_W * 1.25; fx += 420 + Math.random() * 500) {
       const n = Math.random() < 0.6 ? 'grass' : 'bush';
       this.add.image(fx, H + 30, 'props/' + n).setOrigin(0.5, 1).setScale(n === 'grass' ? 1.4 : 1.1).setScrollFactor(1.25, 1).setDepth(4500).setAlpha(0.95).setTint(tint);
     }
@@ -113,7 +142,10 @@ class Game extends Phaser.Scene {
     if (this.def.treasure) this.addProp(STAGE_W - 260, 580, 'crate', true);
   }
   addProp(x, y, n, chest) {
-    const img = this.add.image(x, y + 6, 'props/' + n).setOrigin(0.5, 1).setScale(chest ? 1.1 : n === 'barrel' ? 0.85 : 0.8).setDepth(1000 + y).setTint(chest ? 0xffd890 : this.theme.tint);
+    const g = this.propGrp || 'props';
+    let key = chest && this.textures.exists('chest/iron_closed') ? 'chest/iron_closed' : this.textures.exists(g + '/' + n) ? g + '/' + n : 'props/' + n;
+    const img = this.add.image(x, y + 6, key).setOrigin(0.5, 1).setDepth(1000 + y);
+    img.setScale(chest ? 110 / img.height : (n === 'barrel' ? 95 : 88) / img.height * (key.startsWith('props/') ? 1 : 1.05));
     const sh = this.add.image(x, y + 2, 'shadow').setScale(0.7, 0.6).setAlpha(0.45).setDepth(999);
     this.props.push({ x, y, n, img, sh, hp: chest ? 3 : n === 'crate' ? 2 : 1, chest });
   }
@@ -196,7 +228,7 @@ class Game extends Phaser.Scene {
       b.r = b.displayWidth * 0.5; b.name2 = name; return b;
     };
     this.btns = [btn('attack', 1110, 590, 0.85, 'atk'), btn('jump', 960, 640, 0.6, 'jump'), btn('roll', 1180, 430, 0.55, 'roll'), btn('skill_frame', 960, 490, 0.6, 'guard'), btn('awaken', 1050, 380, 0.5, 'awk')];
-    this.add.image(960, 490, 'warrior/shield_0').setScrollFactor(0).setDepth(6001).setScale(0.75);
+    { const gk = ['offhand_0', 'shield_0', 'weapon_0'].map(n => this.save.hero + '/' + n).find(k => this.textures.exists(k)) || 'warrior/shield_0'; const gi = this.add.image(960, 490, gk).setScrollFactor(0).setDepth(6001); gi.setScale(70 / Math.max(gi.width, gi.height)); }
     // 스킬 버튼 2개
     const s = this.save;
     [[850, 400, 'sk1'], [1180, 300, 'sk2']].forEach(([x, y, n], k) => {
@@ -282,7 +314,7 @@ class Game extends Phaser.Scene {
     panel.fillStyle(0x1a0f08, 0.78).fillRoundedRect(16, 14, 430, 112, 14).lineStyle(3, 0xc99a3c).strokeRoundedRect(16, 14, 430, 112, 14);
     panel.fillStyle(0x3a2412).fillCircle(72, 70, 46).lineStyle(4, 0xe0b45a).strokeCircle(72, 70, 46);
     hud.add(panel);
-    hud.add(this.add.image(74, 74, 'warrior/head').setScale(0.95));
+    { const hk = this.textures.exists(s.hero + '/head') ? s.hero + '/head' : 'warrior/head'; const hi = this.add.image(74, 74, hk); hi.setScale(Math.min(80 / hi.width, 80 / hi.height)); hud.add(hi); }
     hud.add(this.add.text(132, 22, DB.heroes[s.hero].name, { fontFamily: 'sans-serif', fontSize: 22, color: '#ffe7a8', fontStyle: 'bold' }));
     hud.add(this.add.text(220, 26, `${DB.heroes[s.hero].ko.split(' ')[0]} Lv.${s.lv}`, { fontFamily: 'sans-serif', fontSize: 15, color: '#c8b08a' }));
     this.bars = this.add.graphics(); hud.add(this.bars);
@@ -415,7 +447,7 @@ class Game extends Phaser.Scene {
       v: { dx: 110, dy: -120, rot: 50, s: 0.38 },
     }[a.swing];
     if (!conf || a.swing === 's') return;
-    const img = this.fx('smear_warrior', h.x + f * conf.dx, top + conf.dy, { s: conf.s, flip: f < 0, rot: f * conf.rot, dur: 150, depth: h.y + 1002 });
+    const img = this.fx(this.cls.smear || 'smear_warrior', h.x + f * conf.dx, top + conf.dy, { s: conf.s, flip: f < 0, rot: f * conf.rot, dur: 150, depth: h.y + 1002, tint: this.cls.smearTint });
     img.setAlpha(0.8);
   }
   telegraph(x, y, s, ms) {
@@ -443,9 +475,17 @@ class Game extends Phaser.Scene {
     }
   }
   // ---------------- 전투 판정 ----------------
-  heroDamage(base, m, crit) {
+  heroDamage(base, m, crit, elem) {
     const st = this.stats, h = this.hero;
     let k = st.dmgMul * (crit ? 1 + st.critDmg / 100 : 1);
+    const miss = 1 - h.hp / h.maxHp;
+    if (this.cls.frenzy) k *= 1 + miss * 0.8;
+    if (st.frenzy) k *= 1 + miss;
+    if (m.def.undead) k *= 1 + st.vsUndead / 100 + (elem === 'holy' || this.cls.elem === 'holy' ? 0.4 : 0);
+    if (st.execute && m.hp < m.maxHp * st.executeAt / 100) k *= 1 + st.execute / 100;
+    if (m.markT > 0) k *= 1 + (m.markV || 0.25);
+    if (elem) k *= 1 + st.elemPct / 100;
+    if (this.buffs.eclipse > 0) k *= 1.25;
     if (m.state === 'down' || m.state === 'hurt' && m.stun > 500) k *= 1 + st.vsDown / 100;
     if (m.z > 0) k *= 1 + st.vsAir / 100;
     if (m.def.boss) k *= 1 + st.vsBoss / 100;
@@ -468,9 +508,12 @@ class Game extends Phaser.Scene {
       if (m.img) { h.hitSet.add(m); this.hitProp(m, h); any = true; continue; }
       if ((m.z || 0) > (a.zr || 170) + h.z) continue;
       if (m.state === 'down' && !a.otg) continue;
-      const crit = Math.random() * 100 < this.stats.crit || (a.fin && this.comboN > 0 && this.comboN % 10 === 9);
-      const dmg = this.heroDamage(a.dmg * (0.9 + Math.random() * 0.2) * (m.state === 'down' ? 1.4 : 1), m, crit);
+      const behind = this.cls.backstab && (h.x - m.x) * m.face < 0 && !m.def.boss;
+      const crit = behind || Math.random() * 100 < this.stats.crit || (a.fin && this.comboN > 0 && this.comboN % 10 === 9);
+      let dmg = this.heroDamage(a.dmg * (0.9 + Math.random() * 0.2) * (m.state === 'down' ? 1.4 : 1), m, crit, this.cls.elem);
+      if (behind) dmg = Math.round(dmg * (1.3 + this.stats.vsBack / 100));
       if (!m.takeHit(h, a, dmg)) continue;
+      this.afterHeroHit(m, dmg, this.buffs.poison > 0 ? 'poison' : this.cls.elem);
       h.hitSet.add(m); any = true;
       this.addCombo();
       h.awk = Math.min(100, h.awk + 3 * (1 + this.stats.awkPct / 100));
@@ -490,7 +533,7 @@ class Game extends Phaser.Scene {
       if (a.shake) this.cameras.main.shake(120, a.shake * 0.0018);
       if (a.otg && h.state === 'atk') { this.fx('dust_land', h.x + f * 120, h.y, { s: 0.5, dur: 420, depth: h.y + 2 }); }
     }
-    if (a === HERO_ATK.down && h.st >= a.hit[0] && !h.slamFx) {
+    if (a.slam && h.st >= a.hit[0] && !h.slamFx) {
       h.slamFx = true;
       this.fx('impact_ring', h.x + f * 120, h.y, { s: 0.5, dur: 380, depth: h.y - 1, flat: true });
       this.fx('dust_land', h.x + f * 120, h.y, { s: 0.45, dur: 420, depth: h.y + 2 });
@@ -575,6 +618,9 @@ class Game extends Phaser.Scene {
     const h = this.hero, st = this.stats;
     let k = 1 - st.red;
     if (this.buffs.taunt > 0) k *= 0.7;
+    if (this.buffs.shield > 0) k *= 1 - (this.shieldRed || 0.4);
+    if (this.buffs.holy > 0) k = 0;
+    if (st.lowHpDef && h.hp < h.maxHp * 0.5) k *= 1 - st.lowHpDef / 200;
     if (this.hasSkill('최후의 보루') && h.hp < h.maxHp * 0.3) k *= 0.7;
     k *= 1 - (src.def && src.def.role === 'ranged' ? st.redRange : st.redMelee) / 100;
     dmg = Math.max(1, Math.round(dmg * k));
@@ -594,6 +640,7 @@ class Game extends Phaser.Scene {
       SFX.guard(h.x - this.cameras.main.scrollX); this.fx('guard_flash', px, py, { s: 0.32, dur: 260, depth: 4300 });
       this.hitstop = 50;
     } else if (r === 'hit') {
+      if (this.stats.thorns && src.takeHit && !src.dead) { const t = Math.round(dmg * this.stats.thorns / 100); src.hp -= t; this.floatText(src.x, src.y - src.height * 0.7, String(t), '#c8a0ff', 24); if (src.hp <= 0 && !src.def.boss) { src.invuln = 0; src.takeHit(h, { dmg: 1, kb: 200, type: 'knock', otg: true }, 1); } }
       SFX.hit(type === 'heavy', h.x - this.cameras.main.scrollX, 'blunt');
       this.fx('hit_spark', h.x, h.y - h.z - 120, { s: 0.3, dur: 220, tint: 0xff8080, depth: 4300 });
       this.floatText(h.x, h.y - 250, String(dmg), '#ff6060', 30);
@@ -618,10 +665,14 @@ class Game extends Phaser.Scene {
       if (m.dead || (o.hitSet && o.hitSet.has(m))) continue;
       if (Math.abs(m.x - x) > rx + (m.kind === 'barkhaul' ? 60 : 0) || Math.abs(m.y - y) > ry) continue;
       const crit = Math.random() * 100 < this.stats.crit;
-      const dmg = this.heroDamage(base * (o.raw ? 1 / this.stats.dmgMul : 1), m, crit);
+      let dmg = this.heroDamage(base * (o.raw ? 1 / this.stats.dmgMul : 1), m, crit, o.elem);
+      if (o.back && (h.x - m.x) * m.face < 0) dmg *= o.back;
+      dmg = Math.round(dmg);
       m.invuln = 0;
       if (m.takeHit(h, { dmg: base, kb: o.kb ?? 300, type: o.type || 'knock', stop: 60, otg: true }, dmg)) {
         n++; if (o.hitSet) o.hitSet.add(m);
+        this.afterHeroHit(m, dmg, o.elem, o.leech);
+        if (o.mark) { m.markT = 6000; m.markV = o.mark; }
         this.addCombo();
         this.floatText(m.x, m.y - m.height * 0.7, String(dmg), o.col || '#ffb060', crit ? 38 : 32);
         if (m.kind === 'barkhaul') m.poise -= o.poise || 8;
@@ -633,16 +684,22 @@ class Game extends Phaser.Scene {
     if (this.won) return;
     this.fx('impact_ring', x, y, { s: 0.35, dur: 300, depth: y - 1, flat: true, tint: 0x9cff70 });
     this.fx('dust_land', x, y, { s: 0.35, dur: 400, depth: y + 1, tint: 0xb0d080 });
-    const img = this.add.image(x, y + 10, 'barkhaul/forearm').setOrigin(0.5, 1).setScale(0.5, 0.1).setDepth(1000 + y).setTint(src.def.tint || 0xc8a070);
-    this.tweens.add({ targets: img, scaleY: 0.55, duration: 120, ease: 'Back.out', yoyo: true, hold: 300, onComplete: () => img.destroy() });
+    const rf = BOSS_ROOT[src.id];
+    if (rf) { this.fx(rf.fx, x, y - 60, { s: 0.4, dur: 520, depth: y + 1001, tint: rf.tint }); }
+    else {
+      const img = this.add.image(x, y + 10, 'barkhaul/forearm').setOrigin(0.5, 1).setScale(0.5, 0.1).setDepth(1000 + y).setTint(src.id === 'barkhaul' ? 0xc8a070 : src.def.tint || 0xc8a070);
+      this.tweens.add({ targets: img, scaleY: 0.55, duration: 120, ease: 'Back.out', yoyo: true, hold: 300, onComplete: () => img.destroy() });
+    }
     SFX.roots(x - this.cameras.main.scrollX);
     const h = this.hero;
     if (Math.abs(h.x - x) < 70 && Math.abs(h.y - y) < 32 && h.z < 60) this.resolveHeroHit(src, Math.round(26 * (src.dmgK || 1)), 'heavy', x - h.face, y);
   }
   lobRock(b, t) {
     const sx = b.x + b.face * 60, sy = b.y, sz = 300;
-    const img = this.add.image(sx, sy - sz, 'barkhaul/rock').setScale(0.6).setDepth(4000);
-    if (b.def.tint) img.setTint(b.def.tint);
+    const rk = BOSS_ROCK[b.id];
+    const img = this.add.image(sx, sy - sz, rk && this.textures.exists(rk.img) ? rk.img : 'barkhaul/rock').setDepth(4000);
+    img.setScale(rk ? 70 / Math.max(img.width, img.height) * (rk.sc || 1) : 0.6);
+    if (rk && rk.tint) img.setTint(rk.tint);
     const sh = this.add.image(sx, sy, 'shadow').setScale(0.6, 0.5).setAlpha(0.4).setDepth(999);
     const dur = 700;
     this.tweens.addCounter({ from: 0, to: 1, duration: dur, onUpdate: tw => {
@@ -663,7 +720,7 @@ class Game extends Phaser.Scene {
     if (o.rot) img.setAngle(src.face > 0 ? o.rot : -o.rot);
     if (src.def && src.def.tint && key !== 'orb') img.setTint(src.def.tint);
     const sh = this.add.image(img.x, src.y, 'shadow').setScale(0.4, 0.4).setAlpha(0.3).setDepth(999);
-    this.projs.push({ src, img, sh, x: img.x, y: src.y, z: o.z, vx: o.vx, vy: 0, dmg: o.dmg, life: o.life, home: o.home, key, mine: o.mine, hit: new Set() });
+    this.projs.push({ src, img, sh, x: img.x, y: src.y, z: o.z, vx: o.vx, vy: 0, dmg: o.dmg, life: o.life, home: o.home, key, mine: o.mine, hit: new Set(), spin: o.spin });
   }
   updateProjs(dt) {
     const s = dt / 1000, h = this.hero;
@@ -673,17 +730,10 @@ class Game extends Phaser.Scene {
       p.x += p.vx * s; p.y += p.vy * s;
       p.img.setPosition(p.x, p.y - p.z).setDepth(1000 + p.y + 1);
       if (p.key === 'orb') p.img.setScale(0.9 + Math.sin(p.life / 60) * 0.1);
+      if (p.spin && !p.mine) p.img.angle += 720 * s;
       p.sh.setPosition(p.x, p.y);
-      if (p.mine) {
-        // 주인공이 던진 것: 몬스터를 꿰뚫는다
-        for (const m of this.monsters) {
-          if (m.dead || p.hit.has(m) || Math.abs(p.x - m.x) > 50 || Math.abs(p.y - m.y) > 34) continue;
-          p.hit.add(m);
-          const dmg = this.heroDamage(p.dmg * (1 + this.stats.throwPct / 100), m, false);
-          m.invuln = 0;
-          if (m.takeHit(h, { dmg: p.dmg, kb: 160, type: 'light', stop: 40 }, dmg)) { this.addCombo(); this.floatText(m.x, m.y - m.height * 0.7, String(dmg), '#fff', 28); SFX.hit(false, m.px, 'blade'); }
-        }
-      } else if (Math.abs(p.x - h.x) < 40 && Math.abs(p.y - h.y) < 24 && h.z < p.z + 40 && h.z + 200 > p.z) {
+      if (p.mine) this.updateHeroProj(p, dt);
+      else if (Math.abs(p.x - h.x) < 40 && Math.abs(p.y - h.y) < 24 && h.z < p.z + 40 && h.z + 200 > p.z) {
         const hit = this.resolveHeroHit(p.src, p.dmg, 'light', p.x - Math.sign(p.vx), p.y);
         if (hit && p.key === 'orb') SFX.orbHit(p.x - this.cameras.main.scrollX);
         if (hit) { p.life = 0; if (p.key !== 'orb') this.spawnDebrisAt(p.x, p.y, 1, 'barrel'); }
@@ -696,7 +746,7 @@ class Game extends Phaser.Scene {
   updateZones(dt) {
     for (const z of this.zones) {
       z.t -= dt; z.tick -= dt;
-      if (z.tick <= 0) { z.tick = 400; this.heroArea(z.x, z.y, z.rx, z.ry, z.dmg, { kb: 40, type: 'light', col: '#ff9a3a' }); }
+      if (z.tick <= 0) { z.tick = 400; this.heroArea(z.x, z.y, z.rx, z.ry, z.dmg, { kb: 40, type: 'light', col: '#ff9a3a', elem: z.elem }); if (z.root) for (const m of this.monsters) if (!m.dead && !m.def.boss && Math.abs(m.x - z.x) < z.rx && Math.abs(m.y - z.y) < z.ry) { m.vx = m.vy = 0; m.freezeT = 450; } }
       if (z.t <= 0) { z.dead = true; this.tweens.add({ targets: z.img, alpha: 0, duration: 300, onComplete: () => z.img.destroy() }); }
     }
     this.zones = this.zones.filter(z => !z.dead);
@@ -741,7 +791,13 @@ class Game extends Phaser.Scene {
     const s = this.save, idx = s.active[k];
     if (idx === null || idx === undefined || this.cds[k] > 0) return false;
     const name = DB.skills[s.hero].list[idx].name, h = this.hero;
-    if (!SKILL_IMPL[s.hero]?.[name]) { this.floatText(h.x, h.y - 260, '준비 중인 스킬', '#c8b8a0', 22); this.cds[k] = 1000; return false; }
+    if (!SKILL_CD[name]) {
+      const fx = SKILL_FX[name];
+      if (!fx) return false;
+      if (fx.once && this.healOnce[name]) { this.floatText(h.x, h.y - 260, '이번 스테이지에 이미 썼어요', '#c8b8a0', 22); return false; }
+      this.cds[k] = fx.cd * (1 - this.stats.cdr / 100);
+      return this.castSkill(fx, name);
+    }
     this.cds[k] = SKILL_CD[name] * (1 - this.stats.cdr / 100);
     if (name === '도발의 외침') {
       this.buffs.taunt = 3000; SFX.heroAtk(2, h.px); SFX.roar && SFX.cheer(h.px);
@@ -770,16 +826,334 @@ class Game extends Phaser.Scene {
     });
     this.cameras.main.shake(400, 0.01);
   }
+
+  // ===================== 직업 공통 전투 도구 =====================
+  // 주인공 투사체: o = { img, vx, vy, dmg, pierce, n, spread, elem, sc, rot, z, life, boom, chain, home, tint, spin, rehit }
+  heroShoot(h, o) {
+    const n = o.n || 1;
+    const sc = this.cls.ranged ? 1 : 1 + this.stats.throwPct / 100;
+    for (let i = 0; i < n; i++) {
+      const dy = n > 1 ? (i - (n - 1) / 2) * (o.spread || 60) : 0;
+      const key = this.textures.exists(o.img) ? o.img : 'orb';
+      const x = h.x + h.face * 70, y = h.y + dy * 0.35, z = o.z ?? 115;
+      const img = this.add.image(x, y - z, key).setDepth(1000 + y + 1);
+      img.setScale(o.sc || 0.4).setFlipX(h.face < 0);
+      if (o.tint) img.setTint(o.tint);
+      if (key === 'fx/arrow_trail' || key === 'fx/slash_arc') img.setBlendMode(Phaser.BlendModes.ADD);
+      const sh = this.add.image(x, y, 'shadow').setScale(0.3, 0.3).setAlpha(0.25).setDepth(999);
+      this.projs.push({ src: h, img, sh, x, y, z, vx: h.face * (o.vx || 950), vy: dy * 0.3, vz: -(o.vy || 0), dmg: o.dmg * sc, life: o.life || 900, mine: true, pierce: !!o.pierce, elem: o.elem, boom: o.boom, chain: o.chain, home: o.home, spin: o.spin, rehit: o.rehit, hit: new Map(), key, poise: o.poise });
+    }
+    if (this.cls.ranged) SFX.swing(false, h.px, 'blade'); else SFX.throwS(h.px);
+  }
+  updateHeroProj(p, dt) {
+    const s = dt / 1000, h = this.hero;
+    if (p.vz) { p.z = Math.max(0, p.z + p.vz * s); if (p.z <= 0) p.life = 0; }
+    if (p.home) {
+      let best = null, bd = 1e9;
+      for (const m of this.monsters) if (!m.dead) { const d = Math.abs(m.x - p.x); if ((m.x - p.x) * Math.sign(p.vx) > -40 && d < bd) { bd = d; best = m; } }
+      if (best) p.vy = Phaser.Math.Clamp((best.y - p.y) * 3, -300, 300);
+    }
+    if (p.spin) p.img.angle += 900 * s;
+    for (const m of this.monsters) {
+      if (m.dead || Math.abs(p.x - m.x) > (m.kind === 'barkhaul' ? 90 : 55) || Math.abs(p.y - m.y) > 40 || p.z > m.height * 1.1 + 30) continue;
+      const last = p.hit.get(m);
+      if (last !== undefined && !(p.rehit && this.now - last > p.rehit)) continue;
+      p.hit.set(m, this.now);
+      const crit = Math.random() * 100 < this.stats.crit;
+      const dmg = this.heroDamage(p.dmg, m, crit, p.elem);
+      m.invuln = 0;
+      if (m.takeHit(h, { dmg: p.dmg, kb: p.pierce ? 120 : 200, type: 'light', stop: 35 }, dmg)) {
+        this.addCombo();
+        h.awk = Math.min(100, h.awk + 2 * (1 + this.stats.awkPct / 100));
+        this.floatText(m.x, m.y - m.height * 0.7, String(dmg), crit ? '#ffd34d' : '#fff', crit ? 34 : 28);
+        this.fx('hit_spark', p.x, p.y - p.z, { s: 0.25, dur: 200, depth: 4200, tint: { fire: 0xff9050, ice: 0x90d0ff, bolt: 0xffff80 }[p.elem] });
+        SFX.hit(false, m.px, 'blade');
+        this.afterHeroHit(m, dmg, p.elem);
+        if (p.poise && m.kind === 'barkhaul') m.poise -= p.poise;
+        if (p.chain) this.chainBolt(m, dmg * 0.5, p.chain);
+      }
+      if (!p.pierce) { p.life = 0; break; }
+    }
+    if (p.life <= 0 && p.boom) {
+      this.fx('fire_burst', p.x, p.y - 60, { s: 0.4, dur: 450, depth: p.y + 1001 });
+      this.heroArea(p.x, p.y, p.boom, 60, p.dmg * 0.8 / this.stats.dmgMul, { elem: p.elem, kb: 280, col: '#ff9a3a' });
+      p.boom = 0;
+    }
+  }
+  chainBolt(from, dmg, n) {
+    const done = new Set([from]);
+    let cur = from;
+    for (let i = 0; i < n; i++) {
+      let best = null, bd = 260;
+      for (const m of this.monsters) if (!m.dead && !done.has(m)) { const d = Math.hypot(m.x - cur.x, (m.y - cur.y) * 2); if (d < bd) { bd = d; best = m; } }
+      if (!best) break;
+      done.add(best);
+      const g = this.add.graphics().setDepth(4300);
+      g.lineStyle(4, 0xfff080, 1).lineBetween(cur.x, cur.y - cur.height * 0.6, best.x, best.y - best.height * 0.6);
+      this.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
+      best.invuln = 0;
+      const d = Math.round(dmg);
+      if (best.takeHit(this.hero, { dmg: d, kb: 60, type: 'light', stop: 20 }, d)) this.floatText(best.x, best.y - best.height * 0.7, String(d), '#fff080', 24);
+      cur = best;
+    }
+  }
+  // 맞힌 뒤: 상태이상·흡혈
+  afterHeroHit(m, dmg, elem, leech) {
+    const st = this.stats, h = this.hero;
+    let ls = st.lifesteal + (leech ? leech * 100 : 0);
+    if (this.buffs.bloodmoon > 0) ls = ls * 3 + 5;
+    if (ls) h.hp = Math.min(h.maxHp, h.hp + dmg * ls / 100);
+    if (!elem || m.dead) return;
+    if (elem === 'fire') { if (!(m.burnT > 0)) this.floatText(m.x, m.y - m.height - 10, '화상', '#ff9050', 20); m.burnT = 3000; }
+    if (elem === 'poison') { if (!(m.poisonT > 0)) this.floatText(m.x, m.y - m.height - 10, '중독', '#90e070', 20); m.poisonT = 4000; }
+    if (elem === 'ice') {
+      m.chill = (m.chill || 0) + 1; m.slowT = 2500;
+      if (m.chill >= 3 && !m.def.boss) { m.chill = 0; this.freeze(m, 1500); }
+    }
+  }
+  freeze(m, ms) {
+    if (m.dead) return;
+    if (m.def.boss) { m.slowT = ms; return; }
+    m.freezeT = ms; m.state = 'hurt'; m.st = 0; m.stun = ms; m.vx = m.vy = 0;
+    this.floatText(m.x, m.y - m.height - 10, '빙결', '#a0e0ff', 24);
+    this.fx('ice_shards', m.x, m.y - m.height * 0.5, { s: 0.35, dur: 500, depth: m.y + 1002 });
+  }
+  updateStatus(dt) {
+    for (const m of this.monsters) {
+      if (m.dead) continue;
+      for (const k of ['burnT', 'poisonT', 'slowT', 'freezeT', 'markT']) if (m[k] > 0) m[k] -= dt;
+      m.dotT = (m.dotT || 0) - dt;
+      if (m.dotT <= 0 && (m.burnT > 0 || m.poisonT > 0)) {
+        m.dotT = 500;
+        const d = Math.max(1, Math.round(this.stats.dmgMul * (m.burnT > 0 ? 3 : 0) + this.stats.dmgMul * (m.poisonT > 0 ? 2.2 : 0)));
+        m.hp -= d;
+        this.floatText(m.x, m.y - m.height * 0.6, String(d), m.burnT > 0 ? '#ff9050' : '#90e070', 20);
+        if (m.hp <= 0 && !m.def.boss && m.state !== 'dying') { m.invuln = 0; m.takeHit(this.hero, { dmg: 1, kb: 100, type: 'knock', otg: true }, 1); }
+        if (m.hp <= 0 && m.def.boss) m.hp = 1;
+      }
+      if (m.freezeT > 0) { m.vx = 0; m.vy = 0; m.rig.setTintAll(0x9ad8ff); }
+      else if (m.burnT > 0 && m.flashT <= 0) m.rig.setTintAll(Math.floor(this.now / 150) % 2 ? 0xffb090 : null);
+      else if (m.poisonT > 0 && m.flashT <= 0) m.rig.setTintAll(Math.floor(this.now / 150) % 2 ? 0xb0f090 : null);
+      if (m.slowT > 0) { m.x -= m.vx * 0.4 * dt / 1000; }
+    }
+    // 재생 패시브
+    if (this.stats.regen && !this.won && this.hero.hp > 0) this.hero.hp = Math.min(this.hero.maxHp, this.hero.hp + this.hero.maxHp * this.stats.regen / 100 * dt / 1000);
+  }
+  updateAuras(dt) {
+    const h = this.hero;
+    for (const a of this.auras) {
+      a.t -= dt; a.k -= dt;
+      if (a.k <= 0) {
+        a.k = a.tick;
+        if (a.heal) { h.hp = Math.min(h.maxHp, h.hp + h.maxHp * a.heal); this.fx('holy_ring', h.x, h.y - 20, { s: 0.3, dur: 400, depth: h.y - 1, flat: true }); }
+        if (a.strike) {
+          let best = null, bd = 520;
+          for (const m of this.monsters) if (!m.dead) { const d = Math.abs(m.x - h.x) + Math.abs(m.y - h.y); if (d < bd) { bd = d; best = m; } }
+          if (best) { this.fx(a.fx || 'lightning_bolt', best.x, best.y - best.height * 0.5, { s: 0.35, dur: 300, depth: best.y + 1002 }); this.heroArea(best.x, best.y, 60, 40, a.strike, { elem: a.elem, kb: 120, type: 'light' }); }
+        }
+      }
+    }
+    this.auras = this.auras.filter(a => a.t > 0);
+    // 보호막: 날아오는 투사체를 막는다
+    if (this.buffs.shield > 0 && this.shieldReflect) for (const p of this.projs) if (!p.mine && Math.abs(p.x - h.x) < 120 && Math.abs(p.y - h.y) < 60) { p.life = 0; this.fx('guard_flash', p.x, p.y - p.z, { s: 0.25, dur: 200, depth: 4300 }); }
+  }
+  // 직업 특수 동작 (공격 표의 special)
+  heroSpecial(h, a) {
+    const f = h.face, sp = a.special;
+    if (sp === 'burst') {
+      let x = h.x + f * 220;
+      for (const m of this.monsters) if (!m.dead && (m.x - h.x) * f > 60 && (m.x - h.x) * f < 460 && Math.abs(m.y - h.y) < 60) { x = m.x; break; }
+      ['fire_burst', 'ice_shards', 'lightning_bolt'].forEach((k, i) => this.time.delayedCall(i * 60, () => this.fx(k, x + (i - 1) * 40, h.y - 70, { s: 0.45, dur: 450, depth: h.y + 1002 })));
+      this.heroArea(x, h.y, 150, 70, a.sdmg, { elem: ['fire', 'ice', 'bolt'][Math.floor(Math.random() * 3)], kb: 380, type: 'knock', poise: 12 });
+      this.cameras.main.shake(160, 0.007); SFX.ui('fire_explode', h.px);
+    } else if (sp === 'blink') {
+      this.fx('shadow_smoke', h.x, h.y - 90, { s: 0.4, dur: 400, depth: h.y + 1002, tint: 0x90c8ff });
+      h.x = Phaser.Math.Clamp(h.x + f * 300, this.bounds.l + 40, this.bounds.r - 40); h.invuln = 400;
+      this.fx('holy_ring', h.x, h.y - 10, { s: 0.35, dur: 400, depth: h.y - 1, flat: true, tint: 0x90c8ff });
+      SFX.roll(h.px);
+    } else if (sp === 'icepillar') {
+      const x = h.x + f * 170;
+      this.fx('ice_pillar', x, h.y - 80, { s: 0.5, dur: 550, depth: h.y + 1002 });
+      this.heroArea(x, h.y, 90, 50, a.sdmg, { elem: 'ice', type: 'launch', kb: 60 });
+    } else if (sp === 'firefield') {
+      const x = h.x + f * 150, img = UI.img(this, x, h.y, 'fx/fire_ground') || this.add.image(x, h.y, 'px');
+      img.setDepth(999).setScale(0.6, 0.35).setAlpha(0.9);
+      this.zones.push({ x, y: h.y, rx: 130, ry: 40, dmg: a.sdmg, t: 3000, tick: 0, img, elem: 'fire' });
+    } else if (sp === 'shadowstep') {
+      let best = null, bd = 520;
+      for (const m of this.monsters) if (!m.dead && m.state !== 'enter') { const d = Math.abs(m.x - h.x); if (d < bd) { bd = d; best = m; } }
+      if (best) {
+        this.fx('shadow_smoke', h.x, h.y - 90, { s: 0.4, dur: 400, depth: h.y + 1002 });
+        h.x = Phaser.Math.Clamp(best.x - best.face * 95, this.bounds.l + 40, this.bounds.r - 40); h.y = best.y;
+        h.face = Math.sign(best.x - h.x) || h.face; h.invuln = 300;
+        this.fx('shadow_smoke', h.x, h.y - 90, { s: 0.4, dur: 400, depth: h.y + 1002 });
+      }
+    } else if (sp === 'spin') {
+      this.fx('slash_arc', h.x, h.y - 100, { s: 0.45, dur: 300, depth: h.y + 1002, tint: 0xd0b0ff });
+    } else if (sp === 'daggerrain') {
+      const img = ['rogue/offhand_0', 'rogue/weapon_0', 'warrior/weapon_0'].find(k => this.textures.exists(k));
+      this.heroShoot(h, { img, vx: 800, vy: 120, dmg: a.sdmg, n: 5, spread: 80, sc: 0.5, z: 160, spin: true, life: 700 });
+    } else if (sp === 'volley') {
+      const x0 = h.x + f * 320;
+      for (let i = 0; i < 5; i++) this.time.delayedCall(250 + i * 90, () => {
+        const x = x0 + Phaser.Math.Between(-90, 90);
+        const ar = this.add.image(x, h.y - 400, 'fx/arrow_trail').setAngle(90).setScale(0.3).setDepth(4000).setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({ targets: ar, y: h.y - 40, duration: 160, onComplete: () => { ar.destroy(); this.heroArea(x, h.y, 70, 60, a.sdmg, { kb: 100, type: 'light' }); this.fx('dust_land', x, h.y, { s: 0.25, dur: 300, depth: h.y + 2 }); } });
+      });
+    } else if (sp === 'backflip') {
+      this.time.delayedCall(140, () => { if (h.state === 'atk') { h.state = 'jump'; h.st = 0; h.z = 1; h.vz = 640; h.vx = -f * 420; h.jumpAtkUsed = false; h.replay('w_jump', 40); } });
+    } else if (sp === 'sanctuary') {
+      this.time.delayedCall(a.hit[0] > 200 ? 0 : 100, () => { h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.05); this.fx('holy_ring', h.x + f * 120, h.y, { s: 0.6, dur: 500, depth: h.y - 1, flat: true }); });
+    } else if (sp === 'holyup') {
+      this.fx('holy_pillar', h.x + f * 120, h.y - 80, { s: 0.45, dur: 450, depth: h.y + 1002 });
+    } else if (sp === 'voidslam') {
+      this.time.delayedCall(Math.max(0, a.hit[0] - 60), () => { this.fx('void_crack', h.x + f * 140, h.y, { s: 0.5, dur: 600, depth: h.y - 1, flat: true }); this.heroArea(h.x + f * 140, h.y, 140, 50, 20, { kb: 200, type: 'knock' }); });
+    }
+  }
+  // 액티브 스킬 (SKILL_FX 표)
+  castSkill(fx, name) {
+    const h = this.hero, f = h.face;
+    const pos = () => fx.at === 'target' ? (() => { let b = null, bd = 1e9; for (const m of this.monsters) if (!m.dead) { const d = Math.abs(m.x - h.x); if (d < bd) { bd = d; b = m; } } return b ? { x: b.x, y: b.y } : { x: h.x + f * 220, y: h.y }; })() : { x: h.x + f * (fx.at || 0), y: h.y };
+    SFX.heroAtk(1, h.px);
+    if (fx.hpCost) { const c = Math.round(h.maxHp * fx.hpCost * (this.buffs.bloodmoon > 0 ? 0 : 1)); h.hp = Math.max(1, h.hp - c); if (c) this.floatText(h.x, h.y - 250, '-' + c, '#ff6060', 24); }
+    const anim = this.cls.ranged ? (this.save.hero === 'ranger' ? 'r_shoot' : 'c_cast') : 'w_atk1';
+    if (h.state === 'idle' || h.state === 'move') { h.replay(anim, 40); h.vx = h.vy = 0; this.time.delayedCall(260, () => { if (h.state === 'idle' || h.state === 'move') h.play('idle', 100); }); }
+    const t = fx.t;
+    if (t === 'proj') {
+      const n = fx.burst || 1;
+      for (let i = 0; i < n; i++) this.time.delayedCall(120 + i * 110, () => this.heroShoot(h, { img: fx.img, vx: fx.vx || 1000, dmg: fx.dmg, pierce: fx.pierce, elem: fx.elem, sc: fx.sc, tint: fx.tint, boom: fx.boom, chain: fx.chain, home: fx.home, spin: fx.spin, life: fx.life || 1000, rehit: fx.rehit, poise: fx.poise }));
+    } else if (t === 'area') {
+      const n = fx.pulses || 1;
+      for (let i = 0; i < n; i++) this.time.delayedCall(120 + i * 160, () => {
+        const p = pos();
+        if (fx.fx) this.fx(fx.fx, p.x, p.y - (fx.at ? 70 : 90), { s: fx.r / 300, dur: 400, depth: p.y + 1002, tint: fx.tint });
+        this.heroArea(p.x, p.y, fx.r, fx.r * 0.45, fx.dmg, { elem: fx.elem, kb: 260, type: 'knock', back: fx.back, leech: fx.leech, mark: fx.mark, poise: fx.poise || 10 });
+      });
+    } else if (t === 'line') {
+      const hitSet = new Set();
+      for (let i = 0; i < fx.n; i++) this.time.delayedCall(100 + i * 70, () => {
+        const x = h.x + f * (120 + i * fx.step);
+        this.fx(fx.fx, x, h.y - 80, { s: 0.35, dur: 380, depth: h.y + 1002 });
+        this.heroArea(x, h.y, fx.step * 0.6, 60, fx.dmg, { elem: fx.elem, hitSet, kb: 200, type: 'knock' });
+      });
+    } else if (t === 'delayed') {
+      const p = pos();
+      this.telegraph(p.x, p.y, fx.r / 60, fx.delay);
+      this.time.delayedCall(fx.delay, () => {
+        this.fx(fx.fx, p.x, p.y - 80, { s: fx.r / 260, dur: 500, depth: p.y + 1002 });
+        this.cameras.main.shake(200, 0.008);
+        this.heroArea(p.x, p.y, fx.r, fx.r * 0.45, fx.dmg, { elem: fx.elem, kb: 400, type: 'knock', poise: 20 });
+      });
+    } else if (t === 'buff') {
+      this.buffs[fx.key] = fx.ms;
+      this.fx('levelup_burst', h.x, h.y - 120, { s: 0.45, dur: 600, depth: h.y + 1001, tint: fx.key === 'poison' ? 0x80ff80 : 0xff5050 });
+      this.floatText(h.x, h.y - 270, name, '#ffb0b0', 26);
+    } else if (t === 'heal') {
+      if (fx.once) this.healOnce[name] = true;
+      const v = Math.round(h.maxHp * fx.pct * (1 + this.stats.healPct / 100));
+      h.hp = Math.min(h.maxHp, h.hp + v); SFX.heal();
+      this.floatText(h.x, h.y - 250, '+' + v, '#8f8', 32);
+      this.fx(fx.fx, h.x, h.y - 60, { s: 0.5, dur: 600, depth: h.y + 1001 });
+      if (fx.wave) this.heroArea(h.x, h.y, 220, 90, fx.wave, { elem: 'holy', kb: 200 });
+    } else if (t === 'shield') {
+      this.buffs.shield = fx.ms; this.shieldRed = fx.red; this.shieldReflect = !!fx.reflect;
+      this.fx(fx.fx || 'guard_flash', h.x, h.y - 100, { s: 0.5, dur: 600, depth: h.y + 1001 });
+      this.floatText(h.x, h.y - 270, name, '#a0d8ff', 26);
+    } else if (t === 'blink') {
+      let best = null;
+      for (const m of this.monsters) if (!m.dead && m.state !== 'enter' && (!best || m.hp > best.hp)) best = m;
+      if (best) {
+        this.fx('shadow_smoke', h.x, h.y - 90, { s: 0.4, dur: 400, depth: h.y + 1002 });
+        h.x = Phaser.Math.Clamp(best.x - best.face * 95, this.bounds.l + 40, this.bounds.r - 40); h.y = best.y; h.face = Math.sign(best.x - h.x) || 1; h.invuln = 400;
+        this.time.delayedCall(120, () => { this.fx('slash_arc', best.x, best.y - best.height * 0.5, { s: 0.5, dur: 300, depth: best.y + 1003 }); this.heroArea(best.x, best.y, 70, 40, fx.dmg, { kb: 300, type: 'knock', back: 1.5 }); });
+      }
+    } else if (t === 'aura') {
+      this.auras.push({ t: fx.ms, k: 0, tick: fx.tick, strike: fx.strike, heal: fx.heal, fx: fx.fx, elem: fx.elem });
+      if (fx.def) { this.buffs.shield = fx.ms; this.shieldRed = fx.def; }
+      if (fx.buffAtk) this.buffs.eclipse = fx.ms;
+      this.floatText(h.x, h.y - 270, name, '#d0c0ff', 26);
+    } else if (t === 'freeze') {
+      this.cameras.main.flash(200, 160, 220, 255);
+      for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < W) this.freeze(m, fx.ms);
+    } else if (t === 'mark') {
+      for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < 500) { m.markT = fx.ms; m.markV = fx.val; m.showEmote('skull', 800); }
+    } else if (t === 'zone') {
+      const p = pos(), img = UI.img(this, p.x, p.y, 'fx/' + fx.fx) || this.add.image(p.x, p.y, 'px');
+      img.setDepth(999).setScale(fx.r / 240, fx.r / 600).setAlpha(0.85); if (fx.tint) img.setTint(fx.tint);
+      this.zones.push({ x: p.x, y: p.y, rx: fx.r, ry: fx.r * 0.35, dmg: fx.dmg, t: fx.ms, tick: 0, img, elem: fx.elem, root: fx.root });
+    }
+    return false;
+  }
+  // ===================== 각성기 (직업마다) =====================
+  awakenFire(h) {
+    const k = this.cls.awaken;
+    if (k === 'shieldWall') return this.shieldWall(h);
+    const f = h.face;
+    this.cameras.main.flash(160, 255, 230, 160);
+    if (k === 'meteors') {
+      [['fire', 'fire_burst', 0xff7040], ['ice', 'ice_shards', 0x80c8ff], ['bolt', 'lightning_bolt', 0xffff70]].forEach(([el, fk, tint], i) => this.time.delayedCall(i * 280, () => {
+        const x = h.x + f * (200 + i * 240), y = h.y;
+        const mt = this.add.image(x - f * 200, y - 600, this.textures.exists('fx/meteor') ? 'fx/meteor' : 'orb').setScale(0.5).setTint(tint).setDepth(4100).setFlipX(f < 0);
+        this.tweens.add({ targets: mt, x, y: y - 60, duration: 300, ease: 'Cubic.in', onComplete: () => {
+          mt.destroy(); this.fx(fk, x, y - 80, { s: 0.7, dur: 600, depth: y + 1002 }); this.fx('impact_ring', x, y, { s: 0.7, dur: 500, depth: y - 1, flat: true, tint });
+          this.cameras.main.shake(260, 0.014); SFX.ui('fire_explode', x - this.cameras.main.scrollX);
+          this.heroArea(x, y, 170, 80, 90, { elem: el, kb: 600, type: 'knock', poise: 35 });
+        } });
+      }));
+    } else if (k === 'holyDescent') {
+      this.buffs.holy = 5000; h.invuln = 5000;
+      h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.3);
+      this.fx('holy_pillar', h.x, h.y - 120, { s: 0.8, dur: 900, depth: h.y + 1002 });
+      for (const m of this.monsters) if (!m.dead && m.def.undead && !m.def.boss) { m.invuln = 0; m.takeHit(h, { dmg: 9999, kb: 400, type: 'knock', otg: true }, 9999); }
+      this.auras.push({ t: 5000, k: 0, tick: 500, strike: 0, heal: 0.01 });
+      for (let i = 0; i < 6; i++) this.time.delayedCall(i * 700, () => { this.fx('holy_ring', h.x, h.y, { s: 0.9, dur: 600, depth: h.y - 1, flat: true }); this.heroArea(h.x, h.y, 240, 90, 22, { elem: 'holy', kb: 200 }); });
+    } else if (k === 'moonDance') {
+      const targets = this.monsters.filter(m => !m.dead && m.state !== 'enter' && Math.abs(m.x - h.x) < W).slice(0, 8);
+      h.invuln = 300 + targets.length * 140;
+      const home = { x: h.x, y: h.y };
+      targets.forEach((m, i) => this.time.delayedCall(i * 140, () => {
+        if (m.dead) return;
+        this.fx('shadow_smoke', h.x, h.y - 90, { s: 0.3, dur: 300, depth: h.y + 1002 });
+        h.x = m.x - m.face * 80; h.y = m.y; h.face = Math.sign(m.x - h.x) || 1;
+        this.fx('slash_arc', m.x, m.y - m.height * 0.5, { s: 0.5, dur: 280, depth: m.y + 1003, tint: 0xd8d8ff, rot: Phaser.Math.Between(-40, 40) });
+        this.heroArea(m.x, m.y, 60, 40, 60, { kb: 200, type: 'knock', back: 1.5 });
+        SFX.swing(true, h.px, 'blade');
+      }));
+      this.time.delayedCall(targets.length * 140 + 100, () => { h.x = Phaser.Math.Clamp(home.x, this.bounds.l + 40, this.bounds.r - 40); h.y = home.y; });
+    } else if (k === 'arrowRain') {
+      for (let i = 0; i < 16; i++) this.time.delayedCall(100 + i * 90, () => {
+        const x = this.cameras.main.scrollX + 120 + Math.random() * (W - 240), y = Phaser.Math.Between(FLOOR_TOP + 10, FLOOR_BOT - 10);
+        const ar = this.add.image(x, y - 500, 'fx/arrow_trail').setAngle(90).setScale(0.35).setDepth(4000).setTint(0xd8e8ff).setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({ targets: ar, y: y - 40, duration: 180, onComplete: () => { ar.destroy(); this.heroArea(x, y, 90, 50, 28, { kb: 140, type: 'light' }); this.fx('dust_land', x, y, { s: 0.3, dur: 300, depth: y + 2 }); } });
+      });
+    } else if (k === 'blackMoon') {
+      const dark = this.add.rectangle(0, 0, W, H, 0x100018, 0.0).setOrigin(0).setScrollFactor(0).setDepth(3900);
+      this.tweens.add({ targets: dark, alpha: 0.7, duration: 300, yoyo: true, hold: 500, onComplete: () => dark.destroy() });
+      this.time.delayedCall(550, () => {
+        this.cameras.main.shake(500, 0.02);
+        for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < W) {
+          this.fx('void_crack', m.x, m.y - m.height * 0.5, { s: 0.6, dur: 600, depth: m.y + 1003 });
+          this.heroArea(m.x, m.y, 40, 30, 120, { kb: 500, type: 'knock', poise: 50 });
+        }
+      });
+    }
+  }
+
   // ---------------- 각성기: 태양의 성벽 ----------------
-  awakenCutIn() {
+  awakenCutIn(h) {
+    const key = (h && h.key) || 'warrior';
+    const aw = DB.skills[key].list[15].name;
     const c = this.add.container(0, 0).setScrollFactor(0).setDepth(8000);
     const band = this.add.graphics();
     band.fillStyle(0x000000, 0.75).fillRect(0, 230, W, 230);
     band.fillStyle(0xffb020, 1).fillRect(0, 226, W, 6).fillRect(0, 458, W, 6);
     c.add(band);
-    const face = this.add.image(-200, 345, 'warrior/head_attack').setScale(2.6);
+    const ck = this.textures.exists(key + '/cutin') ? key + '/cutin' : this.textures.exists(key + '/head_attack') ? key + '/head_attack' : 'warrior/head_attack';
+    const face = this.add.image(-200, 345, ck);
+    face.setScale(Math.min(250 / face.height, 520 / face.width) * (ck.endsWith('cutin') ? 1 : 1.1));
+    if (ck.endsWith('cutin')) face.setScale(230 / face.height);
     c.add(face);
-    const t1 = this.add.text(W + 300, 320, '태양의 성벽', { fontFamily: 'serif', fontSize: 76, color: '#ffe27a', stroke: '#6a2a06', strokeThickness: 10 }).setOrigin(0.5);
+    const t1 = this.add.text(W + 300, 320, aw, { fontFamily: 'serif', fontSize: 76, color: '#ffe27a', stroke: '#6a2a06', strokeThickness: 10 }).setOrigin(0.5);
     const t2 = this.add.text(W + 300, 395, '각성기', { fontFamily: 'sans-serif', fontSize: 26, color: '#fff' }).setOrigin(0.5);
     c.add(t1); c.add(t2);
     this.tweens.add({ targets: face, x: 300, duration: 220, ease: 'Cubic.out' });
@@ -896,8 +1270,9 @@ class Game extends Phaser.Scene {
     if (this.lost) return;
     const s = this.save, h = this.hero;
     // 부활 깃털: 스테이지당 1개
-    if (!this.featherUsed && (s.belt.feather || 0) > 0) {
-      this.featherUsed = true; s.belt.feather--;
+    const passive = this.stats.revive && !this.reviveUsed;
+    if (passive || (!this.featherUsed && (s.belt.feather || 0) > 0)) {
+      if (passive) this.reviveUsed = true; else { this.featherUsed = true; s.belt.feather--; }
       this.time.delayedCall(1100, () => {
         h.hp = Math.round(h.maxHp * 0.5); h.state = 'getup'; h.st = 0; h.replay('w_getup', 60); h.invuln = 2500; h.setHead(null);
         SFX.ui('revive'); this.cameras.main.flash(300, 255, 240, 200);
@@ -1015,9 +1390,21 @@ class Game extends Phaser.Scene {
     for (const m of this.monsters) if (!m.dead) m.draw(dt, false);
     this.monsters = this.monsters.filter(m => !m.dead);
     for (const m of this.monsters) if (m.shake > 0) m.shake -= dt;
+    // 이빨부숴: 체력이 반이 되면 대장이 멧돼지에서 떨어져 따로 싸운다
+    const B = this.boss;
+    if (B && B.id === 'toothcrusher' && !B.dismounted && !B.dead && B.hp < B.maxHp * 0.5 && B.rig.def.rider) {
+      B.dismounted = true;
+      for (const n of B.rig.def.rider) B.rig.setVisible(n, false);
+      const r = new Monster(this, 'toothcrusher_rider', B.x - B.face * 60, B.y);
+      r.state = 'air'; r.z = 120; r.vz = 300; r.vx = -B.face * 200; r.play('m_air'); r.showEmote('anger', 1200);
+      this.monsters.push(r); SFX.gob('alert', r.px, 0.8);
+      this.floatText(B.x, B.y - B.height - 30, '대장이 떨어졌다!', '#ffd34d', 30);
+    }
     if (this.boss && this.boss.rageTint && !this.boss.dead && this.boss.flashT <= 0) this.boss.rig.setTintAll(Math.floor(this.now / 200) % 2 ? 0xffb8a0 : 0xffd8c8);
     this.updateProjs(dt);
     this.updateZones(dt);
+    this.updateStatus(dt);
+    this.updateAuras(dt);
     SFX.heartbeat(!this.won && !this.lost && this.hero.hp > 0 && this.hero.hp < this.hero.maxHp * 0.25);
     this.updatePickups(dt);
     this.checkWave();

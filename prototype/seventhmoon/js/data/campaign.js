@@ -35,6 +35,7 @@ const MONDEF = {
   hound: { ko: '심연 사냥개', rig: 'grunt', tint: 0x8a4a9a, sc: 1.1, hp: 200, speed: 230, role: 'melee', dmg: 30, reach: 125, gold: [7, 12], face: 'faces/grunt', exp: 20, standin: true },
   leech: { ko: '공허 거머리', rig: 'grunt', tint: 0x5a3a6a, sc: 0.95, hp: 180, speed: 120, role: 'melee', dmg: 24, reach: 120, gold: [6, 10], face: 'faces/grunt', exp: 18, drainAwk: true, standin: true },
   shade_hero: { ko: '그림자 영웅', rig: 'grunt', tint: 0x3a3048, sc: 1.4, hp: 520, speed: 170, role: 'melee', dmg: 38, reach: 160, gold: [14, 20], face: 'faces/grunt', exp: 36, standin: true },
+  toothcrusher_rider: { ko: '이빨부숴 (내림)', rig: 'grunt', tint: 0xc8a080, sc: 1.2, hp: 420, speed: 170, role: 'melee', dmg: 26, reach: 140, gold: [10, 15], face: 'faces/grunt', exp: 40 },
   // ---- 보스 (role: boss는 바크하울 AI를 쓴다) ----
   barkhaul: { ko: '이끼거인 바크하울', rig: 'barkhaul', hp: 1500, speed: 85, role: 'boss', dmg: 44, gold: [40, 60], exp: 160, boss: true, summon: 'grunt' },
   toothcrusher: { ko: '이빨부숴', rig: 'barkhaul', tint: 0xc8a080, sc: 0.85, hp: 1000, speed: 120, role: 'boss', dmg: 38, gold: [30, 45], exp: 110, boss: true, mid: true, summon: 'grunt', standin: true },
@@ -47,24 +48,24 @@ const MONDEF = {
   golem7: { ko: '마도 골렘 칠호', rig: 'barkhaul', tint: 0x8aa0d0, sc: 1.05, hp: 3600, speed: 90, role: 'boss', dmg: 62, gold: [80, 110], exp: 400, boss: true, mid: true, summon: 'construct', standin: true },
   orvex: { ko: '현자 오르벡스', rig: 'barkhaul', tint: 0x7080d0, sc: 0.8, hp: 4800, speed: 110, role: 'boss', dmg: 66, gold: [110, 140], exp: 520, boss: true, summon: 'cultist', standin: true },
   orvex_eclipse: { ko: '흑월 오르벡스', rig: 'barkhaul', tint: 0x5a3a8a, sc: 0.85, hp: 5200, speed: 120, role: 'boss', dmg: 70, gold: [110, 140], exp: 560, boss: true, mid: true, summon: 'imp', standin: true },
-  azmal: { ko: '흑월룡 아즈말', rig: 'barkhaul', tint: 0x40305a, sc: 1.35, hp: 8000, speed: 85, role: 'boss', dmg: 78, gold: [200, 260], exp: 900, boss: true, summon: 'hound', standin: true },
+  azmal: { ko: '흑월룡 아즈말', rig: 'barkhaul', tint: 0x40305a, sc: 1.35, hp: 7000, speed: 85, role: 'boss', dmg: 78, gold: [200, 260], exp: 900, boss: true, summon: 'hound', standin: true },
   void_shadow: { ko: '공허의 그림자', rig: 'barkhaul', tint: 0x201828, sc: 1.1, hp: 9000, speed: 120, role: 'boss', dmg: 84, gold: [260, 320], exp: 1200, boss: true, summon: 'shade_hero', standin: true },
 };
 
 // ---------------- 배경 테마 ----------------
 // far/ground: 텍스처 키(없으면 forest로 대신), tint: 소품 색조
 const THEMES = {
-  forest: { far: 'bg/far', ground: 'bg/ground', tint: 0xffffff, amb: 'forest', bgm: 'bgm_c1_forest' },
-  village: { far: 'bg/village_far', ground: 'bg/village_ground', tint: 0xffd0b0, amb: 'village_fire', bgm: 'bgm_c1_village' },
-  swamp: { far: 'bg/swamp_far', ground: 'bg/swamp_ground', tint: 0xb0d8c8, amb: 'swamp', bgm: 'bgm_c1_swamp' },
-  harbor: { far: 'bg/far', ground: 'bg/ground', tint: 0xa8c8e8, amb: 'harbor', bgm: 'bgm_c2_harbor', standin: true },
-  sewer: { far: 'bg/swamp_far', ground: 'bg/swamp_ground', tint: 0x90a070, amb: 'sewer', bgm: 'bgm_c2_sewer', standin: true },
-  desert: { far: 'bg/village_far', ground: 'bg/village_ground', tint: 0xffe0a0, amb: 'desert', bgm: 'bgm_c3_desert', standin: true },
-  tomb: { far: 'bg/swamp_far', ground: 'bg/village_ground', tint: 0xc8b088, amb: 'tomb', bgm: 'bgm_c3_tomb', standin: true },
-  snow: { far: 'bg/far', ground: 'bg/ground', tint: 0xd8ecff, amb: 'blizzard', bgm: 'bgm_c4_frost', standin: true },
-  dwarf: { far: 'bg/village_far', ground: 'bg/ground', tint: 0xb8b0c8, amb: 'forge', bgm: 'bgm_c4_dwarf', standin: true },
-  tower: { far: 'bg/swamp_far', ground: 'bg/ground', tint: 0xb8b0e0, amb: 'tower', bgm: 'bgm_c5_tower', standin: true },
-  abyss: { far: 'bg/swamp_far', ground: 'bg/village_ground', tint: 0x9a80c0, amb: 'abyss', bgm: 'bgm_c6_abyss', standin: true },
+  forest: { far: 'bg/far', ground: 'bg/ground', props: 'props', amb: 'forest', bgm: 'bgm_c1_forest' },
+  village: { far: 'bg/village_far', ground: 'bg/village_ground', props: 'props_village', amb: 'village_fire', bgm: 'bgm_c1_village' },
+  swamp: { far: 'bg/swamp_far', ground: 'bg/swamp_ground', props: 'props_swamp', amb: 'swamp', bgm: 'bgm_c1_swamp' },
+  harbor: { far: 'bg/harbor_far', ground: 'bg/harbor_ground', props: 'props_harbor', amb: 'harbor', bgm: 'bgm_c2_harbor' },
+  sewer: { far: 'bg/sewer_far', ground: 'bg/sewer_ground', props: 'props_sewer', amb: 'sewer', bgm: 'bgm_c2_sewer' },
+  desert: { far: 'bg/desert_far', ground: 'bg/desert_ground', props: 'props_desert', amb: 'desert', bgm: 'bgm_c3_desert' },
+  tomb: { far: 'bg/tomb_far', ground: 'bg/tomb_ground', props: 'props_tomb', amb: 'tomb', bgm: 'bgm_c3_tomb' },
+  snow: { far: 'bg/frost_far', ground: 'bg/frost_ground', props: 'props_frost', amb: 'blizzard', bgm: 'bgm_c4_frost' },
+  dwarf: { far: 'bg/dwarf_far', ground: 'bg/dwarf_ground', props: 'props_dwarf', amb: 'forge', bgm: 'bgm_c4_dwarf' },
+  tower: { far: 'bg/tower_far', ground: 'bg/tower_ground', props: 'props_tower', amb: 'tower', bgm: 'bgm_c5_tower' },
+  abyss: { far: 'bg/abyss_far', ground: 'bg/abyss_ground', props: 'props_abyss', amb: 'abyss', bgm: 'bgm_c6_abyss' },
 };
 
 // ---------------- 스테이지 ----------------
@@ -132,19 +133,23 @@ const STAGES = {
 // ---------------- 장과 지도 ----------------
 // 노드 순서: s1 → s2 → (A: a1 a2 a3[중간 보스] | B: b1 b2[이벤트] b3[보물·월석]) → boss
 // pos: 지도 그림(1536×1024) 위 좌표. 1장 지도에 맞춘 값을 다른 장도 쓴다(지도 그림이 오면 고친다).
-const MAP_POS = {
-  camp: [80, 500], s1: [240, 504], s2: [384, 496],
-  a1: [516, 332], a2: [764, 316], a3: [992, 356],
-  b1: [492, 704], b2: [760, 740], b3: [980, 690],
-  boss: [1104, 540],
+// 지도 그림(가로 1280) 위의 노드 좌표. 원을 자동 검출하고 가려진 것만 눈으로 채웠다.
+const MAP_NODES = {
+  1: { camp: [68, 418], s1: [206, 424], s2: [322, 416], a1: [433, 284], a2: [639, 266], a3: [828, 298], b1: [414, 588], b2: [636, 618], b3: [818, 576], boss: [926, 454] },
+  2: { camp: [36, 445], s1: [106, 445], s2: [274, 446], a1: [434, 312], a2: [652, 282], a3: [896, 297], b1: [424, 645], b2: [671, 645], b3: [899, 494], boss: [1145, 521] },
+  3: { camp: [30, 442], s1: [92, 442], s2: [268, 444], a1: [430, 326], a2: [618, 302], a3: [784, 342], b1: [389, 578], b2: [572, 608], b3: [771, 580], boss: [890, 448] },
+  4: { camp: [81, 420], s1: [226, 410], s2: [348, 418], a1: [468, 266], a2: [697, 264], a3: [840, 309], b1: [372, 551], b2: [590, 600], b3: [796, 542], boss: [910, 416] },
+  5: { camp: [32, 444], s1: [94, 444], s2: [260, 440], a1: [431, 326], a2: [600, 283], a3: [764, 325], b1: [403, 619], b2: [592, 668], b3: [774, 626], boss: [918, 429] },
+  6: { camp: [30, 418], s1: [88, 418], s2: [236, 412], a1: [398, 244], a2: [594, 236], a3: [776, 252], b1: [344, 616], b2: [594, 662], b3: [850, 592], boss: [914, 418] },
 };
+const MAP_POS = MAP_NODES[1];
 const CHAPTERS = [
   { n: 1, name: '국경 숲 가도', map: 'map/c1', routeA: '불타는 마을', routeB: '안개 늪', moon: 'red', lv: 1 },
-  { n: 2, name: '항구도시 세라포트', map: 'map/c1', routeA: '해적 부두', routeB: '도둑 길드 지하', moon: null, lv: 6 },
-  { n: 3, name: '사막 매장 신전', map: 'map/c1', routeA: '지하 묘실', routeB: '모래폭풍 협곡', moon: 'yellow', lv: 11 },
-  { n: 4, name: '서리 산맥', map: 'map/c1', routeA: '빙하 동굴', routeB: '드워프 폐요새', moon: 'blue', lv: 16 },
-  { n: 5, name: '공중 마도탑', map: 'map/c1', routeA: '시계 기관실', routeB: '하피 둥지', moon: 'silver', lv: 21 },
-  { n: 6, name: '흑월의 심연', map: 'map/c1', routeA: '거울 회랑', routeB: '영웅들의 무덤', moon: 'green', lv: 26 },
+  { n: 2, name: '항구도시 세라포트', map: 'map/c2', routeA: '해적 부두', routeB: '도둑 길드 지하', moon: null, lv: 6 },
+  { n: 3, name: '사막 매장 신전', map: 'map/c3', routeA: '지하 묘실', routeB: '모래폭풍 협곡', moon: 'yellow', lv: 11 },
+  { n: 4, name: '서리 산맥', map: 'map/c4', routeA: '빙하 동굴', routeB: '드워프 폐요새', moon: 'blue', lv: 16 },
+  { n: 5, name: '공중 마도탑', map: 'map/c5', routeA: '시계 기관실', routeB: '하피 둥지', moon: 'silver', lv: 21 },
+  { n: 6, name: '흑월의 심연', map: 'map/c6', routeA: '거울 회랑', routeB: '영웅들의 무덤', moon: 'green', lv: 26 },
 ];
 // 장의 노드 목록 (id, 종류, 스테이지 키, 다음 노드)
 function chapterNodes(n) {

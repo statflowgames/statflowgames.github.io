@@ -17,7 +17,8 @@ class Actor {
     this.lastPose = {};
     this.flashT = 0; this.invuln = 0; this.dead = false; this.hitSet = new Set();
     this.shadow = scene.add.image(x, y, 'shadow');
-    this.baseStand = rigName === 'warrior' ? P.stand : P.standMon;
+    const cm = this.rig.def.clips;
+    this.baseStand = rigName === 'warrior' || o.hero ? P.stand : cm && cm.m_idle && CLIPS[cm.m_idle] ? CLIPS[cm.m_idle].at(0) : P.standMon;
     this.rig.measure(this.baseStand);
     this.shake = 0;
     this.emote = null;
@@ -25,7 +26,8 @@ class Actor {
   get sc() { return this.rig.def.scale; }
   get px() { return this.x - this.scene.cameras.main.scrollX; }
   play(name, blend = 70) {
-    if (name === 'm_walk' && this.kind === 'barkhaul') name = 'b_walk';
+    const cm = this.rig.def.clips;
+    if (cm && cm[name]) name = cm[name];
     if (this.anim === name) return;
     this.blendFrom = this.lastPose; this.blendDur = blend; this.blendT = 0;
     this.anim = name; this.animT = 0;
@@ -78,6 +80,17 @@ class Actor {
       this.spring(sec.sq, 0, 0.22, 0.7, f);
     }
     const p2 = { ...pose, rx: 0, ry: 0 };
+    // 저절로 움직이는 부위 (날개·꼬리·공전하는 구슬)
+    const procs = this.rig.def.procs;
+    if (procs) {
+      this.procT = (this.procT || 0) + (frozen ? 0 : dt);
+      for (const q of procs) {
+        if (!this.rig.map[q.n]) continue;
+        let v = (q.base || 0) + Math.sin(this.procT * (q.spd || 0.005) + (q.ph || 0) * D2R) * (q.amp || 0);
+        if (q.spin) v += (this.procT * q.spin + (q.ph || 0)) % 360;
+        p2[q.n] = (p2[q.n] || 0) + v;
+      }
+    }
     p2.cape = (p2.cape || 0) + sec.cape.x;
     p2.head = (p2.head || 0) + sec.head.x;
     this.rig.apply(p2);
@@ -86,7 +99,8 @@ class Actor {
     const sq = Phaser.Math.Clamp((pose.sq || 0) + sec.sq.x, -0.18, 0.18);
     const sy = this.sc * (1 + sq), sxs = this.sc * (1 - sq * 0.6);
     const sx = this.shake > 0 ? (Math.random() - 0.5) * 8 : 0;
-    this.rig.c.setPosition(this.x + sx, this.y - this.z - this.groundOff * sy);
+    const hov = this.rig.def.hover ? (this.rig.def.hover + Math.sin((this.procT || 0) * 0.004) * 8) * (this.state === 'down' || this.dead ? 0.2 : 1) : 0;
+    this.rig.c.setPosition(this.x + sx, this.y - this.z - hov - this.groundOff * sy);
     this.rig.c.setScale(sxs * this.face, sy);
     this.rig.c.setDepth(1000 + this.y);
     const h = Math.max(0.35, 1 - this.z / 500);
@@ -100,7 +114,7 @@ class Actor {
     }
   }
   get height() { return this.rig.def.height * this.sc * 0.92; }
-  get shadowW() { return this.kind === 'barkhaul' ? 2.2 : this.kind === 'warrior' ? 1.2 : 1.0; }
+  get shadowW() { return this.rig.def.shadow || (this.kind === 'barkhaul' ? 2.2 : this.side === 'hero' ? 1.2 : 1.0); }
   flash(color = 0xffffff, ms = 70) { this.rig.setFlash(true, color); this.flashT = ms; }
   showEmote(key, ms = 1200) {
     if (this.emote) this.emote.img.destroy();
@@ -141,7 +155,11 @@ const HERO_ATK = {
 
 class Hero extends Actor {
   constructor(scene, x, y) {
-    super(scene, 'warrior', x, y);
+    const key = (scene.save && scene.save.hero) || 'warrior';
+    super(scene, key, x, y, { hero: true });
+    this.key = key;
+    this.cls = classOf(key);
+    this.atkSet = this.cls.atk;
     this.st8 = scene.stats || { hp: 360, parryWin: 0, staRegen: 0, spd: 0 };
     this.maxHp = this.st8.hp; this.hp = this.maxHp;
     this.sta = 100; this.awk = 0;
@@ -151,6 +169,7 @@ class Hero extends Actor {
     this.side = 'hero';
   }
   setHead(img) { this.rig.setImg('head', img); }
+  get rollCost() { return 22 * (1 - (this.st8.rollCost || 0) / 100); }
   update(dt, inp) {
     const s = dt / 1000;
     this.st += dt;
@@ -174,7 +193,7 @@ class Hero extends Actor {
       if ((inp.sk1P || inp.sk2P) && this.scene.useSkill(inp.sk1P ? 0 : 1)) return;
       if (inp.itemN) this.scene.useItem(inp.itemN - 1);
       if (inp.jumpP) return this.startJump(inp);
-      if (inp.rollP && this.sta >= 22) return this.startRoll(inp);
+      if (inp.rollP && this.sta >= this.rollCost) return this.startRoll(inp);
       if (inp.guard) return this.startGuard();
       if (this.buffer > 0) { this.buffer = 0; return this.startAttack(this.pickCommand(inp)); }
       const run = this.holdT > 320 && inp.x !== 0;
@@ -191,7 +210,7 @@ class Hero extends Actor {
     if (st === 'atk') {
       const a = this.atk;
       this.vx *= Math.pow(0.0008, s); this.vy = 0;
-      if (a === HERO_ATK.dash) this.vx = this.face * (this.st < 330 ? 560 : 120);
+      if (this.atkName === 'dash' && !a.special) this.vx = this.face * (this.st < 330 ? 560 : 120);
       this.checkHits(a);
       if (a.next && this.st >= a.next && this.buffer > 0 && this.chain) {
         this.buffer = 0;
@@ -204,7 +223,8 @@ class Hero extends Actor {
     if (st === 'jump' || st === 'jatk') {
       this.vx = inp.x * 220 || this.vx * 0.98; if (inp.x && st === 'jump') this.face = inp.x;
       this.vy = inp.y * 90;
-      if (st === 'jump' && inp.atkP && !this.jumpAtkUsed) { this.jumpAtkUsed = true; this.state = 'jatk'; this.st = 0; this.atk = HERO_ATK.jump; this.hitSet.clear(); this.replay('w_jumpatk', 40); this.setHead('head_shout'); }
+      if (st === 'jump' && inp.atkP && !this.jumpAtkUsed) { this.jumpAtkUsed = true; this.state = 'jatk'; this.st = 0; this.atk = this.atkSet.jump; this.atkName = 'jump'; this.fired = false; this.hitSet.clear(); this.replay(this.atk.clip, 40); this.setHead('head_shout'); }
+      if (inp.jumpP && this.st8.doubleJump && !this.dj && this.z > 20) { this.dj = true; this.vz = 820; this.replay('w_jump', 40); SFX.jump(this.px); }
       if (st === 'jatk') this.checkHits(this.atk);
       this.physics(dt);
       return;
@@ -218,7 +238,7 @@ class Hero extends Actor {
       this.vx = 0; this.vy = 0;
       if (!inp.guard || this.sta <= 0) return this.toIdle();
       if (inp.x) this.face = inp.x;
-      if (inp.rollP && this.sta >= 22) return this.startRoll(inp);
+      if (inp.rollP && this.sta >= this.rollCost) return this.startRoll(inp);
       this.physics(dt);
       return;
     }
@@ -245,34 +265,39 @@ class Hero extends Actor {
     return 'a1';
   }
   startAttack(k) {
-    const a = HERO_ATK[k];
-    this.state = 'atk'; this.st = 0; this.atk = a; this.atkName = k; this.hitSet.clear();
+    const a = this.atkSet[k];
+    this.state = 'atk'; this.st = 0; this.atk = a; this.atkName = k; this.hitSet.clear(); this.fired = false;
     this.chain = { a1: 'a2', a2: 'a3', a3: 'a4' }[k] || null;
     this.replay(a.clip, 40);
     const power = { a3: 1, up: 1, dash: 1, a4: 2, down: 2 }[k] || 0;
     if (power || Math.random() < 0.35) this.scene.time.delayedCall(Math.max(0, a.hit[0] - 60), () => this.state === 'atk' && SFX.heroAtk(power, this.px));
-    this.vx = k === 'dash' ? this.face * 560 : 0;
+    this.vx = k === 'dash' && !a.special ? this.face * 560 : 0;
     this.setHead(a.fin || k === 'down' || k === 'dash' ? 'head_shout' : 'head_attack');
     this.scene.time.delayedCall(a.hit[0] - 30, () => {
       if (this.state !== 'atk' || this.atk !== a) return;
       if (a.lunge) this.vx = this.face * a.lunge;
-      SFX.swing(a.fin || k === 'down', this.px, a.swing === 's' ? 'shield' : 'blade');
-      this.scene.swingFx(this, a);
+      if (!a.proj && !(a.special && !a.dmg)) { SFX.swing(a.fin || k === 'down', this.px, a.swing === 's' ? 'shield' : 'blade'); this.scene.swingFx(this, a); }
     });
-    if (k === 'dash') { SFX.roll(this.px); this.scene.fx('speed_lines', this.x - this.face * 80, this.y - 110, { s: 0.45, flip: this.face < 0, dur: 300, depth: this.y - 1 }); }
+    if (k === 'dash' && !a.special) { SFX.roll(this.px); this.scene.fx('speed_lines', this.x - this.face * 80, this.y - 110, { s: 0.45, flip: this.face < 0, dur: 300, depth: this.y - 1 }); }
   }
   checkHits(a) {
     if (this.st < a.hit[0] || this.st > a.hit[1]) return;
-    this.scene.meleeHit(this, a);
+    // 투사체·특수 동작은 맞는 순간에 한 번만 낸다
+    if ((a.proj || a.special) && !this.fired) {
+      this.fired = true;
+      if (a.proj) this.scene.heroShoot(this, a.proj);
+      if (a.special) this.scene.heroSpecial(this, a);
+    }
+    if (a.dmg) this.scene.meleeHit(this, a);
   }
   toIdle() { this.state = 'idle'; this.st = 0; this.play('idle', 120); this.setHead(null); this.gravMul = 1; }
   startJump(inp) {
-    this.state = 'jump'; this.st = 0; this.vz = 860; this.z = 0.01; this.jumpAtkUsed = false;
+    this.state = 'jump'; this.st = 0; this.vz = 860; this.z = 0.01; this.jumpAtkUsed = false; this.dj = false;
     this.play('w_jump', 60); SFX.jump(this.px); this.kick(0, 0, 0.12);
     this.scene.fx('dust_land', this.x, this.y, { s: 0.22, dur: 300, depth: this.y - 1 });
   }
   startRoll(inp) {
-    this.sta -= 22;
+    this.sta -= this.rollCost;
     const d = inp.x || this.face; this.face = d;
     this.state = 'roll'; this.st = 0; this.vx = d * 560; this.vy = inp.y * 120; this.invuln = 380;
     this.replay('w_roll', 30); SFX.roll(this.px);
@@ -329,12 +354,12 @@ class Hero extends Actor {
   startAwaken() {
     this.awk = 0; this.state = 'awaken'; this.st = 0; this.vx = this.vy = 0; this.invuln = 1200;
     this.replay('w_awaken', 40); this.setHead('head_shout');
-    this.scene.awakenCutIn();
+    this.scene.awakenCutIn(this);
     SFX.awaken();
     this.awkFired = false;
   }
   updateAwaken(dt) {
-    if (this.st > 440 && !this.awkFired) { this.awkFired = true; this.scene.shieldWall(this); }
+    if (this.st > 440 && !this.awkFired) { this.awkFired = true; this.scene.awakenFire(this); }
     if (this.st > 1000) this.toIdle();
   }
 }
@@ -343,17 +368,30 @@ class Hero extends Actor {
 // 몬스터
 // ---------------------------------------------------------------------------
 // 몬스터 수치는 js/data/campaign.js 의 MONDEF
+// 원거리 몬스터가 던지는 것
+const MON_PROJ = {
+  spear: { img: 'spear/javelin', rot: 90, sc: 0.32 },
+  ratkin_xbow: { img: 'fx/arrow_trail', rot: 0, sc: 0.28, vx: 900 },
+  skeleton_archer: { img: 'fx/arrow_trail', rot: 0, sc: 0.28, vx: 900 },
+  dwarf_miner: { img: 'dwarf_miner/barrel', rot: 0, sc: 0.5, vx: 520, spin: true },
+  construct: { img: 'orb', rot: 0, sc: 0.8, vx: 600 },
+  harpy: { img: 'harpy/wing_feather', rot: 90, sc: 0.35, vx: 760 },
+};
 
 class Monster extends Actor {
   constructor(scene, id, x, y) {
     const base = MONDEF[id] || MONDEF.grunt;
-    super(scene, base.rig, x, y, { sc: base.sc });
+    const real = !!RIGS[id] && id !== base.rig;
+    super(scene, real ? id : base.rig, x, y, real ? {} : { sc: base.sc });
+    this.kind = base.rig;   // AI 종류 (barkhaul = 보스 AI)
     const k = scene.monScale || { hp: 1, dmg: 1 };
     this.id = id;
     this.def = { ...base, dmg: Math.round(base.dmg * k.dmg) };
     this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
-    this.maxHp = Math.round(base.hp * k.hp); this.hp = this.maxHp;
-    if (base.tint) { for (const b of this.rig.bones) b.baseTint = mulTint(b.baseTint, base.tint); this.rig.setTintAll(null); }
+    this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) : k.hp)); this.hp = this.maxHp;
+    if (real && MAN['faces/' + id + '_hurt']) this.def.face = 'faces/' + id;
+    else if (real) this.def.face = null;
+    if (base.tint && !real) { for (const b of this.rig.bones) b.baseTint = mulTint(b.baseTint, base.tint); this.rig.setTintAll(null); }
     const kind = base.rig;
     this.side = 'mon';
     this.cool = 600 + Math.random() * 900;
@@ -458,7 +496,8 @@ class Monster extends Actor {
     if (st === 'throwup') {
       if (this.st > 520) {
         this.state = 'throw'; this.st = 0; this.replay('m_throw', 30); SFX.throwS(this.px); SFX.gob('atk', this.px, this.pitch); this.setHead('head_shout');
-        this.scene.projectile(this, 'spear/javelin', { vx: this.face * 720, z: 105, dmg: this.def.dmg, rot: 90, sc: 0.32, life: 1500 });
+        const pj = MON_PROJ[this.id] || MON_PROJ.spear;
+        this.scene.projectile(this, this.scene.textures.exists(pj.img) ? pj.img : 'spear/javelin', { vx: this.face * (pj.vx || 720), z: this.height * 0.55, dmg: this.def.dmg, rot: pj.rot ?? 90, sc: pj.sc || 0.32, life: 1500, spin: pj.spin });
         this.rig.setVisible('wpn', false);
       }
       return;

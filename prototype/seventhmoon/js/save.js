@@ -21,6 +21,27 @@ const BELT = {
 };
 const BELT_ORDER = ['potion', 'dagger', 'oil', 'scroll'];
 
+// 숨은 직업 해금은 저장을 새로 만들어도 남는다
+const UNLOCK_KEY = 'seventhmoon.unlock';
+function globalUnlocks() { try { return JSON.parse(localStorage.getItem(UNLOCK_KEY) || '{}'); } catch (e) { return {}; } }
+function addGlobalUnlock(k) { try { const u = globalUnlocks(); u[k] = true; localStorage.setItem(UNLOCK_KEY, JSON.stringify(u)); } catch (e) { /* 무시 */ } }
+// 직업 바꾸기: 장비와 스킬은 직업마다 따로 기억한다 (레벨·금화·가방은 함께)
+function switchHero(s, key) {
+  if (s.hero === key) return;
+  s.eqBy = s.eqBy || {}; s.skillsBy = s.skillsBy || {};
+  s.eqBy[s.hero] = s.eq; s.skillsBy[s.hero] = { skills: s.skills, active: s.active };
+  s.hero = key;
+  if (s.eqBy[key]) s.eq = s.eqBy[key];
+  else { s.eq = {}; for (const slot of ['weapon', 'offhand', 'head', 'body']) { const it = makeItem(s, { cls: key, slot, tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar: 0 }); s.eq[slot] = it.id; } }
+  // 장신구는 함께 쓴다
+  const prev = s.eqBy[Object.keys(s.eqBy).find(k => k !== key) || key] || {};
+  if (!s.eq.acc1 && prev.acc1) s.eq.acc1 = prev.acc1;
+  if (!s.eq.acc2 && prev.acc2) s.eq.acc2 = prev.acc2;
+  const sk = s.skillsBy[key];
+  // 스킬 포인트는 레벨에서 나오므로, 처음 쓰는 직업은 전체 포인트를 새로 받는다
+  if (sk) { s.skills = sk.skills; s.active = sk.active; s.sp = Math.max(0, s.lv - 1 - Object.keys(s.skills).length); }
+  else { s.skills = {}; s.active = [null, null]; s.sp = s.lv - 1; }
+}
 const expNeed = lv => Math.round(90 * Math.pow(1.12, lv));
 const LV_CAP = 30;
 
@@ -30,7 +51,7 @@ function newSave(hero = 'warrior') {
     bag: [], eq: {}, nextId: 1, belt: { potion: 2, dagger: 3, oil: 0, scroll: 0, feather: 0 },
     sp: 0, skills: {}, active: [null, null],
     ch: 1, at: 'camp', cleared: {}, route: {}, grades: {}, moons: {}, flags: {}, lise: 0,
-    endings: {}, unlocked: { warrior: true, mage: true }, seen: {}, play: 0, runs: 1,
+    endings: {}, unlocked: { warrior: true, mage: true, paladin: true, rogue: true, ...globalUnlocks() }, seen: {}, play: 0, runs: 1, eqBy: {}, skillsBy: {},
   };
   // 시작 장비: 견습 무기·보조·머리·몸 (일반)
   for (const slot of ['weapon', 'offhand', 'head', 'body']) {
@@ -155,13 +176,11 @@ function heroStats(s) {
     }
     if (it.set) sets[it.set] = (sets[it.set] || 0) + 1;
   }
-  // 스킬 패시브 (방패전사 1차 구현)
-  const sk = s.skills || {};
-  const has = name => (DB.skills[s.hero]?.list || []).some((x, i) => x.name === name && sk[i]);
-  if (has('강철 피부')) st.defPct += 15;
-  if (has('약점 포착')) st.vsDown += 35;
-  if (has('백전노장')) st.awkPct += 30;
-  if (has('철벽의 달인')) st.parryWin += 50;
+  // 스킬 패시브와 직업 보정
+  applyPassives(s, st);
+  const cls = classOf(s.hero);
+  st.hp *= cls.hp || 1;
+  st.crit += cls.critAdd || 0;
   st.atk = Math.round(st.atk * (1 + st.atkPct / 100));
   st.def = Math.round(st.def * (1 + st.defPct / 100));
   st.hp = Math.round(st.hp * (1 + st.hpPct / 100));

@@ -8,9 +8,9 @@ const CAST = {
   tabel: { ko: '타벨', portrait: 'portrait/tabel', faces: 'portrait/tabel_' },
   merchant: { ko: '행상인 포포', portrait: 'portrait/merchant' },
   fortune: { ko: '천막의 할멈', portrait: 'portrait/fortune' },
-  orvex: { ko: '오르벡스', col: '#b8a8ff' },
-  seril: { ko: '세릴', col: '#c8f0b0' },
-  odelia: { ko: '오델리아', col: '#fff0b0' },
+  orvex: { ko: '오르벡스', portrait: 'portrait/orvex', faces: 'portrait/orvex_', col: '#d0c8ff' },
+  seril: { ko: '세릴', portrait: 'portrait/ranger', faces: 'portrait/ranger_' },
+  odelia: { ko: '오델리아', portrait: 'portrait/paladin', faces: 'portrait/paladin_' },
   narr: { ko: '' },
 };
 
@@ -69,6 +69,7 @@ const STORY = {
   ],
   // ================= 2장 =================
   c2_intro: [
+    { bg: 'story/c2' },
     { w: 'merchant', t: '어이쿠, 상단 손님들! 세라포트에 오신 걸 환영… 아니, 지금은 환영할 때가 아니구먼.' },
     { w: 'merchant', t: '항구가 시궁쥐족이랑 해적 놈들 손에 넘어갔다오. 신전 가는 길도 막혔고.' },
     { w: 'odelia', t: '물러서세요, 상인 양반. 이 도시의 오물은 백월의 이름으로 제가 쓸어 내겠습니다.' },
@@ -94,6 +95,7 @@ const STORY = {
   ],
   // ================= 3장 =================
   c3_intro: [
+    { bg: 'story/c3' },
     { w: 'tabel', t: '모래바람이 매섭구나. 신전은 저 언덕 너머다. 미라들이 무덤을 지킨다지.' },
     { w: 'lise', t: '협곡 쪽에서 누군가 도움을 청하는 목소리가… 바람 소리일까요?' },
   ],
@@ -120,6 +122,7 @@ const STORY = {
   ],
   // ================= 4장 =================
   c4_intro: [
+    { bg: 'story/c4' },
     { w: 'tabel', t: '서리 산맥이다. 드워프들의 옛 요새가 이 근처에 있었지. 지금은 버려졌다만.' },
     { w: 'lise', t: '푸른 빛이 산 위에서 깜빡여요. 청월의 돌이 가까이 있어요.' },
   ],
@@ -139,6 +142,7 @@ const STORY = {
   ],
   // ================= 5장 =================
   c5_intro: [
+    { bg: 'story/c5' },
     { w: 'tabel', t: '공중 마도탑. 오르벡스의 거처다. 흑월 교단이 놈을 신처럼 모시고 있다더군.' },
     { w: 'lise', t: '은빛 바람이 불어요. 은월의 돌도 이 탑 어딘가에 있어요.' },
   ],
@@ -175,6 +179,7 @@ const STORY = {
   ],
   // ================= 6장 =================
   c6_intro: [
+    { bg: 'story/c6' },
     { w: 'narr', t: '흑월의 심연. 하늘과 땅이 뒤집힌 곳. 지난 영웅들의 무덤이 별처럼 떠 있다.' },
     { w: 'tabel', t: '여기가 끝이다. 아즈말, 흑월에 깃든 고대룡이 심장부에서 기다린다.' },
   ],
@@ -191,6 +196,7 @@ const STORY = {
   // ================= 엔딩 =================
   end_seal: [
     { music: 'bgm_end_seal' },
+    { bg: 'story/end_seal' },
     { w: 'narr', t: '아즈말이 쓰러지고, 심연의 문이 다시 닫혔다.' },
     { w: 'tabel', t: '봉인은 지켜졌다. …300년 뒤 흑월은 또 떠오르겠지만.' },
     { w: 'lise', f: 'sad', t: '그때도 누군가 우리처럼 싸우겠죠. 그 사람에게 이 이야기를 남겨 둘게요.' },
@@ -205,6 +211,7 @@ const STORY = {
   ],
   end_true: [
     { music: 'bgm_end_true' },
+    { bg: 'story/end_true' },
     { w: 'narr', t: '그림자가 흩어지고, 여섯 달의 빛이 하나로 모여 흑월을 비췄다. 검은 달이 천천히, 은빛으로 물들었다.' },
     { w: 'orvex', t: '…빛이구나. 300년 동안 찾지 못한 답을, 너희가 찾았어.' },
     { w: 'orvex', t: '고맙다. 이제야 쉴 수 있겠구나.' },
@@ -212,6 +219,7 @@ const STORY = {
   ],
   end_dark: [
     { music: 'bgm_end_dark' },
+    { bg: 'story/end_dark' },
     { w: 'narr', t: '오르벡스와 함께 흑월의 제단에 선 순간, 검은 빛이 당신을 삼켰다.' },
     { w: 'orvex', t: '…그래, 흑월은 너를 골랐구나. 나보다 강한 의지를.' },
     { w: 'narr', t: '심연은 영원히 닫혔다. 여섯 달은 빛을 잃었고, 하늘에는 검은 달 하나만이 남았다.' },
@@ -219,6 +227,7 @@ const STORY = {
   ],
   end_sacrifice: [
     { music: 'bgm_end_sacrifice' },
+    { bg: 'story/end_sacrifice' },
     { w: 'lise', f: 'sad', t: '월석이 모자라요… 하지만 방법이 하나 있어요. 제 몸에도 달빛이 흐르니까.' },
     { w: 'hero', t: '리세, 안 돼!' },
     { w: 'lise', f: 'joy', t: '괜찮아요. 300년 뒤에 누군가 저를 기억해 준다면, 그걸로 충분해요.' },

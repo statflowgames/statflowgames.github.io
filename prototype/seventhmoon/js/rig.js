@@ -13,7 +13,7 @@ class Rig {
     this.map = {};
     this.flash = 0;
     for (const b of def.bones) {
-      const tex = def.tex + '/' + b.img;
+      const tex = b.raw ? b.img : def.tex + '/' + b.img;
       const s = scene.add.image(0, 0, tex);
       s.setOrigin(b.ax ?? 0.5, b.ay ?? 0.5);
       if (b.dark) s.setTint(b.dark);
@@ -33,8 +33,11 @@ class Rig {
     const b = this.map[n];
     if (!b || b.cur === img) return;
     b.cur = img;
-    const k = img || b.img;
-    b.spr.setTexture(k.includes('/') ? k : this.def.tex + '/' + k);
+    let k = img || b.img;
+    if (this.def.imgAlias && img && this.def.imgAlias[img] !== undefined) k = this.def.imgAlias[img] || b.img;
+    let key = k.includes('/') ? k : this.def.tex + '/' + k;
+    if (!this.scene.textures.exists(key)) key = b.raw ? b.img : this.def.tex + '/' + b.img;
+    b.spr.setTexture(key);
   }
   measure(pose) {
     // 서 있는 자세에서 발바닥까지의 거리(컨테이너 로컬 픽셀)
@@ -45,8 +48,9 @@ class Rig {
   // 지금 자세에서 몸(무기·망토 제외)의 가장 낮은 점. 컨테이너 로컬 y.
   lowest() {
     let bottom = -1e9;
+    const only = this.def.ground;
     for (const b of this.bones) {
-      if (NO_GROUND.has(b.n) || !b.spr.visible) continue;
+      if (only ? !only.includes(b.n) : NO_GROUND.has(b.n) || !b.spr.visible) continue;
       const s = b.spr, w = s.width * b.sc, h = s.height * b.sc;
       const cos = Math.cos(s.rotation), sin = Math.sin(s.rotation);
       for (const [u, v] of CORNERS) {
@@ -142,7 +146,7 @@ function humanoid(tex, o) {
   if (o.shield) bones.push({ n: 'shd', p: 'faf', x: o.shield.at[0], y: o.shield.at[1], img: o.shield.img, ax: 0.5, ay: 0.5, sc: o.shield.sc, z: 85 });
   if (o.frontItem) bones.push({ n: 'fitem', p: 'hf', x: o.frontItem.at[0], y: o.frontItem.at[1], img: o.frontItem.img, ax: o.frontItem.a[0], ay: o.frontItem.a[1], ir: o.frontItem.ir ?? 90, sc: o.frontItem.sc, z: 82 });
   if (o.extra) for (const e of o.extra) bones.push(e);
-  return { tex, scale: o.scale, bones, footY: o.footY, height: o.height };
+  return { tex, scale: o.scale, bones, footY: o.footY, height: o.height, clips: o.clips };
 }
 
 // 부품 시트에서 잘라 낸 그림 기준으로 관절 위치를 잡은 값들 (rig-view로 확인하며 조정)
@@ -194,7 +198,7 @@ const RIGS = {
     uaA: [0.5, 0.16], uaLen: 128, faA: [0.5, 0.12], faLen: 120, handA: [0.25, 0.5],
     hipB: [46, 34], hipF: [-46, 34], legSc: 0.7, thA: [0.5, 0.14], thLen: 140, shA: [0.5, 0.12], shLen: 134, ftA: [0.4, 0.2],
     weapon: { img: 'club', at: [6, 40], a: [0.5, 0.85], sc: 1.05 },
-    frontHand: 'hand_open', backTint: 0xa8a8a0,
+    frontHand: 'hand_open', backTint: 0xa8a8a0, clips: { m_walk: 'b_walk' },
     extra: [{ n: 'shoulder', p: 'torso', x: -26, y: -150, img: 'shoulder', ax: 0.5, ay: 0.6, z: 86 }],
   }),
 };

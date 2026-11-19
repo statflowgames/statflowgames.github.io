@@ -86,7 +86,7 @@ function applyGive(g) {
   if (g.exp) { const ups = gainExp(s, g.exp); out.push(`경험치 +${g.exp}`); if (ups.length) out.push(`레벨 업! Lv.${s.lv}`); }
   if (g.moon && !s.moons[g.moon]) { s.moons[g.moon] = true; out.push(`${MOONS[g.moon].ko}의 월석을 얻었다!`); }
   if (g.item) { const rar = { rare: 2, epic: 3, legend: 4 }[g.item] ?? 2; const it = makeItem(s, { cls: s.hero, slot: ['weapon', 'offhand', 'head', 'body'][Math.floor(Math.random() * 4)], tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar }); out.push(`${RARITY[rar].ko} 장비 「${it.name}」`); }
-  if (g.unlock && !s.unlocked[g.unlock]) { s.unlocked[g.unlock] = true; out.push(`새 직업 해금: ${DB.heroes[g.unlock].ko}`); }
+  if (g.unlock && !s.unlocked[g.unlock]) { s.unlocked[g.unlock] = true; addGlobalUnlock(g.unlock); out.push(`새 직업 해금: ${DB.heroes[g.unlock].ko}`); }
   if (g.flag) s.flags[g.flag] = true;
   if (g.lise) s.lise += g.lise;
   Save.write();
