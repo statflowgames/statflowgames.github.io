@@ -24,7 +24,7 @@ const BELT_ORDER = ['potion', 'dagger', 'oil', 'scroll'];
 // 숨은 직업 해금은 저장을 새로 만들어도 남는다
 const UNLOCK_KEY = 'seventhmoon.unlock';
 function globalUnlocks() { try { return JSON.parse(localStorage.getItem(UNLOCK_KEY) || '{}'); } catch (e) { return {}; } }
-function addGlobalUnlock(k) { try { const u = globalUnlocks(); u[k] = true; localStorage.setItem(UNLOCK_KEY, JSON.stringify(u)); } catch (e) { /* 무시 */ } }
+function addGlobalUnlock(k) { try { const u = globalUnlocks(); u[k] = true; const t = JSON.stringify(u); localStorage.setItem(UNLOCK_KEY, t); NativeStore.mirror(UNLOCK_KEY, t); } catch (e) { /* 무시 */ } }
 // 직업 바꾸기: 장비와 스킬은 직업마다 따로 기억한다 (레벨·금화·가방은 함께)
 function switchHero(s, key) {
   if (s.hero === key) return;
@@ -42,6 +42,26 @@ function switchHero(s, key) {
   if (sk) { s.skills = sk.skills; s.active = sk.active; s.sp = Math.max(0, s.lv - 1 - Object.keys(s.skills).length); }
   else { s.skills = {}; s.active = [null, null]; s.sp = s.lv - 1; }
 }
+// 난이도: 0 견습, 1 기사(기본), 2 영웅(엔딩 1개 이상), 3 전설(엔딩 2개 이상)
+const DIFFS = [
+  { ko: '견습', desc: '적이 약하다. 처음 해 보는 분께', loot: -1 },
+  { ko: '기사', desc: '기본 난이도', loot: 0 },
+  { ko: '영웅', desc: '정예 몬스터 등장, 심연 장비가 나온다', loot: 2 },
+  { ko: '전설', desc: '정예가 자주 나오고 더 강하다, 보상 최고', loot: 4 },
+];
+function diffOpen(s, d) {
+  if (d <= 1) return true;
+  const u = globalUnlocks(), ends = Object.keys((s && s.endings) || {}).length;
+  return d === 2 ? (ends >= 1 || u.diff2) : (ends >= 2 || u.diff3);
+}
+// 정예 접두사 (영웅 이상)
+const ELITES = {
+  split: { ko: '분열하는', col: '#a0ff80' },
+  fire: { ko: '화염 흔적', col: '#ff9050' },
+  shield: { ko: '방패막', col: '#a0d8ff' },
+  vamp: { ko: '흡혈', col: '#ff6080' },
+  blink: { ko: '순간이동', col: '#d0a0ff' },
+};
 const expNeed = lv => Math.round(90 * Math.pow(1.12, lv));
 const LV_CAP = 30;
 
@@ -69,7 +89,7 @@ const Save = {
     if (this.data && this.data.v !== 1) this.data = null;
     return this.data;
   },
-  write() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); } catch (e) { /* 저장 실패는 조용히 */ } },
+  write() { try { const t = JSON.stringify(this.data); localStorage.setItem(SAVE_KEY, t); NativeStore.mirror(SAVE_KEY, t); } catch (e) { /* 저장 실패는 조용히 */ } },
   fresh(hero) { this.data = newSave(hero); this.write(); return this.data; },
   wipe() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 무시 */ } this.data = null; },
   // 백업 코드 (내보내기·불러오기)
@@ -141,7 +161,9 @@ function rollRarity(ch, bonus = 0, boss = false) {
   return 0;
 }
 function rollDrop(s, ch, bonus = 0, boss = false) {
-  const tier = Math.min(3, Math.floor((ch - 1) / 2));
+  const d = s.diff ?? 1;
+  bonus += DIFFS[d].loot;
+  const tier = Math.min(3, Math.floor((ch - 1) / 2) + (d >= 2 ? 1 : 0));
   const slots = ['weapon', 'offhand', 'head', 'body', 'acc'];
   const slot = slots[Math.floor(Math.random() * slots.length)];
   // 지금 직업 장비 70%, 나머지는 다른 직업(나중에 그 직업으로 할 때 쓴다)

@@ -42,3 +42,28 @@ function towerFloor(n, runSeed = 7) {
 }
 // 10층마다 이어서 시작할 수 있다
 function towerCheckpoints(best) { const out = [1]; for (let f = 11; f <= best + 1; f += 10) out.push(f); return out; }
+
+// ---------------- 일일 도전 · 주간 보스 러시 ----------------
+function dayKey(d = new Date()) { return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+function weekKey(d = new Date()) { return Math.floor((d.getTime() / 86400000 + 3) / 7); }
+// 오늘의 도전: 날짜로 정해지는 고정 던전과 규칙. 하루 한 번 큰 보상
+function dailyDef(s) {
+  const key = dayKey(), r = seeded(key);
+  const n = Math.max(3, 5 * (s.ch - 1) + 3);
+  const def = towerFloor(n, key % 100000);
+  def.rule = TOWER_RULES[Math.floor(r() * TOWER_RULES.length)];
+  def.mode = 'daily'; def.tower = 0; def.name = `오늘의 도전 (${String(key).slice(4, 6)}월 ${String(key).slice(6)}일)`;
+  def.waves = [...def.waves.filter(w => w.length > 1 || w[0].includes(',')), [def.waves[0][0], def.waves[0][0]]];
+  def.boss = false;
+  return def;
+}
+// 주간 보스 러시: 챕터 보스 6마리를 연달아. 기록을 잰다
+function rushDef(s) {
+  const ch = Math.max(1, Math.min(6, s.ch));
+  return {
+    name: '주간 보스 러시', theme: 'abyss', mode: 'rush', tower: 0, boss: true, allBoss: true,
+    waves: [['barkhaul'], ['gloob'], ['sehera'], ['hrimgar'], ['orvex'], ['azmal']],
+    chScale: ch, floorMul: 0.55 + ch * 0.12, rule: null,
+  };
+}
+function fmtTime(ms) { const t = Math.round(ms / 1000); return `${Math.floor(t / 60)}분 ${String(t % 60).padStart(2, '0')}초`; }

@@ -90,8 +90,8 @@ function heroRig(key) {
     const procs = [];
     ['crystal_fire', 'crystal_ice', 'crystal_bolt'].forEach((img, i) => {
       if (!HAS(key, img)) return;
-      base.extra.push({ n: 'cr' + i, img: 'px', raw: true, hide: true, on: 'torso', at: [0, -0.45], z: 1 });
-      base.extra.push({ n: 'crb' + i, img, on: 'cr' + i, at: [0.75, 0], a: [0.5, 0.5], z: i === 1 ? 90 : 3, sc: 0.7, ir: 0 });
+      base.extra.push({ n: 'cr' + i, img: 'px', raw: true, hide: true, on: 'torso', at: [-0.15, -1.05], z: 1 });
+      base.extra.push({ n: 'crb' + i, img, on: 'cr' + i, at: [0.95, 0], a: [0.5, 0.5], z: 2, sc: 0.62, ir: 0 });
       procs.push({ n: 'cr' + i, spin: 0.12, ph: i * 120 });
     });
     base.procs = procs;

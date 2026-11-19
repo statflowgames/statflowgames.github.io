@@ -355,6 +355,7 @@ class Hero extends Actor {
     this.awk = 0; this.state = 'awaken'; this.st = 0; this.vx = this.vy = 0; this.invuln = 1200;
     this.replay('w_awaken', 40); this.setHead('head_shout');
     this.scene.awakenCutIn(this);
+    if (this.scene.save) { Codex.init(this.scene.save); this.scene.save.stats.awaken = (this.scene.save.stats.awaken || 0) + 1; }
     SFX.awaken();
     this.awkFired = false;
   }
@@ -368,6 +369,22 @@ class Hero extends Actor {
 // 몬스터
 // ---------------------------------------------------------------------------
 // 몬스터 수치는 js/data/campaign.js 의 MONDEF
+// 보스마다 쓰는 기술: far = [기술, 확률], near = 가까울 때
+const BOSS_MOVES = {
+  barkhaul: { far: [['rock', 0.45], ['roots', 0.3]], near: 'smash' },
+  toothcrusher: { far: [['charge', 0.55], ['rock', 0.2]], near: 'smash' },
+  captain_mog: { far: [['hook', 0.35], ['cannon', 0.35], ['charge', 0.1]], near: 'smash' },
+  gloob: { far: [['rock', 0.4], ['roots', 0.35]], near: 'smash' },
+  twinsting: { far: [['burrow', 0.45], ['roots', 0.25]], near: 'smash' },
+  sehera: { far: [['beam', 0.35], ['orbs', 0.3], ['meteor', 0.2]], near: 'smash' },
+  frost_wyvern: { far: [['breath', 0.45], ['meteor', 0.3]], near: 'smash' },
+  hrimgar: { far: [['meteor', 0.4], ['rock', 0.3]], near: 'smash' },
+  golem7: { far: [['beam', 0.45], ['charge', 0.2], ['orbs', 0.15]], near: 'smash' },
+  orvex: { far: [['orbs', 0.35], ['meteor', 0.3], ['teleport', 0.2]], near: 'teleport' },
+  orvex_eclipse: { far: [['orbs', 0.3], ['teleport', 0.3], ['breath', 0.2]], near: 'smash' },
+  azmal: { far: [['breath', 0.4], ['meteor', 0.3], ['charge', 0.15]], near: 'smash' },
+  void_shadow: { far: [['teleport', 0.3], ['orbs', 0.25], ['charge', 0.2], ['beam', 0.2]], near: 'smash' },
+};
 // 원거리 몬스터가 던지는 것
 const MON_PROJ = {
   spear: { img: 'spear/javelin', rot: 90, sc: 0.32 },
@@ -379,7 +396,7 @@ const MON_PROJ = {
 };
 
 class Monster extends Actor {
-  constructor(scene, id, x, y) {
+  constructor(scene, id, x, y, o = {}) {
     const base = MONDEF[id] || MONDEF.grunt;
     const real = !!RIGS[id] && id !== base.rig;
     super(scene, real ? id : base.rig, x, y, real ? {} : { sc: base.sc });
@@ -390,6 +407,16 @@ class Monster extends Actor {
     this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
     if (scene.speedMul && scene.speedMul !== 1) this.def.speed = base.speed * scene.speedMul;
     if (scene.tower && base.boss) { this.def.ko = '강화 ' + base.ko; }
+    // 정예 (영웅 난이도 이상): 접두사 하나, 체력 1.8배, 조금 크다
+    const ec = scene.diff >= 3 ? 0.25 : scene.diff >= 2 ? 0.14 : 0;
+    if (!o.noElite && !base.boss && ec && Math.random() < ec) {
+      const keys = Object.keys(ELITES);
+      this.elite = keys[Math.floor(Math.random() * keys.length)];
+      this.maxHp = this.hp = Math.round(this.maxHp * 1.8);
+      this.rig.def.scale *= 1.12;
+      this.eliteTag = scene.add.text(x, y, ELITES[this.elite].ko, { fontFamily: 'sans-serif', fontSize: 16, color: ELITES[this.elite].col, stroke: '#000', strokeThickness: 4, fontStyle: 'bold' }).setOrigin(0.5, 1);
+      this.eliteGlow = scene.add.ellipse(x, y, 120, 36, Phaser.Display.Color.HexStringToColor(ELITES[this.elite].col).color, 0.35).setBlendMode(Phaser.BlendModes.ADD);
+    }
     this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) : k.hp)); this.hp = this.maxHp;
     if (real && MAN['faces/' + id + '_hurt']) this.def.face = 'faces/' + id;
     else if (real) this.def.face = null;
@@ -406,6 +433,15 @@ class Monster extends Actor {
     if (kind === 'barkhaul') { this.summon60 = false; this.summon30 = false; }
     this.pitch = kind === 'shaman' ? 0.85 : kind === 'spear' ? 1.08 : 0.95 + Math.random() * 0.15;
   }
+  draw(dt, frozen) {
+    super.draw(dt, frozen);
+    if (this.eliteTag) {
+      const hide = this.dead;
+      this.eliteTag.setPosition(this.x, this.y - this.z - this.height - 12).setDepth(4000).setVisible(!hide);
+      this.eliteGlow.setPosition(this.x, this.y + 2).setDepth(999 + this.y * 0.001).setVisible(!hide).setAlpha(0.25 + Math.sin((this.procT || this.st) * 0.008) * 0.1);
+    }
+  }
+  destroy() { super.destroy(); if (this.eliteTag) { this.eliteTag.destroy(); this.eliteGlow.destroy(); } }
   setHead(img) { this.rig.setImg('head', img); }
   hurtFace() { if (this.def.face) this.setHead(this.def.face + '_hurt'); else this.setHead('head_shout'); }
   update(dt) {
@@ -616,10 +652,13 @@ class Monster extends Actor {
     if (st === 'idle' || st === 'move') {
       this.face = Math.sign(dx) || this.face;
       if (this.cool <= 0) {
-        const r = Math.random();
-        if (adx < 260 && Math.abs(dy) < 60) return this.startSmash();
-        if (r < 0.45) return this.startRock();
-        if (r < 0.75) return this.startRoots();
+        const mv = BOSS_MOVES[this.id] || BOSS_MOVES.barkhaul;
+        if (adx < 260 && Math.abs(dy) < 60 && Math.random() < 0.5) return mv.near === 'smash' ? this.startSmash() : this.startSpecial(mv.near);
+        let r = Math.random(), pick = null;
+        for (const [m, w] of mv.far) { r -= w; if (r < 0) { pick = m; break; } }
+        if (pick === 'rock') return this.startRock();
+        if (pick === 'roots') return this.startRoots();
+        if (pick) return this.startSpecial(pick);
         this.cool = 400;
       }
       const tx = h.x - Math.sign(dx || 1) * 190, ty = h.y;
@@ -628,7 +667,6 @@ class Monster extends Actor {
       this.vx = Math.abs(mx) > 20 ? Math.sign(mx) * sp : 0;
       this.vy = Math.abs(my) > 10 ? Math.sign(my) * sp * 0.6 : 0;
       if (this.vx || this.vy) { this.state = 'move'; this.play('m_walk', 140); } else { this.state = 'idle'; this.play('m_idle', 160); }
-      if (adx < 260 && Math.abs(dy) < 40 && this.cool < 600) return this.startSmash();
       this.physics(dt);
       return;
     }
@@ -671,7 +709,160 @@ class Monster extends Actor {
       if (this.st > 2400) { this.poise = 100; this.setHead(null); this.toIdle(); this.cool = 300; }
       return;
     }
+    if (st === 'sp') return this.updateSpecial(dt);
     this.toIdle();
+  }
+  // ---------------- 보스 고유 기술 ----------------
+  startSpecial(type) {
+    const sc = this.scene, h = sc.hero;
+    this.state = 'sp'; this.st = 0; this.vx = this.vy = 0; this.sp = { type, step: 0, n: 0 };
+    const sp = this.sp, rage = this.raged;
+    this.setHead('head_shout');
+    if (type === 'charge') {
+      // 가로로 돌진: 선을 그어 예고한 뒤 화면 끝까지
+      sp.dir = Math.sign(h.x - this.x) || this.face; this.face = sp.dir; sp.y = h.y;
+      sc.telegraphLine(this.x, this.y, this.x + sp.dir * 1100, rage ? 600 : 850, 60);
+      this.play('m_windup', 80); SFX.bossGrunt(this.px);
+    } else if (type === 'breath') {
+      this.face = Math.sign(h.x - this.x) || this.face;
+      sc.telegraphLine(this.x + this.face * 80, this.y, this.x + this.face * 620, rage ? 650 : 900, 50);
+      this.play('b_smashup', 80); SFX.roar(this.px);
+    } else if (type === 'beam') {
+      this.face = Math.sign(h.x - this.x) || this.face;
+      sc.telegraphLine(this.x + this.face * 60, this.y, this.x + this.face * 1200, rage ? 700 : 1000, 40);
+      this.play('m_cast', 80); SFX.telegraph(this.px);
+    } else if (type === 'orbs') {
+      this.face = Math.sign(h.x - this.x) || this.face;
+      this.play('m_cast', 80); SFX.gob('chant', this.px, 0.6);
+      sc.fx('holy_ring', this.x, this.y - this.height * 0.6, { s: 0.5, dur: 600, depth: this.y + 1002, tint: (BOSS_ROCK[this.id] || {}).tint || 0xc080ff });
+    } else if (type === 'meteor') {
+      this.play('b_roar', 80); SFX.roar(this.px);
+      sp.pts = [];
+      const n = rage ? 6 : 4;
+      for (let i = 0; i < n; i++) sp.pts.push({ x: h.x + (i === 0 ? 0 : (Math.random() - 0.5) * 520), y: Phaser.Math.Clamp(h.y + (Math.random() - 0.5) * 180, FLOOR_TOP, FLOOR_BOT), t: 900 + i * 160 });
+      sp.pts.forEach(p => sc.telegraph(p.x, p.y, 0.7, p.t));
+    } else if (type === 'teleport') {
+      this.play('m_cast', 60);
+      sc.fx('shadow_smoke', this.x, this.y - this.height * 0.5, { s: 0.7, dur: 500, depth: this.y + 1002 });
+    } else if (type === 'burrow') {
+      this.play('m_down', 80); SFX.step('giant', this.px);
+      sc.fx('dust_land', this.x, this.y, { s: 0.7, dur: 600, depth: this.y + 2 });
+    } else if (type === 'hook') {
+      this.face = Math.sign(h.x - this.x) || this.face;
+      sc.telegraphLine(this.x + this.face * 60, this.y, this.x + this.face * 700, 700, 40);
+      this.play('m_throwup', 80); SFX.bossGrunt(this.px);
+    } else if (type === 'cannon') {
+      this.play('m_throwup', 80); sp.n = 0;
+    }
+  }
+  updateSpecial(dt) {
+    const sc = this.scene, h = sc.hero, sp = this.sp, s = dt / 1000, rage = this.raged;
+    const end = (cool) => { this.cool = rage ? cool * 0.6 : cool; this.rig.c.setAlpha(1); this.invuln = 0; this.toIdle(); };
+    const t = sp.type;
+    if (t === 'charge') {
+      const wind = rage ? 600 : 850;
+      if (this.st < wind) return;
+      if (sp.step === 0) { sp.step = 1; this.play('m_run', 40); SFX.roll(this.px); this.hitSet.clear(); }
+      this.vx = sp.dir * (this.def.speed * 6 + 300); this.vy = 0;
+      this.x += this.vx * s;
+      if (!this.hitSet.has(h) && Math.abs(h.x - this.x) < 90 && Math.abs(h.y - this.y) < 50 && h.z < 100) { this.hitSet.add(h); sc.resolveHeroHit(this, Math.round(this.def.dmg * 0.9), 'heavy', this.x, this.y); }
+      if (sc.ally && !this.hitSet.has(sc.ally) && Math.abs(sc.ally.x - this.x) < 90 && Math.abs(sc.ally.y - this.y) < 50) { this.hitSet.add(sc.ally); sc.ally.takeHit(this, this.def.dmg, 'heavy', sp.dir); }
+      if (Math.random() < 0.3) sc.fx('dust_run', this.x - sp.dir * 60, this.y, { s: 0.35, dur: 300, depth: this.y - 1 });
+      const b = sc.bounds;
+      if (this.x < b.l + 60 || this.x > b.r - 60 || this.st > wind + 1600) { this.x = Phaser.Math.Clamp(this.x, b.l + 60, b.r - 60); sc.cameras.main.shake(200, 0.01); SFX.smash(this.px); end(1400); }
+      return;
+    }
+    if (t === 'breath') {
+      const wind = rage ? 650 : 900;
+      if (this.st < wind) return;
+      if (sp.step === 0) { sp.step = 1; this.replay('b_smash', 40); sp.k = 0; }
+      sp.k -= dt;
+      if (sp.k <= 0 && this.st < wind + 1000) {
+        sp.k = 180; sp.n++;
+        const fxk = { frost_wyvern: 'ice_shards', azmal: 'void_crack', orvex_eclipse: 'void_crack' }[this.id] || 'fire_burst';
+        for (let d = 120; d <= 620; d += 125) sc.fx(fxk, this.x + this.face * d, this.y - 50, { s: 0.35 + d / 2400, dur: 300, depth: this.y + 1002 });
+        const mid = this.x + this.face * 370;
+        sc.areaHit(this, mid, this.y, 260, 50, Math.round(this.def.dmg * 0.25), 'light');
+      }
+      if (this.st > wind + 1300) end(1600);
+      return;
+    }
+    if (t === 'beam') {
+      const wind = rage ? 700 : 1000;
+      if (this.st >= wind && sp.step === 0) {
+        sp.step = 1; SFX.ui('fire_explode', this.px); sc.cameras.main.flash(120, 200, 200, 255); sc.cameras.main.shake(200, 0.01);
+        for (let d = 100; d <= 1200; d += 110) sc.fx('lightning_bolt', this.x + this.face * d, this.y - 60, { s: 0.4, dur: 350, depth: this.y + 1002, rot: 90 });
+        sc.areaHit(this, this.x + this.face * 650, this.y, 560, 40, Math.round(this.def.dmg * 0.8), 'heavy');
+      }
+      if (this.st > wind + 700) end(1700);
+      return;
+    }
+    if (t === 'orbs') {
+      if (this.st > 500 && sp.n < (rage ? 3 : 2) && this.st > 500 + sp.n * 450) {
+        sp.n++;
+        const tint = (BOSS_ROCK[this.id] || {}).tint || 0xc080ff;
+        for (let i = -2; i <= 2; i++) {
+          sc.projectile(this, 'orb', { vx: this.face * 420, z: this.height * 0.55, dmg: Math.round(this.def.dmg * 0.35), life: 2600 });
+          const p = sc.projs[sc.projs.length - 1]; p.vy = i * 70; p.img.setTint(tint);
+        }
+      }
+      if (this.st > 1700) end(1500);
+      return;
+    }
+    if (t === 'meteor') {
+      for (const p of sp.pts) if (!p.done && this.st >= p.t) {
+        p.done = true;
+        const fxk = { hrimgar: 'ice_pillar', frost_wyvern: 'ice_pillar', orvex: 'holy_pillar', sehera: 'dust_land' }[this.id] || 'fire_burst';
+        sc.fx(fxk, p.x, p.y - 70, { s: 0.5, dur: 500, depth: p.y + 1002 });
+        sc.fx('impact_ring', p.x, p.y, { s: 0.4, dur: 400, depth: p.y - 1, flat: true });
+        sc.areaHit(this, p.x, p.y, 90, 36, Math.round(this.def.dmg * 0.6), 'heavy');
+        SFX.smash(p.x - sc.cameras.main.scrollX); sc.cameras.main.shake(120, 0.006);
+      }
+      if (sp.pts.every(p => p.done) && this.st > 1800) end(1500);
+      return;
+    }
+    if (t === 'teleport') {
+      if (this.st > 350 && sp.step === 0) {
+        sp.step = 1;
+        const side = h.x > (sc.bounds.l + sc.bounds.r) / 2 ? -1 : 1;
+        this.x = Phaser.Math.Clamp(h.x + side * 200, sc.bounds.l + 80, sc.bounds.r - 80); this.y = h.y;
+        this.face = Math.sign(h.x - this.x) || 1;
+        sc.fx('shadow_smoke', this.x, this.y - this.height * 0.5, { s: 0.7, dur: 500, depth: this.y + 1002 });
+        SFX.roll(this.px);
+      }
+      if (this.st > 600) { this.startSmash(); }
+      return;
+    }
+    if (t === 'burrow') {
+      if (this.st > 400 && sp.step === 0) { sp.step = 1; this.rig.c.setAlpha(0.15); this.invuln = 1400; sp.tx = h.x; sp.ty = h.y; sc.telegraph(sp.tx, sp.ty, 1.0, 900); }
+      if (sp.step === 1) { sp.tx += (h.x - sp.tx) * 0.02; }
+      if (this.st > 1300 && sp.step === 1) {
+        sp.step = 2; this.x = sp.tx; this.y = sp.ty; this.rig.c.setAlpha(1); this.invuln = 0;
+        this.replay('b_smash', 30); sc.fx('dust_land', this.x, this.y, { s: 0.8, dur: 600, depth: this.y + 2 }); sc.spawnDebrisAt(this.x, this.y, 5, 'rock');
+        sc.areaHit(this, this.x, this.y, 140, 50, this.def.dmg, 'heavy'); sc.cameras.main.shake(260, 0.012); SFX.smash(this.px);
+      }
+      if (this.st > 2200) end(1400);
+      return;
+    }
+    if (t === 'hook') {
+      if (this.st > 700 && sp.step === 0) {
+        sp.step = 1; this.replay('m_throw', 30); SFX.throwS(this.px);
+        const rel = (h.x - this.x) * this.face;
+        if (rel > 0 && rel < 720 && Math.abs(h.y - this.y) < 50 && h.state !== 'roll') {
+          sc.floatText(h.x, h.y - 230, '끌려간다!', '#ffb080', 26);
+          sc.tweens.add({ targets: h, x: this.x + this.face * 130, duration: 300, ease: 'Cubic.in' });
+          sc.time.delayedCall(320, () => sc.resolveHeroHit(this, Math.round(this.def.dmg * 0.5), 'light', this.x, this.y));
+        }
+      }
+      if (this.st > 1100) end(1300);
+      return;
+    }
+    if (t === 'cannon') {
+      if (this.st > 400 + sp.n * 280 && sp.n < 3) { sp.n++; this.replay('m_throw', 30); this.scene.lobRock(this, { x: h.x + (Math.random() - 0.5) * 240, y: Phaser.Math.Clamp(h.y + (Math.random() - 0.5) * 120, FLOOR_TOP, FLOOR_BOT) }); }
+      if (this.st > 1600) end(1500);
+      return;
+    }
+    end(1000);
   }
   startSmash() {
     this.state = 'smashup'; this.st = 0; this.vx = this.vy = 0; this.play('b_smashup', 80); this.setHead('head_shout'); SFX.bossGrunt(this.px);

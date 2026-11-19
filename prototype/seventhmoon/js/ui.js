@@ -150,7 +150,10 @@ class Talk extends Phaser.Scene {
       return this.next();
     }
     if (L.choice) return this.showChoice(L.choice);
-    const sp = this.speaker(L.w);
+    const hk = Save.data ? Save.data.hero : 'warrior';
+    if (L.skipFor && L.skipFor.includes(hk)) return this.next();
+    const HERO_OF = { odelia: 'paladin', seril: 'ranger' };
+    const sp = this.speaker(L.asHero && HERO_OF[L.w] === hk ? 'hero' : L.w);
     this.nameT.setText(sp.ko || '');
     this.nameBg.clear();
     if (sp.ko) { this.nameBg.fillStyle(0x3a1a08, 1).fillRoundedRect(64, 488, this.nameT.width + 32, 44, 10); this.nameBg.lineStyle(2, 0xe0b45a).strokeRoundedRect(64, 488, this.nameT.width + 32, 44, 10); }
@@ -168,7 +171,7 @@ class Talk extends Phaser.Scene {
       this.tweens.add({ targets: im, alpha: 1, x: left ? 250 : W - 250, duration: 160 });
       this.portrait = im;
     }
-    this.full = L.t; this.body.setText(''); this.typing = true; this.ci = 0;
+    this.full = (L.by && L.by[hk]) || L.t; this.body.setText(''); this.typing = true; this.ci = 0;
     if (this.typeEv) this.typeEv.remove();
     this.typeEv = this.time.addEvent({ delay: 28, loop: true, callback: () => {
       if (!this.typing) { this.typeEv.remove(); return; }
@@ -211,7 +214,10 @@ function runTalk(scene, key, then, o = {}) {
   if (!STORY[key]) { if (then) then(null); return; }
   const s = Save.data;
   if (s && o.once) { if (s.seen[key]) { if (then) then(null); return; } s.seen[key] = true; Save.write(); }
-  scene.scene.pause();
-  scene.scene.launch('talk', { key, then, from: scene.scene.key, dim: o.dim });
-  scene.scene.bringToTop('talk');
+  // 대화에 나오는 그림을 먼저 불러온다
+  Assets.ensure(scene, Assets.forTalk(key, s), () => {
+    scene.scene.pause();
+    scene.scene.launch('talk', { key, then, from: scene.scene.key, dim: o.dim });
+    scene.scene.bringToTop('talk');
+  });
 }

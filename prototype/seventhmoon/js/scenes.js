@@ -1,6 +1,8 @@
 // 타이틀, 챕터 지도, 캠프, 메뉴(가방·대장간·상점·스킬·리세), 엔딩
 const HERO_PLAYABLE = { warrior: true, mage: true, paladin: true, rogue: true, ranger: true, hexblade: true };
 const HERO_KEYS = ['warrior', 'mage', 'paladin', 'rogue', 'ranger', 'hexblade'];
+// 직업 전용 방이 나오는 장 (해당 장 두 번째 스테이지를 깨면)
+const CLASS_ROOM = { warrior: 1, rogue: 2, paladin: 3, ranger: 4, mage: 5, hexblade: 6 };
 const HERO_STAR = { warrior: 1, mage: 3, paladin: 2, rogue: 2, ranger: 2, hexblade: 3 };
 const HERO_HINT = { ranger: '3장 모래폭풍 협곡에서 구출', hexblade: '다크 엔딩을 보면 열림' };
 function heroOpen(k, s) { return !HERO_HINT[k] || (s && s.unlocked[k]) || globalUnlocks()[k]; }
@@ -8,6 +10,7 @@ function heroOpen(k, s) { return !HERO_HINT[k] || (s && s.unlocked[k]) || global
 // ---------------------------------------------------------------------------
 class Title extends Phaser.Scene {
   constructor() { super('title'); }
+  preload() { Assets.preloadFor(this, Assets.forTitle(Save.has() ? Save.load() : null)); }
   create() {
     const bg = UI.img(this, W / 2, H / 2, 'story/opening') || this.add.image(W / 2, 0, 'bg/far').setOrigin(0.5, 0);
     bg.setDisplaySize(W, W * bg.height / bg.width);
@@ -30,7 +33,8 @@ class Title extends Phaser.Scene {
     }
     UI.button(this, W / 2 + 120, y, '새로 시작', () => this.newGame(has), { w: 360, h: 66, size: 28, col: has ? 0x4a2a14 : 0x7a3a10 });
     y += 90;
-    UI.button(this, W / 2 + 120, y, '조작법', () => this.help(), { w: 360, h: 56, size: 24, col: 0x3a2a1a });
+    UI.button(this, W / 2 + 30, y, '조작법', () => this.help(), { w: 175, h: 56, size: 22, col: 0x3a2a1a });
+    UI.button(this, W / 2 + 210, y, '설정', () => openSettings(this), { w: 175, h: 56, size: 22, col: 0x2a3a5a });
     UI.text(this, W - 16, H - 12, 'M1 준비판 · 그림이 아직 없는 몬스터는 색을 바꾼 그롤린으로 대신해요', 15, '#c8b8a0').setOrigin(1, 1);
     SFX.music('bgm_title');
     this.input.keyboard.once('keydown-ENTER', () => (has ? this.cont() : this.newGame(false)));
@@ -102,6 +106,7 @@ class Title extends Phaser.Scene {
 class MapScene extends Phaser.Scene {
   constructor() { super('map'); }
   init(d) { this.after = d && d.after; this.view = (d && d.ch) || null; this.sel = null; }
+  preload() { const s = Save.data || Save.load(); Assets.preloadFor(this, Assets.forMap(s, this.view || (s ? s.ch : 1))); }
   create() {
     const s = Save.data || Save.load();
     if (!s) { this.scene.start('title'); return; }
@@ -143,7 +148,7 @@ class MapScene extends Phaser.Scene {
     c.add(UI.button(this, W - 110, 186, '가방', () => openMenu(this, 'bag'), { w: 180, h: 52, size: 22, col: 0x4a2a14 }));
     const moons = Object.keys(s.moons).length;
     c.add(UI.text(this, W - 110, 232, `월석 ${moons}/6`, 20, '#d8c8ff').setOrigin(0.5, 0));
-    if (towerOpen(s)) c.add(UI.button(this, W - 110, 300, '심연의 탑', () => this.scene.start('towergate'), { w: 180, h: 56, size: 22, col: 0x4a2a7a }));
+    if (towerOpen(s)) c.add(UI.button(this, W - 110, 300, '탑 · 도전', () => this.scene.start('towergate'), { w: 180, h: 56, size: 22, col: 0x4a2a7a }));
     else c.add(UI.text(this, W - 110, 286, '심연의 탑\n1장을 깨면 열려요', 15, '#8a7a98', { align: 'center' }).setOrigin(0.5, 0));
     this.hud = c;
   }
@@ -246,6 +251,7 @@ class MapScene extends Phaser.Scene {
     const chain = [];
     if (a.node === 'void') { s.flags.void_done = true; Save.write(); return this.ending('end_true'); }
     if (node && node.type === 'treasure') chain.push(`c${ch}_moon`);
+    if (a.node === 's2' && CLASS_ROOM[s.hero] === ch) chain.push('cls_' + s.hero);
     if (node && node.type === 'boss') {
       chain.push(`c${ch}_end`);
       if (ch === 5) chain.push('c5_choice');
@@ -279,9 +285,12 @@ class MapScene extends Phaser.Scene {
   ending(e) {
     const s = Save.data;
     s.endings[e] = true;
+    const ne = Object.keys(s.endings).length;
+    if (ne >= 1) addGlobalUnlock('diff2');
+    if (ne >= 2) addGlobalUnlock('diff3');
     if (e === 'end_dark') { s.unlocked.hexblade = true; addGlobalUnlock('hexblade'); }
     Save.write();
-    runTalk(this, e, () => this.scene.start('credits', { e }), { dim: 0.85 });
+    runTalk(this, e, () => runTalk(this, 'ep_' + s.hero, () => this.scene.start('credits', { e }), { dim: 0.85 }), { dim: 0.85 });
   }
 }
 
@@ -290,6 +299,7 @@ class MapScene extends Phaser.Scene {
 // ---------------------------------------------------------------------------
 class Camp extends Phaser.Scene {
   constructor() { super('camp'); }
+  preload() { Assets.preloadFor(this, Assets.forCamp(Save.data || Save.load())); }
   create() {
     const s = Save.data || Save.load();
     if (!s) { this.scene.start('title'); return; }
@@ -330,6 +340,7 @@ class Camp extends Phaser.Scene {
     // 위 HUD와 아래 버튼
     this.drawHud();
     UI.button(this, 160, 50, '◀ 지도로', () => this.scene.start('map'), { w: 220, h: 60, size: 26 });
+    UI.button(this, W - 870, 50, '도감', () => openMenu(this, 'codex'), { w: 150, h: 56, size: 24, col: 0x4a3a1a });
     UI.button(this, W - 700, 50, '동료', () => this.pickAlly(), { w: 150, h: 56, size: 24, col: 0x2a4a3a });
     UI.button(this, W - 530, 50, '직업', () => this.pickClass(), { w: 150, h: 56, size: 24, col: 0x2a3a5a });
     UI.button(this, W - 360, 50, '가방', () => openMenu(this, 'bag'), { w: 150, h: 56, size: 24, col: 0x4a2a14 });
@@ -342,7 +353,20 @@ class Camp extends Phaser.Scene {
   drawHud() {
     const s = Save.data;
     if (this.hudT) this.hudT.destroy();
-    this.hudT = UI.text(this, W / 2 - 100, 34, `${DB.heroes[s.hero].name} Lv.${s.lv}   금화 ${s.gold}   SP ${s.sp}   월석 ${Object.keys(s.moons).length}/6`, 22, '#ffe7a8', { bold: true, st: 5 }).setOrigin(0.5, 0.5);
+    this.hudT = UI.text(this, W / 2 - 100, 110, `${DB.heroes[s.hero].name} Lv.${s.lv} · ${DIFFS[s.diff ?? 1].ko}   금화 ${s.gold}   SP ${s.sp}   월석 ${Object.keys(s.moons).length}/6`, 22, '#ffe7a8', { bold: true, st: 5 }).setOrigin(0.5, 0.5);
+  }
+  pickDiff() {
+    const s = Save.data;
+    const c = this.add.container(0, 0).setDepth(200);
+    c.add(UI.blocker(this, 0.8));
+    c.add(UI.panel(this, W / 2 - 360, 110, 720, 500));
+    c.add(UI.text(this, W / 2, 150, '난이도', 38, '#ffe7a8', { serif: true }).setOrigin(0.5));
+    DIFFS.forEach((d, i) => {
+      const y = 230 + i * 90, open = diffOpen(s, i), cur = (s.diff ?? 1) === i;
+      c.add(UI.button(this, W / 2 - 200, y, d.ko, () => { if (!open) return; s.diff = i; Save.write(); c.destroy(); this.drawHud(); UI.toast(this, `난이도: ${d.ko}`); }, { w: 180, h: 60, size: 26, disabled: !open, col: cur ? 0x8a3a1a : 0x4a2a14 }));
+      c.add(UI.text(this, W / 2 - 90, y, open ? d.desc : (i === 2 ? '엔딩을 하나 보면 열려요' : '엔딩을 두 개 보면 열려요'), 19, open ? '#f4e4c0' : '#8a7a68', { wrap: 430 }).setOrigin(0, 0.5));
+    });
+    c.add(UI.button(this, W / 2, 575, '닫기', () => c.destroy(), { w: 200, h: 50, size: 22, col: 0x3a2a1a }));
   }
   pickAlly() {
     const s = Save.data;
@@ -384,6 +408,7 @@ class Camp extends Phaser.Scene {
     c.add(UI.button(this, W / 2, 650, '닫기', () => c.destroy(), { w: 200, h: 52, size: 22, col: 0x3a2a1a }));
   }
   sysMenu() {
+    const s = Save.data;
     const c = this.add.container(0, 0).setDepth(200);
     c.add(UI.blocker(this, 0.7));
     c.add(UI.panel(this, W / 2 - 280, 160, 560, 400));
@@ -397,7 +422,9 @@ class Camp extends Phaser.Scene {
       if (!code) return;
       try { Save.importCode(code); this.scene.restart(); } catch (e) { UI.toast(this, '코드가 올바르지 않아요', '#ff9a8a'); }
     }, { w: 380, h: 56, size: 22, col: 0x3a2a1a }));
-    c.add(UI.button(this, W / 2, 420, '타이틀로', () => this.scene.start('title'), { w: 380, h: 56, size: 22, col: 0x4a2a14 }));
+    c.add(UI.button(this, W / 2, 420, '설정', () => openSettings(this), { w: 185, h: 56, size: 22, col: 0x2a3a5a }));
+    c.add(UI.button(this, W / 2 + 195, 420, `난이도: ${DIFFS[s.diff ?? 1].ko}`, () => { c.destroy(); this.pickDiff(); }, { w: 185, h: 56, size: 20, col: 0x5a2a2a }));
+    c.add(UI.button(this, W / 2, 470, '타이틀로', () => this.scene.start('title'), { w: 380, h: 44, size: 20, col: 0x4a2a14 }));
     c.add(UI.button(this, W / 2, 500, '닫기', () => c.destroy(), { w: 200, h: 52, size: 22 }));
   }
   update(t, dt) { this.t += dt; if (this.rig) this.rig.apply(CLIPS.idle.at(this.t)); if (this.ar) this.ar.apply(CLIPS.idle.at(this.t + 700)); }
@@ -406,8 +433,10 @@ class Camp extends Phaser.Scene {
 // 메뉴 창을 띄운다 (부른 장면 위에 겹친다)
 function openMenu(scene, key) {
   if (scene.scene.isActive(key)) return;
-  scene.scene.launch(key, { from: scene.scene.key });
-  scene.scene.bringToTop(key);
+  Assets.ensure(scene, Assets.portraits(['lise']), () => {
+    scene.scene.launch(key, { from: scene.scene.key });
+    scene.scene.bringToTop(key);
+  });
 }
 
 // 메뉴 창 공통 바탕
@@ -569,6 +598,7 @@ class Smithy extends MenuBase {
         const r = tryEnhance(s, it);
         UI.toast(this, { ok: `강화 성공! +${it.plus}`, fail: '강화 실패… (장비는 무사해요)', cost: '재료가 모자라요', max: '최대 강화' }[r], r === 'ok' ? '#ffe27a' : '#ff9a8a');
         if (r === 'ok') SFX.parry(); else SFX.guard();
+        if (r === 'ok' && it.plus >= 10) { Codex.init(s); s.stats.enh10++; Codex.check(s).forEach(x => UI.toast(this, `업적 달성! 「${x.ko}」`, '#ffe27a', 600)); }
         Save.write(); this.draw();
       }, { w: 150, h: 52, size: 22 });
     } else UI.text(this, 720, yy, '최대 강화 (+10)', 20, '#ffe27a');
@@ -768,6 +798,7 @@ class Credits extends Phaser.Scene {
 function towerOpen(s) { return s && (s.ch > 1 || (s.cleared.c1 || []).includes('boss')); }
 class TowerGate extends Phaser.Scene {
   constructor() { super('towergate'); }
+  preload() { Assets.preloadFor(this, ['bg/abyss_far', 'bg/far']); }
   create() {
     const s = Save.data || Save.load();
     if (!s) { this.scene.start('title'); return; }
@@ -789,8 +820,15 @@ class TowerGate extends Phaser.Scene {
       UI.button(this, x, 410, `${f}층`, () => this.start(f), { w: 150, h: 60, size: 26, col: 0x4a2a7a });
       UI.text(this, x, 450, fl.rule ? fl.rule.ko.split(' · ')[0] : '규칙 없음', 13, '#b8a8d0', { align: 'center', wrap: 160 }).setOrigin(0.5, 0);
     });
-    UI.button(this, W / 2 - 150, 640, '◀ 지도로', () => this.scene.start('map'), { w: 220, h: 56, size: 22, col: 0x3a2a1a });
-    UI.button(this, W / 2 + 110, 640, '캠프', () => this.scene.start('camp'), { w: 180, h: 56, size: 22, col: 0x4a2a14 });
+    // 다른 도전
+    const dd = dailyDef(s), today = s.daily && s.daily.date === dayKey() && s.daily.done;
+    UI.button(this, W / 2 - 120, 545, '오늘의 도전', () => { SFX.music(null, { fade: 0.3 }); this.scene.start('game', { stage: 'daily', ch: dd.chScale, node: 'daily', def: dailyDef(s) }); }, { w: 240, h: 58, size: 22, col: 0x6a4a14 });
+    UI.text(this, W / 2 - 120, 580, today ? '오늘 보상 받음' : (dd.rule ? dd.rule.ko.split(' · ')[0] : ''), 13, today ? '#9ae07a' : '#e0c890', { align: 'center', wrap: 240 }).setOrigin(0.5, 0);
+    const wk = s.rush && s.rush.week === weekKey() ? s.rush : null;
+    UI.button(this, W / 2 + 280, 545, '주간 보스 러시', () => { SFX.music(null, { fade: 0.3 }); const d = rushDef(s); this.scene.start('game', { stage: 'rush', ch: d.chScale, node: 'rush', def: d }); }, { w: 260, h: 58, size: 22, col: 0x6a1a1a });
+    UI.text(this, W / 2 + 280, 580, wk && wk.best ? `이번 주 기록 ${fmtTime(wk.best)}` : '이번 주 첫 완주 시 전설 장비', 13, '#e0c890').setOrigin(0.5, 0);
+    UI.button(this, W / 2 - 150, 660, '◀ 지도로', () => this.scene.start('map'), { w: 220, h: 50, size: 22, col: 0x3a2a1a });
+    UI.button(this, W / 2 + 110, 660, '캠프', () => this.scene.start('camp'), { w: 180, h: 50, size: 22, col: 0x4a2a14 });
     SFX.music('bgm_tower_a'); SFX.ambience('abyss');
     this.input.keyboard.on('keydown-ESC', () => this.scene.start('map'));
   }

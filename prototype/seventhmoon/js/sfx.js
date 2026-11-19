@@ -5,6 +5,8 @@ const SFX = (() => {
   // ?silent: 엔진은 돌리되 스피커로는 내보내지 않는다 (개발 검사용)
   const silent = new URLSearchParams(location.search).has('silent');
   let final = null;
+  // 음량 설정 (0~1). 설정 화면에서 바꾼다
+  const VOL = (() => { try { const v = JSON.parse(localStorage.getItem('seventhmoon.settings') || '{}'); return { music: v.music ?? 0.8, sfx: v.sfx ?? 1 }; } catch (e) { return { music: 0.8, sfx: 1 }; } })();
   let ctx = null, master = null, dry = null, verb = null, noiseBuf = null, distCurve = null;
   const last = {};
   let G = 1;   // 소리별 음량 보정 (on(f, k)에서 잠깐 바꾼다)
@@ -20,7 +22,7 @@ const SFX = (() => {
       ctx = c;
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.2;
-      master = ctx.createGain(); master.gain.value = 0.8;
+      master = ctx.createGain(); master.gain.value = 0.8 * VOL.sfx;
       final = ctx.createGain(); final.gain.value = silent ? 0 : 1; final.connect(ctx.destination);
       master.connect(comp); comp.connect(final);
       dry = ctx.createGain(); dry.connect(master);
@@ -179,7 +181,7 @@ const SFX = (() => {
   // 배경음악·환경음·징글: 긴 곡은 <audio>로 흘려보낸다 (메모리 절약)
   function playChan(ch, name, o = {}) {
     if (!ctx) return;
-    if (!musicBus) { musicBus = ctx.createGain(); musicBus.gain.value = 1; musicBus.connect(final); }
+    if (!musicBus) { musicBus = ctx.createGain(); musicBus.gain.value = VOL.music; musicBus.connect(final); }
     const cur = chan[ch], t = ctx.currentTime, fade = o.fade ?? 0.8;
     if (cur && cur.name === name) { cur.g.gain.setTargetAtTime(o.vol ?? cur.vol, t, 0.3); cur.vol = o.vol ?? cur.vol; return; }
     if (cur) { cur.g.gain.setTargetAtTime(0.0001, t, fade / 3); const el = cur.el; setTimeout(() => el.pause(), fade * 1000 + 300); chan[ch] = null; }
@@ -247,7 +249,13 @@ const SFX = (() => {
     }
   }
 
+  function setVolume(music, sfx) {
+    VOL.music = music; VOL.sfx = sfx;
+    if (master) master.gain.value = 0.8 * sfx;
+    if (musicBus) musicBus.gain.value = music;
+  }
   const api = {
+    setVolume,
     resume,
     _render: render,
     ambience: mode => { wantAmb = mode; if (ctx) { try { ambience(mode); } catch (e) { /* 무시 */ } } },
