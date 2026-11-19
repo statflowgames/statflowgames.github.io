@@ -16,13 +16,15 @@ function touchControlLayout(safe = {}) {
       {name:'roll',key:'roll',x:1220-r,y:466-b,size:86,radius:51,label:'회피'},
       {name:'sk1',key:'skill_frame',x:1008-r,y:428-b,size:82,radius:50,label:'스킬 1',slot:0},
       {name:'sk2',key:'skill_frame',x:1116-r,y:454-b,size:82,radius:50,label:'스킬 2',slot:1},
-      {name:'awk',key:'awaken',x:110+l,y:454-b,size:80,radius:50,label:'각성'},
+      {name:'awk',key:'awaken',x:1214-r,y:344-b,size:80,radius:50,label:'각성'},
       {name:'pause',key:'pause',x:1118-r,y:54+t,size:52,radius:50,alpha:.7},
     ],
   };
 }
 
 // 구현된 스킬 (나머지는 '효과 준비 중'으로 보인다)
+// 각성기 뒤의 각성 상태: 공격력·몸놀림 강화 (이 동안은 게이지가 차지 않는다)
+const AWAKEN_BUFF = { ms: 8000, dmg: 1.3, haste: 1.15 };
 const SKILL_IMPL = new Proxy({}, { get: () => new Proxy({}, { get: () => 1 }) });   // 모든 스킬 구현됨
 // 보스마다 던지는 것과 땅에서 솟는 것
 const BOSS_ROCK = {
@@ -333,6 +335,36 @@ class Game extends Phaser.Scene {
     }
     this.resetTouchControls();
   }
+  // 영웅만 빨라지는 시계: 각성 상태 + 장비의 '공격 속도'(공격 동작에만, 최대 30%)
+  heroHaste() {
+    let k = 1;
+    if (this.buffs.awk > 0) k *= AWAKEN_BUFF.haste;
+    const a = this.stats.aspd || 0, st = this.hero.state;
+    if (a > 0 && (st === 'atk' || st === 'jatk')) k *= 1 + Math.min(30, a) / 100;
+    return k;
+  }
+  // 각성 상태 동안 발밑 빛과 떠오르는 불티
+  updateAwakenAura(dt) {
+    const h = this.hero, on = (this.buffs.awk || 0) > 0;
+    if (!on) {
+      if (this.awkAura) { const a = this.awkAura; this.awkAura = null; this.tweens.add({ targets: a, alpha: 0, duration: 300, onComplete: () => a.destroy() }); this.floatText(h.x, h.y - 250, '각성 종료', '#c8b8a0', 22); }
+      return;
+    }
+    const col = (HERO_SIGNATURE[h.key] || HERO_SIGNATURE.warrior).color;
+    if (!this.awkAura && this.textures.exists('fx/holy_ring')) this.awkAura = this.add.image(h.x, h.y, 'fx/holy_ring').setTint(col).setBlendMode(Phaser.BlendModes.ADD);
+    const a = this.awkAura;
+    if (a) {
+      const p = .5 + .5 * Math.sin(this.now / 120);
+      a.setPosition(h.x, h.y + 4).setDepth(h.y - 2).setScale(.42 + .04 * p, .14 + .015 * p).setAlpha(.55 + .3 * p);
+      if (this.buffs.awk < 1500) a.setAlpha(a.alpha * (Math.floor(this.now / 100) % 2 ? .4 : 1));
+    }
+    this.awkEmber = (this.awkEmber || 0) - dt;
+    if (this.awkEmber <= 0 && !Settings.d.low) {
+      this.awkEmber = 90;
+      const e = this.add.circle(h.x + Phaser.Math.Between(-45, 45), h.y - Phaser.Math.Between(10, 120), Phaser.Math.Between(3, 6), col, 1).setDepth(h.y + 1004).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: e, y: e.y - Phaser.Math.Between(80, 150), alpha: 0, scale: .3, duration: Phaser.Math.Between(500, 800), onComplete: () => e.destroy() });
+    }
+  }
   updateAwkButton(h, full) {
     const b=this.awkBtn; if(!b||!this.awkRing) return;
     const v=Phaser.Math.Clamp(h.awk/100,0,1), held=b.pointerIds.size>0, g=this.awkRing;
@@ -344,6 +376,16 @@ class Game extends Phaser.Scene {
     this.awkWasFull=full;
     const popLeft=(this.awkPopEnd||0)-this.now;
     g.clear();
+    const buffT=this.buffs.awk||0;
+    if(buffT>0){
+      const col=(HERO_SIGNATURE[h.key]||HERO_SIGNATURE.warrior).color, pulse=.5+.5*Math.sin(this.now/90);
+      g.fillStyle(col,.15+.15*pulse).fillCircle(b.x,b.y,r+8);
+      g.lineStyle(6,0x1a0f08,.75).strokeCircle(b.x,b.y,r);
+      g.lineStyle(6,col,1).beginPath().arc(b.x,b.y,r,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,buffT/AWAKEN_BUFF.ms),false).strokePath();
+      b.clearTint(); if(!held)b.setScale(b.restScale).setAlpha(.9);
+      this.awkPct.setPosition(b.x,b.y-r-14).setText(`각성 상태 ${Math.ceil(buffT/1000)}초`);
+      return;
+    }
     if(full){
       const pulse=.5+.5*Math.sin(this.now/140);
       g.fillStyle(0xffc030,.18+.22*pulse).fillCircle(b.x,b.y,r+10+pulse*6);
@@ -537,7 +579,7 @@ class Game extends Phaser.Scene {
     this.awkHint.setText(full ? '각성 준비!' : '').setY(102);
     this.updateAwkButton(h, full);
     // 버프 표시
-    const bt = Object.entries(this.buffs).filter(([, v]) => v > 0).map(([k]) => ({ shout: '함성', taunt: '도발' }[k])).join(' ');
+    const bt = Object.entries(this.buffs).filter(([, v]) => v > 0).map(([k, v]) => ({ shout: '함성', taunt: '도발', awk: `각성 상태 ${Math.ceil(v / 1000)}초` }[k])).filter(Boolean).join(' ');
     if (bt) this.awkHint.setText((full ? '각성 준비!  ' : '') + bt);
     for (const b of this.beltUi) { const n = this.save.belt[b.k] || 0; b.t.setText(String(n)); if (b.ic) b.ic.setAlpha(n ? 1 : 0.3); }
     for (const sk of this.skillUi) {
@@ -712,6 +754,7 @@ class Game extends Phaser.Scene {
     if (m.def.boss) k *= 1 + st.vsBoss / 100;
     if (this.comboN >= 10) k *= 1 + st.vsCombo / 100;
     if (this.buffs.shout > 0) k *= 1.2;
+    if (this.buffs.awk > 0) k *= AWAKEN_BUFF.dmg;
     if (this.hasSkill('최후의 보루') && h.hp < h.maxHp * 0.3) k *= 1.3;
     return Math.max(1, Math.round(base * k));
   }
@@ -1408,6 +1451,7 @@ class Game extends Phaser.Scene {
   // ===================== 각성기 (직업마다) =====================
   awakenFire(h) {
     const k = this.cls.awaken;
+    if (h === this.hero) { this.buffs.awk = AWAKEN_BUFF.ms; h.awk = 0; }
     if (k === 'shieldWall') return this.shieldWall(h);
     const f = h.face;
     const color = HERO_SIGNATURE[h.key].color;
@@ -1897,10 +1941,13 @@ class Game extends Phaser.Scene {
       return;
     }
     this.updateAbilities(dt);
-    this.hero.update(dt, inp);
+    const hdt = dt * this.heroHaste();
+    if (this.buffs.awk > 0) this.hero.awk = 0;
+    this.hero.update(hdt, inp);
     if (this.ally) this.ally.update(dt);
     for (const m of this.monsters) if (!m.dead) m.update(dt);
-    this.hero.draw(dt, false);
+    this.hero.draw(hdt, false);
+    this.updateAwakenAura(dt);
     if (this.ally) this.ally.draw(dt, false);
     for (const m of this.monsters) if (!m.dead) m.draw(dt, false);
     this.monsters = this.monsters.filter(m => !m.dead);
