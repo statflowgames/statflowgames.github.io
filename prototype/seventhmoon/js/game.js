@@ -3,6 +3,25 @@ const W = 1280, H = 720;
 const Q = new URLSearchParams(location.search);
 let STAGE_W = 6600;
 
+// 1280×720 기준. 그림 크기와 누르는 범위를 분리해 엄지는 편하고 중앙 시야는 비운다.
+function touchControlLayout(safe = {}) {
+  const l=safe.left||0,r=safe.right||0,b=safe.bottom||0,t=safe.top||0;
+  return {
+    stick:{x:132+l,y:614-b,size:138,knobDiameter:72,travel:54,deadX:15,deadY:18,
+      minX:88+l,maxX:218+l,minY:560-b,maxY:640-b},
+    buttons:[
+      {name:'atk',key:'attack',x:1182-r,y:618-b,size:122,radius:74,alpha:.68},
+      {name:'jump',key:'jump',x:1040-r,y:652-b,size:88,radius:52,label:'점프'},
+      {name:'guard',key:'skill_frame',x:1010-r,y:540-b,size:88,radius:52,label:'가드'},
+      {name:'roll',key:'roll',x:1220-r,y:466-b,size:86,radius:51,label:'회피'},
+      {name:'sk1',key:'skill_frame',x:1008-r,y:428-b,size:82,radius:50,label:'스킬 1',slot:0},
+      {name:'sk2',key:'skill_frame',x:1116-r,y:454-b,size:82,radius:50,label:'스킬 2',slot:1},
+      {name:'awk',key:'awaken',x:110+l,y:454-b,size:80,radius:50,label:'각성'},
+      {name:'pause',key:'pause',x:1118-r,y:54+t,size:52,radius:50,alpha:.7},
+    ],
+  };
+}
+
 // 구현된 스킬 (나머지는 '효과 준비 중'으로 보인다)
 const SKILL_IMPL = new Proxy({}, { get: () => new Proxy({}, { get: () => 1 }) });   // 모든 스킬 구현됨
 // 보스마다 던지는 것과 땅에서 솟는 것
@@ -254,61 +273,151 @@ class Game extends Phaser.Scene {
   }
   buildTouch() {
     this.input.addPointer(3);
-    const base = this.add.image(170, 560, 'ui/stick_base').setScrollFactor(0).setDepth(6000).setAlpha(0.75).setScale(0.95);
-    const knob = this.add.image(170, 560, 'ui/stick_knob').setScrollFactor(0).setDepth(6001).setAlpha(0.9).setScale(0.95);
-    this.stick = { base, knob, id: null, cx: 170, cy: 560 };
-    const btn = (key, x, y, s, name, label) => {
-      const b = this.add.image(x, y, 'ui/' + key).setScrollFactor(0).setDepth(6000).setScale(s).setAlpha(0.85);
-      b.r = b.displayWidth * 0.5; b.name2 = name;
-      if (label) this.add.text(x, y + b.displayHeight * 0.5 - 4, label, { fontFamily: 'sans-serif', fontSize: 15, color: '#fff4d8', stroke: '#000', strokeThickness: 4, fontStyle: 'bold' }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(6002).setAlpha(0.9);
-      return b;
-    };
-    this.btns = [btn('attack', 1110, 590, 0.85, 'atk'), btn('jump', 960, 640, 0.6, 'jump', '점프'), btn('roll', 1190, 440, 0.55, 'roll', '구르기'), btn('skill_frame', 960, 500, 0.6, 'guard', '가드'), btn('awaken', 1065, 395, 0.5, 'awk', '각성')];
-    // 일시 정지
-    this.btns.push(btn('pause', 1228, 150, 0.42, 'pause'));
-    { const gk = ['offhand_0', 'shield_0', 'weapon_0'].map(n => this.save.hero + '/' + n).find(k => this.textures.exists(k)) || 'warrior/shield_0'; const gi = this.add.image(960, 500, gk).setScrollFactor(0).setDepth(6001); gi.setScale(70 / Math.max(gi.width, gi.height)); }
-    // 스킬 버튼 2개
-    const s = this.save;
-    [[850, 420, 'sk1'], [1190, 300, 'sk2']].forEach(([x, y, n], k) => {
-      const idx = s.active[k];
-      if (idx === null || idx === undefined) return;
-      const b = btn('skill_frame', x, y, 0.45, n, '스킬 ' + (k + 1)); this.btns.push(b);
-      const ic = UI.img(this, x, y, `icon/skill_${s.hero}_${idx}`); if (ic) ic.setScrollFactor(0).setDepth(6001).setScale(56 / ic.height);
-    });
+    const base=this.add.image(0,0,'ui/stick_base').setScrollFactor(0).setDepth(6000).setAlpha(.24);
+    const knob=this.add.image(0,0,'ui/stick_knob').setScrollFactor(0).setDepth(6001).setAlpha(.42);
+    this.stick={base,knob,id:null};this.btns=[];
+    for(const d of touchControlLayout().buttons) {
+      const idx=this.save.active[d.slot];
+      if(d.slot!==undefined&&(idx===null||idx===undefined))continue;
+      const button=this.add.image(d.x,d.y,'ui/'+d.key).setScrollFactor(0).setDepth(6000);
+      Object.assign(button,{name2:d.name,restAlpha:d.alpha||.56,touchOwner:this,pointerIds:new Set()});
+      if(d.label)button.touchLabel=this.add.text(d.x,d.y+d.size*.31,d.label,{fontFamily:'sans-serif',fontSize:18,color:'#fff4d8',stroke:'#000',strokeThickness:3,fontStyle:'bold'}).setOrigin(.5).setScrollFactor(0).setDepth(6002);
+      const icon=d.name==='guard'
+        ? ['offhand_0','shield_0','weapon_0'].map(n=>this.save.hero+'/'+n).find(k=>this.textures.exists(k))||'warrior/shield_0'
+        : d.slot!==undefined?`icon/skill_${this.save.hero}_${idx}`:null;
+      if(icon)button.touchIcon=UI.img(this,d.x,d.y,icon);
+      if(button.touchIcon)button.touchIcon.setScrollFactor(0).setDepth(6001);
+      this.btns.push(button);
+    }
+    // 각성 버튼: 테두리가 게이지만큼 차오르고, 가득 차면 빛난다
+    this.awkBtn=this.btns.find(b=>b.name2==='awk');
+    if(this.awkBtn){this.awkRing=this.add.graphics().setScrollFactor(0).setDepth(6003);
+      this.awkPct=this.add.text(0,0,'',{fontFamily:'sans-serif',fontSize:16,color:'#ffe7a8',stroke:'#000',strokeThickness:4,fontStyle:'bold'}).setOrigin(.5).setScrollFactor(0).setDepth(6004);}
+    this.layoutTouchControls();
     this.input.on('pointerdown', p => this.onPointer(p));
     this.input.on('pointermove', p => this.onPointer(p));
     this.input.on('pointerup', p => this.onPointerUp(p));
+    this.input.on('pointerupoutside',p=>this.onPointerUp(p));
+    const clear=()=>this.resetTouchControls(),resize=()=>this.layoutTouchControls();
+    this.input.on('gameout',clear);this.game.events.on('blur',clear);this.scale.on('resize',resize);
+    this.events.once('shutdown',()=>{this.game.events.off('blur',clear);this.scale.off('resize',resize);});
+  }
+  touchSafeInsets() {
+    if(typeof document==='undefined'||!this.game?.canvas)return {};
+    // 창 크기가 0인 순간(회전·백그라운드 전환)에는 여백을 계산하지 않는다
+    const box0=this.game.canvas.getBoundingClientRect();
+    if(box0.width<2||box0.height<2||innerWidth<2||innerHeight<2)return {};
+    const probe=document.createElement('div');
+    probe.style.cssText='position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+    document.body.append(probe);
+    const css=getComputedStyle(probe),box=this.game.canvas.getBoundingClientRect();
+    const sx=W/Math.max(1,box.width),sy=H/Math.max(1,box.height);
+    const safe={left:Math.max(0,(parseFloat(css.paddingLeft)||0)-box.left)*sx,
+      right:Math.max(0,(parseFloat(css.paddingRight)||0)-(innerWidth-box.right))*sx,
+      top:Math.max(0,(parseFloat(css.paddingTop)||0)-box.top)*sy,
+      bottom:Math.max(0,(parseFloat(css.paddingBottom)||0)-(innerHeight-box.bottom))*sy};
+    probe.remove();
+    for(const k of Object.keys(safe))safe[k]=Math.min(safe[k],k==="top"||k==="bottom"?60:120);
+    return safe;
+  }
+  layoutTouchControls() {
+    const layout=this.touchLayout=touchControlLayout(this.touchSafeInsets());
+    const s=this.stick;Object.assign(s,layout.stick);s.homeX=s.x;s.homeY=s.y;
+    s.base.setScale(s.size/Math.max(s.base.width,s.base.height));
+    s.knob.setScale(layout.stick.knobDiameter/Math.max(s.knob.width,s.knob.height));
+    for(const b of this.btns) {
+      const d=layout.buttons.find(q=>q.name===b.name2);b.setPosition(d.x,d.y);
+      b.r=d.radius;b.restScale=d.size/Math.max(b.width,b.height);
+      if(b.touchLabel)b.touchLabel.setPosition(d.x,d.y+d.size*.31);
+      if(b.touchIcon)b.touchIcon.setPosition(d.x,d.y-5).setScale(d.size*.48/Math.max(b.touchIcon.width,b.touchIcon.height));
+    }
+    this.resetTouchControls();
+  }
+  updateAwkButton(h, full) {
+    const b=this.awkBtn; if(!b||!this.awkRing) return;
+    const v=Phaser.Math.Clamp(h.awk/100,0,1), held=b.pointerIds.size>0, g=this.awkRing;
+    const r=b.restScale*Math.max(b.width,b.height)*.5+5;
+    // 막 가득 찼을 때 한 번 알려 준다
+    if(full&&!this.awkWasFull){this.awkPopEnd=this.now+420;if(typeof vibrate==='function')vibrate(40);
+      const t=UI.text(this,b.x,b.y-r-14,'각성 준비!',22,'#ffe27a',{bold:true,st:5}).setOrigin(.5).setScrollFactor(0).setDepth(6005);
+      this.tweens.add({targets:t,y:t.y-30,alpha:0,delay:600,duration:500,onComplete:()=>t.destroy()});}
+    this.awkWasFull=full;
+    const popLeft=(this.awkPopEnd||0)-this.now;
+    g.clear();
+    if(full){
+      const pulse=.5+.5*Math.sin(this.now/140);
+      g.fillStyle(0xffc030,.18+.22*pulse).fillCircle(b.x,b.y,r+10+pulse*6);
+      g.lineStyle(6,0xffe27a,1).strokeCircle(b.x,b.y,r);
+      b.clearTint();
+      if(!held){const pop=popLeft>0?.18*Math.sin(Math.PI*(1-popLeft/420)):0;b.setScale(b.restScale*(1+.06*pulse+pop)).setAlpha(1);}
+      if(b.touchIcon)b.touchIcon.setAlpha(1);
+      this.awkPct.setText('');
+    } else {
+      g.lineStyle(6,0x1a0f08,.75).strokeCircle(b.x,b.y,r);
+      if(v>0)g.lineStyle(6,0xe0a030,1).beginPath().arc(b.x,b.y,r,-Math.PI/2,-Math.PI/2+Math.PI*2*v,false).strokePath();
+      b.setTint(0x6a6a6a);
+      if(!held)b.setScale(b.restScale).setAlpha(.5);
+      // 모자랄 때 누르면 몇 %인지 알려 준다
+      this.awkPct.setPosition(b.x,b.y-r-14).setText((this.awkDenyEnd||0)>this.now?`게이지 ${Math.floor(v*100)}%`:'');
+    }
+  }
+  drawTouchButton(b) {
+    const held=b.pointerIds.size>0;
+    b.setScale(b.restScale*(held ? .94 : 1)).setAlpha(held ? .94 : b.restAlpha);
+    if(b.touchLabel)b.touchLabel.setAlpha(held?1:.9);
+    if(b.touchIcon)b.touchIcon.setAlpha(held?1:.78);
+  }
+  resetTouchControls() {
+    if(!this.stick)return;
+    const s=this.stick;s.id=null;s.cx=s.homeX;s.cy=s.homeY;
+    s.base.setPosition(s.cx,s.cy).setAlpha(.24);s.knob.setPosition(s.cx,s.cy).setAlpha(.42);
+    for(const b of this.btns){b.pointerIds.clear();this.drawTouchButton(b);}
+    for(const k of Object.keys(this.touch))this.touch[k]=typeof this.touch[k]==='number'?0:false;
+    this.prev={};
+  }
+  touchButtonAt(p) {
+    let nearest=null,best=Infinity;
+    for(const b of this.btns) {
+      const d=Math.hypot(p.x-b.x,p.y-b.y)/b.r;
+      if(d<=1&&d<best){nearest=b;best=d;}
+    }
+    return nearest;
   }
   onPointer(p) {
-    if (!p.isDown) return;
+    if (!p.isDown||this.paused||this.won||this.lost) return;
     SFX.resume();
-    // 아이템 벨트 (화면 위 가운데)
-    if (p.y < 110 && this.beltUi) {
-      for (const b of this.beltUi) if (Math.abs(p.x - b.x) < 36 && Math.abs(p.y - b.y) < 36 && !p.btn) { this.touch.item = b.n; p.btn = b; }
-      return;
-    }
     const s = this.stick;
-    if (p.x < W * 0.45) {
-      if (s.id === null || s.id === p.id) {
-        if (s.id === null) { s.id = p.id; s.cx = Phaser.Math.Clamp(p.x, 120, 400); s.cy = Phaser.Math.Clamp(p.y, 420, 640); s.base.setPosition(s.cx, s.cy); }
-        const dx = p.x - s.cx, dy = p.y - s.cy, d = Math.hypot(dx, dy), m = Math.min(d, 70);
-        s.knob.setPosition(s.cx + (d ? dx / d * m : 0), s.cy + (d ? dy / d * m : 0));
-        this.touch.x = Math.abs(dx) > 22 ? Math.sign(dx) : 0;
-        this.touch.y = Math.abs(dy) > 26 ? Math.sign(dy) : 0;
-      }
+    if(p.btn&&p.btn.touchOwner!==this)p.btn=null;
+    if(p.btn)return; // 한 번 누른 손가락은 이웃 버튼으로 미끄러져 다른 기술을 발동하지 않는다.
+    if(s.id===p.id) {
+      const dx=p.x-s.cx,dy=p.y-s.cy,d=Math.hypot(dx,dy),m=Math.min(d,s.travel);
+      s.knob.setPosition(s.cx+(d?dx/d*m:0),s.cy+(d?dy/d*m:0));
+      this.touch.x=Math.abs(dx)>s.deadX?Math.sign(dx):0;
+      this.touch.y=Math.abs(dy)>s.deadY?Math.sign(dy):0;
       return;
     }
-    for (const b of this.btns) {
-      if (Phaser.Math.Distance.Between(p.x, p.y, b.x, b.y) < b.r * 1.1) {
-        if (p.btn !== b && b.name2 === 'pause') { p.btn = b; this.togglePause(); continue; }
-        if (p.btn !== b) { this.touch[b.name2] = true; p.btn = b; b.setScale(b.scale * 0.92); this.time.delayedCall(90, () => b.setScale(b.scale / 0.92)); }
-      }
+    if(p.y<110&&this.beltUi)for(const b of this.beltUi) {
+      if(Math.abs(p.x-b.x)<36&&Math.abs(p.y-b.y)<36){this.touch.item=b.n;b.touchOwner=this;p.btn=b;return;}
+    }
+    const b=this.touchButtonAt(p);
+    if(b) {
+      p.btn=b;b.pointerIds.add(p.id);this.drawTouchButton(b);
+      if(b.name2==='pause')this.togglePause();else this.touch[b.name2]=true;
+      if(b.name2==='awk'&&this.hero&&this.hero.awk<100)this.awkDenyEnd=this.now+1000;
+      return;
+    }
+    if(s.id===null&&p.x<W*.4&&p.y>H*.52) {
+      s.id=p.id;s.cx=Phaser.Math.Clamp(p.x,s.minX,s.maxX);s.cy=Phaser.Math.Clamp(p.y,s.minY,s.maxY);
+      s.base.setPosition(s.cx,s.cy).setAlpha(.4);s.knob.setAlpha(.72);
+      this.onPointer(p);
     }
   }
   onPointerUp(p) {
     const s = this.stick;
-    if (s && s.id === p.id) { s.id = null; s.knob.setPosition(s.cx, s.cy); this.touch.x = 0; this.touch.y = 0; }
-    if (p.btn) { if (p.btn.name2 === 'guard') this.touch.guard = false; p.btn = null; }
+    if(s&&s.id===p.id){s.id=null;s.cx=s.homeX;s.cy=s.homeY;s.base.setPosition(s.cx,s.cy).setAlpha(.24);s.knob.setPosition(s.cx,s.cy).setAlpha(.42);this.touch.x=this.touch.y=0;}
+    if(p.btn){const b=p.btn;p.btn=null;
+      if(b.touchOwner===this&&b.pointerIds){b.pointerIds.delete(p.id);this.drawTouchButton(b);if(b.name2==='guard')this.touch.guard=b.pointerIds.size>0;}
+    }
   }
   readInput() {
     const k = this.keys, t = this.touch;
@@ -333,6 +442,7 @@ class Game extends Phaser.Scene {
   togglePause() {
     if (this.won || this.lost) return;
     this.paused = !this.paused;
+    if(this.paused)this.resetTouchControls();
     if (this.paused) {
       const c = this.add.container(0, 0).setScrollFactor(0).setDepth(9000);
       c.add(this.add.rectangle(0, 0, W, H, 0, 0.6).setOrigin(0).setInteractive());
@@ -425,6 +535,7 @@ class Game extends Phaser.Scene {
     const full = h.awk >= 100;
     bar(132, 92, 296, 7, h.awk / 100, full ? (Math.floor(this.now / 120) % 2 ? 0xfff2a0 : 0xffb020) : 0xe0a030);
     this.awkHint.setText(full ? '각성 준비!' : '').setY(102);
+    this.updateAwkButton(h, full);
     // 버프 표시
     const bt = Object.entries(this.buffs).filter(([, v]) => v > 0).map(([k]) => ({ shout: '함성', taunt: '도발' }[k])).join(' ');
     if (bt) this.awkHint.setText((full ? '각성 준비!  ' : '') + bt);
