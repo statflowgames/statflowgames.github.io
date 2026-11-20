@@ -139,8 +139,8 @@ class Game extends Phaser.Scene {
     if (skip) { this.waveIdx = skip; this.hero.x = this.waves[skip - 1].end - 300; }
     this.cameras.main.scrollX = Phaser.Math.Clamp(this.hero.x - W * 0.4, 0, STAGE_W - W);
     this.cameras.main.fadeIn(400);
-    if (this.mode === 'daily' || this.mode === 'rush') this.banner(this.def.name, '#ffd890', this.rule.ko ? '규칙: ' + this.rule.ko : '보스 6마리를 최대한 빨리!');
-    else if (this.tower) this.banner(`심연의 탑  ${this.def.name}`, '#d8b8ff', this.rule.ko ? '규칙: ' + this.rule.ko : null);
+    if (this.mode === 'daily' || this.mode === 'rush') this.stageIntro(this.mode === 'rush' ? '주간 도전' : '매일 바뀌는 도전', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : '보스 6마리를 최대한 빨리!', { accent: 0xffc96a });
+    else if (this.tower) this.stageIntro('심연의 탑', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : null, { accent: 0xb89cff });
     else {
       const chap = typeof CHAPTERS !== 'undefined' && CHAPTERS[this.ch - 1];
       this.stageIntro(`제${this.ch}장` + (chap ? `  ·  ${chap.name}` : ''), this.def.name, this.allyBonus ? `동료 조합 「${this.allyBonus}」  피해 +15%` : null);
@@ -263,7 +263,7 @@ class Game extends Phaser.Scene {
     if (this.won) return;
     this.won = true;
     if (this.tut) { this.save.seen.tutorial = true; Save.write(); if (this.tut.ui) this.tut.ui.destroy(); this.tut = null; }
-    this.banner('STAGE CLEAR', '#ffe27a');
+    this.stageIntro(this.tower ? '심연의 탑  ·  ' + this.def.name : this.mode === 'story' ? `제${this.ch}장  ·  ${this.def.name}` : this.def.name, 'STAGE CLEAR', null, { hold: 1300, clear: true });
     this.hero.state = 'win'; this.hero.play('w_win', 120); this.hero.setHead('head_victory'); this.hero.vx = this.hero.vy = 0;
     SFX.win(); SFX.heroWin(this.hero.key); SFX.heartbeat(false);
     this.time.delayedCall(1800, () => this.result(true));
@@ -726,7 +726,8 @@ class Game extends Phaser.Scene {
     }
   }
   // 스테이지 시작 제목: 옅은 띠 위에 작은 장 이름, 큰 스테이지 이름, 양옆으로 뻗는 금선
-  stageIntro(top, title, sub, accent = 0xe6c27a) {
+  stageIntro(top, title, sub, o = {}) {
+    const accent = o.accent ?? 0xe6c27a, accentCss = '#' + accent.toString(16).padStart(6, '0');
     const cy = 276, depth = 7000, items = [];
     const add = o => { o.setScrollFactor(0).setDepth(depth); items.push(o); return o; };
     // 어두운 띠: 가장자리가 사방으로 부드럽게 사라지는 그림을 한 번 만들어 쓴다
@@ -744,7 +745,7 @@ class Game extends Phaser.Scene {
     }
     const band = add(this.add.image(W / 2, cy + (sub ? 6 : 0), bandKey).setAlpha(0));
     // 작은 장 이름
-    const label = add(this.add.text(W / 2, cy - 46, top, { fontFamily: 'sans-serif', fontSize: 19, color: '#e6c27a', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0));
+    const label = add(this.add.text(W / 2, cy - 46, top, { fontFamily: 'sans-serif', fontSize: 19, color: accentCss, fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0));
     if (label.setLetterSpacing) label.setLetterSpacing(3);
     // 큰 스테이지 이름 (얇은 외곽선 + 그림자)
     const name = add(this.add.text(W / 2, cy + 6, title, { fontFamily: 'serif', fontSize: 54, color: '#fff3dc', stroke: '#1a0e06', strokeThickness: 3 }).setOrigin(0.5).setAlpha(0));
@@ -769,7 +770,9 @@ class Game extends Phaser.Scene {
     this.tweens.addCounter({ from: 0, to: 1, duration: 620, delay: 260, ease: 'Cubic.out', onUpdate: tw => drawLines(tw.getValue()) });
     if (subT) this.tweens.add({ targets: subT, alpha: 1, duration: 400, delay: 520 });
     // 나가기
-    this.time.delayedCall(2300, () => {
+    // 승리 문구는 금빛으로 한 번 반짝
+    if (o.clear) { name.setColor('#ffe9a8'); this.tweens.add({ targets: name, scale: 1.04, duration: 160, delay: 720, yoyo: true, ease: 'Quad.out' }); }
+    this.time.delayedCall(o.hold ?? 2300, () => {
       this.tweens.add({ targets: items, alpha: 0, duration: 420, ease: 'Cubic.in', onComplete: () => items.forEach(o => o.destroy()) });
       this.tweens.add({ targets: [label, name, subT].filter(Boolean), y: '-=10', duration: 420, ease: 'Cubic.in' });
     });
