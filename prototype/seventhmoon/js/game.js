@@ -129,6 +129,8 @@ class Game extends Phaser.Scene {
     this.buildStage();
     this.hero = new Hero(this, 260, 600);
     if (this.cfg.hp) this.hero.hp = Math.min(this.hero.maxHp, this.cfg.hp);
+    // 🆕 체력 이어가기 (이야기 모드): 스테이지를 깨도 체력이 차지 않는다. 보스(중간·장)를 깨면 다음 스테이지에서 꽉 찬다
+    else if (this.mode === 'story' && typeof s.hpPct === 'number' && s.hpPct < 1) this.hero.hp = Math.max(Math.round(this.hero.maxHp * HP_CARRY_MIN), Math.round(this.hero.maxHp * s.hpPct));
     this.tut = !s.seen.tutorial && this.cfg.stage === 'c1_s1' && !this.def.mode ? { i: 0, x0: 260, ui: null, wait: 1800 } : null;
     // AI 동료
     this.ally = null; this.allyCmd = s.allyCmd || 'cover'; this.allyBonus = null;
@@ -2108,6 +2110,7 @@ class Game extends Phaser.Scene {
     // 마석: 스테이지마다 조금
     s.mats.low += 1 + bonus; if (this.ch >= 3) s.mats.mid += Math.floor(bonus / 2) + 1; if (this.ch >= 5) s.mats.high += 1;
     if (this.cfg.node && this.cfg.node !== 'void' && !this.tower) clearNode(s, this.ch, this.cfg.node);
+    if (this.mode === 'story') s.hpPct = this.def.boss ? 1 : Math.max(0, Math.min(1, this.hero.hp / this.hero.maxHp));   // 🆕 체력 이어가기
     Save.write();
     // 화면
     c.add(UI.text(this, W / 2, 86, '스테이지 클리어!', 60, '#ffe27a', { serif: true, st: 10 }).setOrigin(0.5));

@@ -158,7 +158,7 @@ class MapScene extends Phaser.Scene {
     const s = Save.data;
     if (this.hud) this.hud.destroy();
     const c = this.add.container(0, 0).setDepth(50);
-    c.add(UI.panel(this, 12, 90, 300, 96, { alpha: 0.88 }));
+    c.add(UI.panel(this, 12, 90, 300, 112, { alpha: 0.88 }));
     const p = UI.img(this, 62, 138, 'portrait/' + s.hero);
     if (p) { p.setScale(80 / p.height); c.add(p); }
     c.add(UI.text(this, 112, 102, `${DB.heroes[s.hero].name}  Lv.${s.lv}`, 22, '#ffe7a8', { bold: true }));
@@ -166,6 +166,9 @@ class MapScene extends Phaser.Scene {
     g.fillStyle(0x2a1a10).fillRect(112, 136, 180, 10).fillStyle(0x7ad0ff).fillRect(112, 136, 180 * Math.min(1, s.exp / expNeed(s.lv)), 10);
     c.add(g);
     c.add(UI.text(this, 112, 152, `금화 ${s.gold}   SP ${s.sp}`, 18, '#ffd34d'));
+    // 🆕 이어지는 체력
+    const hpP = Math.round(Math.max(HP_CARRY_MIN, typeof s.hpPct === 'number' ? s.hpPct : 1) * 100);
+    c.add(UI.text(this, 112, 176, `체력 ${hpP}%` + (hpP < 100 ? '  · 보스를 깨면 회복' : ''), 15, hpP < 50 ? '#ff9a8a' : '#9ae07a'));
     c.add(UI.button(this, W - 110, 120, '캠프', () => this.scene.start('camp'), { w: 180, h: 56, size: 24 }));
     c.add(UI.button(this, W - 110, 186, '가방', () => openMenu(this, 'bag'), { w: 180, h: 52, size: 22, col: 0x4a2a14 }));
     const moons = Object.keys(s.moons).length;

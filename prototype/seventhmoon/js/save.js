@@ -76,7 +76,9 @@ const ELITES = {
 };
 // ✏️ 30레벨까지는 그대로, 그 뒤는 완만하게 (2부)
 const expNeed = lv => lv <= 30 ? Math.round(90 * Math.pow(1.12, lv)) : Math.round(90 * Math.pow(1.12, 30) * (1 + (lv - 30) * 0.09));
-const LV_CAP = 60;   // ✏️ 2부: 30 → 60
+const LV_CAP = 60;
+// 🆕 체력 이어가기: 다음 스테이지는 이 비율 아래로 시작하지 않는다 (막혀서 못 깨는 일을 막는다)
+const HP_CARRY_MIN = 0.3;   // ✏️ 2부: 30 → 60
 
 function newSave(hero = 'warrior') {
   const s = {
