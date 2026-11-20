@@ -247,6 +247,8 @@ class Hero extends Actor {
     this.guardStart = -9999; this.blink = 2500;
     this.play('idle');
     this.side = 'hero';
+    // 새 그림(1차 4등신 느낌)으로 리그 교체. setHead도 새 표정 시트로 바뀐다.
+    if (typeof CuteHeroes !== 'undefined') CuteHeroes.apply(this);
   }
   setHead(img) { this.rig.setImg('head', img); }
   motionClip(phase) { return this.motionPolish ? 'harvan_' + phase : heroMotionClip(this, phase); }

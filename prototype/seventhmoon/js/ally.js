@@ -19,6 +19,7 @@ class Ally extends Actor {
     this.maxHp = Math.round(st.hp * 0.8 * (this.cls.hp || 1) / (classOf(scene.save.hero).hp || 1)); this.hp = this.maxHp;
     this.awk = 0; this.cool = 600; this.step = 0; this.healT = 4000; this.tgt = null; this.retarget = 0;
     this.state = 'idle'; this.play('idle');
+    if (typeof CuteHeroes !== 'undefined' && CuteHeroes.apply(this)) { this.state = 'idle'; this.play('idle'); }
     this.tag = scene.add.text(x, y, DB.heroes[key].name, { fontFamily: 'sans-serif', fontSize: 15, color: '#9ae0ff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1);
   }
   setHead(img) { this.rig.setImg('head', img); }

@@ -577,7 +577,7 @@ class Game extends Phaser.Scene {
     panel.fillStyle(0x1a0f08, 0.78).fillRoundedRect(16, 14, 430, 112, 14).lineStyle(3, 0xc99a3c).strokeRoundedRect(16, 14, 430, 112, 14);
     panel.fillStyle(0x3a2412).fillCircle(72, 70, 46).lineStyle(4, 0xe0b45a).strokeCircle(72, 70, 46);
     hud.add(panel);
-    { const hk = this.textures.exists(s.hero + '/head') ? s.hero + '/head' : 'warrior/head'; const hi = this.add.image(74, 74, hk); hi.setScale(Math.min(80 / hi.width, 80 / hi.height)); hud.add(hi); }
+    { const hk = this.textures.exists(s.hero + '/head') ? s.hero + '/head' : 'warrior/head'; const cf = CuteHeroes.face(this, s.hero); const hi = cf ? this.add.image(74, 74, cf[0], cf[1]) : this.add.image(74, 74, hk); hi.setScale(Math.min(80 / hi.width, 80 / hi.height)); hud.add(hi); }
     hud.add(this.add.text(132, 22, DB.heroes[s.hero].name, { fontFamily: 'sans-serif', fontSize: 22, color: '#ffe7a8', fontStyle: 'bold' }));
     hud.add(this.add.text(220, 26, `${DB.heroes[s.hero].ko.split(' ')[0]} Lv.${s.lv}`, { fontFamily: 'sans-serif', fontSize: 15, color: '#c8b08a' }));
     this.bars = this.add.graphics(); hud.add(this.bars);
@@ -620,7 +620,8 @@ class Game extends Phaser.Scene {
       ag.fillStyle(0x1a0f08, 0.78).fillRoundedRect(16, 132, 300, 56, 12).lineStyle(2, 0x6a9ac8).strokeRoundedRect(16, 132, 300, 56, 12);
       hud.add(ag);
       const ak = this.textures.exists(al.key + '/head') ? al.key + '/head' : 'warrior/head';
-      const ai = this.add.image(46, 160, ak); ai.setScale(Math.min(44 / ai.width, 44 / ai.height)); hud.add(ai);
+      const acf = CuteHeroes.face(this, al.key);
+      const ai = acf ? this.add.image(46, 160, acf[0], acf[1]) : this.add.image(46, 160, ak); ai.setScale(Math.min(44 / ai.width, 44 / ai.height)); hud.add(ai);
       hud.add(this.add.text(76, 138, DB.heroes[al.key].name, { fontFamily: 'sans-serif', fontSize: 16, color: '#9ae0ff', fontStyle: 'bold' }));
       this.allyCmdT = this.add.text(304, 138, '', { fontFamily: 'sans-serif', fontSize: 15, color: '#ffe7a8' }).setOrigin(1, 0);
       hud.add(this.allyCmdT);
@@ -1600,9 +1601,12 @@ class Game extends Phaser.Scene {
     band.fillStyle(signature.color, 1).fillRect(0, 226, W, 6).fillRect(0, 458, W, 6);
     c.add(band);
     const ck = this.textures.exists(key + '/cutin') ? key + '/cutin' : this.textures.exists(key + '/head_attack') ? key + '/head_attack' : 'warrior/head_attack';
-    const face = this.add.image(-200, 345, ck);
+    // 새 그림이면 전투 캐릭터와 같은 얼굴(큰 외침)을 크게 띄운다
+    const cf = CuteHeroes.face(this, key, 'shout');
+    const face = cf ? this.add.image(-200, 345, cf[0], cf[1]) : this.add.image(-200, 345, ck);
     face.setScale(Math.min(250 / face.height, 520 / face.width) * (ck.endsWith('cutin') ? 1 : 1.1));
-    if (ck.endsWith('cutin')) face.setScale(230 / face.height);
+    if (cf) face.setScale(230 / face.height);
+    else if (ck.endsWith('cutin')) face.setScale(230 / face.height);
     c.add(face);
     const t1 = this.add.text(W + 300, 320, aw, { fontFamily: 'serif', fontSize: 76, color: signature.css, stroke: signature.edge, strokeThickness: 10 }).setOrigin(0.5);
     const t2 = this.add.text(W + 300, 395, '각성기', { fontFamily: 'sans-serif', fontSize: 26, color: '#fff' }).setOrigin(0.5);

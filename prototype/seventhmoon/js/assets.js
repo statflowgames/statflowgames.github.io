@@ -50,7 +50,7 @@ const Assets = {
   heroKeys(s) {
     const g = [s ? s.hero : 'warrior', 'warrior'];
     if (s && s.ally && s.ally !== s.hero) g.push(s.ally);
-    return this.groups(g);
+    return [...this.groups(g), ...(typeof CuteHeroes !== 'undefined' ? CuteHeroes.keys(g) : [])];
   },
   portraits(list) { return list.flatMap(k => ['portrait/' + k, ...['joy', 'angry', 'sad', 'surprise'].map(f => `portrait/${k}_${f}`)]); },
   forTitle(s) { return [...this.heroKeys(s), 'story/opening', 'bg/far', ...HERO_KEYS.map(k => 'portrait/' + k)]; },
