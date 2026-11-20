@@ -297,7 +297,8 @@ function openNodes(s, ch) {
 function endingFor(s) {
   if (s.flags.accepted) return 'end_dark';
   const moons = Object.keys(s.moons).length;
-  if (moons >= 6) return 'end_true';
+  // ✏️ 진 엔딩: 월석 6개 + 리세 신뢰 4 이상 (오르벡스 제안을 거절했을 때)
+  if (moons >= 6 && s.lise >= 4) return 'end_true';
   if (s.lise >= 3) return 'end_sacrifice';
   return 'end_seal';
 }

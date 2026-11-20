@@ -852,7 +852,15 @@ class LiseMenu extends MenuBase {
       if (im) { im.setScale(96 / im.height); if (!has) im.setTint(0x202020).setAlpha(0.6); }
       UI.text(this, x, y + 66, has ? MOONS[k].ko : '???', 20, has ? '#fff' : '#6a5a48', { bold: true }).setOrigin(0.5, 0);
     });
-    UI.text(this, 520, 560, `리세와의 신뢰 ${'♥'.repeat(Math.min(3, s.lise))}${'♡'.repeat(Math.max(0, 3 - s.lise))}`, 22, '#ff9ab0');
+    UI.text(this, 520, 548, `리세와의 신뢰 ${'♥'.repeat(Math.min(4, s.lise))}${'♡'.repeat(Math.max(0, 4 - s.lise))}${s.lise > 4 ? ' +' + (s.lise - 4) : ''}`, 22, '#ff9ab0');
+    // 🆕 엔딩 단서: 무엇이 끝을 가르는지 넌지시
+    const nm = Object.keys(s.moons).length, hint = [];
+    if (s.flags.accepted) hint.push('오르벡스의 손을 잡았다. 흑월이 당신을 부른다…');
+    else {
+      hint.push(nm >= 6 ? '여섯 달이 모두 모였다. 흑월을 비출 수 있을지도.' : `월석 ${nm}/6 — 우회하는 길(B)에 월석이 잠들어 있다. 지난 장도 다시 갈 수 있다.`);
+      hint.push(s.lise >= 4 ? '리세는 당신을 깊이 믿는다.' : '리세의 마음을 얻으려면 — 갈림길의 선택, 갇힌 사람 구출.');
+    }
+    UI.text(this, 520, 586, hint.join(String.fromCharCode(10)), 16, '#c8b8a0', { wrap: 380 });
     UI.button(this, 1040, 600, '이야기하기', () => runTalk(this, `camp_lise_${Math.min(6, s.ch)}`), { w: 240, h: 60, size: 24 });
   }
 }

@@ -140,6 +140,8 @@ class Talk extends Phaser.Scene {
   next() {
     const L = this.lines.shift();
     if (!L) return this.finish();
+    // 🆕 조건 줄: if/ifNot = 깃발, ifLise = 리세 신뢰 이상, onlyFor = 그 직업일 때만
+    if (!talkLineOk(L)) return this.next();
     if (L.bg) {
       if (this.bg) this.bg.destroy();
       this.bg = UI.img(this, W / 2, H / 2 - 40, L.bg);
@@ -200,7 +202,7 @@ class Talk extends Phaser.Scene {
     if (skip) {
       while (this.lines.length) {
         const L = this.lines.shift();
-        if (L.give) applyGive(L.give);
+        if (L.give && talkLineOk(L)) applyGive(L.give);
         if (L.choice) { this.lines.unshift(L); this.typing = false; return this.next(); }
       }
     }
@@ -212,6 +214,16 @@ class Talk extends Phaser.Scene {
   }
 }
 
+// 🆕 조건 줄 판정 (대화·말풍선 공용)
+function talkLineOk(L) {
+  const s = Save.data || { flags: {}, lise: 0, hero: 'warrior' };
+  if (L.if && !(s.flags || {})[L.if]) return false;
+  if (L.ifNot && (s.flags || {})[L.ifNot]) return false;
+  if (L.ifLise !== undefined && (s.lise || 0) < L.ifLise) return false;
+  if (L.ifLiseBelow !== undefined && (s.lise || 0) >= L.ifLiseBelow) return false;
+  if (L.onlyFor && !L.onlyFor.includes(s.hero)) return false;
+  return true;
+}
 // 다른 장면에서 대화를 띄운다
 function runTalk(scene, key, then, o = {}) {
   if (!STORY[key]) { if (then) then(null); return; }

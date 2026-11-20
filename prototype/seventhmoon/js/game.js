@@ -151,6 +151,7 @@ class Game extends Phaser.Scene {
       this.stageIntro(`제${this.ch}장` + (chap ? `  ·  ${chap.name}` : ''), this.def.name, this.routeRule ? '길의 규칙  ·  ' + this.routeRule.ko : this.allyBonus ? `동료 조합 「${this.allyBonus}」  피해 +15%` : null);
     }
     GearFx.start(this);   // 🆕 장비 효과
+    StageEvents.start(this);   // 🆕 스테이지 안 이야기·목표
     SFX.ambience(this.theme.amb);
     SFX.music(this.tower ? (this.def.boss ? 'bgm_tower_b' : 'bgm_tower_a') : this.theme.bgm);
     SFX.heartbeat(false);
@@ -282,6 +283,7 @@ class Game extends Phaser.Scene {
     this.lock = w; this.groupIdx = 0;
     this.bounds = { l: w.l, r: w.r };
     this.spawnGroup();
+    StageEvents.onWave(this, this.waveIdx);
     if (w.boss) this.bossIntro(w.groups[0][0][0]);
   }
   spawnGroup() {
@@ -305,6 +307,7 @@ class Game extends Phaser.Scene {
   }
   stageClear() {
     if (this.won) return;
+    StageEvents.onClear(this);
     this.won = true;
     if (this.tut) { this.save.seen.tutorial = true; Save.write(); if (this.tut.ui) this.tut.ui.destroy(); this.tut = null; }
     this.stageIntro(this.tower ? '심연의 탑  ·  ' + this.def.name : this.mode === 'story' ? `제${this.ch}장  ·  ${this.def.name}` : this.def.name, 'STAGE CLEAR', null, { hold: 1300, clear: true });
@@ -1049,6 +1052,7 @@ class Game extends Phaser.Scene {
     }
     const r = Math.random();
     if (p.secret) return this.secretFound(p);
+    if (p.ev) return StageEvents.onProp(this, p);
     if (r < (Q.has('oldmob') ? 0.35 : 0.16) && !this.rule.noHeal && !this.rule.noHeart) this.dropPickup(p.x, p.y, 'heal');   // ✏️ 상자 회복 하트 35% → 16%
     else if (r < 0.42) this.dropPickup(p.x, p.y, 'loot');
     else if (r < 0.55) this.dropPickup(p.x, p.y, 'cons');
@@ -1133,6 +1137,7 @@ class Game extends Phaser.Scene {
     const h = this.hero, st = this.stats;
     let k = 1 - st.red;
     if (this.buffs.taunt > 0) k *= 0.7;
+    if (this.evRage && src && src.def) k *= 1.25;   // 🆕 흑월 의식을 못 막았다
     if (this.buffs.shield > 0) k *= 1 - (this.shieldRed || 0.4);
     if (this.buffs.holy > 0) k = 0;
     if (st.lowHpDef && h.hp < h.maxHp * 0.5) k *= 1 - st.lowHpDef / 200;
@@ -2335,6 +2340,7 @@ class Game extends Phaser.Scene {
     if (this.tut) this.updateTutorial(dt);
     this.updateStatus(dt);
     GearFx.update(this, dt);
+    StageEvents.update(this, dt);
     this.updateAuras(dt);
     SFX.heartbeat(!this.won && !this.lost && this.hero.hp > 0 && this.hero.hp < this.hero.maxHp * 0.25);
     this.updatePickups(dt);
