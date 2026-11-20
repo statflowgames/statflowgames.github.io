@@ -923,6 +923,7 @@ class Game extends Phaser.Scene {
   }
   // ---------------- 전투 판정 ----------------
   heroDamage(base, m, crit, elem) {
+    if (m) m.lastElem = elem || null;   // 보스 장치(불로 마무리 등)가 마지막으로 맞은 원소를 본다
     const st = this.stats, h = this.hero;
     let k = st.dmgMul * (crit ? 1 + st.critDmg / 100 : 1);
     const miss = 1 - h.hp / h.maxHp;
@@ -1349,7 +1350,7 @@ class Game extends Phaser.Scene {
       const crit = Math.random() * 100 < this.stats.crit;
       const dmg = this.heroDamage(p.dmg, m, crit, p.elem);
       m.invuln = 0;
-      if (m.takeHit(h, { dmg: p.dmg, kb: p.pierce ? 120 : 200, type: 'light', stop: 35 }, dmg)) {
+      if (m.takeHit(h, { dmg: p.dmg, kb: p.pierce ? 120 : 200, type: 'light', stop: 35, proj: true }, dmg)) {
         this.addCombo();
         h.awk = Math.min(100, h.awk + 2 * (1 + this.stats.awkPct / 100));
         this.floatText(m.x, m.y - m.height * 0.7, String(dmg), crit ? '#ffd34d' : '#fff', crit ? 34 : 28);
@@ -1780,10 +1781,13 @@ class Game extends Phaser.Scene {
     SFX.bossWarning();
     this.time.delayedCall(700, () => {
       const c = this.add.container(0, 0).setScrollFactor(0).setDepth(7500);
-      const g = this.add.graphics(); g.fillStyle(0x000000, 0.7).fillRect(0, 150, W, 120); g.fillStyle(0x9a2fd0).fillRect(0, 148, W, 4);
+      const g = this.add.graphics(); g.fillStyle(0x000000, 0.7).fillRect(0, 150, W, 150); g.fillStyle(0x9a2fd0).fillRect(0, 148, W, 4);
       c.add(g);
       c.add(this.add.text(120, 178, this.tower ? `심연의 탑 ${this.tower}층 강화 보스` : d.mid ? '중간 보스' : kind === 'void_shadow' ? '숨은 보스' : `${this.ch}장 보스`, { fontFamily: 'sans-serif', fontSize: 22, color: '#d8b8ff' }));
       c.add(this.add.text(120, 206, (this.tower ? '강화 ' : '') + d.ko, { fontFamily: 'serif', fontSize: 48, color: '#f6ffd8', stroke: '#1d2a08', strokeThickness: 8 }));
+      // 🆕 공략 힌트 한 줄
+      const gd = typeof BOSS_GIMMICK_DEF !== 'undefined' && BossGimmicks.on() && BOSS_GIMMICK_DEF[kind];
+      if (gd && gd.hint) c.add(this.add.text(122, 266, '◆ ' + gd.hint, { fontFamily: 'sans-serif', fontSize: 20, color: '#ffd890', stroke: '#000', strokeThickness: 4 }));
       c.setAlpha(0); c.x = -200;
       this.tweens.add({ targets: c, alpha: 1, x: 0, duration: 300, hold: 1800, yoyo: true, onComplete: () => { c.destroy(); this.bossBar = true; } });
       SFX.roar(this.boss ? this.boss.px : 900,this.boss?.id);
@@ -1807,6 +1811,13 @@ class Game extends Phaser.Scene {
   bossDefeated(b) {
     if (b.defeated) return;
     b.defeated = true;
+    // 🆕 보스 전리품: 보스마다 고유 전리품을 모은다 (상인·대장장이 교환에 쓴다)
+    const gd = typeof BOSS_GIMMICK_DEF !== 'undefined' && BOSS_GIMMICK_DEF[b.id];
+    if (gd && gd.trophy && this.save) {
+      this.save.trophies = this.save.trophies || {};
+      this.save.trophies[b.id] = (this.save.trophies[b.id] || 0) + 1;
+      this.time.delayedCall(900, () => this.floatText(this.hero.x, this.hero.y - 280, '전리품 · ' + gd.trophy, '#ffb0ff', 30));
+    }
     // 보스 러시: 마지막 보스가 아니면 다음 보스로
     if (this.def.allBoss && this.waveIdx < this.waves.length) {
       b.deathAudioPlayed=true;SFX.bossDown(b.px,b.id); this.slowmo = 500; this.cameras.main.flash(200, 255, 255, 255);

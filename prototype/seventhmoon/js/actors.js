@@ -618,6 +618,7 @@ class Monster extends Actor {
       this.def.dmg = Math.round(this.def.dmg * t.dmg); this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
       this.bossTune = t;
     }
+    if (base.boss && typeof BossGimmicks !== 'undefined') BossGimmicks.attach(this);
     if (real && MAN['faces/' + id + '_hurt']) this.def.face = 'faces/' + id;
     else if (real) this.def.face = null;
     if (base.tint && !real) { for (const b of this.rig.bones) b.baseTint = mulTint(b.baseTint, base.tint); this.rig.setTintAll(null); }
@@ -822,6 +823,7 @@ class Monster extends Actor {
     const isDown = this.state === 'down';
     if (isDown && !a.otg) return false;
     if (this.state === 'dying') return false;
+    if (this.gimmick) dmg = BossGimmicks.damage(this, src, a, dmg);
     this.hp -= dmg;
     this.flash(0xffffff, 70);
     this.kick(-8, 0, -0.1);
@@ -871,6 +873,7 @@ class Monster extends Actor {
     if (this.hp <= 0) this.downTime = 350;
   }
   die() {
+    if (this.gimmick) BossGimmicks.cleanup(this);
     if (this.dead) return;
     this.dead = true; this.state = 'dying'; this.releaseTok();
     if(!this.deathAudioPlayed)SFX.gob('die', this.px, this.pitch, this.id);
@@ -890,6 +893,7 @@ class Monster extends Actor {
       if (this.poiseHitT > 1500 && st !== 'stagger') this.poise = Math.min(100, this.poise + 25 * s);
     }
     const rage = this.hp < this.maxHp * 0.5;
+    if (this.gimmick && BossGimmicks.update(this, dt, rage)) return;
     if (rage && !this.raged) { this.raged = true; this.startRoar(true); return; }
     if (!this.summon60 && this.hp < this.maxHp * 0.65) { this.summon60 = true; return this.startRoar(false, 2); }
     if (!this.summon30 && this.hp < this.maxHp * 0.3) { this.summon30 = true; return this.startRoar(false, 3); }
@@ -897,7 +901,8 @@ class Monster extends Actor {
     if (this.bossTune) {
       const hug = adx < 200 && Math.abs(dy) < 70 && h.state !== 'dead';
       this.hugT = hug ? (this.hugT || 0) + dt : Math.max(0, (this.hugT || 0) - dt * 2);
-      if (this.hugT > (rage ? 1100 : 1700) && ['idle', 'move', 'windup'].includes(st)) { this.hugT = 0; return this.startStomp(rage); }
+      this.stompCd = Math.max(0, (this.stompCd || 0) - dt);
+      if (this.hugT > (rage ? 1100 : 1700) && this.stompCd <= 0 && ['idle', 'move', 'windup'].includes(st)) { this.hugT = 0; this.stompCd = rage ? 4500 : 6000; return this.startStomp(rage); }
     }
     if (st === 'stomp') {
       if (this.st > this.stompAt && !this.hitDone) {
@@ -1021,7 +1026,7 @@ class Monster extends Actor {
   }
   updateSpecial(dt) {
     const sc = this.scene, h = sc.hero, sp = this.sp, s = dt / 1000, rage = this.raged;
-    const end = (cool) => { this.cool = rage ? cool * 0.6 : cool; this.rig.c.setAlpha(1); this.invuln = 0; this.toIdle(); };
+    const end = (cool) => { this.cool = rage ? cool * 0.6 : cool; this.rig.c.setAlpha(1); this.invuln = 0; this.toIdle(); if (this.gimmick) BossGimmicks.afterSpecial(this, sp.type); };
     const t = sp.type;
     if (t === 'charge') {
       const wind = rage ? 600 : 850;
@@ -1179,8 +1184,10 @@ class Monster extends Actor {
     const pt = this.bossTune;
     if (pt) { this.poiseHitT = 0; this.poise -= Phaser.Math.Clamp(dmg / this.maxHp * 100 * pt.poiseK, 1, a.type === 'light' ? 6 : 16); }
     else this.poise -= a.type === 'light' ? 6 : 16;
+    if (this.hp <= 0 && this.gimmick && BossGimmicks.lethal(this)) return true;
     if (this.hp <= 0) {
-      this.state = 'air'; this.st = 0; this.vz = 350; this.z = 1; this.vx = dir * 120; this.play('m_air', 40); this.setHead('head_shout');
+      if (this.gimmick) { BossGimmicks.cleanup(this); this.gimmick.flying = false; }
+      this.state = 'air'; this.st = 0; this.vz = 350; this.z = Math.max(1, this.z); this.vx = dir * 120; this.play('m_air', 40); this.setHead('head_shout');
       this.scene.bossDefeated(this);
       return true;
     }
