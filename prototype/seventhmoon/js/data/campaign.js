@@ -178,6 +178,15 @@ const MOONS = {
 };
 
 // 장별 몬스터 강함 배율
+// 🆕 일반 몬스터 강화 (장별). hp·dmg 배율, elite = 보통 난이도에서 정예가 나올 확률, extraWave = 보스가 아닌 스테이지에 붙는 웨이브 수
+const MOB_TUNE = {
+  1: { hp: 1.5, dmg: 1.35, elite: 0, extraWave: 1 },
+  2: { hp: 1.55, dmg: 1.35, elite: 0.06, extraWave: 1 },
+  3: { hp: 1.55, dmg: 1.3, elite: 0.08, extraWave: 2 },
+  4: { hp: 1.5, dmg: 1.3, elite: 0.1, extraWave: 2 },
+  5: { hp: 1.35, dmg: 1.15, elite: 0.12, extraWave: 2 },
+  6: { hp: 1.3, dmg: 1.1, elite: 0.14, extraWave: 2 },
+};
 // 🆕 보스 강화 (장별). hp·dmg 배율, cool = 공격 사이 쉬는 시간 배율(작을수록 자주), poiseK = 받은 피해 1%당 그로기 감소, stagger = 그로기 시간(ms)
 const BOSS_TUNE = {
   1: { hp: 1.35, dmg: 1.6, cool: 0.7, poiseK: 2.2, stagger: 1700 },

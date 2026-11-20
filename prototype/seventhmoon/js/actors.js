@@ -594,8 +594,15 @@ class Monster extends Actor {
     this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
     if (scene.speedMul && scene.speedMul !== 1) this.def.speed = base.speed * scene.speedMul;
     if (scene.tower && base.boss) { this.def.ko = '강화 ' + base.ko; }
-    // 정예 (영웅 난이도 이상): 접두사 하나, 체력 1.8배, 조금 크다
-    const ec = scene.diff >= 3 ? 0.25 : scene.diff >= 2 ? 0.14 : 0;
+    this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) : k.hp)); this.hp = this.maxHp;
+    // 🆕 일반 몬스터 강화 (장별 MOB_TUNE): 체력·공격력
+    if (!base.boss && typeof MOB_TUNE !== 'undefined' && !scene.tower && !(typeof Q !== 'undefined' && Q.has('oldmob'))) {
+      const t = MOB_TUNE[Math.max(1, Math.min(6, Math.round(scene.ch || 1)))];
+      this.maxHp = this.hp = Math.round(this.maxHp * t.hp);
+      this.def.dmg = Math.round(this.def.dmg * t.dmg); this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
+    }
+    // 정예: 접두사 하나, 체력 1.8배, 조금 크다. ✏️ 보통 난이도에서도 2장부터 가끔 나온다 (전에는 체력 배율이 아래에서 덮어써져 적용되지 않았음)
+    const ec = scene.diff >= 3 ? 0.25 : scene.diff >= 2 ? 0.14 : (typeof MOB_TUNE !== 'undefined' && !scene.tower ? (MOB_TUNE[Math.max(1, Math.min(6, Math.round(scene.ch || 1)))].elite || 0) : 0);
     if (!o.noElite && !base.boss && ec && Math.random() < ec) {
       const keys = Object.keys(ELITES);
       this.elite = keys[Math.floor(Math.random() * keys.length)];
@@ -604,7 +611,6 @@ class Monster extends Actor {
       this.eliteTag = scene.add.text(x, y, ELITES[this.elite].ko, { fontFamily: 'sans-serif', fontSize: 16, color: ELITES[this.elite].col, stroke: '#000', strokeThickness: 4, fontStyle: 'bold' }).setOrigin(0.5, 1);
       this.eliteGlow = scene.add.ellipse(x, y, 120, 36, Phaser.Display.Color.HexStringToColor(ELITES[this.elite].col).color, 0.35).setBlendMode(Phaser.BlendModes.ADD);
     }
-    this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) : k.hp)); this.hp = this.maxHp;
     // 🆕 보스 강화 (앞쪽 장일수록 더): 체력·공격력·공격 간격·그로기 내성. 주소에 ?oldboss 면 끈다
     if (base.boss && typeof BOSS_TUNE !== 'undefined' && !(typeof Q !== 'undefined' && Q.has('oldboss'))) {
       const t = BOSS_TUNE[Math.max(1, Math.min(6, Math.round(scene.ch || 1)))] || BOSS_TUNE[6];
@@ -707,7 +713,7 @@ class Monster extends Actor {
       const role = this.def.role;
       if (role === 'melee') {
         const hasTok = this.scene.tokens.has(this);
-        if (!hasTok && this.cool <= 0 && this.scene.tokens.size < (this.scene.boss ? 1 : 2)) this.scene.tokens.add(this);
+        if (!hasTok && this.cool <= 0 && this.scene.tokens.size < (this.scene.boss ? 1 : (this.scene.ch >= 3 ? 3 : 2))) this.scene.tokens.add(this);
         const want = this.scene.tokens.has(this) ? 95 : 230 + this.slotOff;
         tx = h.x - Math.sign(dx || 1) * want;
         if (this.scene.tokens.has(this) && adx < 135 && Math.abs(dy) < 20) return this.startWindup();
@@ -887,6 +893,23 @@ class Monster extends Actor {
     if (rage && !this.raged) { this.raged = true; this.startRoar(true); return; }
     if (!this.summon60 && this.hp < this.maxHp * 0.65) { this.summon60 = true; return this.startRoar(false, 2); }
     if (!this.summon30 && this.hp < this.maxHp * 0.3) { this.summon30 = true; return this.startRoar(false, 3); }
+    // 🆕 몸에 붙어서 계속 때리면 발구르기 충격파로 밀어낸다 (보스 강화 켜졌을 때)
+    if (this.bossTune) {
+      const hug = adx < 200 && Math.abs(dy) < 70 && h.state !== 'dead';
+      this.hugT = hug ? (this.hugT || 0) + dt : Math.max(0, (this.hugT || 0) - dt * 2);
+      if (this.hugT > (rage ? 1100 : 1700) && ['idle', 'move', 'windup'].includes(st)) { this.hugT = 0; return this.startStomp(rage); }
+    }
+    if (st === 'stomp') {
+      if (this.st > this.stompAt && !this.hitDone) {
+        this.hitDone = true; SFX.smash(this.px);
+        this.scene.cameras.main.shake(300, 0.014);
+        this.scene.fx('impact_ring', this.x, this.y, { s: 0.85, dur: 520, depth: this.y - 1, flat: true });
+        this.scene.fx('dust_land', this.x, this.y, { s: 0.8, dur: 520, depth: this.y + 1 });
+        this.scene.areaHit(this, this.x, this.y, 260, 70, Math.round(this.def.dmg * 0.8), 'heavy');
+      }
+      if (this.st > this.stompAt + 520) { this.rig.setTintAll(null); this.cool = rage ? 300 : 600; this.toIdle(); }
+      return;
+    }
     if (st === 'idle' || st === 'move') {
       this.face = Math.sign(dx) || this.face;
       if (this.cool <= 0) {
@@ -1117,6 +1140,13 @@ class Monster extends Actor {
     const px = this.x + this.face * 210;
     this.scene.telegraph(px, this.y, 1.0, this.raged ? 650 : 900);
     this.rig.setTintAll(0xffb0a0);
+  }
+  startStomp(rage) {
+    this.state = 'stomp'; this.st = 0; this.vx = this.vy = 0; this.hitDone = false; this.stompAt = rage ? 520 : 700;
+    this.replay('b_stomp', 60); this.setHead('head_shout'); SFX.bossGrunt(this.px, this.id);
+    this.scene.telegraph(this.x, this.y, 1.6, this.stompAt);
+    this.rig.setTintAll(0xffd0a0);
+    this.showEmote('anger', 700);
   }
   startRock() {
     this.state = 'rock'; this.st = 0; this.vx = this.vy = 0; this.hitDone = false; this.play('m_throwup', 120);

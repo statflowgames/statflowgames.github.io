@@ -211,8 +211,20 @@ class Game extends Phaser.Scene {
   makeWaves() {
     const out = [];
     let at = 900;
-    this.def.waves.forEach((gs, i) => {
-      const boss = !!this.def.boss && (this.def.allBoss || i === this.def.waves.length - 1);
+    // 🆕 웨이브 늘리기: 보스·탑·도전이 아닌 스테이지에 앞 웨이브들을 섞은 더 큰 웨이브를 덧붙인다
+    let waves = this.def.waves;
+    const tune = typeof MOB_TUNE !== 'undefined' && !this.def.boss && !this.tower && !this.def.mode && !Q.has('oldmob') ? MOB_TUNE[Math.max(1, Math.min(6, this.ch))] : null;
+    if (tune && tune.extraWave) {
+      waves = [...waves];
+      const all = this.def.waves.flat().join(',').split(',').map(t => t.trim().split('*')[0]);
+      const kinds = [...new Set(all)];
+      for (let e = 0; e < tune.extraWave; e++) {
+        const a = kinds[(e * 2) % kinds.length], b = kinds[(e * 2 + 1) % kinds.length], c = kinds[(e + 2) % kinds.length];
+        waves.push([`${a}*2,${b}*2`, `${c}*2,${a}`, `${b}*2,${c}*2`].slice(0, 2 + e));
+      }
+    }
+    waves.forEach((gs, i) => {
+      const boss = !!this.def.boss && (this.def.allBoss || i === waves.length - 1);
       const groups = gs.map(g => {
         const list = [];
         for (const tok of g.split(',')) { const [k, n] = tok.trim().split('*'); for (let j = 0; j < (+n || 1); j++) list.push(k); }
@@ -999,7 +1011,7 @@ class Game extends Phaser.Scene {
       return;
     }
     const r = Math.random();
-    if (r < 0.35 && !this.rule.noHeal) this.dropPickup(p.x, p.y, 'heal');
+    if (r < (Q.has('oldmob') ? 0.35 : 0.16) && !this.rule.noHeal) this.dropPickup(p.x, p.y, 'heal');   // ✏️ 상자 회복 하트 35% → 16%
     else if (r < 0.42) this.dropPickup(p.x, p.y, 'loot');
     const n = Phaser.Math.Between(3, 6);
     for (let i = 0; i < n; i++) this.dropPickup(p.x, p.y, 'coin');
