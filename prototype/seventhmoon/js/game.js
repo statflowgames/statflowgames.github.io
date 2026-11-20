@@ -1713,7 +1713,7 @@ class Game extends Phaser.Scene {
     b.defeated = true;
     // 보스 러시: 마지막 보스가 아니면 다음 보스로
     if (this.def.allBoss && this.waveIdx < this.waves.length) {
-      SFX.bossDown(b.px); this.slowmo = 500; this.cameras.main.flash(200, 255, 255, 255);
+      b.deathAudioPlayed=true;SFX.bossDown(b.px,b.id); this.slowmo = 500; this.cameras.main.flash(200, 255, 255, 255);
       for (const m of this.monsters) if (m !== b && !m.dead) { m.hp = 0; m.takeHit(this.hero, { dmg: 999, type: 'knock', kb: 300, otg: true }, 999); }
       this.time.delayedCall(900, () => b.die());
       this.lock = null; this.bounds = { l: 0, r: STAGE_W }; this.boss = null; this.bossBar = null;
@@ -1723,11 +1723,10 @@ class Game extends Phaser.Scene {
       return;
     }
     this.won = true;
-    SFX.bossDown(b.px); SFX.music(null, { fade: 1.2 }); SFX.heartbeat(false);
+    b.deathAudioPlayed=true;SFX.bossDown(b.px,b.id); SFX.music(null, { fade: 1.2 }); SFX.heartbeat(false);
     this.slowmo = 1400;
     this.cameras.main.flash(300, 255, 255, 255);
     this.cameras.main.shake(800, 0.012);
-    SFX.roar(b.px,b.id);
     for (const m of this.monsters) if (m !== b && !m.dead) { m.hp = 0; m.takeHit(this.hero, { dmg: 999, type: 'knock', kb: 300, otg: true }, 999); }
     this.time.delayedCall(1700, () => {
       b.die();

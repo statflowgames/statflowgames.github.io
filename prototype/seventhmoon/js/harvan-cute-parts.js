@@ -71,6 +71,7 @@ var HarvanCuteParts=(()=>{
     rig.preparePose=pose=>{
       const p={...pose};
       for(const key of ['hipX','hipY','stepF','stepB','liftF','liftB','bodyX','bodyY'])if(p[key])p[key]*=motionScale;
+      if(typeof cuteSkillScale==='function')cuteSkillScale(hero,p,HARVAN_STAND,profile.skillScale);
       // This cape is painted hanging left/down; a full run rotation lifts it above the head.
       if(profile.capeSwing)p.cape=(p.cape||0)*profile.capeSwing-(p.torso||0)*(1-profile.capeSwing);
       // Optional resting tilt so the cape hangs down like the first-round art instead of flaring back.

@@ -1,3 +1,10 @@
+// 🆕 스킬·각성 동작 크게 (rigProfile.skillScale): 서 있는 자세에서 벗어난 만큼을 배율로 키운다.
+// 머리가 큰 새 그림은 팔다리가 짧아 같은 각도로 움직여도 작아 보인다. 시작·끝은 서 있는 자세라 툭 끊기지 않는다.
+function cuteSkillScale(hero,p,base,scale){
+  if(!scale||scale===1||!['skill','awaken'].includes(hero.state))return;
+  for(const k of ['torso','head','uaf','faf','uab','fab','thf','shf','thb','shb'])if(p[k]!==undefined)p[k]=(base[k]||0)+(p[k]-(base[k]||0))*scale;
+  for(const k of ['rx','bodyX','bodyY','hipX','hipY','stepF','stepB','liftF','liftB'])if(p[k])p[k]*=scale;
+}
 // Section-eight adapters for the existing humanoid/hero motion system.
 // PNGs stay intact; all cutouts use atlas frames and class-specific attachment metadata.
 var CuteHeroParts=(()=>{
@@ -108,6 +115,7 @@ var CuteHeroParts=(()=>{
         const parent=(p.rr||0)+(p.root||0)+(p.torso||0);
         p.head=Phaser.Math.Clamp(parent+(p.head||0),-12,14)-parent;
       }
+      cuteSkillScale(hero,p,base,profile.skillScale);
       // 🆕 가드 자세 (rigProfile.guardPose): 새 그림에 맞춘 막는 자세의 관절 각도. 가드에 들어갈 때 90ms에 걸쳐 바뀐다.
       const gp=profile.guardPose;
       if(gp&&hero.state==='guard'){

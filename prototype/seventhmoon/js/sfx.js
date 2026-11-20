@@ -146,6 +146,7 @@ const SFX = (() => {
   const enemyVoices=[];
   const lastVoiceIndex={};
   const HERO_KEYS=new Set(['warrior','mage','paladin','rogue','ranger','hexblade']);
+  const BOSS_KEYS=new Set(['barkhaul','toothcrusher','captain_mog','gloob','twinsting','sehera','frost_wyvern','hrimgar','golem7','orvex','orvex_eclipse','azmal','void_shadow']);
   const candidate=()=> 'global'; // Global release uses nonverbal takes only, never the old Korean candidates.
   const chan = {};            // 'bgm', 'amb', 'jgl' → { name, el, g }
   let wantMusic = undefined;
@@ -216,7 +217,7 @@ const SFX = (() => {
     if(!gate('heroVoice:'+hero,kind==='atk'?170:kind==='hurt'?160:100))return;
     if(old)fadeVoice(old);
     const index=((lastVoiceIndex[key]??-1)+1)%pool.length;lastVoiceIndex[key]=index;
-    const volume={atk:.56,atk_big:.65,hurt:.52,ko:.58,victory:.56,awaken:.72}[kind]*VOL.voice*(kind==='atk'&&power===1?1.08:1);
+    const volume={atk:.56,atk_big:.65,hurt:.52,ko:.94,victory:.98,awaken:1.04}[kind]*VOL.voice*(kind==='atk'&&power===1?1.08:1);
     const v=sample(key,{x,index,vol:volume,vary:0,wet:0});
     if(v)heroVoices[hero]={...v,priority,kind};
   }
@@ -237,21 +238,27 @@ const SFX = (() => {
   }
   function enemyVoice(kind,x,pitch=1,id='grunt'){
     if(!ctx||VOL.voice<=0)return;
-    const family=enemyFamily(id),key=`ev2_${family}_${kind}`;
+    const family=enemyFamily(id),boss=BOSS_KEYS.has(id),personal=`ev2_boss_${id}_${kind}`;
+    const key=boss&&has(personal)?personal:`ev2_${family}_${kind}`;
     if(!has(key))return;
-    const priority=kind==='roar'?3:kind==='die'?2:1;
-    if(!gate('enemy:'+family+':'+kind,kind==='hurt'?170:kind==='die'?100:240))return;
+    const priority=boss&&kind==='die'?5:boss&&kind==='hurt'?3:kind==='roar'?3:kind==='die'?2:1;
+    if(!gate('enemy:'+(boss?id:family)+':'+kind,kind==='hurt'?(boss?280:145):kind==='die'?(boss?900:100):240))return;
     for(let i=enemyVoices.length-1;i>=0;i--)if(enemyVoices[i].endsAt<=ctx.currentTime)enemyVoices.splice(i,1);
+    if(boss)for(let i=enemyVoices.length-1;i>=0;i--){
+      const old=enemyVoices[i];
+      if(old.id===id&&old.priority<=priority){fadeVoice(old,.035);enemyVoices.splice(i,1);}
+    }
     if(enemyVoices.length>=3){
       const quietest=enemyVoices.findIndex(v=>v.priority<=priority);
       if(quietest<0)return;
       fadeVoice(enemyVoices[quietest]);enemyVoices.splice(quietest,1);
     }
     const index=((lastVoiceIndex[key]??-1)+1)%bank[key].length;lastVoiceIndex[key]=index;
-    const duck=Object.values(heroVoices).some(v=>v.endsAt>ctx.currentTime)?.58:1;
-    const vol=({atk:.40,hurt:.24,die:.39,roar:.55,chant:.32,alert:.28,laugh:.28,scared:.28}[kind]??.3)*VOL.voice*duck;
+    const heroActive=Object.values(heroVoices).find(v=>v.endsAt>ctx.currentTime);
+    const duck=heroActive?(boss&&kind==='die'?.96:heroActive.priority>=4?.78:.92):1;
+    const vol=(boss&&kind==='hurt'?.75:boss&&kind==='die'?1.0:({atk:.40,hurt:.46,die:.68,roar:.55,chant:.32,alert:.28,laugh:.28,scared:.28}[kind]??.3))*VOL.voice*duck;
     const v=sample(key,{x,index,vol,vary:.015,rate:Math.max(.94,Math.min(1.06,pitch)),wet:.025});
-    if(v)enemyVoices.push({...v,priority});
+    if(v)enemyVoices.push({...v,priority,id,kind});
   }
   // 배경음악·환경음·징글: 긴 곡은 <audio>로 흘려보낸다 (메모리 절약)
   function playChan(ch, name, o = {}) {
@@ -524,8 +531,8 @@ const SFX = (() => {
   prefer('roll', x => sample('roll', { x }));
   api.heroAtk=(power=0,x,hero='warrior')=>heroVoice(hero,power>=2?'atk_big':'atk',x,power);
   api.heroHurt=(x,hero='warrior')=>heroVoice(hero,'hurt',x);
-  api.heroKO=(x,hero='warrior')=>heroVoice(hero,'ko',x);
-  api.heroWin=(hero='warrior')=>heroVoice(hero,'victory');
+  api.heroKO=(x,hero='warrior')=>{heroVoice(hero,'ko',x);sample('fv3_'+hero+'_ko',{x,vol:.43,vary:0,wet:0});};
+  api.heroWin=(hero='warrior')=>{heroVoice(hero,'victory');sample('fv3_'+hero+'_victory',{vol:.46,vary:0,wet:0});};
   api.gob=enemyVoice;
   api.roar=(x,id='barkhaul')=>enemyVoice('roar',x,1,id);
   api.bossGrunt=(x,id='barkhaul')=>enemyVoice('atk',x,1,id);
@@ -545,7 +552,7 @@ const SFX = (() => {
   api.awakenImpact=(hero='warrior',x,phase='impact')=>{
     if(!ctx)return;
     const key='hv2_awaken_'+hero+(phase==='impact'?'':'_'+phase);
-    sample(key,{x,vol:phase==='arrow'?.24:phase==='pulse'?.30:phase==='impact'?.70:.48,vary:0,wet:.025});
+    sample(key,{x,vol:phase==='arrow'?.26:phase==='pulse'?.34:phase==='impact'?.94:.62,vary:0,wet:.025});
   };
   prefer('wall', x => sample('shield_wall', { x }));
   prefer('combo', () => sample('combo_milestone'));
@@ -563,7 +570,7 @@ const SFX = (() => {
   api.launch = x => { if (ctx) sample('launch', { x }); };
   api.bossPhase = (id='barkhaul',x) => enemyVoice('roar',x,1,id);
   api.bossWeak = x => { if (ctx) sample('boss_weakpoint', { x }); };
-  api.bossDown = x => { if (ctx) sample('boss_down', { x }); };
+  api.bossDown = (x,id='barkhaul') => enemyVoice('die',x,1,id);
   api.cheer = x => enemyVoice('laugh',x,1,'grunt');
   api.music = music;
   api._debug = () => ({ bank: Object.keys(bank).length, ready:bankReady,voiceKeys:Object.keys(bank).filter(k=>k.startsWith('hv2_vo_')).length,enemyKeys:Object.keys(bank).filter(k=>k.startsWith('ev2_')).length,voiceVolume:VOL.voice,activeHeroVoices:Object.entries(heroVoices).filter(([,v])=>ctx&&v.endsAt>ctx.currentTime).map(([hero,v])=>hero+':'+v.kind),music: musicList.length, chan: Object.fromEntries(Object.entries(chan).filter(([, c]) => c).map(([k, c]) => [k, c.name + (c.el.paused ? ' (멈춤)' : ' (재생)')])), state: ctx && ctx.state });

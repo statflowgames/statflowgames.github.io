@@ -821,7 +821,7 @@ class Monster extends Actor {
     const boss = this.kind === 'barkhaul';
     if (boss) return this.bossHit(a, dir, dmg);
     this.hurtFace();
-    if (Math.random() < 0.6) SFX.gob('hurt', this.px, this.pitch, this.id);
+    if (this.hp>0) SFX.gob('hurt', this.px, this.pitch, this.id);
     if (isDown) { this.vz = 260; this.z = 1; this.state = 'air'; this.st = 0; this.play('m_air', 30); return true; }
     if (this.state === 'air' || this.z > 0) {
       // 이미 체력이 0인 적은 공중에서 더 띄우지 않고 바로 떨어뜨린다 (계속 맞으면 영영 안 내려온다)
@@ -860,7 +860,7 @@ class Monster extends Actor {
   die() {
     if (this.dead) return;
     this.dead = true; this.state = 'dying'; this.releaseTok();
-    SFX.gob('die', this.px, this.pitch, this.id);
+    if(!this.deathAudioPlayed)SFX.gob('die', this.px, this.pitch, this.id);
     this.scene.fx('death_dissolve', this.x, this.y - this.height * 0.3, { s: this.kind === 'barkhaul' ? 0.8 : 0.32, dur: 900, depth: this.y + 1001, grow: 1.3 });
     const targets = this.enemyMotion || (this.rig.def.clips && this.rig.def.clips.m_down === 'gob_down') ? [this.rig.c, this.shadow] : this.rig.c;
     this.scene.tweens.add({ targets, alpha: 0, duration: 450, onComplete: () => this.destroy() });
@@ -1137,6 +1137,7 @@ class Monster extends Actor {
       this.scene.bossDefeated(this);
       return true;
     }
+    SFX.gob('hurt',this.px,this.pitch,this.id);
     if (this.poise <= 0 && this.state !== 'stagger') {
       this.state = 'stagger'; this.st = 0; this.vx = 0; this.play('m_down', 120); this.setHead('head_shout');
       this.showEmote('dizzy', 2300); this.scene.floatText(this.x, this.y - this.height, '그로기!', '#ffd34d', 34);
