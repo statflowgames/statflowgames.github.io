@@ -378,7 +378,7 @@ class Hero extends Actor {
     if (st === 'hurt') { this.vx *= Math.pow(0.002, s); this.physics(dt); if (this.st > 300) this.toIdle(); return; }
     if (st === 'air') { this.physics(dt); return; }
     if (st === 'down') { if (this.st > 650) { this.state = 'getup'; this.st = 0; this.play('w_getup', 60); this.setHead(null); } return; }
-    if (st === 'getup') { if (this.st > 420) { this.invuln = 600; this.toIdle(); } return; }
+    if (st === 'getup') { if (this.st > 420) { this.invuln = 600 + (this.st8.getupInv || 0) * 1000; this.toIdle(); } return; }
     if (st === 'awaken') { this.updateAwaken(dt); return; }
     if (st === 'win') { return; }
   }
@@ -457,6 +457,7 @@ class Hero extends Actor {
     this.state = 'roll'; this.st = 0; this.vx = d * 560; this.vy = inp.y * 120; this.invuln = 380;
     this.replay(this.motionSync ? this.motionClip('roll') : 'w_roll', 30); SFX.roll(this.px);
     this.scene.fx('dash_trail', this.x - d * 40, this.y - 60, { s: 0.35, flip: d < 0, dur: 320, depth: this.y - 1 });
+    if (typeof GearFx !== 'undefined' && this.scene.gfx) GearFx.onRoll(this.scene, this);
   }
   startGuard() { this.state = 'guard'; this.st = 0; this.guardStart = this.scene.now; this.play('w_guard', 40); }
   onLand(v) {

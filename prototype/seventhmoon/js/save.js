@@ -181,7 +181,9 @@ function rollDrop(s, ch, bonus = 0, boss = false) {
   // 지금 직업 장비 70%, 나머지는 다른 직업(나중에 그 직업으로 할 때 쓴다)
   const owned = Object.keys(s.unlocked).filter(k => s.unlocked[k]);
   const cls = Math.random() < 0.7 ? s.hero : owned[Math.floor(Math.random() * owned.length)];
-  return makeItem(s, { cls, slot, tier, rar: rollRarity(ch, bonus, boss) });
+  let rar = rollRarity(ch, bonus, boss);
+  if (rar < 4 && typeof GearFx !== 'undefined' && GearFx.codes(s).has('luck') && Math.random() < (boss ? 0.04 : 0.006)) rar = 4;   // 🆕 은방울 행운 목걸이
+  return makeItem(s, { cls, slot, tier, rar });
 }
 
 // ---------------- 능력치 ----------------
@@ -193,6 +195,10 @@ const AFF_KEY = {
   '가드 스태미나 소모': 'guardCost', '일어날 때 무적 시간': 'getupInv', '받는 회복 효과': 'healPct', '처치 시 체력 회복': 'leech',
   '금화 획득': 'goldPct', '경험치': 'expPct', '이동 속도': 'spd', '스태미나 회복': 'staRegen', '각성 충전': 'awkPct',
   '스킬 쿨다운': 'cdr', '투척 아이템 피해': 'throwPct', '[하르반] 저스트 가드 판정': 'parryWin',
+  // 🆕 그동안 이름만 있던 옵션
+  '화염 피해': 'fireDmg', '냉기 피해': 'iceDmg', '번개 피해': 'boltDmg', '신성 피해': 'holyDmg', '암흑 피해': 'darkDmg', '독 피해': 'poisonDmg',
+  '상태이상 지속시간': 'statusRed', '상태이상 부여 확률': 'procPct', '처치 시 원소 폭발 확률': 'killBoom',
+  '[미라엘] 주문 횟수': 'mageExtra', '[오델리아] 신앙 축적': 'faith', '[키르] 출혈 피해': 'bleed', '[세릴] 차지 속도': 'chargeSpd', '[녹타] 체력 소모 기술 비용': 'hpCost',
 };
 function heroStats(s) {
   const st = { lv: s.lv, atk: 10 + s.lv * 2, def: 0, hp: 340 + s.lv * 20, crit: 8, critDmg: 80 };
@@ -212,6 +218,7 @@ function heroStats(s) {
   }
   // 스킬 패시브와 직업 보정
   applyPassives(s, st);
+  if (typeof GearFx !== 'undefined') GearFx.stats(s, st);   // 🆕 전설·세트·보스 장비 효과
   const cls = classOf(s.hero);
   st.hp *= cls.hp || 1;
   st.crit += cls.critAdd || 0;

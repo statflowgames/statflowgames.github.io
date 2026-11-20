@@ -145,6 +145,7 @@ class Game extends Phaser.Scene {
       const chap = typeof CHAPTERS !== 'undefined' && CHAPTERS[this.ch - 1];
       this.stageIntro(`제${this.ch}장` + (chap ? `  ·  ${chap.name}` : ''), this.def.name, this.allyBonus ? `동료 조합 「${this.allyBonus}」  피해 +15%` : null);
     }
+    GearFx.start(this);   // 🆕 장비 효과
     SFX.ambience(this.theme.amb);
     SFX.music(this.tower ? (this.def.boss ? 'bgm_tower_b' : 'bgm_tower_a') : this.theme.bgm);
     SFX.heartbeat(false);
@@ -944,6 +945,7 @@ class Game extends Phaser.Scene {
     if (this.buffs.shout > 0) k *= 1.2;
     if (this.buffs.awk > 0) k *= AWAKEN_BUFF.dmg;
     if (this.hasSkill('최후의 보루') && h.hp < h.maxHp * 0.3) k *= 1.3;
+    k *= GearFx.dmgK(this, m, crit, elem);
     return Math.max(1, Math.round(base * k));
   }
   meleeHit(h, a) {
@@ -961,12 +963,13 @@ class Game extends Phaser.Scene {
       if ((m.z || 0) > (a.zr || 170) + h.z) continue;
       if (m.state === 'down' && !a.otg) continue;
       const behind = this.cls.backstab && (h.x - m.x) * m.face < 0 && !m.def.boss;
-      const crit = behind || Math.random() * 100 < this.stats.crit || (a.fin && this.comboN > 0 && this.comboN % 10 === 9);
+      const crit = behind || Math.random() * 100 < this.stats.crit + GearFx.critAdd(this, m) || (a.fin && this.comboN > 0 && this.comboN % 10 === 9);
       let dmg = this.heroDamage(a.dmg * (0.9 + Math.random() * 0.2) * (m.state === 'down' ? 1.4 : 1), m, crit, this.cls.elem);
       if (behind) dmg = Math.round(dmg * (1.3 + this.stats.vsBack / 100));
       if (h.side === 'ally') dmg = Math.max(1, Math.round(dmg * 0.7));
       if (!m.takeHit(h, a, dmg)) continue;
       this.afterHeroHit(m, dmg, this.buffs.poison > 0 ? 'poison' : this.cls.elem);
+      GearFx.onMelee(this, h, m, a, dmg, crit, behind);
       h.hitSet.add(m); any = true;
       this.addCombo();
       if (h === this.hero) h.awk = Math.min(100, h.awk + 3 * (1 + this.stats.awkPct / 100) * (this.rule.awkMul || 1));
@@ -1010,6 +1013,7 @@ class Game extends Phaser.Scene {
       this.dropPickup(p.x, p.y, 'loot', { rar: 2 });
       this.dropPickup(p.x, p.y, 'loot');
       this.dropPickup(p.x, p.y, 'cons'); this.dropPickup(p.x, p.y, 'cons');
+      if (GearFx.has(this, 'thiefKing')) this.dropPickup(p.x, p.y, 'loot', { rar: 1 });
       return;
     }
     const r = Math.random();
@@ -1103,6 +1107,9 @@ class Game extends Phaser.Scene {
     if (this.hasSkill('최후의 보루') && h.hp < h.maxHp * 0.3) k *= 0.7;
     k *= 1 - (src.def && src.def.role === 'ranged' ? st.redRange : st.redMelee) / 100;
     dmg = Math.max(1, Math.round(dmg * k));
+    dmg = GearFx.incoming(this, src, dmg);
+    if (dmg <= 0) return true;
+    dmg = GearFx.lethal(this, dmg);
     // 불굴: 스테이지당 1회, 치명상을 체력 1로 버틴다
     if (this.hasSkill('불굴') && !this.unyielding && h.hp - dmg <= 0 && h.hp > 1 && !this.god) { this.unyielding = true; dmg = h.hp - 1; this.time.delayedCall(10, () => { this.floatText(h.x, h.y - 280, '불굴!', '#ffd34d', 40); h.invuln = 1500; }); }
     const before = h.hp;
@@ -1115,6 +1122,7 @@ class Game extends Phaser.Scene {
       this.floatText(h.x, py - 60, '패리!', '#ffd34d', 36);
       if (src.takeHit && src.kind !== 'barkhaul' && !src.dead) { src.state = 'hurt'; src.st = 0; src.stun = 900; src.replay('m_flinch', 20); src.showEmote('dizzy', 900); src.releaseTok && src.releaseTok(); src.vx = -src.face * 150; }
       if (src.kind === 'barkhaul') src.poise -= 25;
+      GearFx.onParry(this, src);
     } else if (r === 'guard') {
       SFX.guard(h.x - this.cameras.main.scrollX); this.fx('guard_flash', px, py, { s: 0.32, dur: 260, depth: 4300 });
       this.hitstop = 50;
@@ -1130,6 +1138,7 @@ class Game extends Phaser.Scene {
       const red = this.add.rectangle(0, 0, W, H, 0xc01010, 0.22).setOrigin(0).setScrollFactor(0).setDepth(4900);
       this.tweens.add({ targets: red, alpha: 0, duration: 220, onComplete: () => red.destroy() });
       this.comboN = 0; this.comboT = Math.min(this.comboT, 300);
+      GearFx.onHurt(this, src, dmg);
       return true;
     }
     return r !== 'miss';
@@ -1149,7 +1158,7 @@ class Game extends Phaser.Scene {
     for (const m of this.monsters) {
       if (m.dead || (o.hitSet && o.hitSet.has(m))) continue;
       if (Math.abs(m.x - x) > rx + (m.kind === 'barkhaul' ? 60 : 0) || Math.abs(m.y - y) > ry) continue;
-      const crit = Math.random() * 100 < this.stats.crit;
+      const crit = Math.random() * 100 < this.stats.crit + GearFx.critAdd(this, m);
       let dmg = this.heroDamage(base * (o.raw ? 1 / this.stats.dmgMul : 1), m, crit, o.elem);
       if (o.back && (h.x - m.x) * m.face < 0) dmg *= o.back;
       dmg = Math.round(dmg);
@@ -1288,6 +1297,7 @@ class Game extends Phaser.Scene {
         this.heroArea(x, h.y, 90, 60, 45, { kb: 380, type: 'knock', col: '#ff9a3a', poise: 12 });
       });
     }
+    GearFx.onItem(this, k, i);
   }
   // 🆕 새 소모품 효과. 처리했으면 true
   useNewItem(k, h, f) {
@@ -1391,6 +1401,7 @@ class Game extends Phaser.Scene {
     if (!fx) return false;
     if (fx.once && this.healOnce[name]) { this.floatText(h.x, h.y - 260, '이번 스테이지에 이미 썼어요', '#c8b8a0', 22); return false; }
     this.cds[k] = (SKILL_CD[name] || fx.cd) * (1 - this.stats.cdr / 100);
+    GearFx.onSkill(this);
     if (name === '대지 가르기') {
       // 기존 내려찍기 판정/전진/충격파를 그대로 사용하고 전용 준비 자세만 입힌다.
       this.quake = true;
@@ -1415,6 +1426,7 @@ class Game extends Phaser.Scene {
   // ===================== 직업 공통 전투 도구 =====================
   // 주인공 투사체: o = { img, vx, vy, dmg, pierce, n, spread, elem, sc, rot, z, life, boom, chain, home, tint, spin, rehit }
   heroShoot(h, o) {
+    GearFx.onShoot(this, h, o);
     const n = o.n || 1;
     const sc = this.cls.ranged ? 1 : 1 + this.stats.throwPct / 100;
     let muzzle = null;
@@ -1451,7 +1463,7 @@ class Game extends Phaser.Scene {
       const last = p.hit.get(m);
       if (last !== undefined && !(p.rehit && this.now - last > p.rehit)) continue;
       p.hit.set(m, this.now);
-      const crit = Math.random() * 100 < this.stats.crit;
+      const crit = Math.random() * 100 < this.stats.crit + GearFx.critAdd(this, m);
       const dmg = this.heroDamage(p.dmg, m, crit, p.elem);
       m.invuln = 0;
       if (m.takeHit(h, { dmg: p.dmg, kb: p.pierce ? 120 : 200, type: 'light', stop: 35, proj: true }, dmg)) {
@@ -1501,7 +1513,9 @@ class Game extends Phaser.Scene {
     const st = this.stats, h = this.hero;
     let ls = st.lifesteal + (leech ? leech * 100 : 0);
     if (this.buffs.bloodmoon > 0) ls = ls * 3 + 5;
-    if (ls) h.hp = Math.min(h.maxHp, h.hp + dmg * ls / 100);
+    if (ls) { const add = dmg * ls / 100, over = h.hp + add - h.maxHp; h.hp = Math.min(h.maxHp, h.hp + add); if (over > 0) GearFx.overheal(this, over); }
+    elem = GearFx.elemOf(this, elem);
+    GearFx.afterHit(this, m, dmg, elem);
     if (!elem || m.dead) return;
     if (elem === 'fire') { if (!(m.burnT > 0)) this.floatText(m.x, m.y - m.height - 10, '화상', '#ff9050', 20); m.burnT = 3000; }
     if (elem === 'poison') { if (!(m.poisonT > 0)) this.floatText(m.x, m.y - m.height - 10, '중독', '#90e070', 20); m.poisonT = 4000; }
@@ -1572,6 +1586,7 @@ class Game extends Phaser.Scene {
   }
   // 직업 특수 동작 (공격 표의 special)
   heroSpecial(h, a) {
+    GearFx.onSpecial(this, h, a.special);
     const f = h.face, sp = a.special;
     if (sp === 'burst') {
       let x = h.x + f * 220;
@@ -1744,7 +1759,7 @@ class Game extends Phaser.Scene {
   // ===================== 각성기 (직업마다) =====================
   awakenFire(h) {
     const k = this.cls.awaken;
-    if (h === this.hero) { this.buffs.awk = AWAKEN_BUFF.ms; h.awk = 0; }
+    if (h === this.hero) { this.buffs.awk = AWAKEN_BUFF.ms; h.awk = 0; GearFx.onAwaken(this, h); }
     if (k === 'shieldWall') return this.shieldWall(h);
     const f = h.face;
     const color = HERO_SIGNATURE[h.key].color;
@@ -1947,6 +1962,7 @@ class Game extends Phaser.Scene {
   onMonsterDead(m) {
     const d = m.def;
     Codex.kill(this.save, m);
+    GearFx.onKill(this, m);
     // 🆕 소모품 드롭: 정예 60%, 보스 3개, 일반 3%
     if (!this.won || d.boss) { const n = d.boss ? 3 : m.elite ? (Math.random() < 0.6 ? 1 : 0) : (Math.random() < 0.03 ? 1 : 0); for (let i = 0; i < n; i++) this.dropPickup(m.x, m.y, 'cons'); }
     if (m.elite === 'split' && !this.won) for (let i = 0; i < 2; i++) {
@@ -1979,8 +1995,9 @@ class Game extends Phaser.Scene {
     const s = this.save, h = this.hero;
     // 부활 깃털: 스테이지당 1개
     const passive = this.stats.revive && !this.reviveUsed;
-    if (passive || (!this.featherUsed && (s.belt.feather || 0) > 0)) {
-      if (passive) this.reviveUsed = true; else { this.featherUsed = true; s.belt.feather--; }
+    const ring = !passive && GearFx.extraRevive(this);   // 🆕 불사조의 반지
+    if (passive || ring || (!this.featherUsed && (s.belt.feather || 0) > 0)) {
+      if (passive) this.reviveUsed = true; else if (ring) { this.floatText(h.x, h.y - 300, '불사조의 반지', '#ffb070', 30); } else { this.featherUsed = true; s.belt.feather--; }
       this.time.delayedCall(1100, () => {
         h.hp = Math.round(h.maxHp * 0.5); h.state = 'getup'; h.st = 0; h.replay('w_getup', 60); h.invuln = 2500; h.setHead(null);
         SFX.ui('revive'); this.cameras.main.flash(300, 255, 240, 200);
@@ -2122,7 +2139,7 @@ class Game extends Phaser.Scene {
     const next = towerFloor(n + 1, this.cfg.seed || 7);
     c.add(UI.text(this, W / 2, 440, `다음: ${next.name}${next.rule ? '  ·  ' + next.rule.ko : ''}`, 22, '#d8c8ff').setOrigin(0.5));
     c.add(UI.text(this, W / 2, 476, '체력은 이어지고, 층을 오를 때마다 25% 회복해요', 17, '#c8b8a0').setOrigin(0.5));
-    const hp = Math.min(this.hero.maxHp, this.hero.hp + this.hero.maxHp * (s.eq && Object.values(s.eq).some(id => (itemById(s, id) || {}).set === '순례자의 증표') ? 0.35 : 0.25));
+    const hp = Math.min(this.hero.maxHp, this.hero.hp + this.hero.maxHp * (s.eq && Object.values(s.eq).filter(id => (itemById(s, id) || {}).set === '순례자의 증표').length >= 2 ? 0.35 : 0.25));
     const up = () => { SFX.music(null, { fade: 0.3 }); this.scene.restart({ stage: 'tower', ch: next.chScale, node: 'tower', def: next, hp, seed: this.cfg.seed }); };
     c.add(UI.button(this, W / 2 + 170, 560, '다음 층 ▶', up, { w: 300, col: 0x4a2a7a }));
     c.add(UI.button(this, W / 2 - 170, 560, '탑에서 나가기', () => this.scene.start('towergate'), { w: 280, col: 0x3a2a1a }));
@@ -2285,6 +2302,7 @@ class Game extends Phaser.Scene {
     this.updateEnemyZones(dt);
     if (this.tut) this.updateTutorial(dt);
     this.updateStatus(dt);
+    GearFx.update(this, dt);
     this.updateAuras(dt);
     SFX.heartbeat(!this.won && !this.lost && this.hero.hp > 0 && this.hero.hp < this.hero.maxHp * 0.25);
     this.updatePickups(dt);

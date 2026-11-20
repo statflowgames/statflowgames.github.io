@@ -46,7 +46,10 @@ const UI = {
   // 아이템 아이콘 텍스처 키
   itemIcon(it) {
     let k;
-    if (it.cls === 'acc') {
+    if (it.boss) {
+      k = 'icon/bossgear_' + it.boss;
+      if (typeof game !== 'undefined' && game.textures && !game.textures.exists(k)) k = it.kind === 'ring' ? 'icon/acc_legend_1' : 'icon/acc_legend_5';
+    } else if (it.cls === 'acc') {
       if (it.rar === 4) k = 'icon/acc_legend_' + DB.accessory.legend.findIndex(l => l.name === it.name);
       else if (it.rar === 5) { const si = DB.accessory.sets.findIndex(x => x.name === it.set); k = `icon/set_${si ? 'b' : 'a'}${it.kind === 'ring' ? 0 : 1}`; }
       else k = `icon/${it.kind}_${it.tier}`;

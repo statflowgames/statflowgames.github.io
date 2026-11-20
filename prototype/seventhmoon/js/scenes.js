@@ -491,16 +491,18 @@ class MenuBase extends Phaser.Scene {
   itemDetail(it, x, y, w) {
     const out = [];
     const r = RARITY[it.rar];
-    out.push(UI.text(this, x, y, itemLabel(it), 26, r.col, { bold: true, wrap: w }));
+    const nameT = UI.text(this, x, y, itemLabel(it), 26, r.col, { bold: true, wrap: w });
+    out.push(nameT);
+    const dy = Math.max(0, Math.round(nameT.height) - 36);   // ✏️ 긴 이름이 두 줄이 되면 아래를 민다
     const slotKo = it.cls === 'acc' ? (it.kind === 'ring' ? '반지' : '목걸이') : SLOT_KO[it.slot];
-    const owner = it.cls === 'acc' ? '공용' : DB.heroes[it.cls].name;
-    out.push(UI.text(this, x, y + 38, `${r.ko} ${slotKo} · ${owner} · T${it.tier + 1}`, 18, '#c8b8a0'));
-    let yy = y + 68;
+    const owner = it.boss ? '보스 장비' : it.cls === 'acc' ? '공용' : DB.heroes[it.cls].name;
+    out.push(UI.text(this, x, y + 38 + dy, `${r.ko} ${slotKo} · ${owner} · T${it.tier + 1}`, 18, '#c8b8a0'));
+    let yy = y + 68 + dy;
     if (it.base) { out.push(UI.text(this, x, yy, `${it.slot === 'weapon' ? '공격력' : '방어력'} +${itemPower(it)}${it.slot === 'body' ? `  · 체력 +${itemPower(it) * 3}` : ''}`, 21, '#fff')); yy += 32; }
     for (const a of it.aff) { out.push(UI.text(this, x, yy, '· ' + affText(a), 19, '#9ae0ff')); yy += 27; }
-    if (it.fx) { out.push(UI.text(this, x, yy, '★ ' + it.fx, 19, '#ffb060', { wrap: w })); yy += 50; }
+    if (it.fx) { const t = UI.text(this, x, yy, '★ ' + GearFx.desc(it), 19, it.boss ? '#ff9ad8' : '#ffb060', { wrap: w }); out.push(t); yy += Math.max(50, Math.round(t.height) + 10); }
     if (it.set) {
-      const S = it.cls === 'acc' ? DB.accessory.sets.find(x => x.name === it.set) : DB.gear[it.cls].set;
+      const S = GearFx.setDesc(it.set, it.cls === 'acc' ? DB.accessory.sets.find(x => x.name === it.set) : DB.gear[it.cls].set);
       out.push(UI.text(this, x, yy, `세트 「${it.set}」\n2조각: ${S.two}${S.four ? '\n4조각: ' + S.four : ''}`, 17, '#5ae8d0', { wrap: w })); yy += 80;
     }
     return { objs: out, y: yy };
@@ -583,6 +585,11 @@ class Smithy extends MenuBase {
   draw() {
     const s = Save.data;
     this.frame('대장간 · 타벨');
+    // 🆕 탭: 장비 손질 / 보스 전리품
+    const tab = this.tab || 'gear';
+    UI.button(this, 430, 66, '장비 손질', () => { this.tab = 'gear'; this.draw(); }, { w: 150, h: 46, size: 19, col: tab === 'gear' ? 0x8a3a1a : 0x3a2a1a });
+    UI.button(this, 595, 66, '보스 전리품', () => { this.tab = 'trophy'; this.sel = null; this.draw(); }, { w: 160, h: 46, size: 19, col: tab === 'trophy' ? 0x8a3a1a : 0x3a2a1a });
+    if (tab === 'trophy') return this.drawTrophy();
     const mats = Object.entries(MATS).map(([k, n]) => `${n} ${s.mats[k] || 0}`).join('   ');
     UI.text(this, 70, 96, mats, 19, '#d8c8ff');
     const eqIds = Object.values(s.eq);
@@ -638,6 +645,34 @@ class Smithy extends MenuBase {
       if (r) { UI.toast(this, `${MATS[r.m]} +${r.n}`, '#d8c8ff'); SFX.brk(640); }
       this.sel = null; Save.write(); this.draw();
     }, { w: 150, h: 50, size: 22, col: 0x5a2a2a });
+  }
+  // 🆕 보스 전리품 → 그 보스만의 장신구
+  drawTrophy() {
+    const s = Save.data; s.trophies = s.trophies || {}; s.crafted = s.crafted || {};
+    UI.text(this, 70, 96, Object.entries(MATS).map(([k, n]) => `${n} ${s.mats[k] || 0}`).join('   '), 19, '#d8c8ff');
+    Object.keys(BOSS_GEAR).forEach((id, i) => {
+      const g = BOSS_GEAR[id], gd = BOSS_GIMMICK_DEF[id] || {}, c = bossGearCost(id);
+      const col = i % 2, row = Math.floor(i / 2);
+      const x0 = 50 + col * 600, y = 158 + row * 78;
+      const met = id in s.trophies || s.crafted[id], n = s.trophies[id] || 0;
+      const ready = n >= c.trophy && s.gold >= c.gold && (s.mats[c.mat] || 0) >= c.cnt;
+      UI.panel(this, x0, y - 36, 585, 73, { alpha: 0.6, line: ready ? 0xffd34d : 0x7a5a30, inner: false });
+      const ic = UI.img(this, x0 + 34, y + 1, 'icon/trophy_' + id) || UI.img(this, x0 + 34, y + 1, 'icon/trophy');
+      if (ic) { ic.setScale(46 / ic.height); if (!met) ic.setTint(0x202020); }
+      if (!met) { UI.text(this, x0 + 66, y - 12, '??? — 아직 쓰러뜨리지 않은 보스', 17, '#8f8070'); return; }
+      UI.text(this, x0 + 66, y - 31, `${MONDEF[id].ko} · ${gd.trophy || '전리품'} ×${n}`, 17, n >= c.trophy ? '#ffe7a8' : '#fff', { bold: true });
+      UI.text(this, x0 + 66, y - 7, `${g.name}${s.crafted[id] ? ` (${s.crafted[id]}개 만듦)` : ''} — ${g.fx}`, 13, '#ff9ad8', { wrap: 340 });
+      UI.text(this, x0 + 478, y, `전리품 ${c.trophy}\n금화 ${c.gold}\n${MATS[c.mat]} ${c.cnt}`, 12, '#c8b8a0', { align: 'right' }).setOrigin(1, 0.5);
+      UI.button(this, x0 + 532, y + 1, '제작', () => {
+        const r = craftBossGear(s, id);
+        if (r === 'trophy') return UI.toast(this, `전리품이 ${c.trophy}개 필요해요 — 보스를 한 번 더!`, '#ff9a8a');
+        if (r === 'cost') return UI.toast(this, '금화나 마석이 모자라요', '#ff9a8a');
+        SFX.parry(); Save.write();
+        UI.toast(this, `「${r.name}」 완성! 가방에서 장착하세요`, '#ffb0ff');
+        this.draw();
+      }, { w: 92, h: 46, size: 19, col: ready ? 0x8a3a1a : 0x4a2a14 });
+    });
+    UI.text(this, W - 70, 104, '보스 전리품 2개 → 그 보스만의 장신구', 16, '#c8b8a0').setOrigin(1, 0.5);
   }
 }
 
