@@ -2390,3 +2390,37 @@ window.game = new Phaser.Game({
 
 // 테스트용: 숨은 창에서도 프레임을 직접 진행한다
 window.step = async (n = 1, dt = 16.6) => { window._t = Math.max(window._t || 0, performance.now()); for (let i = 0; i < n; i++) { window._t += dt; game.step(window._t, dt); if (i % 20 === 19) await new Promise(r => setTimeout(r, 0)); } };
+
+// 🆕 안전장치: 한 프레임에서 오류가 나도 게임 루프가 멈추지 않게 한다.
+// (Phaser는 프레임 안에서 오류가 나면 다음 프레임을 예약하지 못해 화면이 통째로 멈춘다 — 휴대폰에서 '먹통'으로 보임)
+// 오류는 화면 아래에 한 줄로 보여 주고 localStorage 'seventhmoon.lastError'에 남긴다.
+(function guardLoop() {
+  const g = window.game;
+  const arm = () => {
+    const loop = g.loop;
+    if (!loop || !loop.callback || loop.callback.__guarded) return false;
+    const orig = loop.callback;
+    let shown = 0;
+    const wrapped = function (time, delta) {
+      try { return orig.call(this, time, delta); }
+      catch (e) {
+        const msg = (e && e.message) || String(e);
+        const at = ((e && e.stack) || '').split('\n').slice(1, 3).map(s => s.trim().replace(/^at /, '').replace(/https?:\/\/[^ )]*\/js\//g, '')).join(' < ');
+        try { localStorage.setItem('seventhmoon.lastError', JSON.stringify({ t: new Date().toISOString(), msg, at })); } catch (_) { /* 무시 */ }
+        if (typeof console !== 'undefined') console.error('[frame error]', e);
+        const now = Date.now();
+        if (now - shown > 3000) {
+          shown = now;
+          let el = document.getElementById('sm-err');
+          if (!el) { el = document.createElement('div'); el.id = 'sm-err'; el.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:rgba(80,10,10,.85);color:#fff;font:12px sans-serif;padding:6px 8px;border-radius:6px;pointer-events:none'; document.body.appendChild(el); }
+          el.textContent = '오류가 났지만 계속합니다: ' + msg + (at ? ' · ' + at : '');
+          clearTimeout(el._t); el._t = setTimeout(() => el.remove(), 6000);
+        }
+      }
+    };
+    wrapped.__guarded = true;
+    loop.callback = wrapped;
+    return true;
+  };
+  if (!arm()) { const t = setInterval(() => { if (arm()) clearInterval(t); }, 200); }
+})();

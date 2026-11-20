@@ -127,7 +127,7 @@ const StageEvents = {
     c.setAlpha(0); sc.tweens.add({ targets: c, alpha: 1, duration: 160 });
     sc.barkUi = c; sc.barkT = Math.max(2400, 900 + b.t.length * 70);
     let i = 0;
-    const ev = sc.time.addEvent({ delay: 24, loop: true, callback: () => { i += 2; body.setText(b.t.slice(0, i)); if (i >= b.t.length) ev.remove(); } });
+    const ev = sc.time.addEvent({ delay: 70, loop: true, callback: () => { if (!body.active) return ev.remove(); i += 5; body.setText(b.t.slice(0, i)); if (i >= b.t.length) ev.remove(); } });
   },
   onWave(sc, n) {
     const e = sc.sev; if (!e || e.state !== 'wait' || n !== e.d.wave) return;
@@ -229,7 +229,11 @@ const StageEvents = {
     if (!sc.barkUi && sc.barkQ && sc.barkQ.length && !sc.won && !sc.lost) this.showBark(sc, sc.barkQ.shift());
     const e = sc.sev; if (!e || e.state !== 'run' || sc.won || sc.lost) return;
     e.t -= dt;
-    if (sc.goalUi) sc.goalUi.t.setText(`${sc.goalUi.txt}  ·  ${Math.max(0, Math.ceil(e.t / 1000))}초`).setColor(e.t < 10000 ? '#ff9a8a' : '#ffe7a8');
+    if (sc.goalUi) {
+      const sec = Math.max(0, Math.ceil(e.t / 1000)), warn = e.t < 10000;
+      if (sc.goalUi.sec !== sec) { sc.goalUi.sec = sec; sc.goalUi.t.setText(`${sc.goalUi.txt}  ·  ${sec}초`); }
+      if (sc.goalUi.warn !== warn) { sc.goalUi.warn = warn; sc.goalUi.t.setColor(warn ? '#ff9a8a' : '#ffe7a8'); }
+    }
     if (e.t <= 0) this.fail(sc);
   },
   onClear(sc) {
