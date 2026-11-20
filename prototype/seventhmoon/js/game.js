@@ -390,12 +390,15 @@ class Game extends Phaser.Scene {
       if (b.name2 === 'pause') continue;
       const held = b.pointerIds && b.pointerIds.size > 0;
       const r = (b.restScale || 1) * Math.max(b.width, b.height) * 0.5;
-      let hit = false;
+      // ✏️ 겹칠 때만이 아니라 다가올 때부터 점점 옅어진다: 버튼 가장자리에서 110px 안으로 들어오면 시작,
+      // 버튼과 겹치면 0.18까지 (누르고 있는 버튼은 그대로 진하게)
+      let near = 1;
       for (const [x0, x1, y0, y1] of boxes) {
         const cx = Phaser.Math.Clamp(b.x, x0, x1), cy = Phaser.Math.Clamp(b.y, y0, y1);
-        if ((cx - b.x) ** 2 + (cy - b.y) ** 2 < r * r * 0.8) { hit = true; break; }
+        const d = Math.hypot(cx - b.x, cy - b.y) - r * 0.9;
+        near = Math.min(near, Phaser.Math.Clamp(d / 110, 0, 1));
       }
-      const target = held ? 1 : hit ? 0.18 : 1;
+      const target = held ? 1 : 0.18 + 0.82 * near;
       b.fadeK = b.fadeK === undefined ? 1 : held ? 1 : b.fadeK + (target - b.fadeK) * Math.min(1, dt / 110);
       const f = b.fadeK;
       const base = b.name2 === 'awk' && !held ? (b.awkA ?? 1) : held ? 0.94 : b.restAlpha;
@@ -407,6 +410,20 @@ class Game extends Phaser.Scene {
       if (b === this.awkBtn) { if (this.awkRing) this.awkRing.setAlpha(Math.max(f, 0.45)); if (this.awkPct) this.awkPct.setAlpha(Math.max(f, 0.6)); }
       // 투명해진 버튼은 얇은 테두리로 자리만 알려 준다
       if (f < 0.7) fg.lineStyle(3, 0xfff4d8, (0.7 - f) * 1.1).strokeCircle(b.x, b.y, r);
+    }
+    // 🆕 이동 패드도 같은 방식으로 (손가락을 대고 있을 때는 그대로)
+    const s = this.stick;
+    if (s && s.base) {
+      const r = s.size ? s.size / 2 : 90;
+      let near = 1;
+      for (const [x0, x1, y0, y1] of boxes) {
+        const cx = Phaser.Math.Clamp(s.cx, x0, x1), cy = Phaser.Math.Clamp(s.cy, y0, y1);
+        near = Math.min(near, Phaser.Math.Clamp((Math.hypot(cx - s.cx, cy - s.cy) - r * 0.9) / 110, 0, 1));
+      }
+      const held = s.id !== null && s.id !== undefined, target = held ? 1 : 0.25 + 0.75 * near;
+      s.fadeK = s.fadeK === undefined ? 1 : held ? 1 : s.fadeK + (target - s.fadeK) * Math.min(1, dt / 110);
+      s.base.setAlpha((held ? 0.4 : 0.24) * Math.min(1.6, ak) * s.fadeK);
+      s.knob.setAlpha((held ? 0.72 : 0.42) * Math.min(1.6, ak) * s.fadeK);
     }
   }
   updateSkillButtons() {
