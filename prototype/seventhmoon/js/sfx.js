@@ -7,7 +7,7 @@ const SFX = (() => {
   let final = null;
   // 음량 설정 (0~1). 설정 화면에서 바꾼다
   const VOL = (() => { try { const v = JSON.parse(localStorage.getItem('seventhmoon.settings') || '{}'); return { music: v.music ?? 0.8, sfx: v.sfx ?? 1, voice:v.voice??.8 }; } catch (e) { return { music: 0.8, sfx: 1, voice:.8 }; } })();
-  let ctx = null, master = null, dry = null, verb = null, noiseBuf = null, distCurve = null;
+  let ctx = null, master = null, dry = null, verb = null, noiseBuf = null, distCurve = null,bankTask=null;
   const last = {};
   let G = 1;   // 소리별 음량 보정 (on(f, k)에서 잠깐 바꾼다)
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -38,7 +38,7 @@ const SFX = (() => {
       for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; distCurve[i] = Math.tanh(x * 3.5); }
     }
   }
-  function resume() { init(); if (ctx && ctx.state === 'suspended') ctx.resume(); const ready=loadBank(); if (ctx && wantAmb && (!amb || amb.mode !== wantAmb)) ambience(wantAmb); return ready; }
+  function resume() { init(); if (ctx && ctx.state === 'suspended') ctx.resume(); if(ctx&&!bankStarted)bankTask=loadBank(); if (ctx && wantAmb && (!amb || amb.mode !== wantAmb)) ambience(wantAmb); return bankTask; }
   // 같은 소리가 너무 촘촘히 겹치지 않게
   function gate(key, ms) { if (!ctx) return false; const n = performance.now(); if (last[key] && n - last[key] < ms) return false; last[key] = n; return true; }
   // 출력 노드: 좌우(화면 x) + 잔향 비율
@@ -146,23 +146,23 @@ const SFX = (() => {
   const enemyVoices=[];
   const lastVoiceIndex={};
   const HERO_KEYS=new Set(['warrior','mage','paladin','rogue','ranger','hexblade']);
-  const voicePicks=(()=>{try{return JSON.parse(localStorage.getItem('voicePicks')||'{}');}catch(e){return {};}})();
-  const candidate=hero=>voicePicks[hero]==='up2'?'up2':'up1';
+  const candidate=()=> 'global'; // Global release uses nonverbal takes only, never the old Korean candidates.
   const chan = {};            // 'bgm', 'amb', 'jgl' → { name, el, g }
   let wantMusic = undefined;
   async function loadBank() {
     if (bankStarted || !ctx || ctx instanceof OfflineAudioContext) return;
     bankStarted = true;
     try {
-      const man = await (await fetch(BASE + 'manifest.json?rev=audio-v2')).json();
+      const man = await (await fetch(BASE + 'manifest.json?rev=audio-v2',{cache:'no-cache'})).json();
+      const audioVersion=encodeURIComponent(man.audioVersion||'legacy');
       musicList = man.music || [];
       if (wantMusic !== undefined) music(wantMusic.name, wantMusic.o);
       if (wantAmb) ambience(wantAmb);
       // Avoid the old formant voices. Decode only the selected voice candidate; cap mobile fetch/decode concurrency.
       const jobs=Object.entries(man.sfx||{}).filter(([key])=>{
         if(key.startsWith('vo_')||key.startsWith('awaken_'))return false;
-        const match=key.match(/^hv2_vo_(warrior|mage|paladin|rogue|ranger|hexblade)_(up[12])_/);
-        return !match||candidate(match[1])===match[2];
+        if(man.effectsAudio?.retired?.includes(key))return false;
+        return !key.startsWith('hv2_vo_')||key.includes('_global_');
       });
       jobs.sort(([a],[b])=>Number(b.startsWith('hv2_vo_warrior_'))-Number(a.startsWith('hv2_vo_warrior_')));
       let cursor=0;
@@ -171,7 +171,7 @@ const SFX = (() => {
         const list = [];
         for (const f of files) {
           try {
-            const ab = await (await fetch(BASE + f + '.m4a')).arrayBuffer();
+            const ab = await (await fetch(BASE + f + '.m4a?v='+audioVersion)).arrayBuffer();
             list.push(await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)));
           } catch (e) { /* 이 파일은 합성음으로 대신 */ }
         }
@@ -191,8 +191,8 @@ const SFX = (() => {
     const g = ctx.createGain(); g.gain.value = o.vol ?? 1;
     s.connect(g); g.connect(out(o.x, o.wet ?? 0.06));
     const at=ctx.currentTime+(o.delay||0),duration=Math.min(o.duration??s.buffer.duration,s.buffer.duration);
-    if(o.duration){g.gain.setValueAtTime(o.vol??1,at);g.gain.setValueAtTime(o.vol??1,at+Math.max(0,duration-(o.fade??.025)));g.gain.linearRampToValueAtTime(0,at+duration);s.stop(at+duration);}
     s.start(at);
+    if(o.duration){g.gain.setValueAtTime(o.vol??1,at);g.gain.setValueAtTime(o.vol??1,at+Math.max(0,duration-(o.fade??.025)));g.gain.linearRampToValueAtTime(0,at+duration);s.stop(at+duration);}
     return { s, g, endsAt:o.loop?Infinity:at+duration };
   }
   function has(key) { return !!bank[key]; }
@@ -221,14 +221,14 @@ const SFX = (() => {
     if(/skeleton/.test(id))return 'bone';
     if(/mummy|sehera/.test(id))return 'mummy';
     if(/azmal|wyvern/.test(id))return 'dragon';
-    if(/wolf/.test(id))return 'wolf';
+    if(/wolf|hound/.test(id))return 'wolf';
     if(/ratkin/.test(id))return 'rat';
     if(/slime|gloob|leech/.test(id))return 'slime';
     if(/scorpion|twinsting|snakeman/.test(id))return 'insect';
-    if(/golem|construct/.test(id))return 'construct';
+    if(/golem|construct|ice_spirit/.test(id))return 'construct';
     if(/harpy|gargoyle|imp/.test(id))return 'winged';
     if(/barkhaul|toothcrusher|hrimgar|brute/.test(id))return 'brute';
-    if(/shadow|orvex|void|cultist/.test(id))return 'shadow';
+    if(/shadow|shade|orvex|void|cultist/.test(id))return 'shadow';
     if(/pirate|captain_mog|dwarf/.test(id))return 'human';
     return 'grolin';
   }
@@ -324,6 +324,7 @@ const SFX = (() => {
   function setVolume(music, sfx, voice=VOL.voice) {
     VOL.music = music; VOL.sfx = sfx;
     VOL.voice=Math.max(0,Math.min(1,voice));
+    if(ctx&&VOL.voice===0){for(const v of Object.values(heroVoices))fadeVoice(v);for(const v of enemyVoices)fadeVoice(v);}
     if (master) master.gain.value = 0.8 * sfx;
     if (musicBus) musicBus.gain.value = music;
   }
@@ -384,19 +385,19 @@ const SFX = (() => {
       if (kind === 'light') { noise({ type: 'lowpass', f0: 900 * k, f1: 300, q: 0.7, dur: 0.06, g: 0.35, x, wet: 0 }); return; }
       noise({ type: 'lowpass', f0: 1100 * k, f1: 250, q: 0.8, dur: 0.07, g: 0.22, x, wet: 0 });       // 흙
       noise({ type: 'bandpass', f0: 2600 * k, f1: 1800, q: 2, dur: 0.05, g: 0.05, x, delay: 0.01 });
-      metal({ f: rnd(2300, 3100), dur: 0.07, g: 0.025, x, wet: 0.05, delay: 0.02 });                  // 갑옷 짤랑
-      metal({ f: rnd(2300, 3100), dur: 0.06, g: 0.018, x, wet: 0.05, delay: 0.06 });
+      // Loading fallback stays dry too; no pitched metal on every stride.
+      noise({ type:'bandpass',f0:1500,f1:800,q:.5,dur:.045,g:.025,x,wet:0,delay:.02 });
     }, 2.2),
-    jump: on(x => { noise({ type: 'bandpass', f0: 500, f1: 1600, q: 1, dur: 0.15, g: 0.25, x }); metal({ f: 2600, dur: 0.1, g: 0.03, x }); }, 2.5),
+    jump: on(x => { noise({ type: 'bandpass', f0: 500, f1: 1600, q: 1, dur: 0.15, g: 0.25, x,wet:0 }); }, 2.5),
     land: on((x, heavy) => {
       if (!gate('land', 30)) return;
       tone({ f0: heavy ? 90 : 110, f1: 40, dur: heavy ? 0.3 : 0.16, g: heavy ? 0.6 : 0.4, x });
       noise({ type: 'lowpass', f0: 700, f1: 120, q: 0.6, dur: heavy ? 0.3 : 0.15, g: 0.35, x, wet: 0.15 });
-      metal({ f: rnd(2000, 2600), dur: 0.12, g: 0.04, x, delay: 0.02 });
+      noise({type:'bandpass',f0:1800,f1:600,q:.5,dur:.055,g:.035,x,wet:0,delay:.015});
     }, 1.6),
     roll: on(x => {
       noise({ type: 'lowpass', f0: 300, f1: 900, q: 0.7, dur: 0.32, g: 0.3, x });
-      for (let i = 0; i < 4; i++) metal({ f: rnd(1800, 2800), dur: 0.06, g: 0.025, x, delay: i * 0.07 });
+      for (let i = 0; i < 4; i++) noise({type:'bandpass',f0:1400,f1:700,q:.5,dur:.045,g:.025,x,wet:0,delay:i*.07});
     }, 2.2),
     // ---------- 목소리 ----------
     heroAtk: on((power = 1, x) => {
@@ -430,11 +431,9 @@ const SFX = (() => {
       }
     }, 2.2),
     coin: on((x) => {
-      if (!gate('coin', 35)) return;
-      const n = (SFX._coinN = ((SFX._coinN || 0) + 1) % 8), f = 1300 * Math.pow(1.06, n);
-      tone({ type: 'square', f0: f, dur: 0.05, g: 0.07, lp: 4000, x });
-      tone({ type: 'square', f0: f * 1.5, dur: 0.14, g: 0.07, lp: 5000, delay: 0.05, x, wet: 0.3 });
-      metal({ f: f * 2, dur: 0.3, g: 0.025, x, wet: 0.4, delay: 0.05 });
+      if (!gate('coin', 60)) return;
+      noise({type:'highpass',f0:2300,f1:5000,q:.5,dur:.035,g:.065,x,wet:0});
+      noise({type:'bandpass',f0:4000,f1:2300,q:.7,dur:.025,g:.025,x,wet:0,delay:.025});
     }, 1.4),
     heal: on(() => { [660, 830, 990, 1320].forEach((f, i) => tone({ f0: f, f1: f * 1.01, dur: 0.35, g: 0.08, delay: i * 0.06, wet: 0.6 })); noise({ type: 'highpass', f0: 4000, f1: 8000, dur: 0.5, g: 0.04, wet: 0.5 }); }),
     // ---------- 몬스터 ----------
@@ -498,7 +497,7 @@ const SFX = (() => {
     const synth = api[name];
     api[name] = (...a) => { if (!ctx) return; let done = false; try { done = fn(...a); } catch (e) { if (window.SFX_DEBUG) throw e; } if (!done) synth(...a); };
   }
-  prefer('swing', (big, x) => sample(big ? 'swing_heavy' : 'swing_light', { x, vol: 0.9 }));
+  prefer('swing', (big, x,kind) => sample(kind==='shield'?'swing_shield':big ? 'swing_heavy' : 'swing_light', { x, vol: 0.8 }));
   // 음원이 있으면 간격 제한에 걸려도 합성음으로 넘어가지 않게 true를 돌려준다
   const gated = (key, k, ms, fn) => { if (!has(key)) return false; if (gate(k, ms)) fn(); return true; };
   prefer('hit', (heavy, x) => gated('hit_light', 'hitS', 25, () => sample(heavy ? 'hit_heavy' : 'hit_light', { x, vol: 1 })));
@@ -509,9 +508,11 @@ const SFX = (() => {
   prefer('step', (kind = 'armor', x) => {
     if (!has('step_dirt')) return false;
     if (kind === 'giant') { sample('step_dirt', { x, rate: 0.5, vol: 1 }); tone({ f0: 60, f1: 32, dur: 0.4, g: 0.6, x, wet: 0.3 }); return true; }
-    if (kind === 'light') return sample('step_dirt', { x, rate: 1.35, vol: 0.35 });
-    sample('step_dirt', { x, vol: 0.55 });
-    if (Math.random() < 0.5) sample('move_plate', { x, vol: 0.25, delay: 0.02 });
+    if(!gate('step:'+kind,70))return true;
+    if (kind === 'light') return sample('step_dirt', { x, rate:1,vol: 0.30,vary:.025,wet:0 });
+    sample('step_dirt', { x, vol: 0.44,vary:.025,wet:0 });
+    if(kind==='robe'||kind==='leather')sample('move_'+kind,{x,vol:.20,vary:.02,wet:0});
+    else if (Math.random() < 0.4) sample('move_plate', { x, vol: 0.16, delay: 0.02,wet:0 });
     return true;
   });
   prefer('jump', x => sample('jump', { x }));
@@ -527,9 +528,9 @@ const SFX = (() => {
   prefer('brk', (x, kind = 'wood') => sample(kind === 'wood' ? 'break_crate' : 'break_pot', { x }));
   prefer('coin', x => {
     if (!has('coin')) return false;
-    if (!gate('coinS', 35)) return true;
-    const n = (api._coinN = ((api._coinN || 0) + 1) % 8);
-    return sample('coin', { x, rate: Math.pow(1.06, n), vary: 0, vol: 0.7 });
+    if (!gate('coinS', 60)) return true;
+    const index=((lastVoiceIndex.coin??-1)+1)%bank.coin.length;lastVoiceIndex.coin=index;
+    return sample('coin', { x,index,rate:1,vary:0,vol:.48,wet:0 });
   });
   prefer('heal', () => sample('heal'));
   prefer('die', x => sample('mon_dissolve', { x }));
@@ -540,7 +541,7 @@ const SFX = (() => {
   api.awakenImpact=(hero='warrior',x,phase='impact')=>{
     if(!ctx)return;
     const key='hv2_awaken_'+hero+(phase==='impact'?'':'_'+phase);
-    sample(key,{x,vol:phase==='impact'?.70:.48,vary:0,wet:.025});
+    sample(key,{x,vol:phase==='arrow'?.24:phase==='pulse'?.30:phase==='impact'?.70:.48,vary:0,wet:.025});
   };
   prefer('wall', x => sample('shield_wall', { x }));
   prefer('combo', () => sample('combo_milestone'));
@@ -549,6 +550,8 @@ const SFX = (() => {
   prefer('lose', () => { if (!musicList.includes('jgl_game_over')) return false; music(null, { fade: 0.3 }); music('jgl_game_over', { jingle: true }); return true; });
   // 메뉴·성장 소리 (음원이 있을 때만)
   api.ui = (k, x) => { if (ctx) sample(k, { x, vol: 0.8, vary: 0.02 }); };
+  api.bow = x => {if(ctx)sample('bow_shot',{x,vol:.70,vary:.025,wet:.02});};
+  api.spell = (element,x) => {if(ctx)sample(element==='ice'?'ice_cast':element==='bolt'?'lightning':'fire_cast',{x,vol:.65,vary:.025,wet:.03});};
   api.jingle = name => { if (ctx && musicList.includes(name)) music(name, { jingle: true }); };
   // 새 소리 (음원이 있을 때만)
   api.emote = x => { if (ctx && gate('emote', 80)) sample('emote_pop', { x, vol: 0.6 }); };
@@ -559,7 +562,7 @@ const SFX = (() => {
   api.bossDown = x => { if (ctx) sample('boss_down', { x }); };
   api.cheer = x => enemyVoice('laugh',x,1,'grunt');
   api.music = music;
-  api._debug = () => ({ bank: Object.keys(bank).length, ready:bankReady,voiceVolume:VOL.voice,activeHeroVoices:Object.entries(heroVoices).filter(([,v])=>ctx&&v.endsAt>ctx.currentTime).map(([hero,v])=>hero+':'+v.kind),music: musicList.length, chan: Object.fromEntries(Object.entries(chan).filter(([, c]) => c).map(([k, c]) => [k, c.name + (c.el.paused ? ' (멈춤)' : ' (재생)')])), state: ctx && ctx.state });
+  api._debug = () => ({ bank: Object.keys(bank).length, ready:bankReady,voiceKeys:Object.keys(bank).filter(k=>k.startsWith('hv2_vo_')).length,enemyKeys:Object.keys(bank).filter(k=>k.startsWith('ev2_')).length,voiceVolume:VOL.voice,activeHeroVoices:Object.entries(heroVoices).filter(([,v])=>ctx&&v.endsAt>ctx.currentTime).map(([hero,v])=>hero+':'+v.kind),music: musicList.length, chan: Object.fromEntries(Object.entries(chan).filter(([, c]) => c).map(([k, c]) => [k, c.name + (c.el.paused ? ' (멈춤)' : ' (재생)')])), state: ctx && ctx.state });
   api.bossWarning = () => { if (!ctx) return; music(null, { fade: 0.6 }); music('jgl_boss_warning', { jingle: true }); };
   let beat = null;
   api.heartbeat = onoff => {

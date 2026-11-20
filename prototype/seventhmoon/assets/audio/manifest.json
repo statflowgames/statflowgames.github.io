@@ -41,42 +41,49 @@
    "cutin"
   ],
   "ground_slam": [
-   "ground_slam"
+   "fx2_ground_slam_v1"
   ],
   "launch": [
-   "launch"
+   "fx2_launch_v1"
   ],
   "knockdown": [
-   "knockdown"
+   "fx2_knockdown_v1"
   ],
   "jump": [
-   "jump"
+   "fx2_jump_v1"
   ],
   "land": [
-   "land"
+   "fx2_land_v1",
+   "fx2_land_v2"
   ],
   "roll": [
-   "roll"
+   "fx2_roll_v1",
+   "fx2_roll_v2"
   ],
   "step_dirt": [
-   "step_dirt_v1",
-   "step_dirt_v2",
-   "step_dirt_v3"
+   "fx2_step_dirt_v1",
+   "fx2_step_dirt_v2",
+   "fx2_step_dirt_v3"
   ],
   "move_plate": [
-   "move_plate"
+   "fx2_move_plate_v1",
+   "fx2_move_plate_v2"
   ],
   "coin": [
-   "coin"
+   "fx2_coin_v1",
+   "fx2_coin_v2",
+   "fx2_coin_v3"
   ],
   "heal": [
-   "heal"
+   "fx2_heal_v1"
   ],
   "break_crate": [
-   "break_crate"
+   "fx2_break_crate_v1",
+   "fx2_break_crate_v2"
   ],
   "break_pot": [
-   "break_pot"
+   "fx2_break_pot_v1",
+   "fx2_break_pot_v2"
   ],
   "combo_milestone": [
    "combo_milestone"
@@ -118,13 +125,14 @@
    "telegraph"
   ],
   "dagger_throw": [
-   "dagger_throw"
+   "fx2_dagger_throw_v1",
+   "fx2_dagger_throw_v2"
   ],
   "trap_spike": [
    "trap_spike"
   ],
   "wall_crumble": [
-   "wall_crumble"
+   "fx2_wall_crumble_v1"
   ],
   "emote_pop": [
    "emote_pop"
@@ -133,22 +141,22 @@
    "low_hp_heartbeat"
   ],
   "ui_tap": [
-   "ui_tap"
+   "fx2_ui_tap_v1"
   ],
   "chest_open": [
-   "chest_open"
+   "fx2_chest_open_v1"
   ],
   "equip_weapon": [
-   "equip_weapon"
+   "fx2_equip_weapon_v1"
   ],
   "equip_cloth": [
-   "equip_cloth"
+   "fx2_equip_cloth_v1"
   ],
   "equip_jewel": [
-   "equip_jewel"
+   "fx2_equip_jewel_v1"
   ],
   "potion": [
-   "potion"
+   "fx2_potion_v1"
   ],
   "revive": [
    "revive"
@@ -157,16 +165,16 @@
    "fire_explode"
   ],
   "use_scroll": [
-   "use_scroll"
+   "fx2_use_scroll_v1"
   ],
   "ui_open": [
-   "ui_open"
+   "fx2_ui_open_v1"
   ],
   "ui_close": [
-   "ui_close"
+   "fx2_ui_close_v1"
   ],
   "ui_equip": [
-   "ui_equip"
+   "fx2_ui_equip_v1"
   ],
   "ui_error": [
    "ui_error"
@@ -178,7 +186,7 @@
    "ui_enhance_fail"
   ],
   "ui_map_select": [
-   "ui_map_select"
+   "fx2_ui_map_select_v1"
   ],
   "vo_warrior_atk": [
    "vo_warrior_atk_v1",
@@ -209,6 +217,585 @@
    "vo_warrior_awaken_v1",
    "vo_warrior_awaken_v2",
    "vo_warrior_awaken_v3"
+  ],
+  "hv2_awaken_warrior": [
+   "hv2_awaken_warrior"
+  ],
+  "hv2_awaken_mage": [
+   "hv2_awaken_mage"
+  ],
+  "hv2_awaken_mage_fire": [
+   "hv2_awaken_mage_fire"
+  ],
+  "hv2_awaken_mage_ice": [
+   "hv2_awaken_mage_ice"
+  ],
+  "hv2_awaken_mage_bolt": [
+   "hv2_awaken_mage_bolt"
+  ],
+  "hv2_awaken_paladin": [
+   "hv2_awaken_paladin"
+  ],
+  "hv2_awaken_paladin_pulse": [
+   "hv2_awaken_paladin_pulse"
+  ],
+  "hv2_awaken_rogue": [
+   "hv2_awaken_rogue"
+  ],
+  "hv2_awaken_rogue_blink": [
+   "hv2_awaken_rogue_blink"
+  ],
+  "hv2_awaken_ranger": [
+   "hv2_awaken_ranger"
+  ],
+  "hv2_awaken_ranger_arrow": [
+   "hv2_awaken_ranger_arrow"
+  ],
+  "hv2_awaken_hexblade": [
+   "hv2_awaken_hexblade"
+  ],
+  "ev2_grolin_atk": [
+   "ev2_grolin_atk_v1",
+   "ev2_grolin_atk_v2"
+  ],
+  "ev2_grolin_hurt": [
+   "ev2_grolin_hurt_v1",
+   "ev2_grolin_hurt_v2"
+  ],
+  "ev2_grolin_die": [
+   "ev2_grolin_die_v1",
+   "ev2_grolin_die_v2"
+  ],
+  "ev2_grolin_alert": [
+   "ev2_grolin_alert_v1"
+  ],
+  "ev2_grolin_laugh": [
+   "ev2_grolin_laugh_v1"
+  ],
+  "ev2_grolin_scared": [
+   "ev2_grolin_scared_v1"
+  ],
+  "ev2_grolin_chant": [
+   "ev2_grolin_chant_v1"
+  ],
+  "ev2_grolin_roar": [
+   "ev2_grolin_roar_v1"
+  ],
+  "ev2_rat_atk": [
+   "ev2_rat_atk_v1",
+   "ev2_rat_atk_v2"
+  ],
+  "ev2_rat_hurt": [
+   "ev2_rat_hurt_v1",
+   "ev2_rat_hurt_v2"
+  ],
+  "ev2_rat_die": [
+   "ev2_rat_die_v1",
+   "ev2_rat_die_v2"
+  ],
+  "ev2_rat_alert": [
+   "ev2_rat_alert_v1"
+  ],
+  "ev2_rat_laugh": [
+   "ev2_rat_laugh_v1"
+  ],
+  "ev2_rat_scared": [
+   "ev2_rat_scared_v1"
+  ],
+  "ev2_rat_chant": [
+   "ev2_rat_chant_v1"
+  ],
+  "ev2_rat_roar": [
+   "ev2_rat_roar_v1"
+  ],
+  "ev2_wolf_atk": [
+   "ev2_wolf_atk_v1",
+   "ev2_wolf_atk_v2"
+  ],
+  "ev2_wolf_hurt": [
+   "ev2_wolf_hurt_v1",
+   "ev2_wolf_hurt_v2"
+  ],
+  "ev2_wolf_die": [
+   "ev2_wolf_die_v1",
+   "ev2_wolf_die_v2"
+  ],
+  "ev2_wolf_alert": [
+   "ev2_wolf_alert_v1"
+  ],
+  "ev2_wolf_laugh": [
+   "ev2_wolf_laugh_v1"
+  ],
+  "ev2_wolf_scared": [
+   "ev2_wolf_scared_v1"
+  ],
+  "ev2_wolf_chant": [
+   "ev2_wolf_chant_v1"
+  ],
+  "ev2_wolf_roar": [
+   "ev2_wolf_roar_v1"
+  ],
+  "ev2_bone_atk": [
+   "ev2_bone_atk_v1",
+   "ev2_bone_atk_v2"
+  ],
+  "ev2_bone_hurt": [
+   "ev2_bone_hurt_v1",
+   "ev2_bone_hurt_v2"
+  ],
+  "ev2_bone_die": [
+   "ev2_bone_die_v1",
+   "ev2_bone_die_v2"
+  ],
+  "ev2_bone_alert": [
+   "ev2_bone_alert_v1"
+  ],
+  "ev2_bone_laugh": [
+   "ev2_bone_laugh_v1"
+  ],
+  "ev2_bone_scared": [
+   "ev2_bone_scared_v1"
+  ],
+  "ev2_bone_chant": [
+   "ev2_bone_chant_v1"
+  ],
+  "ev2_bone_roar": [
+   "ev2_bone_roar_v1"
+  ],
+  "ev2_mummy_atk": [
+   "ev2_mummy_atk_v1",
+   "ev2_mummy_atk_v2"
+  ],
+  "ev2_mummy_hurt": [
+   "ev2_mummy_hurt_v1",
+   "ev2_mummy_hurt_v2"
+  ],
+  "ev2_mummy_die": [
+   "ev2_mummy_die_v1",
+   "ev2_mummy_die_v2"
+  ],
+  "ev2_mummy_alert": [
+   "ev2_mummy_alert_v1"
+  ],
+  "ev2_mummy_laugh": [
+   "ev2_mummy_laugh_v1"
+  ],
+  "ev2_mummy_scared": [
+   "ev2_mummy_scared_v1"
+  ],
+  "ev2_mummy_chant": [
+   "ev2_mummy_chant_v1"
+  ],
+  "ev2_mummy_roar": [
+   "ev2_mummy_roar_v1"
+  ],
+  "ev2_slime_atk": [
+   "ev2_slime_atk_v1",
+   "ev2_slime_atk_v2"
+  ],
+  "ev2_slime_hurt": [
+   "ev2_slime_hurt_v1",
+   "ev2_slime_hurt_v2"
+  ],
+  "ev2_slime_die": [
+   "ev2_slime_die_v1",
+   "ev2_slime_die_v2"
+  ],
+  "ev2_slime_alert": [
+   "ev2_slime_alert_v1"
+  ],
+  "ev2_slime_laugh": [
+   "ev2_slime_laugh_v1"
+  ],
+  "ev2_slime_scared": [
+   "ev2_slime_scared_v1"
+  ],
+  "ev2_slime_chant": [
+   "ev2_slime_chant_v1"
+  ],
+  "ev2_slime_roar": [
+   "ev2_slime_roar_v1"
+  ],
+  "ev2_insect_atk": [
+   "ev2_insect_atk_v1",
+   "ev2_insect_atk_v2"
+  ],
+  "ev2_insect_hurt": [
+   "ev2_insect_hurt_v1",
+   "ev2_insect_hurt_v2"
+  ],
+  "ev2_insect_die": [
+   "ev2_insect_die_v1",
+   "ev2_insect_die_v2"
+  ],
+  "ev2_insect_alert": [
+   "ev2_insect_alert_v1"
+  ],
+  "ev2_insect_laugh": [
+   "ev2_insect_laugh_v1"
+  ],
+  "ev2_insect_scared": [
+   "ev2_insect_scared_v1"
+  ],
+  "ev2_insect_chant": [
+   "ev2_insect_chant_v1"
+  ],
+  "ev2_insect_roar": [
+   "ev2_insect_roar_v1"
+  ],
+  "ev2_construct_atk": [
+   "ev2_construct_atk_v1",
+   "ev2_construct_atk_v2"
+  ],
+  "ev2_construct_hurt": [
+   "ev2_construct_hurt_v1",
+   "ev2_construct_hurt_v2"
+  ],
+  "ev2_construct_die": [
+   "ev2_construct_die_v1",
+   "ev2_construct_die_v2"
+  ],
+  "ev2_construct_alert": [
+   "ev2_construct_alert_v1"
+  ],
+  "ev2_construct_laugh": [
+   "ev2_construct_laugh_v1"
+  ],
+  "ev2_construct_scared": [
+   "ev2_construct_scared_v1"
+  ],
+  "ev2_construct_chant": [
+   "ev2_construct_chant_v1"
+  ],
+  "ev2_construct_roar": [
+   "ev2_construct_roar_v1"
+  ],
+  "ev2_winged_atk": [
+   "ev2_winged_atk_v1",
+   "ev2_winged_atk_v2"
+  ],
+  "ev2_winged_hurt": [
+   "ev2_winged_hurt_v1",
+   "ev2_winged_hurt_v2"
+  ],
+  "ev2_winged_die": [
+   "ev2_winged_die_v1",
+   "ev2_winged_die_v2"
+  ],
+  "ev2_winged_alert": [
+   "ev2_winged_alert_v1"
+  ],
+  "ev2_winged_laugh": [
+   "ev2_winged_laugh_v1"
+  ],
+  "ev2_winged_scared": [
+   "ev2_winged_scared_v1"
+  ],
+  "ev2_winged_chant": [
+   "ev2_winged_chant_v1"
+  ],
+  "ev2_winged_roar": [
+   "ev2_winged_roar_v1"
+  ],
+  "ev2_brute_atk": [
+   "ev2_brute_atk_v1",
+   "ev2_brute_atk_v2"
+  ],
+  "ev2_brute_hurt": [
+   "ev2_brute_hurt_v1",
+   "ev2_brute_hurt_v2"
+  ],
+  "ev2_brute_die": [
+   "ev2_brute_die_v1",
+   "ev2_brute_die_v2"
+  ],
+  "ev2_brute_alert": [
+   "ev2_brute_alert_v1"
+  ],
+  "ev2_brute_laugh": [
+   "ev2_brute_laugh_v1"
+  ],
+  "ev2_brute_scared": [
+   "ev2_brute_scared_v1"
+  ],
+  "ev2_brute_chant": [
+   "ev2_brute_chant_v1"
+  ],
+  "ev2_brute_roar": [
+   "ev2_brute_roar_v1"
+  ],
+  "ev2_shadow_atk": [
+   "ev2_shadow_atk_v1",
+   "ev2_shadow_atk_v2"
+  ],
+  "ev2_shadow_hurt": [
+   "ev2_shadow_hurt_v1",
+   "ev2_shadow_hurt_v2"
+  ],
+  "ev2_shadow_die": [
+   "ev2_shadow_die_v1",
+   "ev2_shadow_die_v2"
+  ],
+  "ev2_shadow_alert": [
+   "ev2_shadow_alert_v1"
+  ],
+  "ev2_shadow_laugh": [
+   "ev2_shadow_laugh_v1"
+  ],
+  "ev2_shadow_scared": [
+   "ev2_shadow_scared_v1"
+  ],
+  "ev2_shadow_chant": [
+   "ev2_shadow_chant_v1"
+  ],
+  "ev2_shadow_roar": [
+   "ev2_shadow_roar_v1"
+  ],
+  "ev2_human_atk": [
+   "ev2_human_atk_v1",
+   "ev2_human_atk_v2"
+  ],
+  "ev2_human_hurt": [
+   "ev2_human_hurt_v1",
+   "ev2_human_hurt_v2"
+  ],
+  "ev2_human_die": [
+   "ev2_human_die_v1",
+   "ev2_human_die_v2"
+  ],
+  "ev2_human_alert": [
+   "ev2_human_alert_v1"
+  ],
+  "ev2_human_laugh": [
+   "ev2_human_laugh_v1"
+  ],
+  "ev2_human_scared": [
+   "ev2_human_scared_v1"
+  ],
+  "ev2_human_chant": [
+   "ev2_human_chant_v1"
+  ],
+  "ev2_human_roar": [
+   "ev2_human_roar_v1"
+  ],
+  "ev2_dragon_atk": [
+   "ev2_dragon_atk_v1",
+   "ev2_dragon_atk_v2"
+  ],
+  "ev2_dragon_hurt": [
+   "ev2_dragon_hurt_v1",
+   "ev2_dragon_hurt_v2"
+  ],
+  "ev2_dragon_die": [
+   "ev2_dragon_die_v1",
+   "ev2_dragon_die_v2"
+  ],
+  "ev2_dragon_alert": [
+   "ev2_dragon_alert_v1"
+  ],
+  "ev2_dragon_laugh": [
+   "ev2_dragon_laugh_v1"
+  ],
+  "ev2_dragon_scared": [
+   "ev2_dragon_scared_v1"
+  ],
+  "ev2_dragon_chant": [
+   "ev2_dragon_chant_v1"
+  ],
+  "ev2_dragon_roar": [
+   "ev2_dragon_roar_v1"
+  ],
+  "step_wood": [
+   "fx2_step_wood_v1",
+   "fx2_step_wood_v2",
+   "fx2_step_wood_v3"
+  ],
+  "step_water": [
+   "fx2_step_water_v1",
+   "fx2_step_water_v2",
+   "fx2_step_water_v3"
+  ],
+  "step_snow": [
+   "fx2_step_snow_v1",
+   "fx2_step_snow_v2",
+   "fx2_step_snow_v3"
+  ],
+  "step_sand": [
+   "fx2_step_sand_v1",
+   "fx2_step_sand_v2",
+   "fx2_step_sand_v3"
+  ],
+  "move_leather": [
+   "fx2_move_leather_v1",
+   "fx2_move_leather_v2"
+  ],
+  "move_robe": [
+   "fx2_move_robe_v1",
+   "fx2_move_robe_v2"
+  ],
+  "bow_shot": [
+   "fx2_bow_shot_v1",
+   "fx2_bow_shot_v2"
+  ],
+  "swing_shield": [
+   "fx2_swing_shield_v1",
+   "fx2_swing_shield_v2"
+  ],
+  "fire_cast": [
+   "fx2_fire_cast_v1",
+   "fx2_fire_cast_v2"
+  ],
+  "ice_cast": [
+   "fx2_ice_cast_v1",
+   "fx2_ice_cast_v2"
+  ],
+  "lightning": [
+   "fx2_lightning_v1",
+   "fx2_lightning_v2"
+  ],
+  "hv2_vo_warrior_global_atk": [
+   "hv2_vo_warrior_global_atk_v1",
+   "hv2_vo_warrior_global_atk_v2",
+   "hv2_vo_warrior_global_atk_v3"
+  ],
+  "hv2_vo_warrior_global_atk_big": [
+   "hv2_vo_warrior_global_atk_big_v1",
+   "hv2_vo_warrior_global_atk_big_v2",
+   "hv2_vo_warrior_global_atk_big_v3"
+  ],
+  "hv2_vo_warrior_global_hurt": [
+   "hv2_vo_warrior_global_hurt_v1",
+   "hv2_vo_warrior_global_hurt_v2",
+   "hv2_vo_warrior_global_hurt_v3"
+  ],
+  "hv2_vo_warrior_global_ko": [
+   "hv2_vo_warrior_global_ko_v1"
+  ],
+  "hv2_vo_warrior_global_victory": [
+   "hv2_vo_warrior_global_victory_v1"
+  ],
+  "hv2_vo_warrior_global_awaken": [
+   "hv2_vo_warrior_global_awaken_v1"
+  ],
+  "hv2_vo_mage_global_atk": [
+   "hv2_vo_mage_global_atk_v1",
+   "hv2_vo_mage_global_atk_v2",
+   "hv2_vo_mage_global_atk_v3"
+  ],
+  "hv2_vo_mage_global_atk_big": [
+   "hv2_vo_mage_global_atk_big_v1",
+   "hv2_vo_mage_global_atk_big_v2",
+   "hv2_vo_mage_global_atk_big_v3"
+  ],
+  "hv2_vo_mage_global_hurt": [
+   "hv2_vo_mage_global_hurt_v1",
+   "hv2_vo_mage_global_hurt_v2",
+   "hv2_vo_mage_global_hurt_v3"
+  ],
+  "hv2_vo_mage_global_ko": [
+   "hv2_vo_mage_global_ko_v1"
+  ],
+  "hv2_vo_mage_global_victory": [
+   "hv2_vo_mage_global_victory_v1"
+  ],
+  "hv2_vo_mage_global_awaken": [
+   "hv2_vo_mage_global_awaken_v1"
+  ],
+  "hv2_vo_paladin_global_atk": [
+   "hv2_vo_paladin_global_atk_v1",
+   "hv2_vo_paladin_global_atk_v2",
+   "hv2_vo_paladin_global_atk_v3"
+  ],
+  "hv2_vo_paladin_global_atk_big": [
+   "hv2_vo_paladin_global_atk_big_v1",
+   "hv2_vo_paladin_global_atk_big_v2",
+   "hv2_vo_paladin_global_atk_big_v3"
+  ],
+  "hv2_vo_paladin_global_hurt": [
+   "hv2_vo_paladin_global_hurt_v1",
+   "hv2_vo_paladin_global_hurt_v2",
+   "hv2_vo_paladin_global_hurt_v3"
+  ],
+  "hv2_vo_paladin_global_ko": [
+   "hv2_vo_paladin_global_ko_v1"
+  ],
+  "hv2_vo_paladin_global_victory": [
+   "hv2_vo_paladin_global_victory_v1"
+  ],
+  "hv2_vo_paladin_global_awaken": [
+   "hv2_vo_paladin_global_awaken_v1"
+  ],
+  "hv2_vo_rogue_global_atk": [
+   "hv2_vo_rogue_global_atk_v1",
+   "hv2_vo_rogue_global_atk_v2",
+   "hv2_vo_rogue_global_atk_v3"
+  ],
+  "hv2_vo_rogue_global_atk_big": [
+   "hv2_vo_rogue_global_atk_big_v1",
+   "hv2_vo_rogue_global_atk_big_v2",
+   "hv2_vo_rogue_global_atk_big_v3"
+  ],
+  "hv2_vo_rogue_global_hurt": [
+   "hv2_vo_rogue_global_hurt_v1",
+   "hv2_vo_rogue_global_hurt_v2",
+   "hv2_vo_rogue_global_hurt_v3"
+  ],
+  "hv2_vo_rogue_global_ko": [
+   "hv2_vo_rogue_global_ko_v1"
+  ],
+  "hv2_vo_rogue_global_victory": [
+   "hv2_vo_rogue_global_victory_v1"
+  ],
+  "hv2_vo_rogue_global_awaken": [
+   "hv2_vo_rogue_global_awaken_v1"
+  ],
+  "hv2_vo_ranger_global_atk": [
+   "hv2_vo_ranger_global_atk_v1",
+   "hv2_vo_ranger_global_atk_v2",
+   "hv2_vo_ranger_global_atk_v3"
+  ],
+  "hv2_vo_ranger_global_atk_big": [
+   "hv2_vo_ranger_global_atk_big_v1",
+   "hv2_vo_ranger_global_atk_big_v2",
+   "hv2_vo_ranger_global_atk_big_v3"
+  ],
+  "hv2_vo_ranger_global_hurt": [
+   "hv2_vo_ranger_global_hurt_v1",
+   "hv2_vo_ranger_global_hurt_v2",
+   "hv2_vo_ranger_global_hurt_v3"
+  ],
+  "hv2_vo_ranger_global_ko": [
+   "hv2_vo_ranger_global_ko_v1"
+  ],
+  "hv2_vo_ranger_global_victory": [
+   "hv2_vo_ranger_global_victory_v1"
+  ],
+  "hv2_vo_ranger_global_awaken": [
+   "hv2_vo_ranger_global_awaken_v1"
+  ],
+  "hv2_vo_hexblade_global_atk": [
+   "hv2_vo_hexblade_global_atk_v1",
+   "hv2_vo_hexblade_global_atk_v2",
+   "hv2_vo_hexblade_global_atk_v3"
+  ],
+  "hv2_vo_hexblade_global_atk_big": [
+   "hv2_vo_hexblade_global_atk_big_v1",
+   "hv2_vo_hexblade_global_atk_big_v2",
+   "hv2_vo_hexblade_global_atk_big_v3"
+  ],
+  "hv2_vo_hexblade_global_hurt": [
+   "hv2_vo_hexblade_global_hurt_v1",
+   "hv2_vo_hexblade_global_hurt_v2",
+   "hv2_vo_hexblade_global_hurt_v3"
+  ],
+  "hv2_vo_hexblade_global_ko": [
+   "hv2_vo_hexblade_global_ko_v1"
+  ],
+  "hv2_vo_hexblade_global_victory": [
+   "hv2_vo_hexblade_global_victory_v1"
+  ],
+  "hv2_vo_hexblade_global_awaken": [
+   "hv2_vo_hexblade_global_awaken_v1"
   ]
  },
  "music": [
@@ -262,5 +849,130 @@
   "jgl_legendary",
   "jgl_moonstone",
   "jgl_rank_s"
- ]
+ ],
+ "heroAudio": {
+  "revision": 2,
+  "defaultCandidate": "global",
+  "candidates": [
+   "global"
+  ],
+  "heroes": [
+   "warrior",
+   "mage",
+   "paladin",
+   "rogue",
+   "ranger",
+   "hexblade"
+  ],
+  "speech": "none",
+  "koreanDialogue": false
+ },
+ "enemyAudio": {
+  "revision": 2,
+  "families": [
+   "grolin",
+   "rat",
+   "wolf",
+   "bone",
+   "mummy",
+   "slime",
+   "insect",
+   "construct",
+   "winged",
+   "brute",
+   "shadow",
+   "human",
+   "dragon"
+  ],
+  "events": [
+   "atk",
+   "hurt",
+   "die",
+   "alert",
+   "laugh",
+   "scared",
+   "chant",
+   "roar"
+  ],
+  "maxSimultaneous": 3
+ },
+ "effectsAudio": {
+  "revision": 2,
+  "revised": [
+   "coin",
+   "ui_tap",
+   "ui_open",
+   "ui_close",
+   "ui_equip",
+   "ui_map_select",
+   "equip_weapon",
+   "equip_cloth",
+   "equip_jewel",
+   "step_dirt",
+   "step_wood",
+   "step_water",
+   "step_snow",
+   "step_sand",
+   "move_plate",
+   "move_leather",
+   "move_robe",
+   "jump",
+   "land",
+   "roll",
+   "launch",
+   "knockdown",
+   "potion",
+   "heal",
+   "use_scroll",
+   "chest_open",
+   "break_crate",
+   "break_pot",
+   "wall_crumble",
+   "ground_slam",
+   "dagger_throw",
+   "bow_shot",
+   "swing_shield",
+   "fire_cast",
+   "ice_cast",
+   "lightning"
+  ],
+  "retained": [
+   "swing_light",
+   "swing_heavy",
+   "hit_light",
+   "hit_heavy",
+   "hit_crit",
+   "hit_metal",
+   "block",
+   "parry",
+   "shield_bash",
+   "shield_wall",
+   "cutin",
+   "combo_milestone",
+   "mon_dissolve",
+   "boss_down",
+   "boss_weakpoint",
+   "telegraph",
+   "trap_spike",
+   "emote_pop",
+   "low_hp_heartbeat",
+   "revive",
+   "fire_explode",
+   "ui_error",
+   "ui_enhance_ok",
+   "ui_enhance_fail"
+  ],
+  "retired": [
+   "awaken_warrior",
+   "mon_alert",
+   "mon_grolin_shout",
+   "mon_grolin_die",
+   "mon_taunt_laugh",
+   "mon_flee",
+   "mon_group_cheer",
+   "boss_giant_roar",
+   "boss_phase"
+  ]
+ },
+ "audioVersion": "v2-d9ce50cbe6bd"
 }

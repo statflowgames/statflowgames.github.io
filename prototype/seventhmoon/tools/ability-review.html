@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<base href="../">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>직업·몬스터·보스 동작 검토</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #140c18; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #game { width: 100%; height: 100%; }
+  #review-controls { position:fixed; top:0; left:0; right:0; z-index:10; max-height:calc(100% - 52px); overflow:auto; box-sizing:border-box; padding:8px 14px; background:#231a30; color:#eee; font:14px sans-serif; }
+  #review-toggle { position:fixed; bottom:6px; left:50%; transform:translateX(-50%); z-index:11; background:#231a30; color:#ffe7a8; border:1px solid #a78748; border-radius:8px; }
+  select,button { font:15px sans-serif; padding:6px 10px; margin:0 5px 6px 0; }
+</style>
+</head>
+<body>
+<button id="review-toggle" aria-controls="review-controls" aria-expanded="true">검토 설정 접기</button>
+<div id="review-controls">
+<label>직업 <select id="review-hero"></select></label>
+<label>스킬 <select id="review-skill"></select></label>
+<button id="review-cast" disabled>스킬 실행</button><button id="review-awaken" disabled>각성 실행</button>
+<button id="review-target" disabled>표적 추가</button><span id="review-status">불러오는 중</span>
+<button id="review-sound">소리 켜기</button>
+<div><label>적 <select id="review-enemy"></select></label><label>행동 <select id="review-action"><option value="auto">자동 전투</option><option value="idle">대기</option><option value="walk">이동</option><option value="attack">기본 공격</option><option value="throw">투척·사격</option><option value="cast">주술</option><option value="down">다운·기상</option><option value="air">공중 넉백</option><option value="rock">바위 던지기</option><option value="roots">지면 공격</option><option value="charge">돌진</option><option value="hook">갈고리</option><option value="cannon">포격</option><option value="burrow">잠수·기습</option><option value="meteor">낙하 마법</option><option value="teleport">순간이동</option><option value="beam">광선</option><option value="orbs">탄막</option><option value="breath">브레스</option></select></label><button id="review-enemy-action" disabled>적 행동 실행</button></div>
+<div><label>검토 속도 <select id="review-speed"><option value="1">1배</option><option value="0.4">0.4배</option></select></label>메모리 전용 저장 · 피해/발수는 실제 Game 코드 사용</div></div>
+<div id="game"></div>
+<script>
+function setReviewPanel(open) {
+  document.getElementById('review-controls').hidden=!open;
+  const button=document.getElementById('review-toggle');
+  button.textContent=open?'검토 설정 접기':'동작 검토 설정';button.setAttribute('aria-expanded',String(open));
+}
+document.getElementById('review-toggle').onclick=()=>setReviewPanel(document.getElementById('review-controls').hidden);
+setReviewPanel(innerWidth>900);
+</script>
+<script src="lib/phaser.min.js"></script>
+<script src="js/sfx.js?v=audio-v2"></script>
+<script src="js/rig.js"></script>
+<script src="js/rigs2.js"></script>
+<script src="js/anims.js"></script>
+<script src="js/anims2.js"></script>
+<script src="js/anims3.js"></script>
+<script src="js/warrior-motion.js"></script>
+<script src="js/data/db.js"></script>
+<script src="js/data/campaign.js"></script>
+<script src="js/data/story.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/save.js"></script>
+<script src="js/actors.js"></script>
+<script src="js/classes.js"></script>
+<script src="js/hero-motion.js"></script>
+<script src="js/skill-motion.js"></script>
+<script src="js/data/cute-atlas.js"></script><script src="js/cute-hero-parts.js"></script><script src="js/harvan-cute-parts.js"></script><script src="js/cute-heroes.js"></script>
+<script src="js/data/monrigs.js"></script>
+<script src="js/enemy-signatures.js"></script>
+<script src="js/enemy-motion.js"></script>
+<script src="js/ally.js"></script>
+<script src="js/tower.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/codex.js"></script>
+<script>
+// QA 페이지는 저장/네이티브 미러를 쓰지 않는다. 이전 테스트 URL도 메모리 모드로 옮긴다.
+const reviewPageQuery = new URLSearchParams(location.search);
+if (reviewPageQuery.has('hero')) { reviewPageQuery.set('reviewHero', reviewPageQuery.get('hero')); reviewPageQuery.delete('hero'); }
+reviewPageQuery.delete('kb'); // 모바일 전용 게임의 실제 터치 HUD로 검토한다.
+history.replaceState(null, '', location.pathname + '?' + reviewPageQuery.toString());
+Save.write = () => {};
+</script>
+<script src="js/game.js"></script>
+<script src="tools/ability-review.js"></script>
+</body>
+</html>

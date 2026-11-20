@@ -1234,7 +1234,7 @@ class Game extends Phaser.Scene {
       const sh = this.add.image(x, y, 'shadow').setScale(0.3, 0.3).setAlpha(0.25).setDepth(999);
       this.projs.push({ src: h, img, sh, x, y, z, vx: h.face * (o.vx || 950), vy: dy * 0.3, vz: -(o.vy || 0), dmg: o.dmg * sc, life: o.life || 900, mine: true, pierce: !!o.pierce, elem: o.elem, boom: o.boom, chain: o.chain, home: o.home, spin: o.spin, rehit: o.rehit, hit: new Map(), key, poise: o.poise });
     }
-    if (this.cls.ranged) SFX.swing(false, h.px, 'blade'); else SFX.throwS(h.px);
+    if(h.key==='ranger')SFX.bow(h.px);else if(h.key==='mage')SFX.spell(o.elem,h.px);else SFX.throwS(h.px);
   }
   updateHeroProj(p, dt) {
     const s = dt / 1000, h = this.hero;
@@ -1697,7 +1697,7 @@ class Game extends Phaser.Scene {
     });
   }
   bossRage(b) {
-    SFX.bossPhase();
+    SFX.bossPhase(b.id,b.px);
     this.floatText(b.x, b.y - b.height - 40, '분노!', '#ff5a3a', 40);
     b.rig.setTintAll(0xffc8b0); b.rageTint = true;
     this.cameras.main.flash(200, 200, 40, 20);

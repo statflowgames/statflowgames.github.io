@@ -383,7 +383,7 @@ class Hero extends Actor {
     if (st === 'win') { return; }
   }
   onStep() {
-    SFX.step('armor', this.px);
+    SFX.step(this.key==='mage'?'robe':['rogue','ranger'].includes(this.key)?'leather':'armor', this.px);
     if (this.running) this.scene.fx('dust_run', this.x - this.face * 30, this.y, { s: 0.25, flip: this.face < 0, dur: 350, depth: this.y - 1 });
   }
   pickCommand(inp) {
