@@ -605,6 +605,13 @@ class Monster extends Actor {
       this.eliteGlow = scene.add.ellipse(x, y, 120, 36, Phaser.Display.Color.HexStringToColor(ELITES[this.elite].col).color, 0.35).setBlendMode(Phaser.BlendModes.ADD);
     }
     this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) : k.hp)); this.hp = this.maxHp;
+    // 🆕 보스 강화 (앞쪽 장일수록 더): 체력·공격력·공격 간격·그로기 내성. 주소에 ?oldboss 면 끈다
+    if (base.boss && typeof BOSS_TUNE !== 'undefined' && !(typeof Q !== 'undefined' && Q.has('oldboss'))) {
+      const t = BOSS_TUNE[Math.max(1, Math.min(6, Math.round(scene.ch || 1)))] || BOSS_TUNE[6];
+      this.maxHp = this.hp = Math.round(this.maxHp * t.hp);
+      this.def.dmg = Math.round(this.def.dmg * t.dmg); this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
+      this.bossTune = t;
+    }
     if (real && MAN['faces/' + id + '_hurt']) this.def.face = 'faces/' + id;
     else if (real) this.def.face = null;
     if (base.tint && !real) { for (const b of this.rig.bones) b.baseTint = mulTint(b.baseTint, base.tint); this.rig.setTintAll(null); }
@@ -869,6 +876,13 @@ class Monster extends Actor {
   // ---------------- 바크하울 ----------------
   bossAI(dt, dx, dy, adx) {
     const s = dt / 1000, h = this.scene.hero, st = this.state;
+    if (this.bossTune) {
+      // 공격 사이 쉬는 시간이 짧아진다
+      if (this.cool > 0 && (st === 'idle' || st === 'move')) this.cool -= dt * (1 / this.bossTune.cool - 1);
+      // 1.5초 동안 안 맞으면 그로기 게이지가 차오른다
+      this.poiseHitT = (this.poiseHitT || 0) + dt;
+      if (this.poiseHitT > 1500 && st !== 'stagger') this.poise = Math.min(100, this.poise + 25 * s);
+    }
     const rage = this.hp < this.maxHp * 0.5;
     if (rage && !this.raged) { this.raged = true; this.startRoar(true); return; }
     if (!this.summon60 && this.hp < this.maxHp * 0.65) { this.summon60 = true; return this.startRoar(false, 2); }
@@ -932,7 +946,7 @@ class Monster extends Actor {
       return;
     }
     if (st === 'stagger') {
-      if (this.st > 2400) { this.poise = 100; this.setHead(null); this.toIdle(); this.cool = 300; }
+      if (this.st > (this.bossTune ? this.bossTune.stagger : 2400)) { this.poise = 100; this.setHead(null); this.toIdle(); this.cool = this.bossTune ? 0 : 300; }
       return;
     }
     if (st === 'sp') return this.updateSpecial(dt);
@@ -1131,7 +1145,10 @@ class Monster extends Actor {
     if (n) this.scene.time.delayedCall(500, () => this.scene.summonGrunts(n));
   }
   bossHit(a, dir, dmg) {
-    this.poise -= a.type === 'light' ? 6 : 16;
+    // ✏️ 그로기 게이지는 받은 피해에 비례해서 깎인다 (빠르게 여러 번 치는 직업이 계속 기절시키지 못하게)
+    const pt = this.bossTune;
+    if (pt) { this.poiseHitT = 0; this.poise -= Phaser.Math.Clamp(dmg / this.maxHp * 100 * pt.poiseK, 1, a.type === 'light' ? 6 : 16); }
+    else this.poise -= a.type === 'light' ? 6 : 16;
     if (this.hp <= 0) {
       this.state = 'air'; this.st = 0; this.vz = 350; this.z = 1; this.vx = dir * 120; this.play('m_air', 40); this.setHead('head_shout');
       this.scene.bossDefeated(this);
