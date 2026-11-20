@@ -389,7 +389,8 @@ class Hero extends Actor {
   pickCommand(inp) {
     if (inp.y < 0) return 'up';
     if (inp.y > 0 && inp.x === 0) return 'down';
-    if (this.holdT > 320 && inp.x === this.face) return 'dash';
+    // ✏️ 달리며 공격(돌진·순간이동·공중제비)은 0.6초 넘게 달렸을 때만. 걷다 누른 공격이 실수로 나가지 않게 (달리기 시작은 0.32초 그대로)
+    if (this.holdT > 600 && inp.x === this.face) return 'dash';
     return 'a1';
   }
   startAttack(k) {
