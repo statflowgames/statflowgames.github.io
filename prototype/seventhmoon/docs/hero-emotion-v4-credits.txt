@@ -1,0 +1,49 @@
+Seventh Moon — performed defeat cries / victory roars, revision 4
+2026-11-20
+
+The following recorded sounds are used under the CC0 1.0 option offered by
+their original creators. No paid services, cloned voices, movie/game excerpts
+or spoken Korean dialogue are used. Credits are retained for provenance.
+
+HaelDB — Male Grunt/Yelling sounds (four male performers)
+https://opengameart.org/content/male-gruntyelling-sounds
+CC0 1.0 (the creator offers this alongside OGA-BY 3.0; CC0 is selected).
+Source archive: https://opengameart.org/sites/default/files/yelling%20sounds.zip
+
+Volonda — Female Battle Cries v1 mp3.mp3
+https://freesound.org/people/Volonda/sounds/439516/
+CC0 1.0. Excerpts are taken from the public HQ preview recording.
+https://cdn.freesound.org/previews/439/439516_8053402-hq.mp3
+
+tcrocker68 — Girl_Scream.wav
+https://www.freesound.org/people/tcrocker68/sounds/235592/
+pushkin — pandoramachineannalisaloefflerscreams_03.flac
+https://www.freesound.org/people/pushkin/sounds/241591/
+Archeos — WomanScream.wav
+https://www.freesound.org/people/Archeos/sounds/261419/
+Each is CC0 1.0, as recorded in the archive's per-file license.txt.
+Redistribution/curation by congusbongus:
+https://opengameart.org/content/female-screams
+Archive: https://opengameart.org/sites/default/files/female_screams.zip
+Only 2.ogg, 3.ogg and 4.ogg from that archive are used.
+No CC-BY track from the mixed-license collection is used.
+
+Brandon Song (wolfwoot) — Voice Clip Pack - Male Adventurer RPG
+https://opengameart.org/content/voice-clip-pack-male-adventurer-rpg
+CC0 1.0. Only wordless death0.wav/death1.wav are used.
+Archive: https://opengameart.org/sites/default/files/RPG%20Male%20Adventurer.zip
+
+rubberduck — 80 CC0 creature SFX
+https://opengameart.org/content/80-cc0-creature-sfx
+CC0 1.0. Creature scream/howl/monster recordings support non-human bosses.
+Archive: https://opengameart.org/sites/default/files/80-CC0-creature-SFX_0.zip
+
+License: https://creativecommons.org/publicdomain/zero/1.0/
+Changes: excerpting, silence trimming, pitch/tempo adjustment with formants
+preserved where needed, EQ, performance envelope, fades and AAC mastering.
+Bosses retain their quieter material signatures under the performed voice.
+The source file names, exact excerpts and SHA-256 hashes for each delivered
+asset are in audio_raw/production/hero_emotion_v4/delivery.json.
+
+The Kenney fighter announcer and cute.zip candidates were examined but are
+NOT used in the game: spoken lines/laughter are unsuitable for this change.

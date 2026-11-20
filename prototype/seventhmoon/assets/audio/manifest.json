@@ -669,10 +669,10 @@
    "hv2_vo_warrior_global_hurt_v3"
   ],
   "hv2_vo_warrior_global_ko": [
-   "hv2_vo_warrior_global_ko_v1"
+   "hv2_vo_warrior_global_ko_v4"
   ],
   "hv2_vo_warrior_global_victory": [
-   "hv2_vo_warrior_global_victory_v1"
+   "hv2_vo_warrior_global_victory_v4"
   ],
   "hv2_vo_warrior_global_awaken": [
    "hv2_vo_warrior_global_awaken_v1"
@@ -693,10 +693,10 @@
    "hv2_vo_mage_global_hurt_v3"
   ],
   "hv2_vo_mage_global_ko": [
-   "hv2_vo_mage_global_ko_v1"
+   "hv2_vo_mage_global_ko_v4"
   ],
   "hv2_vo_mage_global_victory": [
-   "hv2_vo_mage_global_victory_v1"
+   "hv2_vo_mage_global_victory_v4"
   ],
   "hv2_vo_mage_global_awaken": [
    "hv2_vo_mage_global_awaken_v1"
@@ -717,10 +717,10 @@
    "hv2_vo_paladin_global_hurt_v3"
   ],
   "hv2_vo_paladin_global_ko": [
-   "hv2_vo_paladin_global_ko_v1"
+   "hv2_vo_paladin_global_ko_v4"
   ],
   "hv2_vo_paladin_global_victory": [
-   "hv2_vo_paladin_global_victory_v1"
+   "hv2_vo_paladin_global_victory_v4"
   ],
   "hv2_vo_paladin_global_awaken": [
    "hv2_vo_paladin_global_awaken_v1"
@@ -741,10 +741,10 @@
    "hv2_vo_rogue_global_hurt_v3"
   ],
   "hv2_vo_rogue_global_ko": [
-   "hv2_vo_rogue_global_ko_v1"
+   "hv2_vo_rogue_global_ko_v4"
   ],
   "hv2_vo_rogue_global_victory": [
-   "hv2_vo_rogue_global_victory_v1"
+   "hv2_vo_rogue_global_victory_v4"
   ],
   "hv2_vo_rogue_global_awaken": [
    "hv2_vo_rogue_global_awaken_v1"
@@ -765,10 +765,10 @@
    "hv2_vo_ranger_global_hurt_v3"
   ],
   "hv2_vo_ranger_global_ko": [
-   "hv2_vo_ranger_global_ko_v1"
+   "hv2_vo_ranger_global_ko_v4"
   ],
   "hv2_vo_ranger_global_victory": [
-   "hv2_vo_ranger_global_victory_v1"
+   "hv2_vo_ranger_global_victory_v4"
   ],
   "hv2_vo_ranger_global_awaken": [
    "hv2_vo_ranger_global_awaken_v1"
@@ -789,10 +789,10 @@
    "hv2_vo_hexblade_global_hurt_v3"
   ],
   "hv2_vo_hexblade_global_ko": [
-   "hv2_vo_hexblade_global_ko_v1"
+   "hv2_vo_hexblade_global_ko_v4"
   ],
   "hv2_vo_hexblade_global_victory": [
-   "hv2_vo_hexblade_global_victory_v1"
+   "hv2_vo_hexblade_global_victory_v4"
   ],
   "hv2_vo_hexblade_global_awaken": [
    "hv2_vo_hexblade_global_awaken_v1"
@@ -802,91 +802,91 @@
    "ev2_boss_barkhaul_hurt_v2"
   ],
   "ev2_boss_barkhaul_die": [
-   "ev2_boss_barkhaul_die_v1"
+   "ev2_boss_barkhaul_die_v4"
   ],
   "ev2_boss_toothcrusher_hurt": [
    "ev2_boss_toothcrusher_hurt_v1",
    "ev2_boss_toothcrusher_hurt_v2"
   ],
   "ev2_boss_toothcrusher_die": [
-   "ev2_boss_toothcrusher_die_v1"
+   "ev2_boss_toothcrusher_die_v4"
   ],
   "ev2_boss_captain_mog_hurt": [
    "ev2_boss_captain_mog_hurt_v1",
    "ev2_boss_captain_mog_hurt_v2"
   ],
   "ev2_boss_captain_mog_die": [
-   "ev2_boss_captain_mog_die_v1"
+   "ev2_boss_captain_mog_die_v4"
   ],
   "ev2_boss_gloob_hurt": [
    "ev2_boss_gloob_hurt_v1",
    "ev2_boss_gloob_hurt_v2"
   ],
   "ev2_boss_gloob_die": [
-   "ev2_boss_gloob_die_v1"
+   "ev2_boss_gloob_die_v4"
   ],
   "ev2_boss_twinsting_hurt": [
    "ev2_boss_twinsting_hurt_v1",
    "ev2_boss_twinsting_hurt_v2"
   ],
   "ev2_boss_twinsting_die": [
-   "ev2_boss_twinsting_die_v1"
+   "ev2_boss_twinsting_die_v4"
   ],
   "ev2_boss_sehera_hurt": [
    "ev2_boss_sehera_hurt_v1",
    "ev2_boss_sehera_hurt_v2"
   ],
   "ev2_boss_sehera_die": [
-   "ev2_boss_sehera_die_v1"
+   "ev2_boss_sehera_die_v4"
   ],
   "ev2_boss_frost_wyvern_hurt": [
    "ev2_boss_frost_wyvern_hurt_v1",
    "ev2_boss_frost_wyvern_hurt_v2"
   ],
   "ev2_boss_frost_wyvern_die": [
-   "ev2_boss_frost_wyvern_die_v1"
+   "ev2_boss_frost_wyvern_die_v4"
   ],
   "ev2_boss_hrimgar_hurt": [
    "ev2_boss_hrimgar_hurt_v1",
    "ev2_boss_hrimgar_hurt_v2"
   ],
   "ev2_boss_hrimgar_die": [
-   "ev2_boss_hrimgar_die_v1"
+   "ev2_boss_hrimgar_die_v4"
   ],
   "ev2_boss_golem7_hurt": [
    "ev2_boss_golem7_hurt_v1",
    "ev2_boss_golem7_hurt_v2"
   ],
   "ev2_boss_golem7_die": [
-   "ev2_boss_golem7_die_v1"
+   "ev2_boss_golem7_die_v4"
   ],
   "ev2_boss_orvex_hurt": [
    "ev2_boss_orvex_hurt_v1",
    "ev2_boss_orvex_hurt_v2"
   ],
   "ev2_boss_orvex_die": [
-   "ev2_boss_orvex_die_v1"
+   "ev2_boss_orvex_die_v4"
   ],
   "ev2_boss_orvex_eclipse_hurt": [
    "ev2_boss_orvex_eclipse_hurt_v1",
    "ev2_boss_orvex_eclipse_hurt_v2"
   ],
   "ev2_boss_orvex_eclipse_die": [
-   "ev2_boss_orvex_eclipse_die_v1"
+   "ev2_boss_orvex_eclipse_die_v4"
   ],
   "ev2_boss_azmal_hurt": [
    "ev2_boss_azmal_hurt_v1",
    "ev2_boss_azmal_hurt_v2"
   ],
   "ev2_boss_azmal_die": [
-   "ev2_boss_azmal_die_v1"
+   "ev2_boss_azmal_die_v4"
   ],
   "ev2_boss_void_shadow_hurt": [
    "ev2_boss_void_shadow_hurt_v1",
    "ev2_boss_void_shadow_hurt_v2"
   ],
   "ev2_boss_void_shadow_die": [
-   "ev2_boss_void_shadow_die_v1"
+   "ev2_boss_void_shadow_die_v4"
   ],
   "fv3_warrior_ko": [
    "fv3_warrior_ko_v1"
@@ -1101,7 +1101,7 @@
    "boss_phase"
   ]
  },
- "audioVersion": "v2-209f42747582",
+ "audioVersion": "v4-dbbb64f3e6f8",
  "musicFiles": {
   "bgm_title": "mv3_bgm_title",
   "bgm_camp": "mv3_bgm_camp",
@@ -1359,5 +1359,40 @@
    "victory"
   ],
   "nonverbal": true
+ },
+ "heroEmotion": {
+  "revision": 4,
+  "heroes": [
+   "warrior",
+   "mage",
+   "paladin",
+   "rogue",
+   "ranger",
+   "hexblade"
+  ],
+  "ko": "performed defeat scream, not short pain effort",
+  "victory": "sustained wordless roar, never laughter",
+  "source": "CC0 human recordings",
+  "credits": "docs/hero-emotion-v4-credits.txt"
+ },
+ "bossDefeat": {
+  "revision": 4,
+  "bosses": [
+   "barkhaul",
+   "toothcrusher",
+   "captain_mog",
+   "gloob",
+   "twinsting",
+   "sehera",
+   "frost_wyvern",
+   "hrimgar",
+   "golem7",
+   "orvex",
+   "orvex_eclipse",
+   "azmal",
+   "void_shadow"
+  ],
+  "voiceFirst": true,
+  "materialLayer": 0.16
  }
 }

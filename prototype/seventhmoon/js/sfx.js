@@ -531,8 +531,8 @@ const SFX = (() => {
   prefer('roll', x => sample('roll', { x }));
   api.heroAtk=(power=0,x,hero='warrior')=>heroVoice(hero,power>=2?'atk_big':'atk',x,power);
   api.heroHurt=(x,hero='warrior')=>heroVoice(hero,'hurt',x);
-  api.heroKO=(x,hero='warrior')=>{heroVoice(hero,'ko',x);sample('fv3_'+hero+'_ko',{x,vol:.43,vary:0,wet:0});};
-  api.heroWin=(hero='warrior')=>{heroVoice(hero,'victory');sample('fv3_'+hero+'_victory',{vol:.46,vary:0,wet:0});};
+  api.heroKO=(x,hero='warrior')=>{heroVoice(hero,'ko',x);sample('fv3_'+hero+'_ko',{x,vol:.17,delay:.18,vary:0,wet:0});};
+  api.heroWin=(hero='warrior')=>{heroVoice(hero,'victory');sample('fv3_'+hero+'_victory',{vol:.18,delay:.10,vary:0,wet:0});};
   api.gob=enemyVoice;
   api.roar=(x,id='barkhaul')=>enemyVoice('roar',x,1,id);
   api.bossGrunt=(x,id='barkhaul')=>enemyVoice('atk',x,1,id);
