@@ -9,16 +9,17 @@ const BTN_ALPHAS = [0.7, 1, 1.3];
 function touchControlLayout(safe = {}) {
   const l=safe.left||0,r=safe.right||0,b=safe.bottom||0,t=safe.top||0;
   return {
-    stick:{x:132+l,y:614-b,size:138,knobDiameter:72,travel:54,deadX:15,deadY:18,
-      minX:88+l,maxX:218+l,minY:560-b,maxY:640-b},
+    // ✏️ 사용자 요청(2026-11-20): GPT 이전의 처음 크기·배치로 되돌림 (공격 178px, 이동 패드 199px)
+    stick:{x:170+l,y:560-b,size:199,knobDiameter:113,travel:70,deadX:15,deadY:18,
+      minX:120+l,maxX:250+l,minY:500-b,maxY:620-b},
     buttons:[
-      {name:'atk',key:'attack',x:1182-r,y:618-b,size:122,radius:74,alpha:.68},
-      {name:'jump',key:'jump',x:1040-r,y:652-b,size:88,radius:52,label:'점프'},
-      {name:'guard',key:'skill_frame',x:1010-r,y:540-b,size:88,radius:52,label:'가드'},
-      {name:'roll',key:'roll',x:1220-r,y:466-b,size:86,radius:51,label:'회피'},
-      {name:'sk1',key:'skill_frame',x:1008-r,y:428-b,size:82,radius:50,label:'스킬 1',slot:0},
-      {name:'sk2',key:'skill_frame',x:1116-r,y:454-b,size:82,radius:50,label:'스킬 2',slot:1},
-      {name:'awk',key:'awaken',x:1214-r,y:344-b,size:80,radius:50,label:'각성'},
+      {name:'atk',key:'attack',x:1110-r,y:590-b,size:178,radius:89,alpha:.68},
+      {name:'jump',key:'jump',x:960-r,y:640-b,size:124,radius:62,label:'점프'},
+      {name:'guard',key:'skill_frame',x:960-r,y:500-b,size:124,radius:62,label:'가드'},
+      {name:'roll',key:'roll',x:1190-r,y:440-b,size:113,radius:57,label:'회피'},
+      {name:'sk1',key:'skill_frame',x:850-r,y:420-b,size:93,radius:50,label:'스킬 1',slot:0},
+      {name:'sk2',key:'skill_frame',x:1190-r,y:300-b,size:93,radius:50,label:'스킬 2',slot:1},
+      {name:'awk',key:'awaken',x:1065-r,y:395-b,size:103,radius:52,label:'각성'},
       {name:'pause',key:'pause',x:1118-r,y:54+t,size:52,radius:50,alpha:.7},
     ],
   };
@@ -261,7 +262,7 @@ class Game extends Phaser.Scene {
     if (this.tut) { this.save.seen.tutorial = true; Save.write(); if (this.tut.ui) this.tut.ui.destroy(); this.tut = null; }
     this.banner('STAGE CLEAR', '#ffe27a');
     this.hero.state = 'win'; this.hero.play('w_win', 120); this.hero.setHead('head_victory'); this.hero.vx = this.hero.vy = 0;
-    SFX.win(); SFX.heroWin(); SFX.heartbeat(false);
+    SFX.win(); SFX.heroWin(this.hero.key); SFX.heartbeat(false);
     this.time.delayedCall(1800, () => this.result(true));
   }
   // ---------------- 입력 ----------------
@@ -1419,7 +1420,7 @@ class Game extends Phaser.Scene {
     if (!['idle','move','land'].includes(h.state)) return false;
     const motion = h.startSkill(name, fx);
     const pos = () => fx.at === 'target' ? (() => { let b = null, bd = 1e9; for (const m of this.monsters) if (!m.dead) { const d = Math.abs(m.x - h.x); if (d < bd) { bd = d; b = m; } } return b ? { x: b.x, y: b.y } : { x: h.x + f * 220, y: h.y }; })() : { x: h.x + f * (fx.at || 0), y: h.y };
-    h.queueSkillCue(Math.max(0, motion.fire - 60), () => SFX.heroAtk(1, h.px));
+    h.queueSkillCue(Math.max(0, motion.fire - 60), () => SFX.heroAtk(1, h.px, h.key));
     if (fx.hpCost) h.queueSkillCue(motion.fire, () => { const c = Math.round(h.maxHp * fx.hpCost * (this.buffs.bloodmoon > 0 ? 0 : 1)); h.hp = Math.max(1, h.hp - c); if (c) this.floatText(h.x, h.y - 250, '-' + c, '#ff6060', 24); });
     const t = fx.t;
     if (t === 'proj') {
@@ -1496,12 +1497,12 @@ class Game extends Phaser.Scene {
           img.setDepth(999).setScale(fx.r / 240, fx.r / 600).setAlpha(0.85); if (fx.tint) img.setTint(fx.tint);
           this.zones.push({ x: p.x, y: p.y, rx: fx.r, ry: fx.r * 0.35, dmg: fx.dmg, t: fx.ms, tick: 0, img, elem: fx.elem, root: fx.root });
         } else if (t === 'taunt') {
-          this.buffs.taunt = 3000; SFX.heroAtk(2, h.px); SFX.roar && SFX.cheer(h.px);
+          this.buffs.taunt = 3000; SFX.heroAtk(2, h.px, h.key); SFX.roar && SFX.cheer(h.px);
           this.fx('impact_ring', h.x, h.y - 120, { s: 0.6, dur: 450, tint: 0xff5a3a, depth: h.y + 1001 });
           for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < 500) { m.showEmote('anger', 900); m.face = Math.sign(h.x - m.x) || 1; m.cool = Math.min(m.cool, 200); }
           h.showEmote('anger', 800);
         } else if (t === 'shout') {
-          this.buffs.shout = 8000; SFX.heroAtk(2, h.px); SFX.ui('use_scroll');
+          this.buffs.shout = 8000; SFX.heroAtk(2, h.px, h.key); SFX.ui('use_scroll');
           this.fx('levelup_burst', h.x, h.y - 120, { s: 0.5, dur: 600, tint: 0xff7050, depth: h.y + 1001 });
           this.floatText(h.x, h.y - 280, '공격력 +20%', '#ff9a6a', 30);
         }
@@ -1531,23 +1532,26 @@ class Game extends Phaser.Scene {
     const color = HERO_SIGNATURE[h.key].color;
     this.cameras.main.flash(160, (color >> 16) & 255, (color >> 8) & 255, color & 255);
     if (k === 'meteors') {
+      SFX.awakenImpact(h.key,h.px);
       [['fire', 'fire_burst', 0xff7040], ['ice', 'ice_shards', 0x80c8ff], ['bolt', 'lightning_bolt', 0xffff70]].forEach(([el, fk, tint], i) => this.scheduleAbility(i * 280, () => {
         const x = h.x + f * (200 + i * 240), y = h.y;
         const mt = this.add.image(x - f * 200, y - 600, this.textures.exists('fx/meteor') ? 'fx/meteor' : 'orb').setScale(0.5).setTint(tint).setDepth(4100).setFlipX(f < 0);
         this.tweens.add({ targets: mt, x, y: y - 60, duration: 300, ease: 'Cubic.in', onComplete: () => {
           mt.destroy(); this.fx(fk, x, y - 80, { s: 0.7, dur: 600, depth: y + 1002 }); this.fx('impact_ring', x, y, { s: 0.7, dur: 500, depth: y - 1, flat: true, tint });
-          this.cameras.main.shake(260, 0.014); SFX.ui('fire_explode', x - this.cameras.main.scrollX);
+          this.cameras.main.shake(260, 0.014); SFX.awakenImpact(h.key,x-this.cameras.main.scrollX,el);
           this.heroArea(x, y, 170, 80, 90, { elem: el, kb: 600, type: 'knock', poise: 35 });
         } });
       }));
     } else if (k === 'holyDescent') {
+      SFX.awakenImpact(h.key,h.px);
       this.buffs.holy = 5000; h.invuln = 5000;
       h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.3);
       this.fx('holy_pillar', h.x, h.y - 120, { s: 0.8, dur: 900, depth: h.y + 1002 });
       for (const m of this.monsters) if (!m.dead && m.def.undead && !m.def.boss) { m.invuln = 0; m.takeHit(h, { dmg: 9999, kb: 400, type: 'knock', otg: true }, 9999); }
       this.auras.push({ t: 5000, k: 0, tick: 500, strike: 0, heal: 0.01 });
-      for (let i = 0; i < 6; i++) this.scheduleAbility(i * 700, () => { this.fx('holy_ring', h.x, h.y, { s: 0.9, dur: 600, depth: h.y - 1, flat: true }); this.heroArea(h.x, h.y, 240, 90, 22, { elem: 'holy', kb: 200 }); });
+      for (let i = 0; i < 6; i++) this.scheduleAbility(i * 700, () => { if(i)SFX.awakenImpact(h.key,h.px,'pulse');this.fx('holy_ring', h.x, h.y, { s: 0.9, dur: 600, depth: h.y - 1, flat: true }); this.heroArea(h.x, h.y, 240, 90, 22, { elem: 'holy', kb: 200 }); });
     } else if (k === 'moonDance') {
+      SFX.awakenImpact(h.key,h.px);
       const targets = this.monsters.filter(m => !m.dead && m.state !== 'enter' && Math.abs(m.x - h.x) < W).slice(0, 8);
       h.invuln = 300 + targets.length * 140;
       h.awakenEnd = Math.max(1000, h.st + targets.length * 140 + 180);
@@ -1561,6 +1565,7 @@ class Game extends Phaser.Scene {
         this.fx('slash_arc', m.x, m.y - m.height * 0.5, { s: 0.5, dur: 280, depth: m.y + 1003, tint: 0xd8d8ff, rot: Phaser.Math.Between(-40, 40) });
         this.heroArea(m.x, m.y, 60, 40, 60, { kb: 200, type: 'knock', back: 1.5 });
         SFX.swing(true, h.px, 'blade');
+        SFX.awakenImpact(h.key,h.px,'blink');
       }));
       this.scheduleAbility(targets.length * 140 + 100, () => {
         if (h.state !== 'awaken' || h.awakenSequence !== sequence) return;
@@ -1568,12 +1573,14 @@ class Game extends Phaser.Scene {
         h.replay('signature_rogue_recover', 30);
       });
     } else if (k === 'arrowRain') {
+      SFX.awakenImpact(h.key,h.px);
       // 하늘로 쏜 신호 화살 뒤에 비가 시작된다. 기존 16발의 피해는 그대로 둔다.
       const muzzle = h.rig.imagePoint('fitem', .5, .5);
       const signal = this.add.image(muzzle.x, muzzle.y, 'fx/arrow_trail').setAngle(f > 0 ? -50 : -130).setScale(.3).setDepth(h.y+1003).setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets:signal, x:muzzle.x+f*220, y:muzzle.y-380, alpha:0, duration:180, onComplete:()=>signal.destroy() });
       for (let i = 0; i < 16; i++) this.scheduleAbility(100 + i * 90, () => {
         const x = this.cameras.main.scrollX + 120 + Math.random() * (W - 240), y = Phaser.Math.Between(FLOOR_TOP + 10, FLOOR_BOT - 10);
+        SFX.awakenImpact(h.key,x-this.cameras.main.scrollX,'arrow');
         const ar = this.add.image(x, y - 500, 'fx/arrow_trail').setAngle(90).setScale(0.35).setDepth(4000).setTint(0xd8e8ff).setBlendMode(Phaser.BlendModes.ADD);
         this.tweens.add({ targets: ar, y: y - 40, duration: 180, onComplete: () => { ar.destroy(); this.heroArea(x, y, 90, 50, 28, { kb: 140, type: 'light' }); this.fx('dust_land', x, y, { s: 0.3, dur: 300, depth: y + 2 }); } });
       });
@@ -1581,6 +1588,7 @@ class Game extends Phaser.Scene {
       const dark = this.add.rectangle(0, 0, W, H, 0x100018, 0.0).setOrigin(0).setScrollFactor(0).setDepth(3900);
       this.tweens.add({ targets: dark, alpha: 0.7, duration: 300, yoyo: true, hold: 500, onComplete: () => dark.destroy() });
       this.scheduleAbility(550, () => {
+        SFX.awakenImpact(h.key,h.px);
         this.cameras.main.shake(500, 0.02);
         for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < W) {
           this.fx('void_crack', m.x, m.y - m.height * 0.5, { s: 0.6, dur: 600, depth: m.y + 1003 });
@@ -1617,7 +1625,7 @@ class Game extends Phaser.Scene {
     this.time.delayedCall(560, () => this.tweens.add({ targets: c, alpha: 0, duration: 160, onComplete: () => c.destroy() }));
   }
   shieldWall(h) {
-    SFX.wall();
+    SFX.awakenImpact(h.key,h.px);
     this.cameras.main.flash(160, 255, 220, 120);
     this.cameras.main.shake(380, 0.014);
     const wx = h.x + h.face * 190;
@@ -1665,7 +1673,7 @@ class Game extends Phaser.Scene {
       c.add(this.add.text(120, 206, (this.tower ? '강화 ' : '') + d.ko, { fontFamily: 'serif', fontSize: 48, color: '#f6ffd8', stroke: '#1d2a08', strokeThickness: 8 }));
       c.setAlpha(0); c.x = -200;
       this.tweens.add({ targets: c, alpha: 1, x: 0, duration: 300, hold: 1800, yoyo: true, onComplete: () => { c.destroy(); this.bossBar = true; } });
-      SFX.roar(this.boss ? this.boss.px : 900);
+      SFX.roar(this.boss ? this.boss.px : 900,this.boss?.id);
       SFX.ambience('boss');
       this.time.delayedCall(2600, () => { if (!this.won && !this.lost) SFX.music(this.bossMusic(kind)); });
       this.cameras.main.shake(500, 0.006);
@@ -1702,12 +1710,12 @@ class Game extends Phaser.Scene {
     this.slowmo = 1400;
     this.cameras.main.flash(300, 255, 255, 255);
     this.cameras.main.shake(800, 0.012);
-    SFX.roar();
+    SFX.roar(b.px,b.id);
     for (const m of this.monsters) if (m !== b && !m.dead) { m.hp = 0; m.takeHit(this.hero, { dmg: 999, type: 'knock', kb: 300, otg: true }, 999); }
     this.time.delayedCall(1700, () => {
       b.die();
       this.hero.state = 'win'; this.hero.play('w_win', 120); this.hero.setHead('head_victory'); this.hero.vx = this.hero.vy = 0;
-      SFX.win(); SFX.heroWin(); SFX.ambience(this.theme.amb);
+      SFX.win(); SFX.heroWin(this.hero.key); SFX.ambience(this.theme.amb);
       this.time.delayedCall(1400, () => this.result(true));
     });
   }
@@ -2040,7 +2048,7 @@ class Game extends Phaser.Scene {
       for (const n of B.rig.def.rider) B.rig.setVisible(n, false);
       const r = new Monster(this, 'toothcrusher_rider', B.x - B.face * 60, B.y);
       r.state = 'air'; r.z = 120; r.vz = 300; r.vx = -B.face * 200; r.play('m_air'); r.showEmote('anger', 1200);
-      this.monsters.push(r); SFX.gob('alert', r.px, 0.8);
+      this.monsters.push(r); SFX.gob('alert', r.px, 0.8,r.id);
       this.floatText(B.x, B.y - B.height - 30, '대장이 떨어졌다!', '#ffd34d', 30);
     }
     if (this.boss && this.boss.rageTint && !this.boss.dead && this.boss.flashT <= 0) this.boss.rig.setTintAll(Math.floor(this.now / 200) % 2 ? 0xffb8a0 : 0xffd8c8);

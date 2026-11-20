@@ -401,7 +401,7 @@ class Hero extends Actor {
     const power = { a3: 1, up: 1, dash: 1, a4: 2, down: 2 }[k] || 0;
     if (power || Math.random() < 0.35) {
       if (this.motionSync) this.voicePower = power;
-      else this.scene.time.delayedCall(Math.max(0, a.hit[0] - 60), () => this.state === 'atk' && SFX.heroAtk(power, this.px));
+      else this.scene.time.delayedCall(Math.max(0, a.hit[0] - 60), () => this.state === 'atk' && SFX.heroAtk(power, this.px, this.key));
     }
     this.vx = k === 'dash' && !a.special ? this.face * 560 : 0;
     this.setHead(a.fin || k === 'down' || k === 'dash' ? 'head_shout' : 'head_attack');
@@ -415,7 +415,7 @@ class Hero extends Actor {
   checkHits(a, dt = 0) {
     if (this.motionSync) {
       if (this.voicePower !== null && this.voicePower !== undefined && this.st >= a.hit[0] - 60) {
-        SFX.heroAtk(this.voicePower, this.px); this.voicePower = null;
+        SFX.heroAtk(this.voicePower, this.px, this.key); this.voicePower = null;
       }
       if (!this.swingFired && this.st >= a.hit[0] - 30) {
         this.swingFired = true;
@@ -497,7 +497,7 @@ class Hero extends Actor {
     this.face = kbDir === 0 ? this.face : -kbDir;
     this.flash(0xffffff, 80);
     this.kick(-7, 6, -0.08);
-    if (this.hp <= 0) SFX.heroKO(this.px); else SFX.heroHurt(this.px);
+    if (this.hp <= 0) SFX.heroKO(this.px, this.key); else SFX.heroHurt(this.px, this.key);
     this.setHead('head_hurt');
     if (type === 'heavy' || this.hp <= 0) {
       this.state = 'air'; this.st = 0; this.vz = 520; this.z = 1; this.vx = kbDir * 260; this.vy = 0;
@@ -540,7 +540,7 @@ class Hero extends Actor {
     this.replay(typeof heroAwakenClip === 'function' ? heroAwakenClip(this.key, this.baseStand) : 'w_awaken', 40); this.setHead('head_shout');
     this.scene.awakenCutIn(this);
     if (this.scene.save) { Codex.init(this.scene.save); this.scene.save.stats.awaken = (this.scene.save.stats.awaken || 0) + 1; }
-    SFX.awaken();
+    SFX.awaken(this.key, this.px);
     this.awkFired = false;
   }
   updateAwaken(dt) {
@@ -631,7 +631,7 @@ class Monster extends Actor {
       for(let d=100;d<=1200;d+=110)this.scene.fx('lightning_bolt',lerp(muzzle.x,end,(d-100)/1100),muzzle.y,{s:.4,dur:350,depth:this.y+1002,rot:90});
     }
     if (!frozen && this.enemyMotion && this.state === 'throw' && this.st >= 90 && !this.throwFired) {
-      this.throwFired = true; SFX.throwS(this.px); SFX.gob('atk', this.px, this.pitch);
+      this.throwFired = true; SFX.throwS(this.px); SFX.gob('atk', this.px, this.pitch, this.id);
       const pj = MON_PROJ[this.id] || MON_PROJ.spear;
       this.scene.projectile(this, this.scene.textures.exists(pj.img) ? pj.img : 'spear/javelin', { vx:this.face*(pj.vx||720), z:this.height*.55, dmg:this.def.dmg, rot:pj.rot??90, sc:pj.sc||.32, life:1500, spin:pj.spin, muzzle:enemyProjectileMuzzle(this) });
       if (!this.enemyLauncher) this.rig.setVisible('wpn', false);
@@ -687,7 +687,7 @@ class Monster extends Actor {
       this.x += this.vx * s;
       if (Math.abs(tx - this.x) < 10) {
         this.toIdle(); this.face = Math.sign(dx) || 1;
-        if (Math.random() < 0.5 || this.kind === 'barkhaul') { this.showEmote('bang', 900); if (this.kind !== 'barkhaul') SFX.gob('alert', this.px, this.pitch); }
+        if (Math.random() < 0.5 || this.kind === 'barkhaul') { this.showEmote('bang', 900); if (this.kind !== 'barkhaul') SFX.gob('alert', this.px, this.pitch, this.id); }
       }
       return;
     }
@@ -721,7 +721,7 @@ class Monster extends Actor {
       this.vx = Math.abs(mx) > 12 ? Math.sign(mx) * sp : 0;
       this.vy = Math.abs(my) > 6 ? Math.sign(my) * sp * 0.6 : 0;
       // 겁먹고 도망
-      if (this.hp < this.maxHp * 0.25 && !this.fled && Math.random() < 0.01) { this.fled = true; this.showEmote('sweat', 1500); SFX.gob('scared', this.px, this.pitch); this.state = 'flee'; this.st = 0; return; }
+      if (this.hp < this.maxHp * 0.25 && !this.fled && Math.random() < 0.01) { this.fled = true; this.showEmote('sweat', 1500); SFX.gob('scared', this.px, this.pitch, this.id); this.state = 'flee'; this.st = 0; return; }
       if (this.vx || this.vy) { this.state = 'move'; this.play('m_walk', 100); } else { this.state = 'idle'; this.play('m_idle', 140); }
       this.separate();
       this.physics(dt);
@@ -752,7 +752,7 @@ class Monster extends Actor {
       if (this.st > 520) {
         this.state = 'throw'; this.st = 0; this.throwFired=false; this.replay('m_throw', 30); this.setHead('head_shout');
         if (!this.enemyMotion) {
-          SFX.throwS(this.px); SFX.gob('atk', this.px, this.pitch);
+          SFX.throwS(this.px); SFX.gob('atk', this.px, this.pitch, this.id);
           const pj = MON_PROJ[this.id] || MON_PROJ.spear;
           this.scene.projectile(this, this.scene.textures.exists(pj.img) ? pj.img : 'spear/javelin', { vx: this.face * (pj.vx || 720), z: this.height * 0.55, dmg: this.def.dmg, rot: pj.rot ?? 90, sc: pj.sc || 0.32, life: 1500, spin: pj.spin });
           this.rig.setVisible('wpn', false);
@@ -795,12 +795,12 @@ class Monster extends Actor {
   startWindup() {
     this.state = 'windup'; this.st = 0; this.vx = this.vy = 0; this.play('m_windup', 60);
     this.rig.setTintAll(0xff9a8a);
-    if (Math.random() < 0.7) SFX.gob('atk', this.px, this.pitch);
+    if (Math.random() < 0.7) SFX.gob('atk', this.px, this.pitch, this.id);
     this.scene.time.delayedCall(260, () => { if (this.state === 'windup') this.rig.setTintAll(null); });
   }
-  startTaunt() { this.state = 'taunt'; this.st = 0; this.vx = this.vy = 0; this.play('m_taunt', 80); this.setHead(this.def.face + '_taunt'); this.showEmote('laugh', 900); SFX.gob('laugh', this.px, this.pitch); }
+  startTaunt() { this.state = 'taunt'; this.st = 0; this.vx = this.vy = 0; this.play('m_taunt', 80); this.setHead(this.def.face + '_taunt'); this.showEmote('laugh', 900); SFX.gob('laugh', this.px, this.pitch, this.id); }
   startThrow() { this.state = 'throwup'; this.st = 0; this.vx = this.vy = 0; this.play('m_throwup', 80); this.rig.setTintAll(0xff9a8a); this.scene.time.delayedCall(260, () => this.state === 'throwup' && this.rig.setTintAll(null)); }
-  startCast(t) { this.state = 'cast'; this.st = 0; this.vx = this.vy = 0; this.castTarget = t; this.castDone = false; this.play('m_cast', 80); SFX.gob('chant', this.px, this.pitch); this.setHead('head_shout'); this.scene.fx('crit_flash', this.x + this.face * 30, this.y - this.height * 0.95, { s: 0.18, dur: 700, tint: t ? 0x88ff88 : 0xcc66ff, depth: this.y + 1001 }); }
+  startCast(t) { this.state = 'cast'; this.st = 0; this.vx = this.vy = 0; this.castTarget = t; this.castDone = false; this.play('m_cast', 80); SFX.gob('chant', this.px, this.pitch, this.id); this.setHead('head_shout'); this.scene.fx('crit_flash', this.x + this.face * 30, this.y - this.height * 0.95, { s: 0.18, dur: 700, tint: t ? 0x88ff88 : 0xcc66ff, depth: this.y + 1001 }); }
 
   // 플레이어 공격을 맞음
   takeHit(src, a, dmg) {
@@ -820,7 +820,7 @@ class Monster extends Actor {
     const boss = this.kind === 'barkhaul';
     if (boss) return this.bossHit(a, dir, dmg);
     this.hurtFace();
-    if (Math.random() < 0.6) SFX.gob('hurt', this.px, this.pitch);
+    if (Math.random() < 0.6) SFX.gob('hurt', this.px, this.pitch, this.id);
     if (isDown) { this.vz = 260; this.z = 1; this.state = 'air'; this.st = 0; this.play('m_air', 30); return true; }
     if (this.state === 'air' || this.z > 0) {
       // 이미 체력이 0인 적은 공중에서 더 띄우지 않고 바로 떨어뜨린다 (계속 맞으면 영영 안 내려온다)
@@ -859,7 +859,7 @@ class Monster extends Actor {
   die() {
     if (this.dead) return;
     this.dead = true; this.state = 'dying'; this.releaseTok();
-    SFX.die(this.px); if (this.kind !== 'barkhaul') SFX.gob('die', this.px, this.pitch);
+    SFX.gob('die', this.px, this.pitch, this.id);
     this.scene.fx('death_dissolve', this.x, this.y - this.height * 0.3, { s: this.kind === 'barkhaul' ? 0.8 : 0.32, dur: 900, depth: this.y + 1001, grow: 1.3 });
     const targets = this.enemyMotion || (this.rig.def.clips && this.rig.def.clips.m_down === 'gob_down') ? [this.rig.c, this.shadow] : this.rig.c;
     this.scene.tweens.add({ targets, alpha: 0, duration: 450, onComplete: () => this.destroy() });
@@ -915,7 +915,7 @@ class Monster extends Actor {
     if (st === 'rock') {
       if (this.st >= 500 && !this.rockPoseReleased) { this.rockPoseReleased=true; this.replay('m_throw',40); }
       if (this.st > 650 && !this.hitDone) {
-        this.hitDone = true; SFX.throwS(this.px); SFX.bossGrunt(this.px);
+        this.hitDone = true; SFX.throwS(this.px); SFX.bossGrunt(this.px, this.id);
         if (this.enemyMotion) this.pendingRock=this.rockTarget;
         else this.scene.lobRock(this, this.rockTarget);
       }
@@ -948,21 +948,21 @@ class Monster extends Actor {
       // 가로로 돌진: 선을 그어 예고한 뒤 화면 끝까지
       sp.dir = Math.sign(h.x - this.x) || this.face; this.face = sp.dir; sp.y = h.y;
       sc.telegraphLine(this.x, this.y, this.x + sp.dir * 1100, rage ? 600 : 850, 60);
-      this.play('m_windup', 80); SFX.bossGrunt(this.px);
+      this.play('m_windup', 80); SFX.bossGrunt(this.px, this.id);
     } else if (type === 'breath') {
       this.face = Math.sign(h.x - this.x) || this.face;
       sc.telegraphLine(this.x + this.face * 80, this.y, this.x + this.face * 620, rage ? 650 : 900, 50);
-      this.play('b_smashup', 80); SFX.roar(this.px);
+      this.play('b_smashup', 80); SFX.roar(this.px, this.id);
     } else if (type === 'beam') {
       this.face = Math.sign(h.x - this.x) || this.face;
       sc.telegraphLine(this.x + this.face * 60, this.y, this.x + this.face * 1200, rage ? 700 : 1000, 40);
       this.play('m_cast', 80); SFX.telegraph(this.px);
     } else if (type === 'orbs') {
       this.face = Math.sign(h.x - this.x) || this.face;
-      this.play('m_cast', 80); SFX.gob('chant', this.px, 0.6);
+      this.play('m_cast', 80); SFX.gob('chant', this.px, 0.6, this.id);
       sc.fx('holy_ring', this.x, this.y - this.height * 0.6, { s: 0.5, dur: 600, depth: this.y + 1002, tint: (BOSS_ROCK[this.id] || {}).tint || 0xc080ff });
     } else if (type === 'meteor') {
-      this.play('b_roar', 80); SFX.roar(this.px);
+      this.play('b_roar', 80); SFX.roar(this.px, this.id);
       sp.pts = [];
       const n = rage ? 6 : 4;
       for (let i = 0; i < n; i++) sp.pts.push({ x: h.x + (i === 0 ? 0 : (Math.random() - 0.5) * 520), y: Phaser.Math.Clamp(h.y + (Math.random() - 0.5) * 180, FLOOR_TOP, FLOOR_BOT), t: 900 + i * 160 });
@@ -976,7 +976,7 @@ class Monster extends Actor {
     } else if (type === 'hook') {
       this.face = Math.sign(h.x - this.x) || this.face;
       sc.telegraphLine(this.x + this.face * 60, this.y, this.x + this.face * 700, 700, 40);
-      this.play('m_throwup', 80); SFX.bossGrunt(this.px);
+      this.play('m_throwup', 80); SFX.bossGrunt(this.px, this.id);
     } else if (type === 'cannon') {
       this.play('m_throwup', 80); sp.n = 0;
     }
@@ -1098,7 +1098,7 @@ class Monster extends Actor {
     end(1000);
   }
   startSmash() {
-    this.state = 'smashup'; this.st = 0; this.vx = this.vy = 0; this.play('b_smashup', 80); this.setHead('head_shout'); SFX.bossGrunt(this.px);
+    this.state = 'smashup'; this.st = 0; this.vx = this.vy = 0; this.play('b_smashup', 80); this.setHead('head_shout'); SFX.bossGrunt(this.px, this.id);
     const px = this.x + this.face * 210;
     this.scene.telegraph(px, this.y, 1.0, this.raged ? 650 : 900);
     this.rig.setTintAll(0xffb0a0);
@@ -1124,7 +1124,7 @@ class Monster extends Actor {
   }
   startRoar(rage, n = 0) {
     this.state = 'roar'; this.st = 0; this.vx = this.vy = 0; this.play('b_roar', 80); this.setHead('head_shout');
-    SFX.roar(this.px); this.scene.cameras.main.shake(700, 0.008);
+    SFX.roar(this.px, this.id); this.scene.cameras.main.shake(700, 0.008);
     this.showEmote('anger', 1300);
     if (rage) { this.rig.setTintAll(null); this.scene.bossRage(this); }
     if (n) this.scene.time.delayedCall(500, () => this.scene.summonGrunts(n));

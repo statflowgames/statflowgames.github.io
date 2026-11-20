@@ -76,8 +76,10 @@ var HarvanCuteParts=(()=>{
       // Optional resting tilt so the cape hangs down like the first-round art instead of flaring back.
       if(profile.capeTilt)p.cape=(p.cape||0)+profile.capeTilt;
       const gait=['walk','run','harvan_brake'].includes(hero.anim);
-      if(gait&&profile.gaitSwing){
-        for(const key of ['thf','thb','shf','shb'])p[key]=HARVAN_STAND[key]+((p[key]??HARVAN_STAND[key])-HARVAN_STAND[key])*profile.gaitSwing;
+      // 다리 흔들림 배율: 달리기는 runSwing(보폭을 크게), 걷기는 gaitSwing
+      const swing=/run/.test(hero.anim||'')?(profile.runSwing??profile.gaitSwing):profile.gaitSwing;
+      if(gait&&swing){
+        for(const key of ['thf','thb','shf','shb'])p[key]=HARVAN_STAND[key]+((p[key]??HARVAN_STAND[key])-HARVAN_STAND[key])*swing;
       }
       // The new wrist-up hand sits lower than the old grip. Carry the blade clear of the floor.
       if(profile.alignCarry){
@@ -108,7 +110,8 @@ var HarvanCuteParts=(()=>{
       const rate=hero.animRate.bind(hero);
       hero.animRate=()=>{
         const clip=CLIPS[hero.anim],base=rate();
-        return clip?.amp?Math.min(2.6,base*Math.sin(clip.amp*D2R)/Math.sin(clip.amp*profile.gaitSwing*D2R)):base;
+        const swing=/run/.test(hero.anim||'')?(profile.runSwing??profile.gaitSwing):profile.gaitSwing;
+        return clip?.amp?Math.min(2.6,base*Math.sin(clip.amp*D2R)/Math.sin(clip.amp*swing*D2R)):base;
       };
     }
     hero.anim=null;hero.blendFrom=null;hero.play('idle',0);

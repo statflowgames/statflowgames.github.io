@@ -6,7 +6,7 @@ const SFX = (() => {
   const silent = new URLSearchParams(location.search).has('silent');
   let final = null;
   // 음량 설정 (0~1). 설정 화면에서 바꾼다
-  const VOL = (() => { try { const v = JSON.parse(localStorage.getItem('seventhmoon.settings') || '{}'); return { music: v.music ?? 0.8, sfx: v.sfx ?? 1 }; } catch (e) { return { music: 0.8, sfx: 1 }; } })();
+  const VOL = (() => { try { const v = JSON.parse(localStorage.getItem('seventhmoon.settings') || '{}'); return { music: v.music ?? 0.8, sfx: v.sfx ?? 1, voice:v.voice??.8 }; } catch (e) { return { music: 0.8, sfx: 1, voice:.8 }; } })();
   let ctx = null, master = null, dry = null, verb = null, noiseBuf = null, distCurve = null;
   const last = {};
   let G = 1;   // 소리별 음량 보정 (on(f, k)에서 잠깐 바꾼다)
@@ -38,7 +38,7 @@ const SFX = (() => {
       for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; distCurve[i] = Math.tanh(x * 3.5); }
     }
   }
-  function resume() { init(); if (ctx && ctx.state === 'suspended') ctx.resume(); loadBank(); if (ctx && wantAmb && (!amb || amb.mode !== wantAmb)) ambience(wantAmb); }
+  function resume() { init(); if (ctx && ctx.state === 'suspended') ctx.resume(); const ready=loadBank(); if (ctx && wantAmb && (!amb || amb.mode !== wantAmb)) ambience(wantAmb); return ready; }
   // 같은 소리가 너무 촘촘히 겹치지 않게
   function gate(key, ms) { if (!ctx) return false; const n = performance.now(); if (last[key] && n - last[key] < ms) return false; last[key] = n; return true; }
   // 출력 노드: 좌우(화면 x) + 잔향 비율
@@ -141,18 +141,33 @@ const SFX = (() => {
   // ---------------- 납품 음원 (assets/audio) ----------------
   const BASE = 'assets/audio/';
   const bank = {};
-  let musicList = [], bankStarted = false, musicBus = null;
+  let musicList = [], bankStarted = false, bankReady=false, musicBus = null;
+  let heroVoices={};
+  const enemyVoices=[];
+  const lastVoiceIndex={};
+  const HERO_KEYS=new Set(['warrior','mage','paladin','rogue','ranger','hexblade']);
+  const voicePicks=(()=>{try{return JSON.parse(localStorage.getItem('voicePicks')||'{}');}catch(e){return {};}})();
+  const candidate=hero=>voicePicks[hero]==='up2'?'up2':'up1';
   const chan = {};            // 'bgm', 'amb', 'jgl' → { name, el, g }
   let wantMusic = undefined;
   async function loadBank() {
     if (bankStarted || !ctx || ctx instanceof OfflineAudioContext) return;
     bankStarted = true;
     try {
-      const man = await (await fetch(BASE + 'manifest.json')).json();
+      const man = await (await fetch(BASE + 'manifest.json?rev=audio-v2')).json();
       musicList = man.music || [];
       if (wantMusic !== undefined) music(wantMusic.name, wantMusic.o);
       if (wantAmb) ambience(wantAmb);
-      await Promise.all(Object.entries(man.sfx || {}).map(async ([k, files]) => {
+      // Avoid the old formant voices. Decode only the selected voice candidate; cap mobile fetch/decode concurrency.
+      const jobs=Object.entries(man.sfx||{}).filter(([key])=>{
+        if(key.startsWith('vo_')||key.startsWith('awaken_'))return false;
+        const match=key.match(/^hv2_vo_(warrior|mage|paladin|rogue|ranger|hexblade)_(up[12])_/);
+        return !match||candidate(match[1])===match[2];
+      });
+      jobs.sort(([a],[b])=>Number(b.startsWith('hv2_vo_warrior_'))-Number(a.startsWith('hv2_vo_warrior_')));
+      let cursor=0;
+      await Promise.all(Array.from({length:6},async()=>{while(cursor<jobs.length){
+        const [k,files]=jobs[cursor++];
         const list = [];
         for (const f of files) {
           try {
@@ -161,23 +176,80 @@ const SFX = (() => {
           } catch (e) { /* 이 파일은 합성음으로 대신 */ }
         }
         if (list.length) bank[k] = list;
-      }));
-    } catch (e) { /* 음원이 없으면 합성음만 쓴다 */ }
+      }}));
+    } catch (e) { /* 일반 효과음만 합성으로 대체. 목소리는 파형 합성으로 돌아가지 않는다. */ }
+    finally {bankReady=true;}
   }
   // 음원 재생. 없으면 false → 합성음으로 대신한다.
   function sample(key, o = {}) {
     const b = bank[key];
     if (!b || !ctx) return false;
     const s = ctx.createBufferSource();
-    s.buffer = b[Math.floor(Math.random() * b.length)];
+    s.buffer = b[o.index??Math.floor(Math.random() * b.length)];
     s.playbackRate.value = (o.rate || 1) * vr(o.vary ?? 0.05);
     if (o.loop) s.loop = true;
     const g = ctx.createGain(); g.gain.value = o.vol ?? 1;
     s.connect(g); g.connect(out(o.x, o.wet ?? 0.06));
-    s.start(ctx.currentTime + (o.delay || 0));
-    return { s, g };
+    const at=ctx.currentTime+(o.delay||0),duration=Math.min(o.duration??s.buffer.duration,s.buffer.duration);
+    if(o.duration){g.gain.setValueAtTime(o.vol??1,at);g.gain.setValueAtTime(o.vol??1,at+Math.max(0,duration-(o.fade??.025)));g.gain.linearRampToValueAtTime(0,at+duration);s.stop(at+duration);}
+    s.start(at);
+    return { s, g, endsAt:o.loop?Infinity:at+duration };
   }
   function has(key) { return !!bank[key]; }
+  function fadeVoice(v,seconds=.025){
+    if(!v||v.endsAt<=ctx.currentTime)return;
+    const t=ctx.currentTime;v.g.gain.cancelScheduledValues(t);v.g.gain.setValueAtTime(v.g.gain.value,t);v.g.gain.linearRampToValueAtTime(0,t+seconds);
+    try{v.s.stop(t+seconds+.005);}catch(e){/* already ended */}
+    v.endsAt=t+seconds;
+  }
+  function heroVoice(hero,kind,x,power=0){
+    if(!ctx||VOL.voice<=0)return;
+    hero=HERO_KEYS.has(hero)?hero:'warrior';
+    const key=`hv2_vo_${hero}_${candidate(hero)}_${kind}`,pool=bank[key];
+    if(!pool?.length)return; // Loading/missing human voice stays silent; never use the old oscillator voice.
+    const priority={atk:1,atk_big:2,hurt:3,victory:4,awaken:5,ko:6}[kind]||1;
+    const old=heroVoices[hero],t=ctx.currentTime;
+    if(old&&old.endsAt>t&&old.priority>priority)return;
+    if(!gate('heroVoice:'+hero,kind==='atk'?170:kind==='hurt'?160:100))return;
+    if(old)fadeVoice(old);
+    const index=((lastVoiceIndex[key]??-1)+1)%pool.length;lastVoiceIndex[key]=index;
+    const volume={atk:.56,atk_big:.65,hurt:.52,ko:.58,victory:.56,awaken:.72}[kind]*VOL.voice*(kind==='atk'&&power===1?1.08:1);
+    const v=sample(key,{x,index,vol:volume,vary:0,wet:0});
+    if(v)heroVoices[hero]={...v,priority,kind};
+  }
+  function enemyFamily(id='grunt'){
+    if(/skeleton/.test(id))return 'bone';
+    if(/mummy|sehera/.test(id))return 'mummy';
+    if(/azmal|wyvern/.test(id))return 'dragon';
+    if(/wolf/.test(id))return 'wolf';
+    if(/ratkin/.test(id))return 'rat';
+    if(/slime|gloob|leech/.test(id))return 'slime';
+    if(/scorpion|twinsting|snakeman/.test(id))return 'insect';
+    if(/golem|construct/.test(id))return 'construct';
+    if(/harpy|gargoyle|imp/.test(id))return 'winged';
+    if(/barkhaul|toothcrusher|hrimgar|brute/.test(id))return 'brute';
+    if(/shadow|orvex|void|cultist/.test(id))return 'shadow';
+    if(/pirate|captain_mog|dwarf/.test(id))return 'human';
+    return 'grolin';
+  }
+  function enemyVoice(kind,x,pitch=1,id='grunt'){
+    if(!ctx||VOL.voice<=0)return;
+    const family=enemyFamily(id),key=`ev2_${family}_${kind}`;
+    if(!has(key))return;
+    const priority=kind==='roar'?3:kind==='die'?2:1;
+    if(!gate('enemy:'+family+':'+kind,kind==='hurt'?170:kind==='die'?100:240))return;
+    for(let i=enemyVoices.length-1;i>=0;i--)if(enemyVoices[i].endsAt<=ctx.currentTime)enemyVoices.splice(i,1);
+    if(enemyVoices.length>=3){
+      const quietest=enemyVoices.findIndex(v=>v.priority<=priority);
+      if(quietest<0)return;
+      fadeVoice(enemyVoices[quietest]);enemyVoices.splice(quietest,1);
+    }
+    const index=((lastVoiceIndex[key]??-1)+1)%bank[key].length;lastVoiceIndex[key]=index;
+    const duck=Object.values(heroVoices).some(v=>v.endsAt>ctx.currentTime)?.58:1;
+    const vol=({atk:.40,hurt:.24,die:.39,roar:.55,chant:.32,alert:.28,laugh:.28,scared:.28}[kind]??.3)*VOL.voice*duck;
+    const v=sample(key,{x,index,vol,vary:.015,rate:Math.max(.94,Math.min(1.06,pitch)),wet:.025});
+    if(v)enemyVoices.push({...v,priority});
+  }
   // 배경음악·환경음·징글: 긴 곡은 <audio>로 흘려보낸다 (메모리 절약)
   function playChan(ch, name, o = {}) {
     if (!ctx) return;
@@ -249,8 +321,9 @@ const SFX = (() => {
     }
   }
 
-  function setVolume(music, sfx) {
+  function setVolume(music, sfx, voice=VOL.voice) {
     VOL.music = music; VOL.sfx = sfx;
+    VOL.voice=Math.max(0,Math.min(1,voice));
     if (master) master.gain.value = 0.8 * sfx;
     if (musicBus) musicBus.gain.value = music;
   }
@@ -314,7 +387,7 @@ const SFX = (() => {
       metal({ f: rnd(2300, 3100), dur: 0.07, g: 0.025, x, wet: 0.05, delay: 0.02 });                  // 갑옷 짤랑
       metal({ f: rnd(2300, 3100), dur: 0.06, g: 0.018, x, wet: 0.05, delay: 0.06 });
     }, 2.2),
-    jump: on(x => { noise({ type: 'bandpass', f0: 500, f1: 1600, q: 1, dur: 0.15, g: 0.25, x }); metal({ f: 2600, dur: 0.1, g: 0.03, x }); voice({ f0: 150, f1: 120, v: 'u', dur: 0.1, g: 0.08, breath: 0.08, x }); }, 2.5),
+    jump: on(x => { noise({ type: 'bandpass', f0: 500, f1: 1600, q: 1, dur: 0.15, g: 0.25, x }); metal({ f: 2600, dur: 0.1, g: 0.03, x }); }, 2.5),
     land: on((x, heavy) => {
       if (!gate('land', 30)) return;
       tone({ f0: heavy ? 90 : 110, f1: 40, dur: heavy ? 0.3 : 0.16, g: heavy ? 0.6 : 0.4, x });
@@ -444,25 +517,13 @@ const SFX = (() => {
   prefer('jump', x => sample('jump', { x }));
   prefer('land', (x, heavy) => gated('land', 'landS', 30, () => sample(heavy && has('knockdown') ? 'knockdown' : 'land', { x })));
   prefer('roll', x => sample('roll', { x }));
-  // 주인공 목소리: 지금 음원은 합성한 목소리라 몬스터·좀비처럼 들려서 끈다.
-  // 사람이 녹음한 직업별 목소리가 생기면 여기서 다시 연결한다 (true = 합성음으로도 넘어가지 않음)
-  const HERO_VOICE = false;
-  prefer('heroAtk', (power = 1, x) => HERO_VOICE ? gated('vo_warrior_atk', 'heroVS', 120, () => sample(power > 0 ? 'vo_warrior_atk_big' : 'vo_warrior_atk', { x, vary: 0.03 })) : true);
-  prefer('heroHurt', x => HERO_VOICE ? gated('vo_warrior_hurt', 'heroVS', 150, () => sample('vo_warrior_hurt', { x, vary: 0.03 })) : true);
-  prefer('heroKO', x => HERO_VOICE ? sample('vo_warrior_ko', { x, vary: 0 }) : true);
-  prefer('heroWin', () => HERO_VOICE ? sample('vo_warrior_victory', { vary: 0 }) : true);
-  prefer('gob', (kind, x, pitch = 1) => {
-    if (!has('mon_grolin_shout')) return false;
-    if (!gate('gobS' + kind, 60)) return true;
-    const r = pitch * vr(0.06);
-    if (kind === 'atk') return sample('mon_grolin_shout', { x, rate: r, vol: 0.8 });
-    if (kind === 'hurt') return sample('mon_grolin_shout', { x, rate: r * 1.3, vol: 0.6 });
-    if (kind === 'die') return sample('mon_grolin_die', { x, rate: r });
-    if (kind === 'alert') return sample('mon_alert', { x, vol: 0.8 });
-    if (kind === 'laugh') return sample('mon_taunt_laugh', { x, rate: r });
-    if (kind === 'scared') return sample('mon_flee', { x, rate: r });
-    return false;   // 주문 영창은 합성음
-  });
+  api.heroAtk=(power=0,x,hero='warrior')=>heroVoice(hero,power>=2?'atk_big':'atk',x,power);
+  api.heroHurt=(x,hero='warrior')=>heroVoice(hero,'hurt',x);
+  api.heroKO=(x,hero='warrior')=>heroVoice(hero,'ko',x);
+  api.heroWin=(hero='warrior')=>heroVoice(hero,'victory');
+  api.gob=enemyVoice;
+  api.roar=(x,id='barkhaul')=>enemyVoice('roar',x,1,id);
+  api.bossGrunt=(x,id='barkhaul')=>enemyVoice('atk',x,1,id);
   prefer('brk', (x, kind = 'wood') => sample(kind === 'wood' ? 'break_crate' : 'break_pot', { x }));
   prefer('coin', x => {
     if (!has('coin')) return false;
@@ -473,10 +534,14 @@ const SFX = (() => {
   prefer('heal', () => sample('heal'));
   prefer('die', x => sample('mon_dissolve', { x }));
   prefer('throwS', x => sample('dagger_throw', { x, rate: 0.85 }));
-  prefer('roar', x => sample('boss_giant_roar', { x, vary: 0.02 }));
   prefer('smash', x => { if (!has('ground_slam')) return false; sample('ground_slam', { x }); sample('wall_crumble', { x, vol: 0.6, delay: 0.05 }); return true; });
   prefer('roots', x => sample('trap_spike', { x, rate: 0.8 }));
-  prefer('awaken', () => { if (!has('awaken_warrior')) return false; sample('cutin'); if (HERO_VOICE) sample('vo_warrior_awaken', { vary: 0, delay: 0.05 }); sample('awaken_warrior', { delay: 0.15 }); return true; });
+  api.awaken=(hero='warrior',x)=>{if(!ctx)return;sample('cutin',{x,vol:.24,vary:0,wet:0});heroVoice(hero,'awaken',x);};
+  api.awakenImpact=(hero='warrior',x,phase='impact')=>{
+    if(!ctx)return;
+    const key='hv2_awaken_'+hero+(phase==='impact'?'':'_'+phase);
+    sample(key,{x,vol:phase==='impact'?.70:.48,vary:0,wet:.025});
+  };
   prefer('wall', x => sample('shield_wall', { x }));
   prefer('combo', () => sample('combo_milestone'));
   prefer('go', () => sample('ui_tap'));
@@ -489,12 +554,12 @@ const SFX = (() => {
   api.emote = x => { if (ctx && gate('emote', 80)) sample('emote_pop', { x, vol: 0.6 }); };
   api.telegraph = x => { if (ctx && gate('tele', 150)) sample('telegraph', { x, vol: 0.7 }); };
   api.launch = x => { if (ctx) sample('launch', { x }); };
-  api.bossPhase = () => { if (ctx) sample('boss_phase'); };
+  api.bossPhase = (id='barkhaul',x) => enemyVoice('roar',x,1,id);
   api.bossWeak = x => { if (ctx) sample('boss_weakpoint', { x }); };
   api.bossDown = x => { if (ctx) sample('boss_down', { x }); };
-  api.cheer = x => { if (ctx) sample('mon_group_cheer', { x, vol: 0.8 }); };
+  api.cheer = x => enemyVoice('laugh',x,1,'grunt');
   api.music = music;
-  api._debug = () => ({ bank: Object.keys(bank).length, music: musicList.length, chan: Object.fromEntries(Object.entries(chan).filter(([, c]) => c).map(([k, c]) => [k, c.name + (c.el.paused ? ' (멈춤)' : ' (재생)')])), state: ctx && ctx.state });
+  api._debug = () => ({ bank: Object.keys(bank).length, ready:bankReady,voiceVolume:VOL.voice,activeHeroVoices:Object.entries(heroVoices).filter(([,v])=>ctx&&v.endsAt>ctx.currentTime).map(([hero,v])=>hero+':'+v.kind),music: musicList.length, chan: Object.fromEntries(Object.entries(chan).filter(([, c]) => c).map(([k, c]) => [k, c.name + (c.el.paused ? ' (멈춤)' : ' (재생)')])), state: ctx && ctx.state });
   api.bossWarning = () => { if (!ctx) return; music(null, { fade: 0.6 }); music('jgl_boss_warning', { jingle: true }); };
   let beat = null;
   api.heartbeat = onoff => {

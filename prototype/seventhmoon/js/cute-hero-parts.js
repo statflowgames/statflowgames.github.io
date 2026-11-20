@@ -99,7 +99,9 @@ var CuteHeroParts=(()=>{
       for(const name of ['bodyX','bodyY','hipX','hipY'])if(p[name])p[name]*=motionScale;
       if(rig.map.cape)p.cape=(p.cape||0)*(profile.capeSwing??.25)-(p.torso||0)*.75;
       const clip=CLIPS[hero.anim];
-      if(clip?.amp)for(const name of ['thf','thb','shf','shb'])p[name]=base[name]+((p[name]??base[name])-base[name])*(profile.gaitSwing??.7);
+      // 다리 흔들림 배율: 달리기는 runSwing(보폭을 크게), 걷기는 gaitSwing
+      const swing=/run/.test(hero.anim||'')?(profile.runSwing??profile.gaitSwing??.7):(profile.gaitSwing??.7);
+      if(clip?.amp)for(const name of ['thf','thb','shf','shb'])p[name]=base[name]+((p[name]??base[name])-base[name])*swing;
       if(key==='hexblade'&&clip?.amp){
         // Keep the heavy forward lean while letting the larger face look along the path.
         const parent=(p.rr||0)+(p.root||0)+(p.torso||0);
@@ -117,7 +119,7 @@ var CuteHeroParts=(()=>{
     hero.cuteHeadFrame='neutral';hero.blink=2400;hero.habitT=Infinity;
     const rate=hero.animRate.bind(hero);
     hero.animRate=()=>{
-      const clip=CLIPS[hero.anim],baseRate=rate(),swing=profile.gaitSwing??.7;
+      const clip=CLIPS[hero.anim],baseRate=rate(),swing=/run/.test(hero.anim||'')?(profile.runSwing??profile.gaitSwing??.7):(profile.gaitSwing??.7);
       return clip?.amp?Math.min(2.6,baseRate*Math.sin(clip.amp*D2R)/Math.sin(clip.amp*swing*D2R)):baseRate;
     };
     hero.anim=null;hero.blendFrom=null;hero.play('idle',0);

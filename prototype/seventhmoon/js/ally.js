@@ -126,7 +126,7 @@ class Ally extends Actor {
     if (this.hp <= 0) {
       this.state = 'down'; this.st = 0; this.vx = this.vy = 0; this.play('w_down', 60); this.setHead('head_ko');
       this.scene.floatText(this.x, this.y - 260, '쓰러짐! 6초 뒤 일어나요', '#ff9a8a', 22);
-      SFX.heroHurt(this.px);
+      SFX.heroKO(this.px, this.key);
     } else {
       this.state = 'hurt'; this.st = 0; this.vx = kbDir * 150; this.replay('w_hurt', 30); this.setHead('head_hurt');
     }
