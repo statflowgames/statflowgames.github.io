@@ -61,31 +61,31 @@ for (const [id, src, ko, tint, sc, hp, dmg, exp, mid, summon] of P2_BOSSES) {
   MONDEF[id] = { ...b, ko, like: src, tint, sc, hp, dmg, exp, mid, summon, gold: [Math.round(b.gold[0] * 2.2), Math.round(b.gold[1] * 2.2)], boss: true, standin: true };
 }
 
-// ---------------- 2부 배경 (대역: 지금 배경 + 색) ----------------
+// ---------------- 2부 배경 (✏️ 2026-11-21 진짜 그림 반영: assets/bg/p2_*. 소품은 아직 1부 것) ----------------
 Object.assign(THEMES, {
   // ✏️ 음악·환경음은 2부 전용 (tools/build_music_p2.py, tools/build_audio_p2.py)
-  glass: { ...THEMES.desert, standin: true, tint: 0xb8dcff, bgm: 'bgm_c7_glass', amb: 'glass' },
-  glass_maze: { ...THEMES.tomb, standin: true, tint: 0xa8d0f0, bgm: 'bgm_c7_maze', amb: 'glass' },
-  sunken: { ...THEMES.harbor, standin: true, tint: 0x80b8c0, bgm: 'bgm_c8_sunken', amb: 'sunken' },
-  sunken_temple: { ...THEMES.sewer, standin: true, tint: 0x70b0c8, bgm: 'bgm_c8_temple', amb: 'sunken' },
-  forge: { ...THEMES.dwarf, standin: true, tint: 0xffa080, bgm: 'bgm_c9_forge', amb: 'forge' },
-  lava: { ...THEMES.snow, standin: true, tint: 0xff9070, bgm: 'bgm_c9_lava', amb: 'lava' },
-  spore: { ...THEMES.forest, standin: true, tint: 0xc8a0e8, bgm: 'bgm_c10_spore', amb: 'spore' },
-  spore_bog: { ...THEMES.swamp, standin: true, tint: 0xb090d0, bgm: 'bgm_c10_bog', amb: 'spore' },
-  cloud: { ...THEMES.tower, standin: true, tint: 0xe8f0ff, bgm: 'bgm_c11_cloud', amb: 'cloud' },
-  cloud_garden: { ...THEMES.forest, standin: true, tint: 0xd8f0ff, bgm: 'bgm_c11_garden', amb: 'cloud' },
-  moonside: { ...THEMES.abyss, standin: true, tint: 0xb8c8ff, bgm: 'bgm_c12_moon', amb: 'moon' },
-  moon_grave: { ...THEMES.tomb, standin: true, tint: 0x9aa8e0, bgm: 'bgm_c12_grave', amb: 'moon' },
+  glass: { ...THEMES.desert, far: 'bg/p2_glass_far', ground: 'bg/p2_glass_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c7_glass', amb: 'glass' },
+  glass_maze: { ...THEMES.tomb, far: 'bg/p2_glass_maze_far', ground: 'bg/p2_glass_maze_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c7_maze', amb: 'glass' },
+  sunken: { ...THEMES.harbor, far: 'bg/p2_sunken_far', ground: 'bg/p2_sunken_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c8_sunken', amb: 'sunken' },
+  sunken_temple: { ...THEMES.sewer, far: 'bg/p2_sunken_temple_far', ground: 'bg/p2_sunken_temple_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c8_temple', amb: 'sunken' },
+  forge: { ...THEMES.dwarf, far: 'bg/p2_forge_far', ground: 'bg/p2_forge_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c9_forge', amb: 'forge' },
+  lava: { ...THEMES.snow, far: 'bg/p2_lava_far', ground: 'bg/p2_lava_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c9_lava', amb: 'lava' },
+  spore: { ...THEMES.forest, far: 'bg/p2_spore_far', ground: 'bg/p2_spore_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c10_spore', amb: 'spore' },
+  spore_bog: { ...THEMES.swamp, far: 'bg/p2_spore_bog_far', ground: 'bg/p2_spore_bog_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c10_bog', amb: 'spore' },
+  cloud: { ...THEMES.tower, far: 'bg/p2_cloud_far', ground: 'bg/p2_cloud_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c11_cloud', amb: 'cloud' },
+  cloud_garden: { ...THEMES.forest, far: 'bg/p2_cloud_garden_far', ground: 'bg/p2_cloud_garden_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c11_garden', amb: 'cloud' },
+  moonside: { ...THEMES.abyss, far: 'bg/p2_moonside_far', ground: 'bg/p2_moonside_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c12_moon', amb: 'moon' },
+  moon_grave: { ...THEMES.tomb, far: 'bg/p2_moon_grave_far', ground: 'bg/p2_moon_grave_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c12_grave', amb: 'moon' },
 });
 
 // ---------------- 장 목록 7~12 ----------------
 CHAPTERS.push(
-  { n: 7, name: '유리 사막', map: 'map/c3', mapTint: 0xb8dcff, routeA: '별똥 분화구', routeB: '유리 미궁', moon: null, seed: 'glass', lv: 31, part: 2 },
-  { n: 8, name: '가라앉은 왕국', map: 'map/c2', mapTint: 0x80c0c8, routeA: '난파선 묘지', routeB: '잠긴 신전', moon: null, seed: 'tide', lv: 36, part: 2 },
-  { n: 9, name: '불꽃 대장간 산', map: 'map/c4', mapTint: 0xffa888, routeA: '용암 갱도', routeB: '잊힌 대장간', moon: null, seed: 'ember', lv: 41, part: 2 },
-  { n: 10, name: '거꾸로 자라는 숲', map: 'map/c1', mapTint: 0xc8a8e8, routeA: '포자 골짜기', routeB: '뒤틀린 늪', moon: null, seed: 'spore', lv: 46, part: 2 },
-  { n: 11, name: '구름 성채', map: 'map/c5', mapTint: 0xe8f0ff, routeA: '폭풍 회랑', routeB: '떠도는 정원', moon: null, seed: 'storm', lv: 51, part: 2 },
-  { n: 12, name: '달의 뒷면', map: 'map/c6', mapTint: 0xb8c8ff, routeA: '거울 바다', routeB: '첫 달의 무덤', moon: null, seed: 'moon', lv: 56, part: 2 },
+  { n: 7, name: '유리 사막', map: 'map/c7', routeA: '별똥 분화구', routeB: '유리 미궁', moon: null, seed: 'glass', lv: 31, part: 2 },
+  { n: 8, name: '가라앉은 왕국', map: 'map/c8', routeA: '난파선 묘지', routeB: '잠긴 신전', moon: null, seed: 'tide', lv: 36, part: 2 },
+  { n: 9, name: '불꽃 대장간 산', map: 'map/c9', routeA: '용암 갱도', routeB: '잊힌 대장간', moon: null, seed: 'ember', lv: 41, part: 2 },
+  { n: 10, name: '거꾸로 자라는 숲', map: 'map/c10', routeA: '포자 골짜기', routeB: '뒤틀린 늪', moon: null, seed: 'spore', lv: 46, part: 2 },
+  { n: 11, name: '구름 성채', map: 'map/c11', routeA: '폭풍 회랑', routeB: '떠도는 정원', moon: null, seed: 'storm', lv: 51, part: 2 },
+  { n: 12, name: '달의 뒷면', map: 'map/c12', routeA: '거울 바다', routeB: '첫 달의 무덤', moon: null, seed: 'moon', lv: 56, part: 2 },
 );
 // 흑월 씨앗 (2부의 월석 자리)
 const SEEDS = {
@@ -97,7 +97,13 @@ const SEEDS = {
   moon: { ko: '달 씨앗', col: 0xd8e0ff, ch: 12 },
 };
 // 지도 노드: 2부는 1부 지도 그림을 다시 쓴다
-for (let c = 7; c <= 12; c++) MAP_NODES[c] = MAP_NODES[{ 7: 3, 8: 2, 9: 4, 10: 1, 11: 5, 12: 6 }[c]];
+// 🆕 2부 지도 노드 자리 (지도 그림의 동그라미를 자동 검출, 1280 기준)
+MAP_NODES[7] = { camp: [125, 407], s1: [200, 407], s2: [323, 408], s3: [439, 409], a1: [581, 254], a2: [716, 236], a3: [853, 236], a4: [987, 257], b1: [562, 559], b2: [705, 580], b3: [855, 582], b4: [991, 566], x1: [624, 402], boss: [1158, 413] };
+MAP_NODES[8] = { camp: [30, 384], s1: [94, 384], s2: [247, 386], s3: [390, 386], a1: [601, 261], a2: [720, 241], a3: [851, 240], a4: [983, 252], b1: [586, 516], b2: [715, 545], b3: [854, 558], b4: [987, 539], x1: [653, 380], boss: [1165, 399] };
+MAP_NODES[9] = { camp: [152, 408], s1: [227, 408], s2: [354, 409], s3: [473, 410], a1: [594, 268], a2: [710, 238], a3: [831, 238], a4: [943, 247], b1: [574, 534], b2: [697, 561], b3: [824, 560], b4: [950, 535], x1: [635, 409], boss: [1114, 406] };
+MAP_NODES[10] = { camp: [30, 402], s1: [103, 402], s2: [250, 404], s3: [392, 405], a1: [552, 253], a2: [684, 232], a3: [827, 230], a4: [972, 252], b1: [530, 543], b2: [673, 564], b3: [820, 564], b4: [964, 541], x1: [624, 399], boss: [1144, 402] };
+MAP_NODES[11] = { camp: [28, 417], s1: [89, 417], s2: [240, 417], s3: [389, 417], a1: [601, 249], a2: [736, 226], a3: [871, 223], a4: [1005, 241], b1: [550, 572], b2: [688, 610], b3: [831, 617], b4: [985, 590], x1: [645, 412], boss: [1165, 412] };
+MAP_NODES[12] = { camp: [155, 361], s1: [230, 361], s2: [356, 361], s3: [482, 362], a1: [623, 217], a2: [757, 203], a3: [888, 198], a4: [1019, 212], b1: [619, 481], b2: [753, 487], b3: [887, 485], b4: [1018, 459], x1: [657, 358], boss: [1165, 347] };
 // 새 노드 자리: s2를 s1과 옛 s2 사이로, s3는 옛 s2 자리, a4/b4는 길 끝과 보스 사이, 곁가지 x1은 두 길 가운데
 for (let c = 1; c <= 6; c++) {
   const P = MAP_NODES[c];
