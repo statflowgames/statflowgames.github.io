@@ -141,7 +141,7 @@ const SFX = (() => {
   // ---------------- 납품 음원 (assets/audio) ----------------
   const BASE = 'assets/audio/';
   const bank = {};
-  let musicList = [], bankStarted = false, bankReady=false, musicBus = null;
+  let musicList = [], musicFiles={}, musicSettings={}, musicVersion='legacy', bankStarted = false, bankReady=false, musicBus = null;
   let heroVoices={};
   const enemyVoices=[];
   const lastVoiceIndex={};
@@ -156,6 +156,9 @@ const SFX = (() => {
       const man = await (await fetch(BASE + 'manifest.json?rev=audio-v2',{cache:'no-cache'})).json();
       const audioVersion=encodeURIComponent(man.audioVersion||'legacy');
       musicList = man.music || [];
+      musicFiles=man.musicFiles||{};
+      musicSettings=man.musicSettings||{};
+      musicVersion=man.musicVersion||man.audioVersion||'legacy';
       if (wantMusic !== undefined) music(wantMusic.name, wantMusic.o);
       if (wantAmb) ambience(wantAmb);
       // Avoid the old formant voices. Decode only the selected voice candidate; cap mobile fetch/decode concurrency.
@@ -258,7 +261,8 @@ const SFX = (() => {
     if (cur && cur.name === name) { cur.g.gain.setTargetAtTime(o.vol ?? cur.vol, t, 0.3); cur.vol = o.vol ?? cur.vol; return; }
     if (cur) { cur.g.gain.setTargetAtTime(0.0001, t, fade / 3); const el = cur.el; setTimeout(() => el.pause(), fade * 1000 + 300); chan[ch] = null; }
     if (!name || !musicList.includes(name)) return;
-    const el = new Audio(BASE + name + '.m4a');
+    const file=musicFiles[name]||name;
+    const el = new Audio(BASE + file + '.m4a?v='+encodeURIComponent(musicVersion));
     el.loop = o.loop ?? true; el.preload = 'auto';
     const src = ctx.createMediaElementSource(el), g = ctx.createGain();
     g.gain.value = 0.0001; src.connect(g); g.connect(musicBus);
@@ -271,7 +275,7 @@ const SFX = (() => {
     wantMusic = { name, o };
     if (!ctx || !bankStarted) return;
     if (o.jingle) { playChan('jgl', name, { loop: false, vol: o.vol ?? 0.8, fade: 0.2, fadeIn: 0.05 }); return; }
-    playChan('bgm', name, { vol: o.vol ?? 0.55, fade: o.fade ?? 1.0, loop: true });
+    playChan('bgm', name, { vol: o.vol ?? 0.55, fade: o.fade ?? 1.0, loop: o.loop??musicSettings[name]?.loop??true });
   }
   function ambience(mode) {
     if (!ctx) return;

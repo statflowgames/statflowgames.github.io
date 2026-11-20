@@ -974,5 +974,208 @@
    "boss_phase"
   ]
  },
- "audioVersion": "v2-d9ce50cbe6bd"
+ "audioVersion": "v2-d9ce50cbe6bd",
+ "musicFiles": {
+  "bgm_title": "mv3_bgm_title",
+  "bgm_camp": "mv3_bgm_camp",
+  "bgm_map": "mv3_bgm_map",
+  "bgm_tower_a": "mv3_bgm_tower_a",
+  "bgm_tower_b": "mv3_bgm_tower_b",
+  "bgm_c1_forest": "mv3_bgm_c1_forest",
+  "bgm_c1_village": "mv3_bgm_c1_village",
+  "bgm_c1_swamp": "mv3_bgm_c1_swamp",
+  "bgm_c2_harbor": "mv3_bgm_c2_harbor",
+  "bgm_c2_sewer": "mv3_bgm_c2_sewer",
+  "bgm_c3_desert": "mv3_bgm_c3_desert",
+  "bgm_c3_tomb": "mv3_bgm_c3_tomb",
+  "bgm_c4_frost": "mv3_bgm_c4_frost",
+  "bgm_c4_dwarf": "mv3_bgm_c4_dwarf",
+  "bgm_c5_tower": "mv3_bgm_c5_tower",
+  "bgm_c6_abyss": "mv3_bgm_c6_abyss",
+  "bgm_boss_mid": "mv3_bgm_boss_mid",
+  "bgm_boss_a": "mv3_bgm_boss_a",
+  "bgm_boss_b": "mv3_bgm_boss_b",
+  "bgm_boss_orvex": "mv3_bgm_boss_orvex",
+  "bgm_boss_azmal": "mv3_bgm_boss_azmal",
+  "bgm_boss_azmal_rage": "mv3_bgm_boss_azmal_rage",
+  "bgm_boss_void": "mv3_bgm_boss_void",
+  "bgm_story_lise": "mv3_bgm_story_lise",
+  "bgm_story_orvex": "mv3_bgm_story_orvex",
+  "bgm_story_tension": "mv3_bgm_story_tension",
+  "bgm_end_seal": "mv3_bgm_end_seal",
+  "bgm_end_true": "mv3_bgm_end_true",
+  "bgm_end_dark": "mv3_bgm_end_dark",
+  "bgm_end_sacrifice": "mv3_bgm_end_sacrifice",
+  "jgl_stage_clear": "mv3_jgl_stage_clear",
+  "jgl_chapter_clear": "mv3_jgl_chapter_clear",
+  "jgl_level_up": "mv3_jgl_level_up",
+  "jgl_legendary": "mv3_jgl_legendary",
+  "jgl_rank_s": "mv3_jgl_rank_s",
+  "jgl_moonstone": "mv3_jgl_moonstone",
+  "jgl_boss_warning": "mv3_jgl_boss_warning",
+  "jgl_game_over": "mv3_jgl_game_over"
+ },
+ "musicSettings": {
+  "bgm_title": {
+   "loop": true,
+   "duration": 110.76922
+  },
+  "bgm_camp": {
+   "loop": true,
+   "duration": 123.07694
+  },
+  "bgm_map": {
+   "loop": true,
+   "duration": 60.0
+  },
+  "bgm_tower_a": {
+   "loop": true,
+   "duration": 108.38709
+  },
+  "bgm_tower_b": {
+   "loop": true,
+   "duration": 116.36362
+  },
+  "bgm_c1_forest": {
+   "loop": true,
+   "duration": 120.0
+  },
+  "bgm_c1_village": {
+   "loop": true,
+   "duration": 112.0
+  },
+  "bgm_c1_swamp": {
+   "loop": true,
+   "duration": 122.55319
+  },
+  "bgm_c2_harbor": {
+   "loop": true,
+   "duration": 115.86206
+  },
+  "bgm_c2_sewer": {
+   "loop": true,
+   "duration": 124.44444
+  },
+  "bgm_c3_desert": {
+   "loop": true,
+   "duration": 122.18181
+  },
+  "bgm_c3_tomb": {
+   "loop": true,
+   "duration": 117.55103
+  },
+  "bgm_c4_frost": {
+   "loop": true,
+   "duration": 110.76922
+  },
+  "bgm_c4_dwarf": {
+   "loop": true,
+   "duration": 120.0
+  },
+  "bgm_c5_tower": {
+   "loop": true,
+   "duration": 113.89831
+  },
+  "bgm_c6_abyss": {
+   "loop": true,
+   "duration": 115.86206
+  },
+  "bgm_boss_mid": {
+   "loop": true,
+   "duration": 120.0
+  },
+  "bgm_boss_a": {
+   "loop": true,
+   "duration": 116.36362
+  },
+  "bgm_boss_b": {
+   "loop": true,
+   "duration": 112.94119
+  },
+  "bgm_boss_orvex": {
+   "loop": true,
+   "duration": 112.0
+  },
+  "bgm_boss_azmal": {
+   "loop": true,
+   "duration": 111.30434
+  },
+  "bgm_boss_azmal_rage": {
+   "loop": true,
+   "duration": 92.05478
+  },
+  "bgm_boss_void": {
+   "loop": true,
+   "duration": 110.16394
+  },
+  "bgm_story_lise": {
+   "loop": true,
+   "duration": 126.31578
+  },
+  "bgm_story_orvex": {
+   "loop": true,
+   "duration": 106.66666
+  },
+  "bgm_story_tension": {
+   "loop": true,
+   "duration": 109.09091
+  },
+  "bgm_end_seal": {
+   "loop": false,
+   "duration": 130.31578
+  },
+  "bgm_end_true": {
+   "loop": false,
+   "duration": 188.61538
+  },
+  "bgm_end_dark": {
+   "loop": false,
+   "duration": 110.66666
+  },
+  "bgm_end_sacrifice": {
+   "loop": false,
+   "duration": 116.94119
+  },
+  "jgl_stage_clear": {
+   "loop": false,
+   "duration": 5.0
+  },
+  "jgl_chapter_clear": {
+   "loop": false,
+   "duration": 8.0
+  },
+  "jgl_level_up": {
+   "loop": false,
+   "duration": 3.0
+  },
+  "jgl_legendary": {
+   "loop": false,
+   "duration": 3.0
+  },
+  "jgl_rank_s": {
+   "loop": false,
+   "duration": 3.0
+  },
+  "jgl_moonstone": {
+   "loop": false,
+   "duration": 4.0
+  },
+  "jgl_boss_warning": {
+   "loop": false,
+   "duration": 4.0
+  },
+  "jgl_game_over": {
+   "loop": false,
+   "duration": 5.0
+  }
+ },
+ "musicVersion": "v3-f06375767ec3",
+ "musicAudio": {
+  "revision": 3,
+  "bgm": 30,
+  "jingles": 8,
+  "style": "acoustic cinematic fantasy",
+  "samples": "VSCO 2 CE / VCSL, CC0-1.0",
+  "report": "docs/music-v3-handoff.txt"
+ }
 }

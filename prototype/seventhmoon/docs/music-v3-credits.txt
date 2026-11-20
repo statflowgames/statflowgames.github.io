@@ -1,0 +1,25 @@
+Seventh Moon — acoustic cinematic score v3
+Original composition and arrangement: Seventh Moon project, 2026-11-20.
+No existing songs, MIDI compositions or pre-made musical loops were used.
+
+Recorded instrument sources (CC0 1.0 Universal):
+VS Chamber Orchestra 2, Community Edition
+Recorded by Sam Gossner and Simon Dalzell.
+Sample cutting by Elan Hickler / Soundemote.
+https://github.com/sgossner/VSCO-2-CE
+Pinned commit: 440300901dfe9275fd84e0b7763af1f8443ae62e
+https://versilian-studios.com/vsco-community/
+
+Versilian Community Sample Library — Versilian Studios LLC / Sam Gossner
+https://github.com/sgossner/VCSL
+Pinned commit: c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e
+
+License: https://creativecommons.org/publicdomain/zero/1.0/
+Original license texts and per-file hashes are stored in
+audio_raw/production/music_v3/ alongside the locally cached samples.
+Changes: trimmed recording pre-roll, resampled, pitch-mapped, sequenced,
+layered, EQ, stereo placement, reverb, dynamics and loudness mastering.
+Only final mixed music is shipped to the game. Raw sample libraries stay local.
+
+This is a programmed arrangement of recorded individual instruments.
+It is not a live orchestral performance or a paid music-generation output.

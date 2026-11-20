@@ -1,0 +1,60 @@
+일곱 번째 달 — 음악 v3 수정 메모
+작성일: 2026-11-20 (Asia/Seoul)
+
+요청: 전체 음악에서 고전게임 같은 느낌을 줄이고 현대적인 분위기로 수정.
+범위: BGM 30곡 + 클리어/레벨업/경고 등 짧은 음악 8개.
+
+방향
+- 기존 General MIDI 음색과 빠른 록/신스 반복 패턴을 새 편곡으로 대체.
+- 녹음된 현악, 첼로, 호른, 플루트, 바이올린, 피아노, 하프,
+  뜯는 현, 손북, 다르부카, 대북, 톰, 셰이커, 심벌을 직접 배치.
+- 계속 앞에 나오던 촘촘한 선율을 줄이고, 프레이즈 사이에 쉼을 둠.
+- 타이틀/보스는 호른·현악과 낮은 북, 캠프는 플루트와 어쿠스틱,
+  설산은 피아노, 사막은 선법과 다르부카, 마도탑은 하프,
+  심연은 저음 현악을 중심으로 분위기를 구분.
+- 주제 계열과 리세/희생 테마를 곡 사이에 변주.
+- 가사·대사·보컬 없음. 기존 곡이나 다른 게임의 MIDI를 사용하지 않음.
+
+제작 방식과 한계
+CC0 개별 악기 녹음을 새로 채보·편곡·믹싱한 로컬 제작물이다.
+성우/오케스트라의 실연 전체 녹음이나 유료 음악 생성 서비스 결과는 아니다.
+기술 검수는 음량·클리핑·루프·재생 경로를 확인하며,
+이를 에이전트의 직접 청취나 사용자의 음악 취향 승인으로 표현하지 않는다.
+악기 출처·고정 버전·라이선스는 docs/music-v3-credits.txt 참조.
+
+게임 연결
+기존 bgm_*/jgl_* 장면 ID는 유지.
+assets/audio/manifest.json의 musicFiles가 mv3_* 파일로 연결한다.
+musicVersion과 새 파일명을 함께 사용하여 예전 음악 캐시를 피한다.
+브라우저는 필요한 곡만 스트리밍한다. 38곡을 한꺼번에 디코딩하지 않는다.
+일반 BGM은 반복, 엔딩 4곡과 짧은 음악 8개는 단발로 재생한다.
+기존 효과음/주인공 기합/환경음과 음악 음량 설정은 그대로 유지.
+
+규격
+32 kHz / stereo / 16-bit WAV 원본, AAC 128 kbps 게임용 파일.
+전투/일반 음악 약 -17.5 LUFS, 잔잔한 장면 -19 LUFS,
+짧은 음악 -17 LUFS. 최종 AAC를 다시 디코딩하여 피크 검사.
+일반 곡은 약 2분, 지도 1분, 광폭화 약 1분 30초,
+진 엔딩 약 3분. 기존 음악은 이전 비교용으로 보존.
+
+재현 및 검수
+py -3.11 tools/fetch_music_v3_samples.py
+py -3.11 tools/build_music_v3.py
+py -3.11 tools/check_music_v3.py
+node tools/test_music_v3.cjs
+node tools/test_audio_v2.cjs
+node tools/test_awaken_audio_routes.cjs
+tools/prep_audio.py 전체 재빌드도 새 음악 제작기를 호출한다.
+
+로컬 제작 자료
+audio_raw/production/music_v3/masters/ — 곡별 WAV, MIDI, JSON 악보
+audio_raw/production/music_v3/samples.json — 원본 파일 출처와 해시
+audio_raw/production/music_v3/delivery.json — 납품 목록
+audio_raw/production/music_v3/qa-decoded.json — 압축본 기술 검수
+
+비교 청취 화면
+tools/music-review-v3.html — 38곡 선택, 새 편곡/이전 편곡 A/B 재생.
+공개판: https://statflowgames.github.io/prototype/seventhmoon/tools/music-review-v3.html
+
+다음 수정 시 mv3_*를 옛 bgm_* 파일로 덮어쓰지 말 것.
+이 메모는 음악 변경만 다룬다. 전투 수치·모션·조작은 변경하지 않았다.
