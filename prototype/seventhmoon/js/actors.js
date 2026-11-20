@@ -661,6 +661,14 @@ class Monster extends Actor {
     const dx = h.x - this.x, dy = h.y - this.y, adx = Math.abs(dx);
     if (st === 'dying') { this.physics(dt); return; }
     if (st === 'air') { this.physics(dt); return; }
+    // 안전장치: 체력이 0인데 다른 상태(빙결 등)로 바뀌었거나, 공중에 뜬 채 다른 상태가 된 몬스터는
+    // 다시 떨어뜨려 쓰러지게 한다 (안 그러면 떠 있거나 죽지 않은 채 남는다). 보스는 bossHit가 따로 처리.
+    if (this.kind !== 'barkhaul' && !this.def.boss && st !== 'down' && st !== 'getup' && st !== 'enter' &&
+        (this.hp <= 0 || (this.z > 0 && st !== 'hurt'))) {
+      this.state = 'air'; this.st = 0; this.z = Math.max(this.z, 1); this.freezeT = 0;
+      if (this.hp <= 0) this.vz = Math.max(this.vz, 200);
+      this.play('m_air', 30); this.physics(dt); return;
+    }
     if (st === 'down') {
       if (this.st > (this.downTime || 800)) {
         if (this.hp <= 0) return this.die();
@@ -815,6 +823,8 @@ class Monster extends Actor {
     if (Math.random() < 0.6) SFX.gob('hurt', this.px, this.pitch);
     if (isDown) { this.vz = 260; this.z = 1; this.state = 'air'; this.st = 0; this.play('m_air', 30); return true; }
     if (this.state === 'air' || this.z > 0) {
+      // 이미 체력이 0인 적은 공중에서 더 띄우지 않고 바로 떨어뜨린다 (계속 맞으면 영영 안 내려온다)
+      if (this.hp <= 0) { if (this.state !== 'air') { this.state = 'air'; this.st = 0; this.play('m_air', 30); } this.vz = Math.min(this.vz, 120); this.gravMul = 1.3; return true; }
       this.vz = Math.max(this.vz, a.type === 'launch' ? 700 : 380); this.vx = dir * 70; this.gravMul = 0.8;
       if (a.type === 'knock' || a.type === 'slam') { this.vx = dir * a.kb; this.vz = 300; }
       return true;
