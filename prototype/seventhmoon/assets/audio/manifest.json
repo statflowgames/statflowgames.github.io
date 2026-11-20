@@ -802,91 +802,91 @@
    "ev2_boss_barkhaul_hurt_v2"
   ],
   "ev2_boss_barkhaul_die": [
-   "ev2_boss_barkhaul_die_v4"
+   "ev2_boss_barkhaul_die_v6"
   ],
   "ev2_boss_toothcrusher_hurt": [
    "ev2_boss_toothcrusher_hurt_v1",
    "ev2_boss_toothcrusher_hurt_v2"
   ],
   "ev2_boss_toothcrusher_die": [
-   "ev2_boss_toothcrusher_die_v4"
+   "ev2_boss_toothcrusher_die_v6"
   ],
   "ev2_boss_captain_mog_hurt": [
    "ev2_boss_captain_mog_hurt_v1",
    "ev2_boss_captain_mog_hurt_v2"
   ],
   "ev2_boss_captain_mog_die": [
-   "ev2_boss_captain_mog_die_v4"
+   "ev2_boss_captain_mog_die_v6"
   ],
   "ev2_boss_gloob_hurt": [
    "ev2_boss_gloob_hurt_v1",
    "ev2_boss_gloob_hurt_v2"
   ],
   "ev2_boss_gloob_die": [
-   "ev2_boss_gloob_die_v4"
+   "ev2_boss_gloob_die_v6"
   ],
   "ev2_boss_twinsting_hurt": [
    "ev2_boss_twinsting_hurt_v1",
    "ev2_boss_twinsting_hurt_v2"
   ],
   "ev2_boss_twinsting_die": [
-   "ev2_boss_twinsting_die_v4"
+   "ev2_boss_twinsting_die_v6"
   ],
   "ev2_boss_sehera_hurt": [
    "ev2_boss_sehera_hurt_v1",
    "ev2_boss_sehera_hurt_v2"
   ],
   "ev2_boss_sehera_die": [
-   "ev2_boss_sehera_die_v4"
+   "ev2_boss_sehera_die_v6"
   ],
   "ev2_boss_frost_wyvern_hurt": [
    "ev2_boss_frost_wyvern_hurt_v1",
    "ev2_boss_frost_wyvern_hurt_v2"
   ],
   "ev2_boss_frost_wyvern_die": [
-   "ev2_boss_frost_wyvern_die_v4"
+   "ev2_boss_frost_wyvern_die_v6"
   ],
   "ev2_boss_hrimgar_hurt": [
    "ev2_boss_hrimgar_hurt_v1",
    "ev2_boss_hrimgar_hurt_v2"
   ],
   "ev2_boss_hrimgar_die": [
-   "ev2_boss_hrimgar_die_v4"
+   "ev2_boss_hrimgar_die_v6"
   ],
   "ev2_boss_golem7_hurt": [
    "ev2_boss_golem7_hurt_v1",
    "ev2_boss_golem7_hurt_v2"
   ],
   "ev2_boss_golem7_die": [
-   "ev2_boss_golem7_die_v4"
+   "ev2_boss_golem7_die_v6"
   ],
   "ev2_boss_orvex_hurt": [
    "ev2_boss_orvex_hurt_v1",
    "ev2_boss_orvex_hurt_v2"
   ],
   "ev2_boss_orvex_die": [
-   "ev2_boss_orvex_die_v4"
+   "ev2_boss_orvex_die_v6"
   ],
   "ev2_boss_orvex_eclipse_hurt": [
    "ev2_boss_orvex_eclipse_hurt_v1",
    "ev2_boss_orvex_eclipse_hurt_v2"
   ],
   "ev2_boss_orvex_eclipse_die": [
-   "ev2_boss_orvex_eclipse_die_v4"
+   "ev2_boss_orvex_eclipse_die_v6"
   ],
   "ev2_boss_azmal_hurt": [
    "ev2_boss_azmal_hurt_v1",
    "ev2_boss_azmal_hurt_v2"
   ],
   "ev2_boss_azmal_die": [
-   "ev2_boss_azmal_die_v4"
+   "ev2_boss_azmal_die_v6"
   ],
   "ev2_boss_void_shadow_hurt": [
    "ev2_boss_void_shadow_hurt_v1",
    "ev2_boss_void_shadow_hurt_v2"
   ],
   "ev2_boss_void_shadow_die": [
-   "ev2_boss_void_shadow_die_v4"
+   "ev2_boss_void_shadow_die_v6"
   ],
   "fv3_warrior_ko": [
    "fv3_warrior_ko_v1"
@@ -1101,7 +1101,7 @@
    "boss_phase"
   ]
  },
- "audioVersion": "v5-ce23cb4ff536",
+ "audioVersion": "v6-330ea8e518d0",
  "musicFiles": {
   "bgm_title": "mv3_bgm_title",
   "bgm_camp": "mv3_bgm_camp",
@@ -1376,7 +1376,7 @@
   "credits": "docs/hero-emotion-v5-handoff.txt"
  },
  "bossDefeat": {
-  "revision": 4,
+  "revision": 6,
   "bosses": [
    "barkhaul",
    "toothcrusher",
@@ -1393,6 +1393,10 @@
    "void_shadow"
   ],
   "voiceFirst": true,
-  "materialLayer": 0.16
+  "materialLayer": 0.16,
+  "durationRatio": 0.3333333333333333,
+  "pitchRatio": 1,
+  "sourceRevision": 4,
+  "handoff": "docs/boss-defeat-v6-handoff.txt"
  }
 }
