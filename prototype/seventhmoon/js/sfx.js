@@ -444,10 +444,13 @@ const SFX = (() => {
   prefer('jump', x => sample('jump', { x }));
   prefer('land', (x, heavy) => gated('land', 'landS', 30, () => sample(heavy && has('knockdown') ? 'knockdown' : 'land', { x })));
   prefer('roll', x => sample('roll', { x }));
-  prefer('heroAtk', (power = 1, x) => gated('vo_warrior_atk', 'heroVS', 120, () => sample(power > 0 ? 'vo_warrior_atk_big' : 'vo_warrior_atk', { x, vary: 0.03 })));
-  prefer('heroHurt', x => gated('vo_warrior_hurt', 'heroVS', 150, () => sample('vo_warrior_hurt', { x, vary: 0.03 })));
-  prefer('heroKO', x => sample('vo_warrior_ko', { x, vary: 0 }));
-  prefer('heroWin', () => sample('vo_warrior_victory', { vary: 0 }));
+  // 주인공 목소리: 지금 음원은 합성한 목소리라 몬스터·좀비처럼 들려서 끈다.
+  // 사람이 녹음한 직업별 목소리가 생기면 여기서 다시 연결한다 (true = 합성음으로도 넘어가지 않음)
+  const HERO_VOICE = false;
+  prefer('heroAtk', (power = 1, x) => HERO_VOICE ? gated('vo_warrior_atk', 'heroVS', 120, () => sample(power > 0 ? 'vo_warrior_atk_big' : 'vo_warrior_atk', { x, vary: 0.03 })) : true);
+  prefer('heroHurt', x => HERO_VOICE ? gated('vo_warrior_hurt', 'heroVS', 150, () => sample('vo_warrior_hurt', { x, vary: 0.03 })) : true);
+  prefer('heroKO', x => HERO_VOICE ? sample('vo_warrior_ko', { x, vary: 0 }) : true);
+  prefer('heroWin', () => HERO_VOICE ? sample('vo_warrior_victory', { vary: 0 }) : true);
   prefer('gob', (kind, x, pitch = 1) => {
     if (!has('mon_grolin_shout')) return false;
     if (!gate('gobS' + kind, 60)) return true;
@@ -473,7 +476,7 @@ const SFX = (() => {
   prefer('roar', x => sample('boss_giant_roar', { x, vary: 0.02 }));
   prefer('smash', x => { if (!has('ground_slam')) return false; sample('ground_slam', { x }); sample('wall_crumble', { x, vol: 0.6, delay: 0.05 }); return true; });
   prefer('roots', x => sample('trap_spike', { x, rate: 0.8 }));
-  prefer('awaken', () => { if (!has('awaken_warrior')) return false; sample('cutin'); sample('vo_warrior_awaken', { vary: 0, delay: 0.05 }); sample('awaken_warrior', { delay: 0.15 }); return true; });
+  prefer('awaken', () => { if (!has('awaken_warrior')) return false; sample('cutin'); if (HERO_VOICE) sample('vo_warrior_awaken', { vary: 0, delay: 0.05 }); sample('awaken_warrior', { delay: 0.15 }); return true; });
   prefer('wall', x => sample('shield_wall', { x }));
   prefer('combo', () => sample('combo_milestone'));
   prefer('go', () => sample('ui_tap'));
