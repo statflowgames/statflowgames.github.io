@@ -146,7 +146,9 @@ const SFX = (() => {
   const enemyVoices=[];
   const lastVoiceIndex={};
   const HERO_KEYS=new Set(['warrior','mage','paladin','rogue','ranger','hexblade']);
-  const BOSS_KEYS=new Set(['barkhaul','toothcrusher','captain_mog','gloob','twinsting','sehera','frost_wyvern','hrimgar','golem7','orvex','orvex_eclipse','azmal','void_shadow']);
+  const BOSS_KEYS=new Set(['barkhaul','toothcrusher','captain_mog','gloob','twinsting','sehera','frost_wyvern','hrimgar','golem7','orvex','orvex_eclipse','azmal','void_shadow',
+    // 🆕 2부 보스 (tools/build_audio_p2.py)
+    'glass_queen','star_colossus','drowned_captain','naia','forge_golem','ignar','rot_warden','mycela','storm_wyvern','morgan','moon_azmal','moon_orvex']);
   const candidate=()=> 'global'; // Global release uses nonverbal takes only, never the old Korean candidates.
   const chan = {};            // 'bgm', 'amb', 'jgl' → { name, el, g }
   let wantMusic = undefined;
@@ -222,6 +224,14 @@ const SFX = (() => {
     if(v)heroVoices[hero]={...v,priority,kind};
   }
   function enemyFamily(id='grunt'){
+    // 🆕 2부 계열 (유리·물·용암·포자·은빛·달) — 1부 규칙보다 먼저 본다
+    if(/storm_wyvern|moon_azmal/.test(id))return 'dragon';
+    if(/^glass|crystal|shard|star_colossus|sand_wraith/.test(id))return 'glass';
+    if(/drowned|tide_|deep_fish|naia/.test(id))return 'water';
+    if(/magma|fire_imp|forge|ember|ignar/.test(id))return 'magma';
+    if(/spore|rot_|thorn|bog_|mycela/.test(id))return 'spore';
+    if(/silver|storm_harpy|sky_garg|morgan/.test(id))return 'silver';
+    if(/^moon_|star_imp|void_leech/.test(id))return 'moon';
     if(/skeleton/.test(id))return 'bone';
     if(/mummy|sehera/.test(id))return 'mummy';
     if(/azmal|wyvern/.test(id))return 'dragon';

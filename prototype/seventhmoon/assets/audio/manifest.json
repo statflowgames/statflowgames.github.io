@@ -923,6 +923,252 @@
   ],
   "fv3_hexblade_victory": [
    "fv3_hexblade_victory_v1"
+  ],
+  "ev2_glass_atk": [
+   "ev2_glass_atk_v1",
+   "ev2_glass_atk_v2"
+  ],
+  "ev2_glass_hurt": [
+   "ev2_glass_hurt_v1",
+   "ev2_glass_hurt_v2"
+  ],
+  "ev2_glass_die": [
+   "ev2_glass_die_v1",
+   "ev2_glass_die_v2"
+  ],
+  "ev2_glass_alert": [
+   "ev2_glass_alert_v1"
+  ],
+  "ev2_glass_laugh": [
+   "ev2_glass_laugh_v1"
+  ],
+  "ev2_glass_scared": [
+   "ev2_glass_scared_v1"
+  ],
+  "ev2_glass_chant": [
+   "ev2_glass_chant_v1"
+  ],
+  "ev2_glass_roar": [
+   "ev2_glass_roar_v1"
+  ],
+  "ev2_water_atk": [
+   "ev2_water_atk_v1",
+   "ev2_water_atk_v2"
+  ],
+  "ev2_water_hurt": [
+   "ev2_water_hurt_v1",
+   "ev2_water_hurt_v2"
+  ],
+  "ev2_water_die": [
+   "ev2_water_die_v1",
+   "ev2_water_die_v2"
+  ],
+  "ev2_water_alert": [
+   "ev2_water_alert_v1"
+  ],
+  "ev2_water_laugh": [
+   "ev2_water_laugh_v1"
+  ],
+  "ev2_water_scared": [
+   "ev2_water_scared_v1"
+  ],
+  "ev2_water_chant": [
+   "ev2_water_chant_v1"
+  ],
+  "ev2_water_roar": [
+   "ev2_water_roar_v1"
+  ],
+  "ev2_magma_atk": [
+   "ev2_magma_atk_v1",
+   "ev2_magma_atk_v2"
+  ],
+  "ev2_magma_hurt": [
+   "ev2_magma_hurt_v1",
+   "ev2_magma_hurt_v2"
+  ],
+  "ev2_magma_die": [
+   "ev2_magma_die_v1",
+   "ev2_magma_die_v2"
+  ],
+  "ev2_magma_alert": [
+   "ev2_magma_alert_v1"
+  ],
+  "ev2_magma_laugh": [
+   "ev2_magma_laugh_v1"
+  ],
+  "ev2_magma_scared": [
+   "ev2_magma_scared_v1"
+  ],
+  "ev2_magma_chant": [
+   "ev2_magma_chant_v1"
+  ],
+  "ev2_magma_roar": [
+   "ev2_magma_roar_v1"
+  ],
+  "ev2_spore_atk": [
+   "ev2_spore_atk_v1",
+   "ev2_spore_atk_v2"
+  ],
+  "ev2_spore_hurt": [
+   "ev2_spore_hurt_v1",
+   "ev2_spore_hurt_v2"
+  ],
+  "ev2_spore_die": [
+   "ev2_spore_die_v1",
+   "ev2_spore_die_v2"
+  ],
+  "ev2_spore_alert": [
+   "ev2_spore_alert_v1"
+  ],
+  "ev2_spore_laugh": [
+   "ev2_spore_laugh_v1"
+  ],
+  "ev2_spore_scared": [
+   "ev2_spore_scared_v1"
+  ],
+  "ev2_spore_chant": [
+   "ev2_spore_chant_v1"
+  ],
+  "ev2_spore_roar": [
+   "ev2_spore_roar_v1"
+  ],
+  "ev2_silver_atk": [
+   "ev2_silver_atk_v1",
+   "ev2_silver_atk_v2"
+  ],
+  "ev2_silver_hurt": [
+   "ev2_silver_hurt_v1",
+   "ev2_silver_hurt_v2"
+  ],
+  "ev2_silver_die": [
+   "ev2_silver_die_v1",
+   "ev2_silver_die_v2"
+  ],
+  "ev2_silver_alert": [
+   "ev2_silver_alert_v1"
+  ],
+  "ev2_silver_laugh": [
+   "ev2_silver_laugh_v1"
+  ],
+  "ev2_silver_scared": [
+   "ev2_silver_scared_v1"
+  ],
+  "ev2_silver_chant": [
+   "ev2_silver_chant_v1"
+  ],
+  "ev2_silver_roar": [
+   "ev2_silver_roar_v1"
+  ],
+  "ev2_moon_atk": [
+   "ev2_moon_atk_v1",
+   "ev2_moon_atk_v2"
+  ],
+  "ev2_moon_hurt": [
+   "ev2_moon_hurt_v1",
+   "ev2_moon_hurt_v2"
+  ],
+  "ev2_moon_die": [
+   "ev2_moon_die_v1",
+   "ev2_moon_die_v2"
+  ],
+  "ev2_moon_alert": [
+   "ev2_moon_alert_v1"
+  ],
+  "ev2_moon_laugh": [
+   "ev2_moon_laugh_v1"
+  ],
+  "ev2_moon_scared": [
+   "ev2_moon_scared_v1"
+  ],
+  "ev2_moon_chant": [
+   "ev2_moon_chant_v1"
+  ],
+  "ev2_moon_roar": [
+   "ev2_moon_roar_v1"
+  ],
+  "ev2_boss_glass_queen_hurt": [
+   "ev2_boss_glass_queen_hurt_v1",
+   "ev2_boss_glass_queen_hurt_v2"
+  ],
+  "ev2_boss_glass_queen_die": [
+   "ev2_boss_glass_queen_die_v6"
+  ],
+  "ev2_boss_star_colossus_hurt": [
+   "ev2_boss_star_colossus_hurt_v1",
+   "ev2_boss_star_colossus_hurt_v2"
+  ],
+  "ev2_boss_star_colossus_die": [
+   "ev2_boss_star_colossus_die_v6"
+  ],
+  "ev2_boss_drowned_captain_hurt": [
+   "ev2_boss_drowned_captain_hurt_v1",
+   "ev2_boss_drowned_captain_hurt_v2"
+  ],
+  "ev2_boss_drowned_captain_die": [
+   "ev2_boss_drowned_captain_die_v6"
+  ],
+  "ev2_boss_naia_hurt": [
+   "ev2_boss_naia_hurt_v1",
+   "ev2_boss_naia_hurt_v2"
+  ],
+  "ev2_boss_naia_die": [
+   "ev2_boss_naia_die_v6"
+  ],
+  "ev2_boss_forge_golem_hurt": [
+   "ev2_boss_forge_golem_hurt_v1",
+   "ev2_boss_forge_golem_hurt_v2"
+  ],
+  "ev2_boss_forge_golem_die": [
+   "ev2_boss_forge_golem_die_v6"
+  ],
+  "ev2_boss_ignar_hurt": [
+   "ev2_boss_ignar_hurt_v1",
+   "ev2_boss_ignar_hurt_v2"
+  ],
+  "ev2_boss_ignar_die": [
+   "ev2_boss_ignar_die_v6"
+  ],
+  "ev2_boss_rot_warden_hurt": [
+   "ev2_boss_rot_warden_hurt_v1",
+   "ev2_boss_rot_warden_hurt_v2"
+  ],
+  "ev2_boss_rot_warden_die": [
+   "ev2_boss_rot_warden_die_v6"
+  ],
+  "ev2_boss_mycela_hurt": [
+   "ev2_boss_mycela_hurt_v1",
+   "ev2_boss_mycela_hurt_v2"
+  ],
+  "ev2_boss_mycela_die": [
+   "ev2_boss_mycela_die_v6"
+  ],
+  "ev2_boss_storm_wyvern_hurt": [
+   "ev2_boss_storm_wyvern_hurt_v1",
+   "ev2_boss_storm_wyvern_hurt_v2"
+  ],
+  "ev2_boss_storm_wyvern_die": [
+   "ev2_boss_storm_wyvern_die_v6"
+  ],
+  "ev2_boss_morgan_hurt": [
+   "ev2_boss_morgan_hurt_v1",
+   "ev2_boss_morgan_hurt_v2"
+  ],
+  "ev2_boss_morgan_die": [
+   "ev2_boss_morgan_die_v6"
+  ],
+  "ev2_boss_moon_azmal_hurt": [
+   "ev2_boss_moon_azmal_hurt_v1",
+   "ev2_boss_moon_azmal_hurt_v2"
+  ],
+  "ev2_boss_moon_azmal_die": [
+   "ev2_boss_moon_azmal_die_v6"
+  ],
+  "ev2_boss_moon_orvex_hurt": [
+   "ev2_boss_moon_orvex_hurt_v1",
+   "ev2_boss_moon_orvex_hurt_v2"
+  ],
+  "ev2_boss_moon_orvex_die": [
+   "ev2_boss_moon_orvex_die_v6"
   ]
  },
  "music": [
@@ -975,7 +1221,35 @@
   "jgl_level_up",
   "jgl_legendary",
   "jgl_moonstone",
-  "jgl_rank_s"
+  "jgl_rank_s",
+  "bgm_c7_glass",
+  "jgl_seed",
+  "bgm_c7_maze",
+  "bgm_c8_sunken",
+  "bgm_c8_temple",
+  "bgm_c9_forge",
+  "bgm_c9_lava",
+  "bgm_c10_spore",
+  "bgm_c10_bog",
+  "bgm_c11_cloud",
+  "bgm_c11_garden",
+  "bgm_c12_moon",
+  "bgm_c12_grave",
+  "bgm_p2_boss_mid",
+  "bgm_p2_boss",
+  "bgm_boss_morgan",
+  "bgm_boss_moon_orvex",
+  "bgm_story_p2",
+  "bgm_end_p2_true",
+  "bgm_end_p2_dark",
+  "bgm_end_p2_dawn",
+  "jgl_part2",
+  "amb_glass",
+  "amb_sunken",
+  "amb_lava",
+  "amb_spore",
+  "amb_cloud",
+  "amb_moon"
  ],
  "heroAudio": {
   "revision": 2,
@@ -997,19 +1271,25 @@
  "enemyAudio": {
   "revision": 2,
   "families": [
-   "grolin",
-   "rat",
-   "wolf",
    "bone",
-   "mummy",
-   "slime",
-   "insect",
-   "construct",
-   "winged",
    "brute",
-   "shadow",
+   "construct",
+   "dragon",
+   "glass",
+   "grolin",
    "human",
-   "dragon"
+   "insect",
+   "magma",
+   "moon",
+   "mummy",
+   "rat",
+   "shadow",
+   "silver",
+   "slime",
+   "spore",
+   "water",
+   "winged",
+   "wolf"
   ],
   "events": [
    "atk",
@@ -1101,7 +1381,7 @@
    "boss_phase"
   ]
  },
- "audioVersion": "v6-330ea8e518d0",
+ "audioVersion": "v6-330ea8e518d0+p2-20261121",
  "musicFiles": {
   "bgm_title": "mv3_bgm_title",
   "bgm_camp": "mv3_bgm_camp",
@@ -1140,7 +1420,29 @@
   "jgl_rank_s": "mv3_jgl_rank_s",
   "jgl_moonstone": "mv3_jgl_moonstone",
   "jgl_boss_warning": "mv3_jgl_boss_warning",
-  "jgl_game_over": "mv3_jgl_game_over"
+  "jgl_game_over": "mv3_jgl_game_over",
+  "bgm_c7_glass": "mv3_bgm_c7_glass",
+  "jgl_seed": "mv3_jgl_seed",
+  "bgm_c7_maze": "mv3_bgm_c7_maze",
+  "bgm_c8_sunken": "mv3_bgm_c8_sunken",
+  "bgm_c8_temple": "mv3_bgm_c8_temple",
+  "bgm_c9_forge": "mv3_bgm_c9_forge",
+  "bgm_c9_lava": "mv3_bgm_c9_lava",
+  "bgm_c10_spore": "mv3_bgm_c10_spore",
+  "bgm_c10_bog": "mv3_bgm_c10_bog",
+  "bgm_c11_cloud": "mv3_bgm_c11_cloud",
+  "bgm_c11_garden": "mv3_bgm_c11_garden",
+  "bgm_c12_moon": "mv3_bgm_c12_moon",
+  "bgm_c12_grave": "mv3_bgm_c12_grave",
+  "bgm_p2_boss_mid": "mv3_bgm_p2_boss_mid",
+  "bgm_p2_boss": "mv3_bgm_p2_boss",
+  "bgm_boss_morgan": "mv3_bgm_boss_morgan",
+  "bgm_boss_moon_orvex": "mv3_bgm_boss_moon_orvex",
+  "bgm_story_p2": "mv3_bgm_story_p2",
+  "bgm_end_p2_true": "mv3_bgm_end_p2_true",
+  "bgm_end_p2_dark": "mv3_bgm_end_p2_dark",
+  "bgm_end_p2_dawn": "mv3_bgm_end_p2_dawn",
+  "jgl_part2": "mv3_jgl_part2"
  },
  "musicSettings": {
   "bgm_title": {
@@ -1294,33 +1596,132 @@
   "jgl_game_over": {
    "loop": false,
    "duration": 5.0
+  },
+  "bgm_c7_glass": {
+   "loop": true,
+   "duration": 120.0
+  },
+  "jgl_seed": {
+   "loop": false,
+   "duration": 4.0
+  },
+  "bgm_c7_maze": {
+   "loop": true,
+   "duration": 110.76922
+  },
+  "bgm_c8_sunken": {
+   "loop": true,
+   "duration": 104.34781
+  },
+  "bgm_c8_temple": {
+   "loop": true,
+   "duration": 115.2
+  },
+  "bgm_c9_forge": {
+   "loop": true,
+   "duration": 108.38709
+  },
+  "bgm_c9_lava": {
+   "loop": true,
+   "duration": 116.36362
+  },
+  "bgm_c10_spore": {
+   "loop": true,
+   "duration": 106.66666
+  },
+  "bgm_c10_bog": {
+   "loop": true,
+   "duration": 109.09091
+  },
+  "bgm_c11_cloud": {
+   "loop": true,
+   "duration": 112.0
+  },
+  "bgm_c11_garden": {
+   "loop": true,
+   "duration": 120.0
+  },
+  "bgm_c12_moon": {
+   "loop": true,
+   "duration": 117.89475
+  },
+  "bgm_c12_grave": {
+   "loop": true,
+   "duration": 114.28572
+  },
+  "bgm_p2_boss_mid": {
+   "loop": true,
+   "duration": 114.62687
+  },
+  "bgm_p2_boss": {
+   "loop": true,
+   "duration": 109.71428
+  },
+  "bgm_boss_morgan": {
+   "loop": true,
+   "duration": 105.0
+  },
+  "bgm_boss_moon_orvex": {
+   "loop": true,
+   "duration": 112.94119
+  },
+  "bgm_story_p2": {
+   "loop": true,
+   "duration": 101.05263
+  },
+  "bgm_end_p2_true": {
+   "loop": false,
+   "duration": 157.6
+  },
+  "bgm_end_p2_dark": {
+   "loop": false,
+   "duration": 113.71428
+  },
+  "bgm_end_p2_dawn": {
+   "loop": false,
+   "duration": 124.0
+  },
+  "jgl_part2": {
+   "loop": false,
+   "duration": 6.0
   }
  },
- "musicVersion": "v3-2a32c48c3551",
+ "musicVersion": "v3p2-562288d7bebb",
  "musicAudio": {
   "revision": 3,
   "bgm": 30,
   "jingles": 8,
   "style": "acoustic cinematic fantasy",
   "samples": "VSCO 2 CE / VCSL, CC0-1.0",
-  "report": "docs/music-v3-handoff.txt"
+  "report": "docs/music-v3-handoff.txt",
+  "part2": {
+   "composer": "Claude",
+   "tracks": 22,
+   "date": "2026-11-21"
+  }
  },
  "enemyFeedback": {
   "revision": 3,
   "families": [
-   "grolin",
-   "rat",
-   "wolf",
    "bone",
-   "mummy",
-   "slime",
-   "insect",
-   "construct",
-   "winged",
    "brute",
-   "shadow",
+   "construct",
+   "dragon",
+   "glass",
+   "grolin",
    "human",
-   "dragon"
+   "insect",
+   "magma",
+   "moon",
+   "mummy",
+   "rat",
+   "shadow",
+   "silver",
+   "slime",
+   "spore",
+   "water",
+   "winged",
+   "wolf"
   ],
   "bosses": [
    "barkhaul",
@@ -1335,7 +1736,19 @@
    "orvex",
    "orvex_eclipse",
    "azmal",
-   "void_shadow"
+   "void_shadow",
+   "glass_queen",
+   "star_colossus",
+   "drowned_captain",
+   "naia",
+   "forge_golem",
+   "ignar",
+   "rot_warden",
+   "mycela",
+   "storm_wyvern",
+   "morgan",
+   "moon_azmal",
+   "moon_orvex"
   ],
   "hurtGain": 0.46,
   "dieGain": 0.68,

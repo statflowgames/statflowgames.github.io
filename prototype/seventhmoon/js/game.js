@@ -1927,6 +1927,10 @@ class Game extends Phaser.Scene {
   // ---------------- 보스 ----------------
   bossMusic(kind) {
     const d = MONDEF[kind];
+    // 🆕 2부 보스 음악
+    if (kind === 'morgan') return 'bgm_boss_morgan';
+    if (kind === 'moon_orvex') return 'bgm_boss_moon_orvex';
+    if (d && d.like && this.ch >= 7) return d.mid ? 'bgm_p2_boss_mid' : 'bgm_p2_boss';
     if (kind === 'azmal') return 'bgm_boss_azmal';
     if (kind === 'void_shadow') return 'bgm_boss_void';
     if (kind === 'orvex' || kind === 'orvex_eclipse') return 'bgm_boss_orvex';

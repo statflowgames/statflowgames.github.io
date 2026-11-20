@@ -68,7 +68,7 @@ Object.assign(STORY, {
   // ---- 7장 유리 사막 ----
   c7_intro: [
     { bg: 'story/c3' },
-    { music: 'bgm_story_tension' },
+    { music: 'bgm_story_p2' },
     { w: 'narr', t: '흑월이 닫히고 석 달. 벨카라의 밤하늘에 가느다란 금이 갔다.' },
     { w: 'narr', t: '금 사이로 밤마다 검은 별이 떨어진다. 사람들은 그것을 \'흑월 씨앗\'이라 불렀다.' },
     { w: 'tabel', t: '(지팡이를 짚고) 씨앗이 떨어진 곳마다 수호자가 미치고 땅이 뒤틀린다는군. 여섯이 한곳에 모이면 — 흑월이 300년이 아니라 30일 만에 다시 뜬다고.' },
@@ -347,6 +347,7 @@ Object.assign(STORY, {
     { w: 'narr', ifSeeds: 6, t: '여섯 씨앗이 모두 맑은 빛이 되었다. 달의 뒷면이 처음으로 따뜻하게 빛났다.' },
   ],
   c12_preboss: [
+    { music: 'bgm_story_p2' },
     { w: 'narr', t: '달의 중심. 오르벡스가 씨앗들을 품고 떠올라 있다. 그의 몸이 은빛 달처럼 빛나기 시작한다.' },
     { w: 'orvex', if: 'p2_accepted', t: '고맙다. 이제 마지막 의식만 남았다. …그러나 흑월의 그림자가 저항하는구나. 함께 막아 다오.' },
     { w: 'orvex', ifNot: 'p2_accepted', t: '왔구나. 이 달이 뜨는 걸 막고 싶다면 — 나를 넘어서라.' },
@@ -363,7 +364,7 @@ Object.assign(STORY, {
   c12_side_end: [{ w: 'lise', t: '…달은 밤을 지키려고 떠오른 거였어요. 그걸 잊지 않을게요.' }, { give: { gold: 1500, item: 'legend', lise: 1 } }],
   // ---- 2부 엔딩 ----
   p2_true: [
-    { music: 'bgm_end_true' },
+    { music: 'bgm_end_p2_true' },
     { bg: 'story/end_true' },
     { w: 'narr', t: '여섯 씨앗의 맑은 빛이 오르벡스를 감쌌다. 은빛 달은 깨지지 않고, 부드러운 빛으로 바뀌었다.' },
     { w: 'orvex', t: '…아. 밤을 없애지 않아도, 밤을 지킬 수 있었구나. 300년을 돌아서야 알았다.' },
@@ -373,7 +374,7 @@ Object.assign(STORY, {
     { w: 'narr', t: '— 2부 진 엔딩 「일곱 달의 하늘」. 벨카라의 밤하늘에는 이제 일곱 개의 달이 함께 떠, 밤과 꿈을 지킨다.' },
   ],
   p2_dark: [
-    { music: 'bgm_end_dark' },
+    { music: 'bgm_end_p2_dark' },
     { bg: 'story/end_dark' },
     { w: 'narr', t: '씨앗 여섯을 품은 오르벡스가 떠올랐다. 하늘에 은빛 달 하나가 영원히 걸렸다.' },
     { w: 'orvex', t: '이제 아무도 희생하지 않는다. 아무도… 꿈꾸지 않는다.' },
@@ -381,7 +382,7 @@ Object.assign(STORY, {
     { w: 'narr', t: '— 2부 엔딩 「달의 왕」. (월석과 씨앗, 그리고 믿음이 있다면 다른 끝이 있을지도 모른다.)' },
   ],
   p2_dawn: [
-    { music: 'bgm_end_seal' },
+    { music: 'bgm_end_p2_dawn' },
     { bg: 'story/end_seal' },
     { w: 'narr', t: '오르벡스가 쓰러지고, 그가 품었던 씨앗들이 흩어져 바다로 떨어졌다.' },
     { w: 'tabel', t: '흑월은 막았다. …흩어진 씨앗이 언젠가 다시 싹트겠지만.' },

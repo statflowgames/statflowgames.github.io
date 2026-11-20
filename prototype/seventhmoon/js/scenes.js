@@ -332,7 +332,7 @@ class MapScene extends Phaser.Scene {
   ending(e) {
     const s = Save.data;
     s.endings[e] = true;
-    if (!e.startsWith('p2_')) { s.lastEnding = e; if (s.ch < 7) { s.ch = 7; this.time.delayedCall(1200, () => UI.toast(this, '2부 「부서진 하늘」이 열렸어요', '#c8d8ff', 260)); } }
+    if (!e.startsWith('p2_')) { s.lastEnding = e; if (s.ch < 7) { s.ch = 7; this.time.delayedCall(1200, () => { UI.toast(this, '2부 「부서진 하늘」이 열렸어요', '#c8d8ff', 260); SFX.jingle && SFX.jingle('jgl_part2'); }); } }
     const ne = Object.keys(s.endings).length;
     // 🆕 직업별 엔딩 기록: 처음 보는 (직업, 엔딩) 조합이면 보상
     const ck = `end_${s.hero}_${e}`;

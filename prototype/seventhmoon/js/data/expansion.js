@@ -63,18 +63,19 @@ for (const [id, src, ko, tint, sc, hp, dmg, exp, mid, summon] of P2_BOSSES) {
 
 // ---------------- 2부 배경 (대역: 지금 배경 + 색) ----------------
 Object.assign(THEMES, {
-  glass: { ...THEMES.desert, standin: true, tint: 0xb8dcff },
-  glass_maze: { ...THEMES.tomb, standin: true, tint: 0xa8d0f0 },
-  sunken: { ...THEMES.harbor, standin: true, tint: 0x80b8c0 },
-  sunken_temple: { ...THEMES.sewer, standin: true, tint: 0x70b0c8 },
-  forge: { ...THEMES.dwarf, standin: true, tint: 0xffa080 },
-  lava: { ...THEMES.snow, standin: true, tint: 0xff9070 },
-  spore: { ...THEMES.forest, standin: true, tint: 0xc8a0e8 },
-  spore_bog: { ...THEMES.swamp, standin: true, tint: 0xb090d0 },
-  cloud: { ...THEMES.tower, standin: true, tint: 0xe8f0ff },
-  cloud_garden: { ...THEMES.forest, standin: true, tint: 0xd8f0ff },
-  moonside: { ...THEMES.abyss, standin: true, tint: 0xb8c8ff },
-  moon_grave: { ...THEMES.tomb, standin: true, tint: 0x9aa8e0 },
+  // ✏️ 음악·환경음은 2부 전용 (tools/build_music_p2.py, tools/build_audio_p2.py)
+  glass: { ...THEMES.desert, standin: true, tint: 0xb8dcff, bgm: 'bgm_c7_glass', amb: 'glass' },
+  glass_maze: { ...THEMES.tomb, standin: true, tint: 0xa8d0f0, bgm: 'bgm_c7_maze', amb: 'glass' },
+  sunken: { ...THEMES.harbor, standin: true, tint: 0x80b8c0, bgm: 'bgm_c8_sunken', amb: 'sunken' },
+  sunken_temple: { ...THEMES.sewer, standin: true, tint: 0x70b0c8, bgm: 'bgm_c8_temple', amb: 'sunken' },
+  forge: { ...THEMES.dwarf, standin: true, tint: 0xffa080, bgm: 'bgm_c9_forge', amb: 'forge' },
+  lava: { ...THEMES.snow, standin: true, tint: 0xff9070, bgm: 'bgm_c9_lava', amb: 'lava' },
+  spore: { ...THEMES.forest, standin: true, tint: 0xc8a0e8, bgm: 'bgm_c10_spore', amb: 'spore' },
+  spore_bog: { ...THEMES.swamp, standin: true, tint: 0xb090d0, bgm: 'bgm_c10_bog', amb: 'spore' },
+  cloud: { ...THEMES.tower, standin: true, tint: 0xe8f0ff, bgm: 'bgm_c11_cloud', amb: 'cloud' },
+  cloud_garden: { ...THEMES.forest, standin: true, tint: 0xd8f0ff, bgm: 'bgm_c11_garden', amb: 'cloud' },
+  moonside: { ...THEMES.abyss, standin: true, tint: 0xb8c8ff, bgm: 'bgm_c12_moon', amb: 'moon' },
+  moon_grave: { ...THEMES.tomb, standin: true, tint: 0x9aa8e0, bgm: 'bgm_c12_grave', amb: 'moon' },
 });
 
 // ---------------- 장 목록 7~12 ----------------
