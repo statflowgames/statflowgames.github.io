@@ -669,10 +669,10 @@
    "hv2_vo_warrior_global_hurt_v3"
   ],
   "hv2_vo_warrior_global_ko": [
-   "hv2_vo_warrior_global_ko_v4"
+   "hv2_vo_warrior_global_ko_v5"
   ],
   "hv2_vo_warrior_global_victory": [
-   "hv2_vo_warrior_global_victory_v4"
+   "hv2_vo_warrior_global_victory_v5"
   ],
   "hv2_vo_warrior_global_awaken": [
    "hv2_vo_warrior_global_awaken_v1"
@@ -693,10 +693,10 @@
    "hv2_vo_mage_global_hurt_v3"
   ],
   "hv2_vo_mage_global_ko": [
-   "hv2_vo_mage_global_ko_v4"
+   "hv2_vo_mage_global_ko_v5"
   ],
   "hv2_vo_mage_global_victory": [
-   "hv2_vo_mage_global_victory_v4"
+   "hv2_vo_mage_global_victory_v5"
   ],
   "hv2_vo_mage_global_awaken": [
    "hv2_vo_mage_global_awaken_v1"
@@ -717,10 +717,10 @@
    "hv2_vo_paladin_global_hurt_v3"
   ],
   "hv2_vo_paladin_global_ko": [
-   "hv2_vo_paladin_global_ko_v4"
+   "hv2_vo_paladin_global_ko_v5"
   ],
   "hv2_vo_paladin_global_victory": [
-   "hv2_vo_paladin_global_victory_v4"
+   "hv2_vo_paladin_global_victory_v5"
   ],
   "hv2_vo_paladin_global_awaken": [
    "hv2_vo_paladin_global_awaken_v1"
@@ -741,10 +741,10 @@
    "hv2_vo_rogue_global_hurt_v3"
   ],
   "hv2_vo_rogue_global_ko": [
-   "hv2_vo_rogue_global_ko_v4"
+   "hv2_vo_rogue_global_ko_v5"
   ],
   "hv2_vo_rogue_global_victory": [
-   "hv2_vo_rogue_global_victory_v4"
+   "hv2_vo_rogue_global_victory_v5"
   ],
   "hv2_vo_rogue_global_awaken": [
    "hv2_vo_rogue_global_awaken_v1"
@@ -765,10 +765,10 @@
    "hv2_vo_ranger_global_hurt_v3"
   ],
   "hv2_vo_ranger_global_ko": [
-   "hv2_vo_ranger_global_ko_v4"
+   "hv2_vo_ranger_global_ko_v5"
   ],
   "hv2_vo_ranger_global_victory": [
-   "hv2_vo_ranger_global_victory_v4"
+   "hv2_vo_ranger_global_victory_v5"
   ],
   "hv2_vo_ranger_global_awaken": [
    "hv2_vo_ranger_global_awaken_v1"
@@ -789,10 +789,10 @@
    "hv2_vo_hexblade_global_hurt_v3"
   ],
   "hv2_vo_hexblade_global_ko": [
-   "hv2_vo_hexblade_global_ko_v4"
+   "hv2_vo_hexblade_global_ko_v5"
   ],
   "hv2_vo_hexblade_global_victory": [
-   "hv2_vo_hexblade_global_victory_v4"
+   "hv2_vo_hexblade_global_victory_v5"
   ],
   "hv2_vo_hexblade_global_awaken": [
    "hv2_vo_hexblade_global_awaken_v1"
@@ -1101,7 +1101,7 @@
    "boss_phase"
   ]
  },
- "audioVersion": "v4-dbbb64f3e6f8",
+ "audioVersion": "v5-ce23cb4ff536",
  "musicFiles": {
   "bgm_title": "mv3_bgm_title",
   "bgm_camp": "mv3_bgm_camp",
@@ -1361,7 +1361,7 @@
   "nonverbal": true
  },
  "heroEmotion": {
-  "revision": 4,
+  "revision": 5,
   "heroes": [
    "warrior",
    "mage",
@@ -1370,10 +1370,10 @@
    "ranger",
    "hexblade"
   ],
-  "ko": "performed defeat scream, not short pain effort",
-  "victory": "sustained wordless roar, never laughter",
-  "source": "CC0 human recordings",
-  "credits": "docs/hero-emotion-v4-credits.txt"
+  "ko": "short knocked-out agh; no horror scream",
+  "victory": "short assured Hah; no long roar, scream or laughter",
+  "maxDuration": 0.9,
+  "credits": "docs/hero-emotion-v5-handoff.txt"
  },
  "bossDefeat": {
   "revision": 4,
