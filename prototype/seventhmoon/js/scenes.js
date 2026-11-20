@@ -662,19 +662,38 @@ class Shop extends MenuBase {
   draw() {
     const s = Save.data;
     this.frame('포포 상회');
-    UI.text(this, 70, 100, '소모품 (아이템 벨트)', 24, '#ffe7a8', { bold: true });
+    // ✏️ 소모품 14종을 2열로. 아이콘을 누르면 벨트 4칸 중 하나로 넣는다 (부활 깃털은 벨트 없이 자동)
+    UI.text(this, 70, 96, '소모품', 24, '#ffe7a8', { bold: true });
+    const slots = [...beltSlots(s)];
+    UI.text(this, 190, 102, '벨트', 17, '#c8b8a0');
+    slots.forEach((k, i) => {
+      const x = 260 + i * 62, y = 108;
+      UI.panel(this, x - 26, y - 26, 52, 52, { alpha: 0.75, line: i === (s.beltNext || 0) % 4 ? 0xffd34d : 0x7a5a30, inner: false });
+      const ic = UI.img(this, x, y, 'icon/' + (BELT[k] ? BELT[k].icon : k)); if (ic) ic.setScale(42 / ic.height);
+    });
+    UI.text(this, 486, 106, '아이콘을 누르면 벨트 장착', 13, '#8f8070');
     Object.entries(BELT).forEach(([k, b], i) => {
-      const y = 178 + i * 86;
-      UI.panel(this, 60, y - 36, 560, 76, { alpha: 0.6, line: 0x7a5a30, inner: false });
-      const ic = UI.img(this, 105, y + 2, 'icon/' + b.icon) || UI.img(this, 105, y + 2, 'icon/' + k);
-      if (ic) ic.setScale(60 / ic.height);
-      UI.text(this, 150, y - 26, `${b.ko}  (가진 수 ${s.belt[k] || 0})`, 21, '#fff', { bold: true });
-      UI.text(this, 150, y + 4, b.fx, 17, '#c8b8a0');
-      UI.button(this, 545, y + 2, `${b.price}금`, () => {
+      const col = i % 2, row = Math.floor(i / 2);
+      const x0 = 60 + col * 286, y = 176 + row * 70;
+      const inBelt = slots.includes(k);
+      UI.panel(this, x0, y - 31, 278, 64, { alpha: 0.6, line: inBelt ? 0xffd34d : 0x7a5a30, inner: false });
+      const ic = UI.img(this, x0 + 32, y + 1, 'icon/' + b.icon) || UI.img(this, x0 + 32, y + 1, 'icon/' + k);
+      if (ic) {
+        ic.setScale(48 / ic.height);
+        if (k !== 'feather') ic.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+          if (inBelt) return UI.toast(this, '이미 벨트에 있어요');
+          const n = (s.beltNext || 0) % 4; slots[n] = k; s.beltSlots = slots; s.beltNext = n + 1;
+          SFX.ui && SFX.ui('ui_equip'); Save.write(); UI.toast(this, `벨트 ${n + 1}번 칸에 「${b.ko}」`); this.draw();
+        });
+      }
+      UI.text(this, x0 + 64, y - 25, `${b.ko} ×${s.belt[k] || 0}`, 17, '#fff', { bold: true });
+      UI.text(this, x0 + 64, y - 2, b.fx, 13, '#c8b8a0', { wrap: 140 });
+      UI.button(this, x0 + 236, y + 1, `${b.price}`, () => {
         if (s.gold < b.price) return UI.toast(this, '금화가 모자라요', '#ff9a8a');
         if (k === 'feather' && (s.belt.feather || 0) >= 3) return UI.toast(this, '부활 깃털은 3개까지', '#ff9a8a');
+        if ((s.belt[k] || 0) >= 9) return UI.toast(this, '9개까지 가질 수 있어요', '#ff9a8a');
         s.gold -= b.price; s.belt[k] = (s.belt[k] || 0) + 1; SFX.coin(); Save.write(); this.draw();
-      }, { w: 120, h: 48, size: 20 });
+      }, { w: 70, h: 44, size: 17 });
     });
     UI.text(this, 680, 100, '오늘의 장비', 24, '#ffe7a8', { bold: true });
     s.shop.stock.forEach((it, i) => {

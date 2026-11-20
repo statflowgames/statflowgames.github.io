@@ -17,9 +17,21 @@ const BELT = {
   dagger: { ko: '투척 단검', fx: '일직선 관통', price: 25, icon: 'dagger' },
   oil: { ko: '기름병', fx: '깨지면 화염 장판', price: 45, icon: 'oil' },
   scroll: { ko: '화염 두루마리', fx: '전방 화염 폭발', price: 90, icon: 'scroll_fire' },
-  feather: { ko: '부활 깃털', fx: '쓰러지면 자동 부활 (스테이지당 1개)', price: 150, icon: 'feather' },
+  feather: { ko: '부활 깃털', fx: '쓰러지면 자동 부활', price: 150, icon: 'feather' },
+  // 🆕 전투 중 쓰는 소모품 (개수 제한, 상황에 맞게 골라 쓴다)
+  hammer: { ko: '투척 망치', fx: '던져서 띄워 날림', price: 40, icon: 'hammer' },
+  bomb: { ko: '마석 폭탄', fx: '넓은 범위 폭발', price: 70, icon: 'bolt' },
+  holy: { ko: '성수', fx: '신성 피해·언데드에 강함', price: 55, icon: 'holy' },
+  antidote: { ko: '해독초', fx: '상태이상 해제·3초 무적', price: 35, icon: 'antidote' },
+  smoke: { ko: '연막탄', fx: '주변 기절·뒤로 빠짐', price: 50, icon: 'smoke' },
+  scroll_ice: { ko: '서리 두루마리', fx: '앞쪽 적을 얼림', price: 90, icon: 'scroll_ice' },
+  scroll_bolt: { ko: '번개 두루마리', fx: '번개 5번 낙뢰', price: 95, icon: 'scroll_bolt' },
+  scroll_heal: { ko: '치유 두루마리', fx: '나와 동료 30% 회복', price: 80, icon: 'scroll_heal' },
+  scroll_guard: { ko: '보호 두루마리', fx: '6초간 피해 60% 감소', price: 85, icon: 'scroll_guard' },
 };
 const BELT_ORDER = ['potion', 'dagger', 'oil', 'scroll'];
+// 🆕 벨트 4칸은 고를 수 있다 (상점에서 바꿈). 저장에 없으면 기본 순서
+function beltSlots(s) { return (s && Array.isArray(s.beltSlots) && s.beltSlots.length === 4) ? s.beltSlots : BELT_ORDER; }
 
 // 숨은 직업 해금은 저장을 새로 만들어도 남는다
 const UNLOCK_KEY = 'seventhmoon.unlock';
