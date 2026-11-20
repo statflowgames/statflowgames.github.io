@@ -141,7 +141,10 @@ class Game extends Phaser.Scene {
     this.cameras.main.fadeIn(400);
     if (this.mode === 'daily' || this.mode === 'rush') this.banner(this.def.name, '#ffd890', this.rule.ko ? '규칙: ' + this.rule.ko : '보스 6마리를 최대한 빨리!');
     else if (this.tower) this.banner(`심연의 탑  ${this.def.name}`, '#d8b8ff', this.rule.ko ? '규칙: ' + this.rule.ko : null);
-    else this.banner(`${this.ch}장  ${this.def.name}`, '#ffe7a8', this.allyBonus ? `동료 조합 「${this.allyBonus}」 피해 +15%` : null);
+    else {
+      const chap = typeof CHAPTERS !== 'undefined' && CHAPTERS[this.ch - 1];
+      this.stageIntro(`제${this.ch}장` + (chap ? `  ·  ${chap.name}` : ''), this.def.name, this.allyBonus ? `동료 조합 「${this.allyBonus}」  피해 +15%` : null);
+    }
     SFX.ambience(this.theme.amb);
     SFX.music(this.tower ? (this.def.boss ? 'bgm_tower_b' : 'bgm_tower_a') : this.theme.bgm);
     SFX.heartbeat(false);
@@ -721,6 +724,55 @@ class Game extends Phaser.Scene {
       const s = this.add.text(W / 2, 300, sub, { fontFamily: 'sans-serif', fontSize: 26, color: '#f0d9b0', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(7000).setAlpha(0);
       this.tweens.add({ targets: s, alpha: 1, duration: 400, hold: 1300, yoyo: true, onComplete: () => s.destroy() });
     }
+  }
+  // 스테이지 시작 제목: 옅은 띠 위에 작은 장 이름, 큰 스테이지 이름, 양옆으로 뻗는 금선
+  stageIntro(top, title, sub, accent = 0xe6c27a) {
+    const cy = 276, depth = 7000, items = [];
+    const add = o => { o.setScrollFactor(0).setDepth(depth); items.push(o); return o; };
+    // 어두운 띠: 가장자리가 사방으로 부드럽게 사라지는 그림을 한 번 만들어 쓴다
+    const bh = sub ? 170 : 150;
+    const bandKey = 'introBand' + bh;
+    if (!this.textures.exists(bandKey)) {
+      const tex = this.textures.createCanvas(bandKey, W, bh), c = tex.getContext();
+      const gx = c.createLinearGradient(0, 0, W, 0);
+      gx.addColorStop(0, 'rgba(12,7,16,0)'); gx.addColorStop(0.25, 'rgba(12,7,16,0.66)'); gx.addColorStop(0.75, 'rgba(12,7,16,0.66)'); gx.addColorStop(1, 'rgba(12,7,16,0)');
+      c.fillStyle = gx; c.fillRect(0, 0, W, bh);
+      const gy = c.createLinearGradient(0, 0, 0, bh);
+      gy.addColorStop(0, 'rgba(0,0,0,0)'); gy.addColorStop(0.25, 'rgba(0,0,0,1)'); gy.addColorStop(0.75, 'rgba(0,0,0,1)'); gy.addColorStop(1, 'rgba(0,0,0,0)');
+      c.globalCompositeOperation = 'destination-in'; c.fillStyle = gy; c.fillRect(0, 0, W, bh); c.globalCompositeOperation = 'source-over';
+      tex.refresh();
+    }
+    const band = add(this.add.image(W / 2, cy + (sub ? 6 : 0), bandKey).setAlpha(0));
+    // 작은 장 이름
+    const label = add(this.add.text(W / 2, cy - 46, top, { fontFamily: 'sans-serif', fontSize: 19, color: '#e6c27a', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0));
+    if (label.setLetterSpacing) label.setLetterSpacing(3);
+    // 큰 스테이지 이름 (얇은 외곽선 + 그림자)
+    const name = add(this.add.text(W / 2, cy + 6, title, { fontFamily: 'serif', fontSize: 54, color: '#fff3dc', stroke: '#1a0e06', strokeThickness: 3 }).setOrigin(0.5).setAlpha(0));
+    name.setShadow(0, 3, 'rgba(0,0,0,0.75)', 10, true, true);
+    if (name.setLetterSpacing) name.setLetterSpacing(4);
+    // 금선과 마름모 장식
+    const lines = add(this.add.graphics());
+    const half = Math.min(360, name.width / 2 + 120), ly = cy + 48;
+    const drawLines = k => {
+      lines.clear();
+      const len = (half - 18) * k;
+      lines.lineStyle(2, accent, 0.9).lineBetween(W / 2 - 18 - len, ly, W / 2 - 18, ly).lineBetween(W / 2 + 18, ly, W / 2 + 18 + len, ly);
+      lines.fillStyle(accent, k).fillPoints([{ x: W / 2, y: ly - 7 }, { x: W / 2 + 7, y: ly }, { x: W / 2, y: ly + 7 }, { x: W / 2 - 7, y: ly }], true);
+    };
+    drawLines(0);
+    const subT = sub ? add(this.add.text(W / 2, ly + 26, sub, { fontFamily: 'sans-serif', fontSize: 18, color: '#d9c7a6' }).setOrigin(0.5).setAlpha(0)) : null;
+    // 들어오기
+    this.tweens.add({ targets: band, alpha: 1, duration: 260 });
+    this.tweens.add({ targets: label, alpha: 1, y: cy - 52, duration: 420, delay: 120, ease: 'Cubic.out' });
+    name.setScale(1.08);
+    this.tweens.add({ targets: name, alpha: 1, scale: 1, duration: 520, delay: 200, ease: 'Cubic.out' });
+    this.tweens.addCounter({ from: 0, to: 1, duration: 620, delay: 260, ease: 'Cubic.out', onUpdate: tw => drawLines(tw.getValue()) });
+    if (subT) this.tweens.add({ targets: subT, alpha: 1, duration: 400, delay: 520 });
+    // 나가기
+    this.time.delayedCall(2300, () => {
+      this.tweens.add({ targets: items, alpha: 0, duration: 420, ease: 'Cubic.in', onComplete: () => items.forEach(o => o.destroy()) });
+      this.tweens.add({ targets: [label, name, subT].filter(Boolean), y: '-=10', duration: 420, ease: 'Cubic.in' });
+    });
   }
   showGo() {
     SFX.go();
