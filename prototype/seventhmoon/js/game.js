@@ -101,11 +101,16 @@ class Game extends Phaser.Scene {
     this.tower = this.def.tower || 0;
     this.mode = this.def.mode || (this.tower ? 'tower' : 'story');
     this.rule = this.def.rule || {};
+    // 🆕 갈림길 규칙 (이야기 모드의 a·b 노드)
+    const rnode = this.cfg.node || '';
+    this.routeRule = (this.mode === 'story' && /^[ab]\d$/.test(rnode) && typeof ROUTES !== 'undefined' && ROUTES[this.cfg.ch]) ? ROUTES[this.cfg.ch][rnode[0].toUpperCase()].rule : null;
+    if (this.routeRule) this.rule = { ...this.routeRule, ...this.rule };
     this.ch = this.tower ? this.def.chScale : this.cfg.ch;
     this.theme = THEMES[this.def.theme] || THEMES.forest;
     this.diff = Q.has('hard') ? 2 : (s.diff ?? 1);
     this.monScale = chapterScale(this.ch, this.diff);
     if (this.def.floorMul) { const f = this.def.floorMul; this.monScale = { hp: this.monScale.hp * f * (this.rule.hpMul || 1), dmg: this.monScale.dmg * Math.sqrt(f) * (this.rule.dmgMul || 1) }; }
+    if (!this.def.floorMul && (this.rule.hpMul || this.rule.dmgMul)) this.monScale = { hp: this.monScale.hp * (this.rule.hpMul || 1), dmg: this.monScale.dmg * (this.rule.dmgMul || 1) };
     this.speedMul = this.rule.speedMul || 1;
     this.abilityClock = 0; this.abilityCues = [];
     this.now = 0; this.hitstop = 0; this.won = false; this.lost = false; this.paused = false; this.looting = false; this.lootDone = false;
@@ -143,7 +148,7 @@ class Game extends Phaser.Scene {
     else if (this.tower) this.stageIntro('심연의 탑', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : null, { accent: 0xb89cff });
     else {
       const chap = typeof CHAPTERS !== 'undefined' && CHAPTERS[this.ch - 1];
-      this.stageIntro(`제${this.ch}장` + (chap ? `  ·  ${chap.name}` : ''), this.def.name, this.allyBonus ? `동료 조합 「${this.allyBonus}」  피해 +15%` : null);
+      this.stageIntro(`제${this.ch}장` + (chap ? `  ·  ${chap.name}` : ''), this.def.name, this.routeRule ? '길의 규칙  ·  ' + this.routeRule.ko : this.allyBonus ? `동료 조합 「${this.allyBonus}」  피해 +15%` : null);
     }
     GearFx.start(this);   // 🆕 장비 효과
     SFX.ambience(this.theme.amb);
@@ -200,14 +205,40 @@ class Game extends Phaser.Scene {
       px = w.r + 100;
     }
     if (this.def.treasure) this.addProp(STAGE_W - 260, 580, 'crate', true);
+    // 🆕 숨은 보물: 이야기 스테이지마다 1개. 뒤쪽 가장자리에 반쯤 숨어 있고, 가끔 반짝인다
+    if (this.mode === 'story' && !this.def.boss && this.cfg.stage && this.waves.length > 1) {
+      let hsh = 0; for (const ch of this.cfg.stage) hsh = (hsh * 31 + ch.charCodeAt(0)) >>> 0;
+      const wi = hsh % (this.waves.length - 1), w0 = this.waves[wi], w1 = this.waves[wi + 1];
+      const sx = Phaser.Math.Clamp(Math.round((w0.r + w1.at) / 2 + ((hsh >> 4) % 200) - 100), 400, STAGE_W - 400);
+      this.addProp(sx, FLOOR_TOP + 4, 'crate', false, true);
+    }
   }
-  addProp(x, y, n, chest) {
+  // 🆕 숨은 보물을 찾았다
+  secretFound(p) {
+    const s = this.save, id = this.cfg.stage, first = !(s.secrets && s.secrets[id]);
+    s.secrets = s.secrets || {}; s.secrets[id] = true;
+    SFX.ui('chest_open'); this.cameras.main.flash(160, 255, 230, 150);
+    this.fx('levelup_burst', p.x, p.y - 60, { s: 0.5, dur: 700, tint: 0xffe080, depth: p.y + 1001 });
+    this.floatText(p.x, p.y - 160, first ? '숨은 보물 발견!' : '숨은 보물', '#ffe27a', first ? 38 : 26);
+    for (let i = 0; i < (first ? 10 : 4); i++) this.dropPickup(p.x, p.y, 'coin');
+    for (let i = 0; i < (first ? 2 : 1); i++) this.dropPickup(p.x, p.y, 'cons');
+    if (first || Math.random() < 0.3) this.dropPickup(p.x, p.y, 'loot', { rar: first ? 3 : 1 });
+  }
+  addProp(x, y, n, chest, secret) {
     const g = this.propGrp || 'props';
-    let key = chest && this.textures.exists('chest/iron_closed') ? 'chest/iron_closed' : this.textures.exists(g + '/' + n) ? g + '/' + n : 'props/' + n;
+    let key = secret && this.textures.exists('props/secret_cache') ? 'props/secret_cache' : chest && this.textures.exists('chest/iron_closed') ? 'chest/iron_closed' : this.textures.exists(g + '/' + n) ? g + '/' + n : 'props/' + n;
     const img = this.add.image(x, y + 6, key).setOrigin(0.5, 1).setDepth(1000 + y);
     img.setScale(chest ? 110 / img.height : (n === 'barrel' ? 95 : 88) / img.height * (key.startsWith('props/') ? 1 : 1.05));
     const sh = this.add.image(x, y + 2, 'shadow').setScale(0.7, 0.6).setAlpha(0.45).setDepth(999);
-    this.props.push({ x, y, n, img, sh, hp: chest ? 3 : n === 'crate' ? 2 : 1, chest });
+    const p = { x, y, n, img, sh, hp: chest ? 3 : secret ? 3 : n === 'crate' ? 2 : 1, chest, secret };
+    if (secret) {
+      // 그림이 오기 전: 어둡게 칠한 상자 + 가끔 반짝이는 별
+      if (key !== 'props/secret_cache') img.setTint(0x6a5a7a).setAlpha(0.88);
+      const star = this.add.star(x + 18, y - img.displayHeight * 0.75, 4, 3, 11, 0xfff2b0).setDepth(1001 + y).setAlpha(0);
+      p.star = star;
+      this.tweens.add({ targets: star, alpha: { from: 0, to: 1 }, scale: { from: 0.4, to: 1.2 }, angle: 90, duration: 380, yoyo: true, repeat: -1, repeatDelay: 2200 });
+    }
+    this.props.push(p);
   }
   makeWaves() {
     const out = [];
@@ -1006,7 +1037,7 @@ class Game extends Phaser.Scene {
     if (p.hp > 0) return;
     this.spawnDebrisAt(p.x, p.y, 5, p.n);
     this.fx('dust_land', p.x, p.y, { s: 0.35, dur: 400, depth: p.y + 1 });
-    p.img.destroy(); p.sh.destroy();
+    p.img.destroy(); p.sh.destroy(); if (p.star) p.star.destroy();
     if (p.chest) {
       SFX.ui('chest_open');
       for (let i = 0; i < 12; i++) this.dropPickup(p.x, p.y, 'coin');
@@ -1017,7 +1048,8 @@ class Game extends Phaser.Scene {
       return;
     }
     const r = Math.random();
-    if (r < (Q.has('oldmob') ? 0.35 : 0.16) && !this.rule.noHeal) this.dropPickup(p.x, p.y, 'heal');   // ✏️ 상자 회복 하트 35% → 16%
+    if (p.secret) return this.secretFound(p);
+    if (r < (Q.has('oldmob') ? 0.35 : 0.16) && !this.rule.noHeal && !this.rule.noHeart) this.dropPickup(p.x, p.y, 'heal');   // ✏️ 상자 회복 하트 35% → 16%
     else if (r < 0.42) this.dropPickup(p.x, p.y, 'loot');
     else if (r < 0.55) this.dropPickup(p.x, p.y, 'cons');
     const n = Phaser.Math.Between(3, 6);
@@ -1061,7 +1093,7 @@ class Game extends Phaser.Scene {
       const reach = p.type === 'loot' ? 70 : 50;
       if (p.t > 400 && Math.abs(p.x - h.x) < reach && Math.abs(p.y - h.y) < 34 && h.z < 40 && h.state !== 'dead') {
         p.dead = true; p.img.destroy();
-        if (p.type === 'coin') { this.gold += Math.max(1, Math.round(3 * (1 + this.stats.goldPct / 100) * (1 + (this.ch - 1) * 0.35))); SFX.coin(p.x - this.cameras.main.scrollX); }
+        if (p.type === 'coin') { this.gold += Math.max(1, Math.round(3 * (1 + this.stats.goldPct / 100) * (1 + (this.ch - 1) * 0.35) * (this.rule.goldMul || 1))); SFX.coin(p.x - this.cameras.main.scrollX); }
         else if (p.type === 'cons') { const s2 = this.save, k2 = p.item; s2.belt[k2] = Math.min(9, (s2.belt[k2] || 0) + 1); SFX.ui('ui_equip'); this.floatText(h.x, h.y - 250, BELT[k2].ko + ' +1', '#ffe7a8', 24); }
         else if (p.type === 'heal') { const v = Math.round(h.maxHp * 0.18 * (1 + this.stats.healPct / 100)); h.hp = Math.min(h.maxHp, h.hp + v); SFX.heal(); this.floatText(h.x, h.y - 240, '+' + v, '#8f8'); h.showEmote('heart', 700); }
         else {
@@ -2026,7 +2058,7 @@ class Game extends Phaser.Scene {
     for (const p of this.pickups) {
       if (p.type === 'loot') this.loot.push(p.item);
       else if (p.type === 'cons') s.belt[p.item] = Math.min(9, (s.belt[p.item] || 0) + 1);
-      else if (p.type === 'coin') this.gold += Math.round(3 * (1 + this.stats.goldPct / 100) * (1 + (this.ch - 1) * 0.35));
+      else if (p.type === 'coin') this.gold += Math.round(3 * (1 + this.stats.goldPct / 100) * (1 + (this.ch - 1) * 0.35) * (this.rule.goldMul || 1));
       p.img.destroy();
     }
     this.pickups = [];

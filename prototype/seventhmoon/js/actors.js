@@ -603,7 +603,7 @@ class Monster extends Actor {
       this.def.dmg = Math.round(this.def.dmg * t.dmg); this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
     }
     // 정예: 접두사 하나, 체력 1.8배, 조금 크다. ✏️ 보통 난이도에서도 2장부터 가끔 나온다 (전에는 체력 배율이 아래에서 덮어써져 적용되지 않았음)
-    const ec = scene.diff >= 3 ? 0.25 : scene.diff >= 2 ? 0.14 : (typeof MOB_TUNE !== 'undefined' && !scene.tower ? (MOB_TUNE[Math.max(1, Math.min(6, Math.round(scene.ch || 1)))].elite || 0) : 0);
+    const ec = (scene.diff >= 3 ? 0.25 : scene.diff >= 2 ? 0.14 : (typeof MOB_TUNE !== 'undefined' && !scene.tower ? (MOB_TUNE[Math.max(1, Math.min(6, Math.round(scene.ch || 1)))].elite || 0) : 0)) + ((scene.rule && scene.rule.eliteAdd) || 0);
     if (!o.noElite && !base.boss && ec && Math.random() < ec) {
       const keys = Object.keys(ELITES);
       this.elite = keys[Math.floor(Math.random() * keys.length)];

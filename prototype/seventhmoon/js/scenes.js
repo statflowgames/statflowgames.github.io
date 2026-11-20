@@ -218,6 +218,14 @@ class MapScene extends Phaser.Scene {
     const C = CHAPTERS[ch - 1];
     L.add(UI.text(this, ax, ay - 52, 'A · ' + C.routeA, 20, chosen === 'B' && !replay ? '#8a7a68' : '#fff2c0', { bold: true, st: 5 }).setOrigin(0.5));
     L.add(UI.text(this, bx, by - 46, 'B · ' + C.routeB, 20, chosen === 'A' && !replay ? '#8a7a68' : '#fff2c0', { bold: true, st: 5 }).setOrigin(0.5));
+    // 🆕 길마다 얻는 것
+    const RT = typeof ROUTES !== 'undefined' && ROUTES[ch];
+    if (RT) {
+      L.add(UI.text(this, ax, ay - 30, RT.A.tag, 15, chosen === 'B' && !replay ? '#6a5a48' : '#ffd38a', { st: 4 }).setOrigin(0.5));
+      L.add(UI.text(this, bx, by - 24, RT.B.tag, 15, chosen === 'A' && !replay ? '#6a5a48' : '#c8b8ff', { st: 4 }).setOrigin(0.5));
+    }
+    // 🆕 숨은 보물을 찾은 스테이지에 별
+    for (const [id, n] of Object.entries(nodes)) if (n.stage && s.secrets && s.secrets[n.stage]) { const [x, y] = this.pos(id); L.add(UI.text(this, x - 22, y - 30, '★', 18, '#ffe27a', { st: 4 }).setOrigin(0.5)); }
     this.nodeLayer = L;
     // 처음 열린 노드를 고른다
     const first = open.find(id => !nodeCleared(s, ch, id));
@@ -240,7 +248,12 @@ class MapScene extends Phaser.Scene {
       desc += `\n권장 Lv.${CHAPTERS[ch - 1].lv + (id.startsWith('s') ? 0 : id === 'boss' ? 4 : 2)}`;
       if (s.grades[n.stage]) desc += `   최고 등급 ${s.grades[n.stage]}`;
     } else desc = '이야기와 선택이 기다린다.';
-    if (n.route && !s.route['c' + ch] && ch === s.ch) desc += '\n※ 이 길을 고르면 이번 회차의 다른 길은 막혀요';
+    // 🆕 갈림길은 얻는 것과 감수할 것을 먼저 보여 준다
+    const RT = n.route && typeof ROUTES !== 'undefined' && ROUTES[ch] && ROUTES[ch][n.route];
+    if (RT && (id === 'a1' || id === 'b1') && !s.route['c' + ch] && ch === s.ch) desc = `얻는 것 · ${RT.gain}\n감수할 것 · ${RT.risk}`;
+    else if (RT && st) desc += `\n길의 규칙 · ${RT.rule.ko}`;
+    if (st && !STAGES[n.stage].boss && !(n.route && !s.route['c' + ch] && ch === s.ch)) desc += (s.secrets && s.secrets[n.stage]) ? '   ★ 숨은 보물 찾음' : '   숨은 보물 ?';
+    if (n.route && !s.route['c' + ch] && ch === s.ch) desc += '\n※ 고르면 이번 회차엔 다른 길이 막혀요';
     c.add(UI.text(this, W / 2 - 370, H - 98, desc, 19, '#e8dcc8', { wrap: 560, ls: 4 }));
     const replay = ch < s.ch;
     const can = replay ? true : openNodes(s, ch).includes(id) && !nodeCleared(s, ch, id);
