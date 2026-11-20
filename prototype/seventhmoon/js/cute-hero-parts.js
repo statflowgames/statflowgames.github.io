@@ -101,11 +101,32 @@ var CuteHeroParts=(()=>{
       const clip=CLIPS[hero.anim];
       // 다리 흔들림 배율: 달리기는 runSwing(보폭을 크게), 걷기는 gaitSwing
       const swing=/run/.test(hero.anim||'')?(profile.runSwing??profile.gaitSwing??.7):(profile.gaitSwing??.7);
-      if(clip?.amp)for(const name of ['thf','thb','shf','shb'])p[name]=base[name]+((p[name]??base[name])-base[name])*swing;
+      // ✏️ 두 다리의 가운데를 기준으로 늘린다 (서 있는 자세 기준이면 앞·뒷다리가 서로 다른 쪽으로 치우쳐 다리를 저는 것처럼 보임)
+      if(clip?.amp)for(const [a,b]of [['thf','thb'],['shf','shb']]){const fa=p[a]??base[a],fb=p[b]??base[b],c=(fa+fb)/2;p[a]=c+(fa-c)*swing;p[b]=c+(fb-c)*swing;}
       if(key==='hexblade'&&clip?.amp){
         // Keep the heavy forward lean while letting the larger face look along the path.
         const parent=(p.rr||0)+(p.root||0)+(p.torso||0);
         p.head=Phaser.Math.Clamp(parent+(p.head||0),-12,14)-parent;
+      }
+      // 🆕 가드 자세 (rigProfile.guardPose): 새 그림에 맞춘 막는 자세의 관절 각도. 가드에 들어갈 때 90ms에 걸쳐 바뀐다.
+      const gp=profile.guardPose;
+      if(gp&&hero.state==='guard'){
+        const w=Math.min(1,(hero.st||0)/90);
+        for(const [k,v]of Object.entries(gp))p[k]=(p[k]||0)+(v-(p[k]||0))*w;
+      }
+      // 🆕 자세 바로 세우기 (rigProfile.upright): 머리가 큰 새 그림은 같은 각도로 숙여도 훨씬 쏠려 보인다.
+      // 서 있기·걷기·달리기에서 몸통 숙임을 줄이고 머리를 세운다. 공격으로 넘어갈 때 툭 바뀌지 않게 서서히.
+      const up=profile.upright;
+      if(up){
+        const want=['idle','move'].includes(hero.state)?1:0,now=hero.scene.now||0;
+        if(hero.uprightClock!==now){hero.uprightK=(hero.uprightK??want)+(want-(hero.uprightK??want))*Math.min(1,(hero.scene.dtv||16.67)/120);hero.uprightClock=now;}
+        const k=hero.uprightK||0;
+        if(k>0){
+          const lean=p.torso||0;p.torso=lean+(lean*(up.torso??1)-lean)*k;
+          const parent=(p.rr||0)+(p.root||0)+(p.torso||0),world=parent+(p.head||0);
+          const fixed=Phaser.Math.Clamp(world,up.headMin??-90,up.headMax??90);
+          p.head=(p.head||0)+(fixed-world)*k;
+        }
       }
       if(key==='mage')for(let i=0;i<3;i++)p['crb'+i]=-(p['cr'+i]||0)-(p.torso||0);
       if(solve)p=solve(p);

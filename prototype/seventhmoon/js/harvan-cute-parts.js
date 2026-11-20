@@ -79,7 +79,8 @@ var HarvanCuteParts=(()=>{
       // 다리 흔들림 배율: 달리기는 runSwing(보폭을 크게), 걷기는 gaitSwing
       const swing=/run/.test(hero.anim||'')?(profile.runSwing??profile.gaitSwing):profile.gaitSwing;
       if(gait&&swing){
-        for(const key of ['thf','thb','shf','shb'])p[key]=HARVAN_STAND[key]+((p[key]??HARVAN_STAND[key])-HARVAN_STAND[key])*swing;
+        // ✏️ 두 다리의 가운데를 기준으로 늘린다 (서 있는 자세 기준이면 앞·뒷다리가 서로 다른 쪽으로 치우쳐 다리를 저는 것처럼 보임)
+        for(const [a,b]of [['thf','thb'],['shf','shb']]){const fa=p[a]??HARVAN_STAND[a],fb=p[b]??HARVAN_STAND[b],c=(fa+fb)/2;p[a]=c+(fa-c)*swing;p[b]=c+(fb-c)*swing;}
       }
       // The new wrist-up hand sits lower than the old grip. Carry the blade clear of the floor.
       if(profile.alignCarry){
