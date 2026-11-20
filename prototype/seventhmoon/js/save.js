@@ -20,7 +20,7 @@ const BELT = {
   feather: { ko: '부활 깃털', fx: '쓰러지면 자동 부활', price: 150, icon: 'feather' },
   // 🆕 전투 중 쓰는 소모품 (개수 제한, 상황에 맞게 골라 쓴다)
   hammer: { ko: '투척 망치', fx: '던져서 띄워 날림', price: 40, icon: 'hammer' },
-  bomb: { ko: '마석 폭탄', fx: '넓은 범위 폭발', price: 70, icon: 'bolt' },
+  bomb: { ko: '마석 폭탄', fx: '넓은 범위 폭발', price: 70, icon: 'bomb' },
   holy: { ko: '성수', fx: '신성 피해·언데드에 강함', price: 55, icon: 'holy' },
   antidote: { ko: '해독초', fx: '상태이상 해제·3초 무적', price: 35, icon: 'antidote' },
   smoke: { ko: '연막탄', fx: '주변 기절·뒤로 빠짐', price: 50, icon: 'smoke' },
@@ -74,8 +74,9 @@ const ELITES = {
   vamp: { ko: '흡혈', col: '#ff6080' },
   blink: { ko: '순간이동', col: '#d0a0ff' },
 };
-const expNeed = lv => Math.round(90 * Math.pow(1.12, lv));
-const LV_CAP = 30;
+// ✏️ 30레벨까지는 그대로, 그 뒤는 완만하게 (2부)
+const expNeed = lv => lv <= 30 ? Math.round(90 * Math.pow(1.12, lv)) : Math.round(90 * Math.pow(1.12, 30) * (1 + (lv - 30) * 0.09));
+const LV_CAP = 60;   // ✏️ 2부: 30 → 60
 
 function newSave(hero = 'warrior') {
   const s = {
@@ -183,7 +184,9 @@ function rollDrop(s, ch, bonus = 0, boss = false) {
   const cls = Math.random() < 0.7 ? s.hero : owned[Math.floor(Math.random() * owned.length)];
   let rar = rollRarity(ch, bonus, boss);
   if (rar < 4 && typeof GearFx !== 'undefined' && GearFx.codes(s).has('luck') && Math.random() < (boss ? 0.04 : 0.006)) rar = 4;   // 🆕 은방울 행운 목걸이
-  return makeItem(s, { cls, slot, tier, rar });
+  const it = makeItem(s, { cls, slot, tier, rar });
+  if (ch >= 7) it.plus = Math.min(10, Math.max(it.plus, ch - 6 + (Math.random() < 0.3 ? 1 : 0)));   // 🆕 2부 장비는 강화가 붙어 나온다
+  return it;
 }
 
 // ---------------- 능력치 ----------------

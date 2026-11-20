@@ -172,14 +172,19 @@ const ROUTES = {
 function chapterNodes(n) {
   const c = 'c' + n;
   return {
+    // ✏️ 장 심화: s3 · a4 · b4 · 곁가지 x1 추가 (docs/expansion-plan.md)
     s1: { type: 'stage', stage: c + '_s1', next: ['s2'] },
-    s2: { type: 'stage', stage: c + '_s2', next: ['a1', 'b1'] },
+    s2: { type: 'stage', stage: c + '_s2', next: ['s3'] },
+    s3: { type: 'stage', stage: c + '_s3', next: ['a1', 'b1', 'x1'] },
+    x1: { type: 'side', stage: c + '_x1', next: [] },
     a1: { type: 'stage', stage: c + '_a1', next: ['a2'], route: 'A' },
     a2: { type: 'stage', stage: c + '_a2', next: ['a3'], route: 'A' },
-    a3: { type: 'midboss', stage: c + '_a3', next: ['boss'], route: 'A' },
+    a3: { type: 'midboss', stage: c + '_a3', next: ['a4'], route: 'A' },
+    a4: { type: 'stage', stage: c + '_a4', next: ['boss'], route: 'A' },
     b1: { type: 'stage', stage: c + '_b1', next: ['b2'], route: 'B' },
     b2: { type: 'event', event: c + '_event', next: ['b3'], route: 'B' },
-    b3: { type: 'treasure', stage: c + '_b3', next: ['boss'], route: 'B' },
+    b3: { type: 'treasure', stage: c + '_b3', next: ['b4'], route: 'B' },
+    b4: { type: 'stage', stage: c + '_b4', next: ['boss'], route: 'B' },
     boss: { type: 'boss', stage: c + '_boss', next: [] },
   };
 }
@@ -214,8 +219,8 @@ const BOSS_TUNE = {
   6: { hp: 1, dmg: 1, cool: 0.95, poiseK: 3, stagger: 2100 },
 };
 function chapterScale(ch, diff = 1) {
-  const hp = [1, 1, 1.15, 1.3, 1.5, 1.7, 1.95][ch] || 1;
-  const dmg = [1, 1, 1.05, 1.12, 1.2, 1.3, 1.4][ch] || 1;
+  const hp = [1, 1, 1.15, 1.3, 1.5, 1.7, 1.95, 2.2, 2.45, 2.7, 2.95, 3.2, 3.5][ch] || 1;
+  const dmg = [1, 1, 1.05, 1.12, 1.2, 1.3, 1.4, 1.48, 1.56, 1.64, 1.72, 1.8, 1.9][ch] || 1;
   const d = [0.75, 1, 1.5, 2.2][diff] || 1;
   return { hp: hp * d, dmg: dmg * (0.6 + 0.4 * d) };
 }

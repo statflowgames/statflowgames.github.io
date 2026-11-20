@@ -160,3 +160,19 @@ const BossGimmicks = {
     g.barG = g.aura = null;
   },
 };
+
+// 🆕 2부 보스 (대역 그림, 공략 장치는 원본과 같은 종류)
+Object.assign(BOSS_GIMMICK_DEF, {
+  glass_queen: { kind: 'armor', armor: 0.2, hint: '유리 껍질 — 강한 공격으로 깨라', trophy: '유리 독침' },
+  star_colossus: { kind: 'vent', hint: '광선을 쏜 뒤 별의 핵이 드러난다 — 그때가 기회', trophy: '별똥 핵' },
+  drowned_captain: { kind: 'armor', armor: 0.22, hint: '물먹은 갑옷 — 불과 강한 공격으로 벗겨라', trophy: '익사한 닻' },
+  naia: { kind: 'guarded', hint: '익사 기사가 살아 있으면 여왕은 거의 다치지 않는다', trophy: '심해 진주' },
+  forge_golem: { kind: 'vent', hint: '용광로가 열리는 순간을 노려라', trophy: '용광로 심장' },
+  ignar: { kind: 'armor', armor: 0.3, rearm: true, hint: '용암 갑옷 — 깨도 화나면 다시 굳는다', trophy: '불의 왕관' },
+  rot_warden: { kind: 'regrow', regrowHp: 0.3, hint: '썩은 뿌리로 다시 일어난다 — 불로 마무리', trophy: '썩은 뿌리' },
+  mycela: { kind: 'regrow', regrowHp: 0.3, hint: '포자가 다시 뭉친다 — 불로 태워 마무리', trophy: '포자 왕관' },
+  storm_wyvern: { kind: 'flyer', hint: '하늘로 날아오른다 — 점프 공격과 원거리', trophy: '폭풍 깃' },
+  morgan: { kind: 'barrier', hint: '은빛 장막이 켜지면 공격이 거의 막힌다', trophy: '은빛 가면' },
+  moon_azmal: { kind: 'flyer', phase: 0.7, hint: '체력이 줄면 날아오른다 — 점프 공격과 원거리', trophy: '달그림자 비늘' },
+  moon_orvex: { kind: 'barrier', fast: true, hint: '일곱 번째 달의 장막 — 꺼진 틈을 노려라', trophy: '일곱 번째 달 조각' },
+});

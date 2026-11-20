@@ -37,7 +37,7 @@ function towerFloor(n, runSeed = 7) {
   return {
     name: boss ? `${n}층 · 강화 보스` : `${n}층`, theme: pick(TOWER_THEMES), waves, boss, tower: n, rule,
     // 장 배율 대신 층 배율: 5층마다 장이 하나씩 오르고, 층마다 4%씩 더 세진다
-    chScale: Math.min(6, 1 + tier), floorMul: 1 + n * 0.04 + (boss ? 0.3 : 0),
+    chScale: Math.min(12, 1 + tier), floorMul: 1 + n * 0.04 + (boss ? 0.3 : 0),
   };
 }
 // 10층마다 이어서 시작할 수 있다
@@ -59,7 +59,7 @@ function dailyDef(s) {
 }
 // 주간 보스 러시: 챕터 보스 6마리를 연달아. 기록을 잰다
 function rushDef(s) {
-  const ch = Math.max(1, Math.min(6, s.ch));
+  const ch = Math.max(1, Math.min(12, s.ch));
   return {
     name: '주간 보스 러시', theme: 'abyss', mode: 'rush', tower: 0, boss: true, allBoss: true,
     waves: [['barkhaul'], ['gloob'], ['sehera'], ['hrimgar'], ['orvex'], ['azmal']],

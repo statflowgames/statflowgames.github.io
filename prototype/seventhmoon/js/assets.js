@@ -10,6 +10,7 @@ const Assets = {
   rigGroup(id) {
     if (id === 'toothcrusher_rider') return 'toothcrusher';
     const base = MONDEF[id];
+    if (base && base.like) return this.rigGroup(base.like);   // 🆕 2부 대역
     if (RIGS[id] && (!base || id !== base.rig)) return id;
     return base ? base.rig : id;
   },
@@ -54,7 +55,7 @@ const Assets = {
   },
   portraits(list) { return list.flatMap(k => ['portrait/' + k, ...['joy', 'angry', 'sad', 'surprise'].map(f => `portrait/${k}_${f}`)]); },
   forTitle(s) { return [...this.heroKeys(s), 'story/opening', 'bg/far', ...HERO_KEYS.map(k => 'portrait/' + k)]; },
-  forMap(s, ch) { return [`map/c${ch}`, 'map/c1', 'portrait/' + (s ? s.hero : 'warrior')]; },
+  forMap(s, ch) { const C = typeof CHAPTERS !== 'undefined' && CHAPTERS[ch - 1]; return [C ? C.map : `map/c${ch}`, 'map/c1', 'portrait/' + (s ? s.hero : 'warrior')]; },
   forCamp(s) { return [...this.heroKeys(s), 'bg/camp_far', 'bg/far', ...this.group('npc'), ...HERO_KEYS.map(k => 'portrait/' + k), ...this.portraits(['lise', 'tabel']), 'portrait/merchant', 'portrait/fortune']; },
   forStage(def, s) {
     const th = THEMES[def.theme] || THEMES.forest;

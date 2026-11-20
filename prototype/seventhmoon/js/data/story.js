@@ -22,8 +22,8 @@ const CAST = {
   orvex: { ko: '오르벡스', portrait: 'portrait/orvex', faces: 'portrait/orvex_', col: '#d0c8ff' },
   seril: { ko: '세릴', portrait: 'portrait/ranger', faces: 'portrait/ranger_' },
   odelia: { ko: '오델리아', portrait: 'portrait/paladin', faces: 'portrait/paladin_' },
-  hunter: { ko: '달사냥꾼', col: '#c890ff' },
-  kael: { ko: '카엘', col: '#c890ff' },
+  hunter: { ko: '달사냥꾼', col: '#c890ff', portrait: 'portrait/hunter' },
+  kael: { ko: '카엘', col: '#c890ff', portrait: 'portrait/kael', faces: 'portrait/kael_' },
   void: { ko: '???', col: '#8a7aa8' },
   narr: { ko: '' },
 };

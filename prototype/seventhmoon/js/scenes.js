@@ -137,6 +137,8 @@ class MapScene extends Phaser.Scene {
     const m = UI.img(this, W / 2, H / 2, C.map) || UI.img(this, W / 2, H / 2, 'map/c1');
     const k = 0.84;
     if (m) m.setScale(k);
+    if (m && C.mapTint) m.setTint(C.mapTint);   // 🆕 2부: 1부 지도에 색을 입힌 대역
+    if (C.part === 2) UI.text(this, W / 2, 86, '2부 · 부서진 하늘', 18, '#c8d8ff', { st: 4 }).setOrigin(0.5);
     this.mx = W / 2 - 1280 * k / 2; this.my = H / 2 - 853 * k / 2; this.mk = k;
     // 장 제목 리본
     const rib = this.add.graphics();
@@ -167,7 +169,7 @@ class MapScene extends Phaser.Scene {
     c.add(UI.button(this, W - 110, 120, '캠프', () => this.scene.start('camp'), { w: 180, h: 56, size: 24 }));
     c.add(UI.button(this, W - 110, 186, '가방', () => openMenu(this, 'bag'), { w: 180, h: 52, size: 22, col: 0x4a2a14 }));
     const moons = Object.keys(s.moons).length;
-    c.add(UI.text(this, W - 110, 232, `월석 ${moons}/6`, 20, '#d8c8ff').setOrigin(0.5, 0));
+    c.add(UI.text(this, W - 110, 232, (this.ch || s.ch) >= 7 ? `흑월 씨앗 ${Object.keys(s.seeds || {}).length}/6` : `월석 ${moons}/6`, 20, '#d8c8ff').setOrigin(0.5, 0));
     if (towerOpen(s)) c.add(UI.button(this, W - 110, 300, '탑 · 도전', () => this.scene.start('towergate'), { w: 180, h: 56, size: 22, col: 0x4a2a7a }));
     else c.add(UI.text(this, W - 110, 286, '심연의 탑\n1장을 깨면 열려요', 15, '#8a7a98', { align: 'center' }).setOrigin(0.5, 0));
     this.hud = c;
@@ -194,7 +196,7 @@ class MapScene extends Phaser.Scene {
       const big = n.type === 'boss';
       const r = big ? 34 : 24;
       const col = done ? 0xe0b45a : isOpen ? 0xfff2c0 : 0x6a5a48;
-      const nodeImg = 'uiset/' + (closed ? 'node_locked' : { stage: 'node_battle', midboss: 'node_elite', event: 'node_event', treasure: 'node_moonstone', boss: 'node_boss' }[n.type]);
+      const nodeImg = 'uiset/' + (closed ? 'node_locked' : { stage: 'node_battle', midboss: 'node_elite', event: 'node_event', treasure: 'node_moonstone', boss: 'node_boss', side: 'node_event' }[n.type]);
       let circ;
       if (this.textures.exists(nodeImg)) {
         circ = this.add.image(x, y, nodeImg); circ.setScale(r * 2.3 / circ.height);
@@ -238,7 +240,7 @@ class MapScene extends Phaser.Scene {
     const c = this.add.container(0, 0).setDepth(60);
     c.add(UI.panel(this, W / 2 - 400, H - 150, 800, 140, { alpha: 0.94 }));
     const st = n.stage && STAGES[n.stage];
-    const typeKo = { stage: '전투', midboss: '중간 보스', event: '이벤트', treasure: '보물 · 월석', boss: '챕터 보스' }[n.type];
+    const typeKo = { stage: '전투', midboss: '중간 보스', event: '이벤트', treasure: CHAPTERS[ch - 1].part === 2 ? '보물 · 흑월 씨앗' : '보물 · 월석', boss: '챕터 보스', side: '곁가지 의뢰 (선택)' }[n.type];
     const title = st ? st.name : n.type === 'event' ? (CHAPTERS[ch - 1].routeB + ' 이벤트') : '';
     c.add(UI.text(this, W / 2 - 370, H - 138, `[${typeKo}]  ${title}`, 26, '#ffe7a8', { bold: true }));
     let desc = '';
@@ -269,7 +271,9 @@ class MapScene extends Phaser.Scene {
       return;
     }
     const go = () => { SFX.music(null, { fade: 0.4 }); this.scene.start('game', { stage: node.stage, ch, node: id }); };
-    if (node.type === 'boss') runTalk(this, `c${ch}_preboss`, go, { once: true }); else go();
+    if (node.type === 'boss') runTalk(this, `c${ch}_preboss`, go, { once: true });
+    else if (node.type === 'side') runTalk(this, `c${ch}_side`, go, { once: true });   // 🆕 곁가지 의뢰
+    else go();
   }
   chapterIntro() {
     const s = Save.data, ch = this.ch;
@@ -284,20 +288,24 @@ class MapScene extends Phaser.Scene {
     const chain = [];
     if (a.node === 'void') { s.flags.void_done = true; Save.write(); return this.ending('end_true'); }
     if (node && node.type === 'treasure') chain.push(`c${ch}_moon`);
+    if (node && node.type === 'side') chain.push(`c${ch}_side_end`);
     if (a.node === 's2' && CLASS_ROOM[s.hero] === ch) chain.push('cls_' + s.hero);
     if (node && node.type === 'boss') {
       chain.push(`c${ch}_end`);
       if (ch === 5) chain.push('c5_choice');
+      if (ch === 11) chain.push('c11_choice');
     }
     const finish = () => {
       if (node && node.type === 'boss' && ch === s.ch) {
         if (ch === 6) return this.finalEnding();
-        s.ch = Math.min(6, s.ch + 1); Save.write();
+        if (ch === 12) return this.part2Ending();
+        s.ch = Math.min(12, s.ch + 1); Save.write();
         UI.toast(this, `${s.ch}장 「${CHAPTERS[s.ch - 1].name}」이 열렸어요`, '#ffe27a', 300);
         this.time.delayedCall(1200, () => this.scene.start('map'));
         return;
       }
       if (node && node.type === 'boss' && ch === 6) return this.finalEnding();
+      if (node && node.type === 'boss' && ch === 12) return this.part2Ending();
       this.scene.restart({ ch });
     };
     const runNext = () => {
@@ -315,9 +323,16 @@ class MapScene extends Phaser.Scene {
     }
     this.ending(e);
   }
+  // 🆕 2부 엔딩
+  part2Ending() {
+    const s = Save.data, seeds = Object.keys(s.seeds || {}).length;
+    const e = s.flags.p2_accepted ? 'p2_dark' : (seeds >= 6 && s.lise >= 7) ? 'p2_true' : 'p2_dawn';
+    this.ending(e);
+  }
   ending(e) {
     const s = Save.data;
     s.endings[e] = true;
+    if (!e.startsWith('p2_')) { s.lastEnding = e; if (s.ch < 7) { s.ch = 7; this.time.delayedCall(1200, () => UI.toast(this, '2부 「부서진 하늘」이 열렸어요', '#c8d8ff', 260)); } }
     const ne = Object.keys(s.endings).length;
     // 🆕 직업별 엔딩 기록: 처음 보는 (직업, 엔딩) 조합이면 보상
     const ck = `end_${s.hero}_${e}`;
@@ -666,7 +681,15 @@ class Smithy extends MenuBase {
   drawTrophy() {
     const s = Save.data; s.trophies = s.trophies || {}; s.crafted = s.crafted || {};
     UI.text(this, 70, 96, Object.entries(MATS).map(([k, n]) => `${n} ${s.mats[k] || 0}`).join('   '), 19, '#d8c8ff');
-    Object.keys(BOSS_GEAR).forEach((id, i) => {
+    // 🆕 1부 13명 / 2부 12명을 나눠 보여 준다
+    const all = Object.keys(BOSS_GEAR), p1 = all.filter(id => !(MONDEF[id] || {}).like), p2 = all.filter(id => (MONDEF[id] || {}).like);
+    const showP2 = s.ch >= 7 || p2.some(id => id in s.trophies);
+    const page = showP2 ? (this.tpage || 0) : 0;
+    if (showP2) {
+      UI.button(this, 790, 66, '1부', () => { this.tpage = 0; this.draw(); }, { w: 90, h: 46, size: 19, col: page === 0 ? 0x5a3a7a : 0x3a2a1a });
+      UI.button(this, 890, 66, '2부', () => { this.tpage = 1; this.draw(); }, { w: 90, h: 46, size: 19, col: page === 1 ? 0x5a3a7a : 0x3a2a1a });
+    }
+    (page ? p2 : p1).forEach((id, i) => {
       const g = BOSS_GEAR[id], gd = BOSS_GIMMICK_DEF[id] || {}, c = bossGearCost(id);
       const col = i % 2, row = Math.floor(i / 2);
       const x0 = 50 + col * 600, y = 158 + row * 78;
@@ -882,6 +905,11 @@ class LiseMenu extends MenuBase {
       UI.text(this, x, y + 66, has ? MOONS[k].ko : '???', 20, has ? '#fff' : '#6a5a48', { bold: true }).setOrigin(0.5, 0);
     });
     UI.text(this, 520, 548, `리세와의 신뢰 ${'♥'.repeat(Math.min(4, s.lise))}${'♡'.repeat(Math.max(0, 4 - s.lise))}${s.lise > 4 ? ' +' + (s.lise - 4) : ''}`, 22, '#ff9ab0');
+    // 🆕 2부: 흑월 씨앗 줄
+    if (s.ch >= 7 && typeof SEEDS !== 'undefined') {
+      const got = Object.keys(s.seeds || {});
+      UI.text(this, 520, 520, '흑월 씨앗 ' + Object.entries(SEEDS).map(([k, d]) => got.includes(k) ? '◆' : '◇').join('') + `  ${got.length}/6` + (got.length >= 6 ? '' : '  — 2부 우회 길(B)에서 정화'), 18, '#c8d8ff');
+    }
     // 🆕 엔딩 단서: 무엇이 끝을 가르는지 넌지시
     const nm = Object.keys(s.moons).length, hint = [];
     if (s.flags.accepted) hint.push('오르벡스의 손을 잡았다. 흑월이 당신을 부른다…');
@@ -890,7 +918,7 @@ class LiseMenu extends MenuBase {
       hint.push(s.lise >= 4 ? '리세는 당신을 깊이 믿는다.' : '리세의 마음을 얻으려면 — 갈림길의 선택, 갇힌 사람 구출.');
     }
     UI.text(this, 520, 586, hint.join(String.fromCharCode(10)), 16, '#c8b8a0', { wrap: 380 });
-    UI.button(this, 1040, 600, '이야기하기', () => runTalk(this, `camp_lise_${Math.min(6, s.ch)}`), { w: 240, h: 60, size: 24 });
+    UI.button(this, 1040, 600, '이야기하기', () => runTalk(this, `camp_lise_${Math.min(12, s.ch)}`), { w: 240, h: 60, size: 24 });
   }
 }
 
@@ -901,16 +929,22 @@ class Credits extends Phaser.Scene {
   create() {
     const s = Save.data;
     this.cameras.main.setBackgroundColor('#0a0610');
-    const name = { end_seal: '봉인 엔딩', end_true: '진 엔딩', end_dark: '다크 엔딩', end_sacrifice: '희생 엔딩' }[this.e];
+    const name = { end_seal: '봉인 엔딩', end_true: '진 엔딩', end_dark: '다크 엔딩', end_sacrifice: '희생 엔딩', p2_true: '2부 · 일곱 달의 하늘', p2_dark: '2부 · 달의 왕', p2_dawn: '2부 · 새벽의 항구' }[this.e];
     UI.text(this, W / 2, 180, name, 64, '#ffe7a8', { serif: true, st: 8 }).setOrigin(0.5);
     const seen = ['end_seal', 'end_true', 'end_dark', 'end_sacrifice'].filter(k => s.endings[k]).length;
-    UI.text(this, W / 2, 300, `${DB.heroes[s.hero].name} Lv.${s.lv} · 월석 ${Object.keys(s.moons).length}/6 · 본 엔딩 ${seen}/4`, 26, '#f4e4c0').setOrigin(0.5);
+    const p2 = this.e.startsWith('p2_'), seen2 = ['p2_true', 'p2_dark', 'p2_dawn'].filter(k => s.endings[k]).length;
+    UI.text(this, W / 2, 300, p2 ? `${DB.heroes[s.hero].name} Lv.${s.lv} · 흑월 씨앗 ${Object.keys(s.seeds || {}).length}/6 · 2부 엔딩 ${seen2}/3` : `${DB.heroes[s.hero].name} Lv.${s.lv} · 월석 ${Object.keys(s.moons).length}/6 · 본 엔딩 ${seen}/4`, 26, '#f4e4c0').setOrigin(0.5);
     UI.text(this, W / 2, 380, '일곱 번째 달 — 끝까지 함께해 주셔서 고마워요\n다른 선택, 다른 길, 다른 직업으로 또 다른 결말을 찾아보세요', 22, '#c8b8a0', { align: 'center' }).setOrigin(0.5);
     UI.button(this, W / 2, 540, '타이틀로', () => this.scene.start('title'), { w: 280, h: 64, size: 26 });
+    if (this.e.startsWith('p2_')) {
+      // 2부 회차: 12장을 다시 열고, 11장 보스를 다시 깨면 두 번째 제안을 다시 고른다
+      s.cleared.c12 = []; s.route.c12 = null; s.flags.p2_accepted = false; s.flags.p2_refused = false; delete s.seen.c11_choice; delete s.seen.c11_end;
+    } else {
     // 회차: 6장을 다시 열어 다른 엔딩을 볼 수 있게 한다
     s.cleared.c6 = []; s.route.c6 = null; s.flags.void_done = false; s.runs = (s.runs || 1) + 1;
     // 5장 보스를 다시 깨면 오르벡스의 제안을 다시 고를 수 있다
     s.flags.accepted = false; s.flags.refused = false; delete s.seen.c5_choice; delete s.seen.c5_end;
+    }
     Save.write();
     SFX.music('bgm_title');
   }

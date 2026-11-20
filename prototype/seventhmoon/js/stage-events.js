@@ -101,6 +101,8 @@ const StageEvents = {
     if (AS[w] === hk) w = 'hero';
     if (w === 'hero') return { ko: DB.heroes[hk].name, portrait: 'portrait/' + hk };
     if (w.startsWith('x:')) return { ko: w.slice(2) };
+    const s = Save.data;
+    if (w === 'lise' && s && s.lastEnding === 'end_sacrifice' && s.ch >= 7 && CAST.lise_stone) return CAST.lise_stone;
     return CAST[w] || { ko: w };
   },
   // 말풍선 줄 넣기. lines: [[who, text, cond?], ...]
@@ -229,6 +231,7 @@ const StageEvents = {
     if (!sc.barkUi && sc.barkQ && sc.barkQ.length && !sc.won && !sc.lost) this.showBark(sc, sc.barkQ.shift());
     const e = sc.sev; if (!e || e.state !== 'run' || sc.won || sc.lost) return;
     e.t -= dt;
+    // ✏️ 글자는 숫자가 바뀔 때만 다시 그린다 (매 프레임 다시 그리면 휴대폰에서 무겁다)
     if (sc.goalUi) {
       const sec = Math.max(0, Math.ceil(e.t / 1000)), warn = e.t < 10000;
       if (sc.goalUi.sec !== sec) { sc.goalUi.sec = sec; sc.goalUi.t.setText(`${sc.goalUi.txt}  ·  ${sec}초`); }

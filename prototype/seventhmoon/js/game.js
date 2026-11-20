@@ -96,6 +96,7 @@ class Game extends Phaser.Scene {
   create() {
     const s = Save.data || Save.load() || Save.fresh('warrior');
     this.save = s;
+    if (typeof aliasStandins === 'function') aliasStandins();   // 🆕 2부 대역 몬스터 패턴
     this.stats = heroStats(s);
     this.def = this.cfg.def || STAGES[this.cfg.stage] || STAGES.c1_s1;
     this.tower = this.def.tower || 0;
@@ -229,7 +230,7 @@ class Game extends Phaser.Scene {
     const g = this.propGrp || 'props';
     let key = secret && this.textures.exists('props/secret_cache') ? 'props/secret_cache' : chest && this.textures.exists('chest/iron_closed') ? 'chest/iron_closed' : this.textures.exists(g + '/' + n) ? g + '/' + n : 'props/' + n;
     const img = this.add.image(x, y + 6, key).setOrigin(0.5, 1).setDepth(1000 + y);
-    img.setScale(chest ? 110 / img.height : (n === 'barrel' ? 95 : 88) / img.height * (key.startsWith('props/') ? 1 : 1.05));
+    img.setScale(chest ? 110 / img.height : key === 'props/secret_cache' ? 105 / img.height : (n === 'barrel' ? 95 : 88) / img.height * (key.startsWith('props/') ? 1 : 1.05));
     const sh = this.add.image(x, y + 2, 'shadow').setScale(0.7, 0.6).setAlpha(0.45).setDepth(999);
     const p = { x, y, n, img, sh, hp: chest ? 3 : secret ? 3 : n === 'crate' ? 2 : 1, chest, secret };
     if (secret) {
@@ -246,7 +247,7 @@ class Game extends Phaser.Scene {
     let at = 900;
     // 🆕 웨이브 늘리기: 보스·탑·도전이 아닌 스테이지에 앞 웨이브들을 섞은 더 큰 웨이브를 덧붙인다
     let waves = this.def.waves;
-    const tune = typeof MOB_TUNE !== 'undefined' && !this.def.boss && !this.tower && !this.def.mode && !Q.has('oldmob') ? MOB_TUNE[Math.max(1, Math.min(6, this.ch))] : null;
+    const tune = typeof MOB_TUNE !== 'undefined' && !this.def.boss && !this.tower && !this.def.mode && !Q.has('oldmob') ? MOB_TUNE[Math.max(1, Math.min(12, this.ch))] : null;
     if (tune && tune.extraWave) {
       waves = [...waves];
       const all = this.def.waves.flat().join(',').split(',').map(t => t.trim().split('*')[0]);
@@ -2175,7 +2176,7 @@ class Game extends Phaser.Scene {
     // 보상: 층이 높을수록 좋은 장비, 10층마다 보스 상자
     const reward = [];
     const nItems = (this.def.boss ? 3 : 1) + (rw >= 2 ? 1 : 0);
-    for (let i = 0; i < nItems; i++) { const it = rollDrop(s, Math.min(6, this.ch + 1), Math.min(7, Math.floor(n / 5)) + (this.def.boss ? 2 : 0), this.def.boss || n >= 20); s.bag = s.bag.filter(b => b !== it); reward.push(it); }
+    for (let i = 0; i < nItems; i++) { const it = rollDrop(s, Math.min(12, this.ch + 1), Math.min(7, Math.floor(n / 5)) + (this.def.boss ? 2 : 0), this.def.boss || n >= 20); s.bag = s.bag.filter(b => b !== it); reward.push(it); }
     // 보스 층은 좋은 장비를 하나 보장한다 (20층부터 영웅, 30층부터 전설)
     if (this.def.boss) { const it = makeItem(s, { cls: s.hero, slot: ['weapon', 'offhand', 'head', 'body'][Math.floor(Math.random() * 4)], tier: Math.min(3, Math.floor(this.ch / 2)), rar: n >= 30 ? 4 : n >= 20 ? 3 : 2 }); s.bag = s.bag.filter(b => b !== it); reward.unshift(it); }
     const all = [...this.loot, ...reward];

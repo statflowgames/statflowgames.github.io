@@ -1,7 +1,12 @@
 // 도감과 업적 60개
-const BOSS_IDS = ['toothcrusher', 'barkhaul', 'captain_mog', 'gloob', 'twinsting', 'sehera', 'frost_wyvern', 'hrimgar', 'golem7', 'orvex', 'orvex_eclipse', 'azmal', 'void_shadow'];
+const BOSS_IDS = ['toothcrusher', 'barkhaul', 'captain_mog', 'gloob', 'twinsting', 'sehera', 'frost_wyvern', 'hrimgar', 'golem7', 'orvex', 'orvex_eclipse', 'azmal', 'void_shadow',
+  // 🆕 2부
+  'glass_queen', 'star_colossus', 'drowned_captain', 'naia', 'forge_golem', 'ignar', 'rot_warden', 'mycela', 'storm_wyvern', 'morgan', 'moon_azmal', 'moon_orvex'];
 const MON_IDS = ['grunt', 'spear', 'shaman', 'wolf', 'ratkin_blade', 'ratkin_xbow', 'pirate', 'slime', 'mummy', 'scorpion', 'skeleton_archer', 'snakeman',
-  'frostwolf', 'snow_brute', 'ice_spirit', 'dwarf_miner', 'gargoyle', 'construct', 'harpy', 'cultist', 'shadow_knight', 'imp', 'hound', 'leech', 'shade_hero'];
+  'frostwolf', 'snow_brute', 'ice_spirit', 'dwarf_miner', 'gargoyle', 'construct', 'harpy', 'cultist', 'shadow_knight', 'imp', 'hound', 'leech', 'shade_hero',
+  // 🆕 2부
+  'glass_scorpion', 'sand_wraith', 'crystal_snake', 'shard_construct', 'drowned_pirate', 'tide_slime', 'deep_fishman', 'drowned_knight', 'magma_brute', 'fire_imp', 'forge_dwarf', 'ember_hound',
+  'spore_wolf', 'rot_grunt', 'thorn_shaman', 'bog_leech', 'storm_harpy', 'sky_gargoyle', 'silver_cultist', 'silver_knight', 'moon_shade', 'moon_hound', 'star_imp', 'void_leech'];
 
 const Codex = {
   init(s) {

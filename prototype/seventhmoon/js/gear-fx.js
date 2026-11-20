@@ -99,7 +99,7 @@ const GearFx = {
     for (const slot of SLOTS) {
       const it = s.eq[slot] && itemById(s, s.eq[slot]);
       if (!it) continue;
-      if (it.boss && BOSS_GEAR[it.boss]) out.add(BOSS_GEAR[it.boss].code);
+      if (it.boss && BOSS_GEAR[it.boss]) { if (BOSS_GEAR[it.boss].code) out.add(BOSS_GEAR[it.boss].code); }
       else if (it.rar === 4 && GEAR_LEGEND[it.name]) out.add(GEAR_LEGEND[it.name].code);
       if (it.set) sets[it.set] = (sets[it.set] || 0) + 1;
     }
@@ -141,6 +141,12 @@ const GearFx = {
     if (c.has('set2:밤까마귀')) st.crit += 10;
     if (c.has('set2:은빛 숲지기')) st.aspd += 10;
     if (c.has('set2:일곱 번째 서약')) st.lifesteal += 5;
+    // 🆕 보스 장신구 고정 능력치 (2부)
+    for (const slot of SLOTS) {
+      const it = s.eq && s.eq[slot] && itemById(s, s.eq[slot]);
+      const g = it && it.boss && BOSS_GEAR[it.boss];
+      if (g && g.stats) for (const [k, v] of Object.entries(g.stats)) st[k] = (st[k] || 0) + v;
+    }
     st.cdr = Math.min(50, st.cdr);
     st.dmgRed = Math.min(45, st.dmgRed);
   },
@@ -375,3 +381,19 @@ const GearFx = {
     g.ringRevUsed = true; return true;
   },
 };
+
+// 🆕 2부 보스 장신구 (stats = 고정 능력치, code = 특수 효과)
+Object.assign(BOSS_GEAR, {
+  glass_queen: { name: '유리 독침 반지', kind: 'ring', ch: 7, fx: '치명타 확률 +8%, 치명타 피해 +25%', stats: { crit: 8, critDmg: 25 } },
+  star_colossus: { name: '별똥 핵 목걸이', kind: 'amulet', ch: 7, fx: '각성 충전 +30%, 보스에게 피해 +10%', stats: { awkPct: 30, vsBoss: 10 } },
+  drowned_captain: { name: '익사한 닻 반지', kind: 'ring', ch: 8, fx: '방어력 +12%, 다운된 적에게 피해 +20%', stats: { defPct: 12, vsDown: 20 } },
+  naia: { name: '심해 진주 목걸이', kind: 'amulet', ch: 8, code: 'mossRegen', fx: '받는 회복 +30%, 체력이 초당 0.5% 재생', stats: { healPct: 30 } },
+  forge_golem: { name: '용광로 심장 반지', kind: 'ring', ch: 9, fx: '화염 피해 +30%, 공격에 15% 확률로 상태이상', stats: { fireDmg: 30, procPct: 15 } },
+  ignar: { name: '불의 왕관 목걸이', kind: 'amulet', ch: 9, fx: '공격력 +12%, 받는 피해 -10%', stats: { atkPct: 12, dmgRed: 10 } },
+  rot_warden: { name: '썩은 뿌리 반지', kind: 'ring', ch: 10, fx: '처치 시 체력 회복 +3%, 흡혈 +3%', stats: { leech: 3, lifesteal: 3 } },
+  mycela: { name: '포자 왕관 목걸이', kind: 'amulet', ch: 10, code: 'sludge', fx: '독 피해 +40%, 공격에 20% 확률로 독, 중독된 적이 죽으면 독 폭발', stats: { poisonDmg: 40 } },
+  storm_wyvern: { name: '폭풍 깃 반지', kind: 'ring', ch: 11, fx: '이동 속도 +15%, 공격 속도 +10%', stats: { spd: 15, aspd: 10 } },
+  morgan: { name: '은빛 가면 목걸이', kind: 'amulet', ch: 11, fx: '스킬 쿨다운 -20%, 보스에게 피해 +15%', stats: { cdr: 20, vsBoss: 15 } },
+  moon_azmal: { name: '달그림자 비늘 반지', kind: 'ring', ch: 12, code: 'dragonScale', fx: '공중 점프 1회 추가, 공중의 적에게 피해 +30%' },
+  moon_orvex: { name: '일곱 번째 달 목걸이', kind: 'amulet', ch: 12, code: 'eclipse', fx: '모든 피해 +20%, 각성 지속시간 +50%, 각성 중 피해 +20%', stats: { allDmg: 20 } },
+});

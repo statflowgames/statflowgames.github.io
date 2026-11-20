@@ -88,6 +88,7 @@ function applyGive(g) {
   if (g.gold) { s.gold += g.gold; out.push(`금화 +${g.gold}`); }
   if (g.exp) { const ups = gainExp(s, g.exp); out.push(`경험치 +${g.exp}`); if (ups.length) out.push(`레벨 업! Lv.${s.lv}`); }
   if (g.moon && !s.moons[g.moon]) { s.moons[g.moon] = true; out.push(`${MOONS[g.moon].ko}의 월석을 얻었다!`); }
+  if (g.seed && typeof SEEDS !== 'undefined') { s.seeds = s.seeds || {}; if (!s.seeds[g.seed]) { s.seeds[g.seed] = true; out.push(`${SEEDS[g.seed].ko}를 정화했다!`); } }
   if (g.item) { const rar = { rare: 2, epic: 3, legend: 4 }[g.item] ?? 2; const it = makeItem(s, { cls: s.hero, slot: ['weapon', 'offhand', 'head', 'body'][Math.floor(Math.random() * 4)], tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar }); out.push(`${RARITY[rar].ko} 장비 「${it.name}」`); }
   if (g.unlock && !s.unlocked[g.unlock]) { s.unlocked[g.unlock] = true; addGlobalUnlock(g.unlock); out.push(`새 직업 해금: ${DB.heroes[g.unlock].ko}`); }
   if (g.flag) s.flags[g.flag] = true;
@@ -135,6 +136,9 @@ class Talk extends Phaser.Scene {
       const h = Save.data ? Save.data.hero : 'warrior';
       return { ko: DB.heroes[h].name, portrait: 'portrait/' + h, faces: 'portrait/' + h + '_', hero: true };
     }
+    // 🆕 2부: 1부를 희생 엔딩으로 끝냈다면 리세는 월석 속 목소리
+    const s = Save.data;
+    if (w === 'lise' && s && s.lastEnding === 'end_sacrifice' && s.ch >= 7 && !s.endings.p2_true && CAST.lise_stone) return CAST.lise_stone;
     return CAST[w] || { ko: w };
   }
   next() {
@@ -222,6 +226,9 @@ function talkLineOk(L) {
   if (L.ifLise !== undefined && (s.lise || 0) < L.ifLise) return false;
   if (L.ifLiseBelow !== undefined && (s.lise || 0) >= L.ifLiseBelow) return false;
   if (L.onlyFor && !L.onlyFor.includes(s.hero)) return false;
+  if (L.ifEnd && s.lastEnding !== L.ifEnd) return false;   // 🆕 1부 마지막으로 본 엔딩
+  if (L.ifNotEnd && s.lastEnding === L.ifNotEnd) return false;
+  if (L.ifSeeds !== undefined && Object.keys(s.seeds || {}).length < L.ifSeeds) return false;
   return true;
 }
 // 다른 장면에서 대화를 띄운다

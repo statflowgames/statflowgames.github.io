@@ -586,8 +586,11 @@ const MON_PROJ = {
 class Monster extends Actor {
   constructor(scene, id, x, y, o = {}) {
     const base = MONDEF[id] || MONDEF.grunt;
-    const real = !!RIGS[id] && id !== base.rig;
-    super(scene, real ? id : base.rig, x, y, real ? {} : { sc: base.sc });
+    // 🆕 2부 대역: like = 그림을 빌려 올 원본 (원본에 진짜 그림이 있으면 그것을, 크기는 sc 배율)
+    const look = base.like && RIGS[base.like] && base.like !== (MONDEF[base.like] || {}).rig ? base.like : null;
+    const real = !look && !!RIGS[id] && id !== base.rig;
+    super(scene, look || (real ? id : base.rig), x, y, look ? { sc: base.sc || 1 } : real ? {} : { sc: base.sc });
+    this.look = look;
     this.kind = base.rig;   // AI 종류 (barkhaul = 보스 AI)
     const k = scene.monScale || { hp: 1, dmg: 1 };
     this.id = id;
@@ -598,12 +601,12 @@ class Monster extends Actor {
     this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) : k.hp)); this.hp = this.maxHp;
     // 🆕 일반 몬스터 강화 (장별 MOB_TUNE): 체력·공격력
     if (!base.boss && typeof MOB_TUNE !== 'undefined' && !scene.tower && !(typeof Q !== 'undefined' && Q.has('oldmob'))) {
-      const t = MOB_TUNE[Math.max(1, Math.min(6, Math.round(scene.ch || 1)))];
+      const t = MOB_TUNE[Math.max(1, Math.min(12, Math.round(scene.ch || 1)))];
       this.maxHp = this.hp = Math.round(this.maxHp * t.hp);
       this.def.dmg = Math.round(this.def.dmg * t.dmg); this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
     }
     // 정예: 접두사 하나, 체력 1.8배, 조금 크다. ✏️ 보통 난이도에서도 2장부터 가끔 나온다 (전에는 체력 배율이 아래에서 덮어써져 적용되지 않았음)
-    const ec = (scene.diff >= 3 ? 0.25 : scene.diff >= 2 ? 0.14 : (typeof MOB_TUNE !== 'undefined' && !scene.tower ? (MOB_TUNE[Math.max(1, Math.min(6, Math.round(scene.ch || 1)))].elite || 0) : 0)) + ((scene.rule && scene.rule.eliteAdd) || 0);
+    const ec = (scene.diff >= 3 ? 0.25 : scene.diff >= 2 ? 0.14 : (typeof MOB_TUNE !== 'undefined' && !scene.tower ? (MOB_TUNE[Math.max(1, Math.min(12, Math.round(scene.ch || 1)))].elite || 0) : 0)) + ((scene.rule && scene.rule.eliteAdd) || 0);
     if (!o.noElite && !base.boss && ec && Math.random() < ec) {
       const keys = Object.keys(ELITES);
       this.elite = keys[Math.floor(Math.random() * keys.length)];
@@ -614,7 +617,7 @@ class Monster extends Actor {
     }
     // 🆕 보스 강화 (앞쪽 장일수록 더): 체력·공격력·공격 간격·그로기 내성. 주소에 ?oldboss 면 끈다
     if (base.boss && typeof BOSS_TUNE !== 'undefined' && !(typeof Q !== 'undefined' && Q.has('oldboss'))) {
-      const t = BOSS_TUNE[Math.max(1, Math.min(6, Math.round(scene.ch || 1)))] || BOSS_TUNE[6];
+      const t = BOSS_TUNE[Math.max(1, Math.min(12, Math.round(scene.ch || 1)))] || BOSS_TUNE[6];
       this.maxHp = this.hp = Math.round(this.maxHp * t.hp);
       this.def.dmg = Math.round(this.def.dmg * t.dmg); this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
       this.bossTune = t;
@@ -622,6 +625,7 @@ class Monster extends Actor {
     if (base.boss && typeof BossGimmicks !== 'undefined') BossGimmicks.attach(this);
     if (real && MAN['faces/' + id + '_hurt']) this.def.face = 'faces/' + id;
     else if (real) this.def.face = null;
+    else if (look) this.def.face = MAN['faces/' + look + '_hurt'] ? 'faces/' + look : null;
     if (base.tint && !real) { for (const b of this.rig.bones) b.baseTint = mulTint(b.baseTint, base.tint); this.rig.setTintAll(null); }
     const kind = base.rig;
     this.side = 'mon';
