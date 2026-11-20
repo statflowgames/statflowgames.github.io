@@ -108,7 +108,7 @@ class Game extends Phaser.Scene {
     if (this.def.floorMul) { const f = this.def.floorMul; this.monScale = { hp: this.monScale.hp * f * (this.rule.hpMul || 1), dmg: this.monScale.dmg * Math.sqrt(f) * (this.rule.dmgMul || 1) }; }
     this.speedMul = this.rule.speedMul || 1;
     this.abilityClock = 0; this.abilityCues = [];
-    this.now = 0; this.hitstop = 0; this.won = false; this.lost = false; this.paused = false;
+    this.now = 0; this.hitstop = 0; this.won = false; this.lost = false; this.paused = false; this.looting = false; this.lootDone = false;
     this.god = Q.has('god');
     this.gold = 0; this.expGain = 0; this.loot = []; this.dmgTaken = 0;
     this.comboN = 0; this.comboT = 0; this.maxCombo = 0;
@@ -264,9 +264,37 @@ class Game extends Phaser.Scene {
     this.won = true;
     if (this.tut) { this.save.seen.tutorial = true; Save.write(); if (this.tut.ui) this.tut.ui.destroy(); this.tut = null; }
     this.stageIntro(this.tower ? '심연의 탑  ·  ' + this.def.name : this.mode === 'story' ? `제${this.ch}장  ·  ${this.def.name}` : this.def.name, 'STAGE CLEAR', null, { hold: 1300, clear: true });
-    this.hero.state = 'win'; this.hero.play('w_win', 120); this.hero.setHead('head_victory'); this.hero.vx = this.hero.vy = 0;
-    SFX.win(); SFX.heroWin(this.hero.key); SFX.heartbeat(false);
-    this.time.delayedCall(1800, () => this.result(true));
+    SFX.heartbeat(false);
+    this.lootThenWin(() => { SFX.win(); SFX.heroWin(this.hero.key); }, 1300);
+  }
+  // 🆕 승리 직후 줍는 시간: 바닥에 남은 금화·장비를 줍게 잠깐 움직일 수 있다 (최대 2.2초).
+  // 0.5초 뒤부터 남은 것들이 주인공 쪽으로 끌려온다. 다 주우면 바로 승리 포즈로 넘어간다.
+  lootThenWin(onPose, resultDelay) {
+    const left = () => this.pickups.filter(p => !p.dead).length;
+    const pose = () => {
+      if (this.lootDone) return; this.lootDone = true; this.looting = false;
+      this.resetTouchControls && this.resetTouchControls();
+      const h = this.hero; h.state = 'win'; h.play('w_win', 120); h.setHead('head_victory'); h.vx = h.vy = 0;
+      onPose && onPose();
+      this.time.delayedCall(resultDelay, () => this.result(true));
+    };
+    if (!left() || this.hero.hp <= 0) return pose();
+    this.looting = true; this.lootStart = this.now;
+    const tick = this.time.addEvent({ delay: 100, loop: true, callback: () => {
+      if (this.lootDone) { tick.remove(); return; }
+      if (!left() || this.now - this.lootStart > 2200) { tick.remove(); this.time.delayedCall(left() ? 0 : 250, pose); }
+    } });
+  }
+  lootMagnet(dt) {
+    if (!this.looting || this.now - this.lootStart < 500) return;
+    const h = this.hero, s = dt / 1000;
+    for (const p of this.pickups) {
+      if (p.dead || p.z > 0) continue;
+      const dx = h.x - p.x, dy = h.y - p.y, d = Math.hypot(dx, dy);
+      if (d > 520 || d < 1) continue;
+      const v = Math.min(d, (260 + (this.now - this.lootStart) * 0.5) * s);
+      p.x += dx / d * v; p.y += dy / d * v;
+    }
   }
   // ---------------- 입력 ----------------
   buildInput() {
@@ -513,7 +541,7 @@ class Game extends Phaser.Scene {
     return nearest;
   }
   onPointer(p) {
-    if (!p.isDown||this.paused||this.won||this.lost) return;
+    if (!p.isDown||this.paused||(this.won&&!this.looting)||this.lost) return;
     SFX.resume();
     const s = this.stick;
     if(p.btn&&p.btn.touchOwner!==this)p.btn=null;
@@ -997,6 +1025,7 @@ class Game extends Phaser.Scene {
     this.pickups.push(pk);
   }
   updatePickups(dt) {
+    this.lootMagnet(dt);
     const s = dt / 1000, h = this.hero;
     for (const p of this.pickups) {
       p.t += dt;
@@ -1785,9 +1814,7 @@ class Game extends Phaser.Scene {
     for (const m of this.monsters) if (m !== b && !m.dead) { m.hp = 0; m.takeHit(this.hero, { dmg: 999, type: 'knock', kb: 300, otg: true }, 999); }
     this.time.delayedCall(1700, () => {
       b.die();
-      this.hero.state = 'win'; this.hero.play('w_win', 120); this.hero.setHead('head_victory'); this.hero.vx = this.hero.vy = 0;
-      SFX.win(); SFX.heroWin(this.hero.key); SFX.ambience(this.theme.amb);
-      this.time.delayedCall(1400, () => this.result(true));
+      this.lootThenWin(() => { SFX.win(); SFX.heroWin(this.hero.key); SFX.ambience(this.theme.amb); }, 1400);
     });
   }
   onMonsterDead(m) {

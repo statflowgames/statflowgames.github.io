@@ -272,7 +272,7 @@ class Hero extends Actor {
     const st = this.state;
     if (st === 'dead') { this.physics(dt); return; }
     if (st === 'idle' || st === 'move' || st === 'land') {
-      if (this.scene.won) { this.vx = this.vy = 0; return; }
+      if (this.scene.won && !this.scene.looting) { this.vx = this.vy = 0; return; }   // 승리 후 줍는 시간에는 움직일 수 있다
       if (inp.awkP && this.awk >= 100) return this.startAwaken();
       if ((inp.sk1P || inp.sk2P) && this.scene.useSkill(inp.sk1P ? 0 : 1)) return;
       if (inp.itemN) this.scene.useItem(inp.itemN - 1);
