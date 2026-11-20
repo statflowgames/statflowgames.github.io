@@ -1971,8 +1971,10 @@ class Game extends Phaser.Scene {
     const gd = typeof BOSS_GIMMICK_DEF !== 'undefined' && BOSS_GIMMICK_DEF[b.id];
     if (gd && gd.trophy && this.save) {
       this.save.trophies = this.save.trophies || {};
-      this.save.trophies[b.id] = (this.save.trophies[b.id] || 0) + 1;
-      this.time.delayedCall(900, () => this.floatText(this.hero.x, this.hero.y - 280, '전리품 · ' + gd.trophy, '#ffb0ff', 30));
+      // 🆕 영웅 +1, 전설 +2, 사냥꾼의 주머니 +1
+      const tn = 1 + (this.diff >= 2 ? 1 : 0) + (this.diff >= 3 ? 1 : 0) + (this.save.flags.trophyPlus ? 1 : 0);
+      this.save.trophies[b.id] = (this.save.trophies[b.id] || 0) + tn;
+      this.time.delayedCall(900, () => this.floatText(this.hero.x, this.hero.y - 280, '전리품 · ' + gd.trophy + (tn > 1 ? ' ×' + tn : ''), '#ffb0ff', 30));
     }
     // 보스 러시: 마지막 보스가 아니면 다음 보스로
     if (this.def.allBoss && this.waveIdx < this.waves.length) {
@@ -2075,13 +2077,14 @@ class Game extends Phaser.Scene {
     if (!win) {
       c.add(UI.text(this, W / 2, 200, '쓰러졌다…', 76, '#ff9a8a', { serif: true, st: 10 }).setOrigin(0.5));
       c.add(UI.text(this, W / 2, 300, '얻은 금화와 장비는 절반만 챙겨 돌아갔어요', 24, '#e8dcc8').setOrigin(0.5));
-      s.gold += Math.floor(this.gold / 2);
-      this.loot.slice(0, Math.floor(this.loot.length / 2)).forEach(it => s.bag.push(it));
-      gainExp(s, Math.floor(this.expGain / 2));
-      Save.write();
-      c.add(UI.button(this, W / 2 - 170, 460, '다시 도전', () => this.scene.restart(this.cfg), { w: 280 }));
-      c.add(UI.button(this, W / 2 + 170, 460, '지도로', () => this.scene.start('map'), { w: 280, col: 0x3a2a1a }));
-      this.input.keyboard.once('keydown-ENTER', () => this.scene.restart(this.cfg));
+      let settled = false;
+      const settle = () => { if (settled) return; settled = true; s.gold += Math.floor(this.gold / 2); this.loot.slice(0, Math.floor(this.loot.length / 2)).forEach(it => s.bag.push(it)); gainExp(s, Math.floor(this.expGain / 2)); Save.write(); };
+      c.add(UI.button(this, W / 2 - 170, 460, '다시 도전', () => { settle(); this.scene.restart(this.cfg); }, { w: 280 }));
+      c.add(UI.button(this, W / 2 + 170, 460, '지도로', () => { settle(); this.scene.start('map'); }, { w: 280, col: 0x3a2a1a }));
+      // 🆕 광고 보고 이어하기 (스테이지당 1번)
+      if (!this.adRevived && typeof Monet !== 'undefined') c.add(UI.button(this, W / 2, 380, '▶ 광고 보고 이어하기', () => Monet.rewardAd(this, 'revive', () => this.adRevive(c)), { w: 400, h: 60, size: 24, col: 0x2a4a3a }));
+      c.each(o => o.setScrollFactor && o.setScrollFactor(0));
+      this.input.keyboard.once('keydown-ENTER', () => { if (this.lost) { settle(); this.scene.restart(this.cfg); } });
       return;
     }
     const g = this.grade();
@@ -2128,8 +2131,28 @@ class Game extends Phaser.Scene {
     const go = () => this.scene.start('map', { after: { ch: this.ch, node: this.cfg.node, win: true }, ch: this.ch });
     c.add(UI.button(this, W / 2 + 160, 640, '계속 ▶', go, { w: 280 }));
     c.add(UI.button(this, W / 2 - 160, 640, '다시 하기', () => this.scene.restart(this.cfg), { w: 240, col: 0x3a2a1a }));
+    // 🆕 광고 보고 금화·경험치 2배 (스테이지당 1번)
+    if (typeof Monet !== 'undefined' && (this.gold > 0 || this.expGain > 0)) {
+      const adB = UI.button(this, W - 210, 560, '▶ 광고 보고 보상 2배', () => Monet.rewardAd(this, 'double', () => {
+        s.gold += this.gold; const up2 = gainExp(s, this.expGain); Save.write();
+        UI.toast(this, `금화 +${this.gold} · 경험치 +${this.expGain} 더!` + (up2.length ? `  레벨 업 Lv.${s.lv}` : ''), '#ffe27a');
+        adB.destroy();
+      }), { w: 330, h: 56, size: 21, col: 0x2a4a3a });
+      c.add(adB);
+    }
     c.each(o => o.setScrollFactor && o.setScrollFactor(0));
     this.time.delayedCall(600, () => this.input.keyboard.once('keydown-ENTER', go));
+  }
+  // 🆕 광고 이어하기: 결과 화면을 닫고 체력 50%로 일어난다
+  adRevive(c) {
+    const h = this.hero;
+    this.adRevived = true; this.lost = false; c.destroy();
+    h.dead = false; h.hp = Math.round(h.maxHp * 0.5); h.state = 'getup'; h.st = 0; h.replay('w_getup', 60); h.invuln = 2500; h.setHead(null);
+    SFX.ui('revive'); SFX.music(this.boss && !this.boss.dead ? this.bossMusic(this.boss.id) : this.theme.bgm); SFX.ambience(this.theme.amb);
+    this.cameras.main.flash(300, 255, 240, 200);
+    this.fx('levelup_burst', h.x, h.y - 120, { s: 0.6, dur: 800, tint: 0xffd080, depth: h.y + 1001 });
+    this.floatText(h.x, h.y - 280, '이어하기!', '#ffe27a', 44);
+    for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < 400) { m.invuln = 0; m.takeHit(h, { dmg: 1, kb: 500, type: 'knock', otg: true }, 1); }
   }
   // ---------------- 심연의 탑 결과 ----------------
   towerResult(win) {

@@ -319,6 +319,9 @@ class MapScene extends Phaser.Scene {
     const s = Save.data;
     s.endings[e] = true;
     const ne = Object.keys(s.endings).length;
+    // 🆕 직업별 엔딩 기록: 처음 보는 (직업, 엔딩) 조합이면 보상
+    const ck = `end_${s.hero}_${e}`;
+    if (!globalUnlocks()[ck]) { addGlobalUnlock(ck); s.gold += 1000; s.mats.abyss = (s.mats.abyss || 0) + 2; this.time.delayedCall(400, () => UI.toast(this, `${DB.heroes[s.hero].name}의 엔딩 기록! 금화 +1000 · 심연 마석 +2`, '#ffe27a', 300)); }
     if (ne >= 1) addGlobalUnlock('diff2');
     if (ne >= 2) addGlobalUnlock('diff3');
     if (e === 'end_dark') { s.unlocked.hexblade = true; addGlobalUnlock('hexblade'); }
@@ -707,9 +710,35 @@ class Shop extends MenuBase {
     this.draw();
   }
   price(it) { return Math.round((40 + it.tier * 60) * [1, 1.6, 2.6, 4.2, 9, 8][it.rar]); }
+  // 🆕 특별 상품 (광고·결제 자리)
+  drawSpecial() {
+    const s = Save.data;
+    UI.text(this, 70, 100, '오늘의 무료 보급', 24, '#ffe7a8', { bold: true });
+    UI.text(this, 70, 136, `광고를 보면 소모품 2개를 무작위로 받아요 · 오늘 남은 광고 ${Monet.adsLeft(s)}회`, 17, '#c8b8a0');
+    UI.button(this, 980, 124, '▶ 광고 보고 받기', () => Monet.rewardAd(this, 'supply', () => {
+      const pool = ['potion', 'potion', 'bomb', 'hammer', 'holy', 'smoke', 'scroll_heal', 'scroll_guard', 'scroll_bolt', 'scroll_ice'];
+      const got = [0, 1].map(() => pool[Math.floor(Math.random() * pool.length)]);
+      for (const k of got) s.belt[k] = Math.min(9, (s.belt[k] || 0) + 1);
+      Save.write(); UI.toast(this, '보급: ' + got.map(k => BELT[k].ko).join(', '), '#ffe27a'); this.draw();
+    }), { w: 260, h: 54, size: 21, col: 0x2a4a3a });
+    UI.text(this, 70, 196, '특별 상품', 24, '#ffe7a8', { bold: true });
+    UI.text(this, 200, 202, '시간을 아껴 주는 상품만 팔아요. 없어도 모든 콘텐츠를 즐길 수 있어요.', 16, '#8f8070');
+    MONET_PRODUCTS.forEach((p, i) => {
+      const y = 262 + i * 76, own = p.give.flag && s.flags[p.give.flag];
+      UI.panel(this, 60, y - 33, 1100, 68, { alpha: 0.6, line: 0x7a5a30, inner: false });
+      UI.text(this, 84, y - 22, p.ko + (p.soon ? '  (준비 중)' : ''), 20, '#fff', { bold: true });
+      UI.text(this, 84, y + 6, p.desc, 16, '#c8b8a0');
+      UI.button(this, 1060, y + 1, own ? '보유 중' : p.price, () => { if (own) return; Monet.buy(this, p, () => this.draw()); }, { w: 170, h: 50, size: 20, col: own ? 0x3a3a3a : 0x8a3a1a, disabled: !!own });
+    });
+  }
   draw() {
     const s = Save.data;
     this.frame('포포 상회');
+    // 🆕 탭: 물건 / 특별 상품
+    const tab = this.tab || 'goods';
+    UI.button(this, 400, 66, '물건', () => { this.tab = 'goods'; this.draw(); }, { w: 120, h: 46, size: 19, col: tab === 'goods' ? 0x8a3a1a : 0x3a2a1a });
+    UI.button(this, 545, 66, '특별 상품', () => { this.tab = 'special'; this.draw(); }, { w: 150, h: 46, size: 19, col: tab === 'special' ? 0x8a3a1a : 0x3a2a1a });
+    if (tab === 'special') return this.drawSpecial();
     // ✏️ 소모품 14종을 2열로. 아이콘을 누르면 벨트 4칸 중 하나로 넣는다 (부활 깃털은 벨트 없이 자동)
     UI.text(this, 70, 96, '소모품', 24, '#ffe7a8', { bold: true });
     const slots = [...beltSlots(s)];
