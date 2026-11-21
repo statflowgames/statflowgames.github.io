@@ -1,9 +1,9 @@
 // 비밀 아지트: 훔친 물건을 모아 둔 고양이의 방. 쓰다듬기·간식·놀아 주기 — 벌칙 없이 반응만 좋아진다.
 // 배경 그림(img/den-bg.webp)이 있으면 그걸, 없으면 코드로 방을 그린다.
-import { IMG, sprite } from './assets.js?v=1121234841';
-import { Sound } from './audio.js?v=1121234841';
-import { FONT } from './render.js?v=1121234841';
-import { tr, fontStack } from './i18n.js?v=1121234841';
+import { IMG, sprite } from './assets.js?v=1122001644';
+import { Sound } from './audio.js?v=1122001644';
+import { FONT } from './render.js?v=1122001644';
+import { tr, fontStack } from './i18n.js?v=1122001644';
 
 const OUT = '#2a1f2e';
 const rnd = (a, b) => a + Math.random() * (b - a);

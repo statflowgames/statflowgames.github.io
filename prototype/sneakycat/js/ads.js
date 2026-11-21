@@ -3,7 +3,7 @@
 // - 웹 체험판: 광고 없음. 📺 보상은 바로 준다.
 // ADS_LIVE=false(개발 중)면 Google 공식 테스트 광고. ⚠ 원본은 늘 false — 출시 빌드(npm run release)가 www 사본에서만 true 로 바꾼다.
 // 본인 광고를 누르면 계정 정지 위험이 있으니 개발 중에는 꼭 테스트 광고로.
-import { Sound } from './audio.js?v=1121234841';
+import { Sound } from './audio.js?v=1122001644';
 
 const ADS_LIVE = false;
 const UNITS = {

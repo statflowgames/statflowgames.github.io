@@ -1,7 +1,7 @@
 // 게임 규칙: 고양이, 경비(집사·개·경비원), 카메라, 레이저, 소리
-import { parseLevel, DIRS, angDiff } from './world.js?v=1121234841';
-import { CHAPTERS } from './levels.js?v=1121234841';
-import { tr } from './i18n.js?v=1121234841';
+import { parseLevel, DIRS, angDiff } from './world.js?v=1122001644';
+import { CHAPTERS } from './levels.js?v=1122001644';
+import { tr } from './i18n.js?v=1122001644';
 
 export const TYPES = {
   owner: { walk: 1.25, run: 3.1, range: 4.3, fov: 1.25, nose: 0, turn: 4 },

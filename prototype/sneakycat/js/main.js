@@ -1,18 +1,18 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM, TUTORIAL } from './levels.js?v=1121234841';
-import { Game } from './game.js?v=1121234841';
-import { Renderer } from './render.js?v=1121234841';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1121234841';
-import { Sound } from './audio.js?v=1121234841';
-import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1121234841';
-import { actIcon, buttonHTML } from './icons.js?v=1121234841';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1121234841';
-import { startDen } from './den.js?v=1121234841';
-import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1121234841';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1121234841';
-import { Reward } from './reward.js?v=1121234841';
-import { Ads } from './ads.js?v=1121234841';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1121234841';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM, TUTORIAL } from './levels.js?v=1122001644';
+import { Game } from './game.js?v=1122001644';
+import { Renderer } from './render.js?v=1122001644';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1122001644';
+import { Sound } from './audio.js?v=1122001644';
+import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1122001644';
+import { actIcon, buttonHTML } from './icons.js?v=1122001644';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1122001644';
+import { startDen } from './den.js?v=1122001644';
+import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1122001644';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1122001644';
+import { Reward } from './reward.js?v=1122001644';
+import { Ads } from './ads.js?v=1122001644';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1122001644';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -771,9 +771,9 @@ function resumeGame() {
 // 같은 스테이지에서 잡힌 횟수 (이번에 켠 동안만): 3번째부터 건너뛰기 버튼
 const failCount = {};
 const SKIP_AFTER = 3;
-// 잡히면 '처음부터 다시' 하나뿐 (이어하기 없음). 하루 무료 3번 → 그 뒤엔 📺 광고(무제한) 또는 생선뼈.
+// 잡히면 '처음부터 다시' 하나뿐 (이어하기 없음). 하루 무료 5번 → 그 뒤엔 📺 광고(무제한) 또는 생선뼈.
 // 목록으로 나갔다가 같은 판을 다시 골라도 똑같이 센다 (save.owe). 튜토리얼은 해당 없음.
-const FREE_RETRY = 3;
+const FREE_RETRY = 5;
 const RETRY_BONES = 15;
 const retryUsed = () => (save.freeRetry && save.freeRetry.day === today() ? save.freeRetry.n : 0);
 const retryLeft = () => FREE_RETRY - retryUsed();

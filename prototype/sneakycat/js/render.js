@@ -1,7 +1,7 @@
 // 화면 그리기: 맵(정적 레이어), 시야, 캐릭터, 효과
-import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1121234841';
-import { sprite, IMG } from './assets.js?v=1121234841';
-import { tr, tf, fontStack } from './i18n.js?v=1121234841';
+import { drawCat, drawCatPeek, drawHuman, drawDog, drawRoomba, drawCart, drawRobot, drawCarousel, drawFish, drawBonus, drawVase, drawSwitch, ell, rr, OUT } from './art.js?v=1122001644';
+import { sprite, IMG } from './assets.js?v=1122001644';
+import { tr, tf, fontStack } from './i18n.js?v=1122001644';
 // 글자가 maxW 보다 넓으면 그만큼 글자 크기를 줄인다 (언어마다 길이가 달라서). 실제 폭을 돌려준다
 function fitFont(c, txt, px, maxW, min = 8) {
   c.font = `${px}px ${fontStack()}`;
