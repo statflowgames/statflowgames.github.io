@@ -911,7 +911,8 @@ class LiseMenu extends MenuBase {
     // 🆕 2부: 흑월 씨앗 줄
     if (s.ch >= 7 && typeof SEEDS !== 'undefined') {
       const got = Object.keys(s.seeds || {});
-      UI.text(this, 520, 520, '흑월 씨앗 ' + Object.entries(SEEDS).map(([k, d]) => got.includes(k) ? '◆' : '◇').join('') + `  ${got.length}/6` + (got.length >= 6 ? '' : '  — 2부 우회 길(B)에서 정화'), 18, '#c8d8ff');
+      UI.text(this, 520, 512, `흑월 씨앗 ${got.length}/6` + (got.length >= 6 ? '' : '  — 2부 우회 길(B)에서 정화'), 18, '#c8d8ff');
+      Object.keys(SEEDS).forEach((k, i) => { const ic = UI.img(this, 720 + i * 40, 520, 'icon/seed_' + k); if (ic) { ic.setScale(34 / ic.height); if (!got.includes(k)) ic.setTint(0x303038).setAlpha(0.6); } });
     }
     // 🆕 엔딩 단서: 무엇이 끝을 가르는지 넌지시
     const nm = Object.keys(s.moons).length, hint = [];

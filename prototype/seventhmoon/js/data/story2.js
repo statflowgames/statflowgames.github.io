@@ -4,9 +4,9 @@
 // 2부 악역: 은빛 사도 모르간(보이는 악역, 오르벡스가 만든 인형) → 오르벡스(숨은 흑막).
 // 1부를 희생 엔딩으로 끝냈다면 리세는 월석 속 목소리로 함께한다 (ui.js Talk.speaker).
 Object.assign(CAST, {
-  morgan: { ko: '은빛 사도 모르간', col: '#e0e8ff' },
+  morgan: { ko: '은빛 사도 모르간', col: '#e0e8ff', portrait: 'portrait/morgan' },
   lise_stone: { ko: '리세 (월석 속 목소리)', col: '#ffc8d8' },
-  naia: { ko: '나이아', col: '#a0e0f0' },
+  naia: { ko: '나이아', col: '#a0e0f0', portrait: 'portrait/naia' },
 });
 
 Object.assign(STORY, {
@@ -67,7 +67,7 @@ Object.assign(STORY, {
   // ================= 2부 「부서진 하늘」 =================
   // ---- 7장 유리 사막 ----
   c7_intro: [
-    { bg: 'story/c3' },
+    { bg: 'story/p2_opening' },
     { music: 'bgm_story_p2' },
     { w: 'narr', t: '흑월이 닫히고 석 달. 벨카라의 밤하늘에 가느다란 금이 갔다.' },
     { w: 'narr', t: '금 사이로 밤마다 검은 별이 떨어진다. 사람들은 그것을 \'흑월 씨앗\'이라 불렀다.' },
@@ -365,7 +365,7 @@ Object.assign(STORY, {
   // ---- 2부 엔딩 ----
   p2_true: [
     { music: 'bgm_end_p2_true' },
-    { bg: 'story/end_true' },
+    { bg: 'story/p2_true' },
     { w: 'narr', t: '여섯 씨앗의 맑은 빛이 오르벡스를 감쌌다. 은빛 달은 깨지지 않고, 부드러운 빛으로 바뀌었다.' },
     { w: 'orvex', t: '…아. 밤을 없애지 않아도, 밤을 지킬 수 있었구나. 300년을 돌아서야 알았다.' },
     { w: 'kael', if: 'kael_ally', t: '스승님. 이번엔 제가 곁에 있겠습니다.' },
@@ -375,7 +375,7 @@ Object.assign(STORY, {
   ],
   p2_dark: [
     { music: 'bgm_end_p2_dark' },
-    { bg: 'story/end_dark' },
+    { bg: 'story/p2_dark' },
     { w: 'narr', t: '씨앗 여섯을 품은 오르벡스가 떠올랐다. 하늘에 은빛 달 하나가 영원히 걸렸다.' },
     { w: 'orvex', t: '이제 아무도 희생하지 않는다. 아무도… 꿈꾸지 않는다.' },
     { w: 'narr', t: '벨카라에 밤이 사라졌다. 사람들은 평온했고, 아무도 다음 날을 기다리지 않았다.' },
@@ -383,7 +383,7 @@ Object.assign(STORY, {
   ],
   p2_dawn: [
     { music: 'bgm_end_p2_dawn' },
-    { bg: 'story/end_seal' },
+    { bg: 'story/p2_dawn' },
     { w: 'narr', t: '오르벡스가 쓰러지고, 그가 품었던 씨앗들이 흩어져 바다로 떨어졌다.' },
     { w: 'tabel', t: '흑월은 막았다. …흩어진 씨앗이 언젠가 다시 싹트겠지만.' },
     { w: 'lise', t: '그때는 또 우리가 막으면 돼요. 일단은 — 새벽이에요.' },

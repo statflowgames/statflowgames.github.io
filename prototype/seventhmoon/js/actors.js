@@ -587,8 +587,10 @@ class Monster extends Actor {
   constructor(scene, id, x, y, o = {}) {
     const base = MONDEF[id] || MONDEF.grunt;
     // 🆕 2부 대역: like = 그림을 빌려 올 원본 (원본에 진짜 그림이 있으면 그것을, 크기는 sc 배율)
-    const look = base.like && RIGS[base.like] && base.like !== (MONDEF[base.like] || {}).rig ? base.like : null;
-    const real = !look && !!RIGS[id] && id !== base.rig;
+    // ✏️ 자기 그림(리그)이 있으면 그것을, 없으면 원본 그림을 빌린다
+    const own = !!RIGS[id] && id !== base.rig;
+    const look = !own && base.like && RIGS[base.like] && base.like !== (MONDEF[base.like] || {}).rig ? base.like : null;
+    const real = own;
     super(scene, look || (real ? id : base.rig), x, y, look ? { sc: base.sc || 1 } : real ? {} : { sc: base.sc });
     this.look = look;
     this.kind = base.rig;   // AI 종류 (barkhaul = 보스 AI)

@@ -10,7 +10,7 @@ const Assets = {
   rigGroup(id) {
     if (id === 'toothcrusher_rider') return 'toothcrusher';
     const base = MONDEF[id];
-    if (base && base.like) return this.rigGroup(base.like);   // 🆕 2부 대역
+    if (base && base.like && !RIGS[id]) return this.rigGroup(base.like);   // 🆕 2부: 그림이 없을 때만 대역
     if (RIGS[id] && (!base || id !== base.rig)) return id;
     return base ? base.rig : id;
   },
@@ -63,6 +63,7 @@ const Assets = {
     for (const wave of def.waves) for (const grp of wave) for (const tok of grp.split(',')) {
       const id = tok.trim().split('*')[0];
       g.add(this.rigGroup(id));
+      if (MONDEF[id] && MONDEF[id].like) g.add(this.rigGroup(MONDEF[id].like));   // 빌려 쓰는 투사체 그림
       const d = MONDEF[id];
       if (d && d.summon) g.add(this.rigGroup(d.summon));
       if (id === 'toothcrusher') g.add('toothcrusher');
