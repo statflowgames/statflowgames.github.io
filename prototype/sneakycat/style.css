@@ -382,12 +382,13 @@ button.srow:active { background: rgba(255,255,255,0.05); }
 
 /* 실패 화면 이어하기: 광고 또는 생선뼈 (하루 1번은 무료) */
 .revrow { display: flex; gap: 8px; max-width: 300px; margin: 8px auto 0; }
-.revrow .btn { margin: 0; flex: 1; padding: 10px 6px; font-size: 18px; }
+.revrow .btn { margin: 0; flex: 1; padding: 10px 6px; font-size: 16px; word-break: keep-all; }
 .btn.bonebtn { background: linear-gradient(#7a5c36, #533d22); color: #fff3d6; display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
 .btn.bonebtn small { font-size: 12px; opacity: 0.85; margin-top: 2px; }
 .btn.bonebtn.poor { opacity: 0.55; }
 .btn.ad.free { background: linear-gradient(#ffe08a, #f0b84a); color: #3d2a05; }
 .revnote { margin-top: 4px; font-size: 12px; color: var(--sub); }
+.btn small.rsub { display: block; font-size: 12px; opacity: 0.75; margin-top: 2px; }
 .btn.bonebtn .bv { display: flex; align-items: center; gap: 2px; }
 
 /* 언어 고르기: 21개 언어를 두 줄씩 */

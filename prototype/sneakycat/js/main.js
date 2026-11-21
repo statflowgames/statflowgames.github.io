@@ -1,18 +1,18 @@
 // 화면 흐름, 입력, 저장, 메인 루프
-import { LEVELS, CHAPTERS, SKINS, HARD_FROM, TUTORIAL } from './levels.js?v=1118013716';
-import { Game } from './game.js?v=1118013716';
-import { Renderer } from './render.js?v=1118013716';
-import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1118013716';
-import { Sound } from './audio.js?v=1118013716';
-import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1118013716';
-import { actIcon, buttonHTML } from './icons.js?v=1118013716';
-import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1118013716';
-import { startDen } from './den.js?v=1118013716';
-import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1118013716';
-import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1118013716';
-import { Reward } from './reward.js?v=1118013716';
-import { Ads } from './ads.js?v=1118013716';
-import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1118013716';
+import { LEVELS, CHAPTERS, SKINS, HARD_FROM, TUTORIAL } from './levels.js?v=1121234841';
+import { Game } from './game.js?v=1121234841';
+import { Renderer } from './render.js?v=1121234841';
+import { drawCat, drawFish, drawBonus, ell } from './art.js?v=1121234841';
+import { Sound } from './audio.js?v=1121234841';
+import { loadAll, IMG, spriteURL, resetSprites } from './assets.js?v=1121234841';
+import { actIcon, buttonHTML } from './icons.js?v=1121234841';
+import { SLOTS, GEAR, gearById, slotById, perksOf, gearIcon, BONE, EARN } from './gear.js?v=1121234841';
+import { startDen } from './den.js?v=1121234841';
+import { initLang, setLang, getLang, LANGS, LANG_NAMES, t, tAct, tr, tf, fontStack } from './i18n.js?v=1121234841';
+import { TIERS, BOX, PIECES_FOR_SKIN, condText, condOk, today, makeQuests, rerollOne } from './quests.js?v=1121234841';
+import { Reward } from './reward.js?v=1121234841';
+import { Ads } from './ads.js?v=1121234841';
+import { inLevel, newInLevel, inChapter, newInChapter, firstOfChapter, guideIcon, entry } from './guide.js?v=1121234841';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'), cv = $('#cv'), layer = $('#layer');
@@ -241,7 +241,7 @@ function fitLogoSize(nm) {
 }
 
 // ───────── 설정 ─────────
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 const PRIVACY_URL = 'https://statflowgames.github.io/sneakycat/privacy.html';
 const CONTACT = 'statflow.games@gmail.com';
 const isApp = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
@@ -638,6 +638,7 @@ function chapterScreen(chId, next) {
 // i = -1 이면 튜토리얼
 function startLevel(i, skipIntro = false) {
   const tut = i < 0, L = tut ? TUTORIAL : LEVELS[i];
+  if (!tut && owes(L.id)) { retryGate(i); return; }
   if (!tut && !skipIntro && firstOfChapter(i) && !save.seenCh[L.ch]) { chapterScreen(L.ch, () => startLevel(i, true)); return; }
   levelIdx = i; paused = false; ended = false;
   tutStep = -1; R.mark = null;
@@ -770,7 +771,49 @@ function resumeGame() {
 // 같은 스테이지에서 잡힌 횟수 (이번에 켠 동안만): 3번째부터 건너뛰기 버튼
 const failCount = {};
 const SKIP_AFTER = 3;
-const REVIVE_BONES = 30; // 생선뼈로 바로 이어하기 값 (광고 대신)
+// 잡히면 '처음부터 다시' 하나뿐 (이어하기 없음). 하루 무료 3번 → 그 뒤엔 📺 광고(무제한) 또는 생선뼈.
+// 목록으로 나갔다가 같은 판을 다시 골라도 똑같이 센다 (save.owe). 튜토리얼은 해당 없음.
+const FREE_RETRY = 3;
+const RETRY_BONES = 15;
+const retryUsed = () => (save.freeRetry && save.freeRetry.day === today() ? save.freeRetry.n : 0);
+const retryLeft = () => FREE_RETRY - retryUsed();
+const owes = (id) => !!(save.owe && save.owe[id]);
+function retryHTML() {
+  const left = retryLeft();
+  return left > 0
+    ? `<button class="btn main" data-a="retry">${tr('처음부터 다시')}<small class="rsub">${tf('오늘 무료 {n}번 남음', { n: left })}</small></button>`
+    : `<div class="revrow"><button class="btn ad" data-a="retryad">📺 ${tr('다시 하기')}<small>${tr('광고 보고 무료')}</small></button><button class="btn bonebtn ${save.bones < RETRY_BONES ? 'poor' : ''}" data-a="retrybone"><span class="bv">${BONE}${RETRY_BONES}</span><small>${tr('바로 다시 하기')}</small></button></div>`;
+}
+// 다시 하기 값을 치르면 go()
+function bindRetry(el, id, go) {
+  const paid = () => { if (save.owe) delete save.owe[id]; store(); go(); };
+  on(el, '[data-a=retry]', () => { save.freeRetry = { day: today(), n: retryUsed() + 1 }; paid(); });
+  on(el, '[data-a=retryad]', async (e, b) => {
+    b.disabled = true;
+    const r = await Reward.show('retry');
+    if (r === null) { toast(tr('광고를 불러오지 못해서 이번엔 무료로 다시 해요'), 2400); paid(); } // 못 불러오면 막히지 않게
+    else if (r) paid();
+    else b.disabled = false;
+  });
+  on(el, '[data-a=retrybone]', () => {
+    if (save.bones < RETRY_BONES) { toast(tf('생선뼈가 {n}개 모자라요', { n: RETRY_BONES - save.bones })); return; }
+    save.bones -= RETRY_BONES;
+    toast(tf('생선뼈 {n}개로 다시 해요', { n: RETRY_BONES }), 1600);
+    paid();
+  });
+}
+// 잡혔던 판을 목록·의뢰에서 다시 고르면
+function retryGate(i) {
+  const L = LEVELS[i];
+  const el = show(`<div class="card">
+      <h1>${tf('{id} 다시 도전', { id: L.id })}</h1>
+      <p>${tr('지난번에 잡혔던 스테이지예요. 처음부터 다시 잠입해요.')}</p>
+      ${retryHTML()}
+      <button class="btn sm" data-a="back">${tr('돌아가기')}</button>
+    </div>`, 'center dim');
+  bindRetry(el, L.id, () => startLevel(i));
+  on(el, '[data-a=back]', () => levelScreen());
+}
 const FAIL = ['생선은 다음 기회에…', '고양이 털이 너무 눈에 띄었다', '살금살금이 부족했다!', '집사의 눈은 매서웠다'];
 function endLevel(win) {
   ended = true;
@@ -778,48 +821,23 @@ function endLevel(win) {
   if (L.tutorial) { tutEnd(win); return; }
   if (L.ch > 1) adStages++;
   if (!win) {
-    const fails = (failCount[L.id] = (failCount[L.id] || 0) + (game.revived ? 0 : 1));
-    const canRevive = !game.revived;
-    const freeRevive = save.freeRevive !== today();
+    const fails = (failCount[L.id] = (failCount[L.id] || 0) + 1);
+    (save.owe ||= {})[L.id] = true; store(); // 잡힌 판은 다시 시작할 때 '다시 하기'를 하나 쓴다
     const canSkip = fails >= SKIP_AFTER && !cleared(L.id) && !skipped(L.id) && !!LEVELS[levelIdx + 1];
     const el = show(`<div class="card">
         ${IMG.caught ? `<img class="hero" src="${spriteURL('caught', skinById(save.skin))}" alt="">` : '<div class="big">😿</div>'}
         <h1>${tr('잡혔다!')}</h1>
         <p>${tr(FAIL[(Math.random() * FAIL.length) | 0])}</p>
-        ${canRevive ? (freeRevive
-          ? `<button class="btn ad free" data-a="revfree">🎁 ${tr('이어하기')}<small>${tr('오늘 1번 무료')}</small></button>`
-          : `<div class="revrow"><button class="btn ad" data-a="revive">📺 ${tr('이어하기')}<small>${tr('광고 보고 무료')}</small></button><button class="btn bonebtn ${save.bones < REVIVE_BONES ? 'poor' : ''}" data-a="revbone"><span class="bv">${BONE}${REVIVE_BONES}</span><small>${tr('바로 이어하기')}</small></button></div>`)
-          + `<div class="revnote">${game.cat.hasFish ? tr('생선은 잡힌 자리에 떨어져요') : tr('모은 보너스는 그대로예요')}</div>` : ''}
-        <button class="btn ${canRevive ? '' : 'main'}" data-a="retry">${tr('처음부터 다시')}</button>
+        ${retryHTML()}
         ${canSkip ? `<button class="btn ad sm" data-a="skip">📺 ${tr('이 스테이지 건너뛰기')}<small>${tr('별 없이 다음 스테이지가 열려요')}</small></button>` : ''}
         <button class="btn sm" data-a="list">${tr('스테이지 목록')}</button>
       </div>`, 'center dim');
-    on(el, '[data-a=retry]', () => atBreak(() => startLevel(levelIdx)));
+    bindRetry(el, L.id, () => atBreak(() => startLevel(levelIdx)));
     on(el, '[data-a=list]', () => atBreak(() => levelScreen()));
-    on(el, '[data-a=revive]', async (e, b) => {
-      b.disabled = true;
-      if (!(await Reward.show('revive')) || !game || !game.revive()) { b.disabled = false; return; }
-      ended = false; hideLayer(); vib(20);
-    });
-    // 하루 1번 무료 이어하기
-    on(el, '[data-a=revfree]', () => {
-      if (!game || !game.revive()) return;
-      save.freeRevive = today(); store();
-      ended = false; hideLayer(); vib(20);
-      toast(tr('오늘의 무료 이어하기를 썼어요'), 1800);
-    });
-    // 생선뼈로 바로 이어하기
-    on(el, '[data-a=revbone]', () => {
-      if (save.bones < REVIVE_BONES) { toast(tf('생선뼈가 {n}개 모자라요', { n: REVIVE_BONES - save.bones })); return; }
-      if (!game || !game.revive()) return;
-      save.bones -= REVIVE_BONES; store();
-      ended = false; hideLayer(); vib(20);
-      toast(tf('생선뼈 {n}개로 이어가요', { n: REVIVE_BONES }), 1800);
-    });
     on(el, '[data-a=skip]', async (e, b) => {
       b.disabled = true;
       if (!(await Reward.show('skip'))) { b.disabled = false; return; }
-      (save.skipped ||= {})[L.id] = true; store();
+      (save.skipped ||= {})[L.id] = true; if (save.owe) delete save.owe[L.id]; store();
       toast(tf('{id} 건너뜀 — 나중에 언제든 다시 깰 수 있어요', { id: L.id }), 2600);
       startLevel(levelIdx + 1);
     });
@@ -1217,7 +1235,7 @@ window.__sc = {
   get den() { return den; },
   denData: () => denData(),
   end: (win) => { if (!ended) endLevel(win); },
-  start: (i) => { startLevel(i, true); startPlay(); },
+  start: (i) => { if (save.owe) delete save.owe[LEVELS[i].id]; startLevel(i, true); startPlay(); }, // 시험용: 다시 하기 값 없이
   intro: (i) => startLevel(i),
   tut: () => startLevel(-1),
   // 화면 바로 열기 (스토어 스크린샷·시험용)
