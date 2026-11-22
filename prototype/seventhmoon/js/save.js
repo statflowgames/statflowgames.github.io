@@ -280,6 +280,45 @@ function gainExp(s, n) {
 }
 
 // ---------------- 대장간 ----------------
+// 🆕 2026-11-22 장비 조합: 같은 등급 2개 → 한 단계 위 도전 (일반~영웅). 확률은 화면에 그대로 보여 준다.
+//   lose: 실패하면 none(없음) / one(두 번째 재료) / both(둘 다, 마석 조금 돌려받음)
+//   cost: 그 장 스테이지 한 판 수입 × 배율 (상점 일반 2개 값 + 조합비 > 상점 고급 값)
+//   pity: 실패할 때마다 다음 확률 +pity%p (최대 pityMax), 성공하면 처음으로
+const FUSE_RULE = [
+  { rate: 100, lose: 'none', cost: 1.6 },
+  { rate: 70, lose: 'one', cost: 2.5, pity: 10, pityMax: 30 },
+  { rate: 25, lose: 'both', cost: 5, pity: 3, pityMax: 20 },
+  { rate: 2, lose: 'both', cost: 15, abyss: 3, pity: 0.5, pityMax: 10 },   // 평균 약 15번 (영웅 30개쯤)
+];
+function stageIncome(ch) { return 350 * (1 + (ch - 1) * 0.35); }
+function canFuse(s, it) { return !!it && it.rar <= 3 && !it.boss && !it.lock && !Object.values(s.eq).includes(it.id); }
+function fuseInfo(s, rar, ad) {
+  const R = FUSE_RULE[rar], pity = Math.min(R.pityMax || 0, ((s.fusePity || {})[rar] || 0) * (R.pity || 0)), adB = ad ? (rar >= 3 ? 1 : 10) : 0;
+  return { rate: Math.min(100, R.rate + pity + adB), base: R.rate, pity, adB, gold: Math.round(stageIncome(s.ch) * R.cost / 10) * 10, abyss: R.abyss || 0, lose: R.lose };
+}
+function tryFuse(s, a, b, ad) {
+  if (!canFuse(s, a) || !canFuse(s, b) || a === b || a.rar !== b.rar) return { r: 'bad' };
+  const f = fuseInfo(s, a.rar, ad);
+  if (s.gold < f.gold || (s.mats.abyss || 0) < f.abyss) return { r: 'cost' };
+  s.gold -= f.gold; if (f.abyss) s.mats.abyss -= f.abyss;
+  s.fusePity = s.fusePity || {};
+  if (Math.random() * 100 < f.rate) {
+    // 이야기 장비가 섞이면 그 이름·설명을 이어받는다 (기념 장비가 자란다)
+    const story = a.story ? a : b.story ? b : null, base = story || (Math.random() < 0.5 ? a : b), acc = base.cls === 'acc';
+    const it = makeItem(s, { cls: s.hero, slot: acc ? 'acc' : base.slot, kind: base.kind, tier: Math.max(a.tier, b.tier), rar: a.rar + 1 });
+    it.plus = Math.floor(Math.max(a.plus, b.plus) / 2);
+    if (story) { if (it.rar === 4) it.legendOf = it.name; it.name = story.name; it.desc = story.desc; it.story = story.story; }
+    s.bag = s.bag.filter(x => x !== a && x !== b);
+    s.fusePity[a.rar] = 0;
+    s.stats = s.stats || {}; s.stats.fused = (s.stats.fused || 0) + 1;
+    return { r: 'ok', it };
+  }
+  s.fusePity[a.rar] = (s.fusePity[a.rar] || 0) + 1;
+  const lost = f.lose === 'both' ? [a, b] : f.lose === 'one' ? [b] : [], refund = {};
+  for (const x of lost) { const m = matOf(x); refund[m] = (refund[m] || 0) + 1 + x.rar; s.mats[m] = (s.mats[m] || 0) + 1 + x.rar; }
+  s.bag = s.bag.filter(x => !lost.includes(x));
+  return { r: 'fail', lost, refund };
+}
 function matOf(it) { return it.rar >= 4 ? 'abyss' : ['low', 'low', 'mid', 'high'][it.tier]; }
 function enhanceCost(it) {
   const n = it.plus + 1;
@@ -295,7 +334,7 @@ function tryEnhance(s, it) {
   return 'fail';   // 실패해도 부서지지 않는다
 }
 function dismantle(s, it) {
-  if (Object.values(s.eq).includes(it.id)) return null;
+  if (Object.values(s.eq).includes(it.id) || it.lock) return null;
   const m = matOf(it), n = 1 + it.rar + Math.floor(it.plus / 2);
   s.mats[m] = (s.mats[m] || 0) + n;
   s.bag = s.bag.filter(x => x !== it);

@@ -71,6 +71,8 @@ const UI = {
       if (sc.textures.exists(key)) { const im = sc.add.image(0, 0, key); im.setScale((size - 12) / Math.max(im.width, im.height)); c.add(im); }
       else c.add(UI.text(sc, 0, 0, it.name.slice(0, 2), 22, RARITY[it.rar].col, { bold: true }).setOrigin(0.5));
       if (it.plus) c.add(UI.text(sc, size / 2 - 6, -size / 2 + 2, '+' + it.plus, 16, '#ffe27a', { bold: true }).setOrigin(1, 0));
+      if (it.lock) { const lk = sc.add.graphics(), lx = -size / 2 + 14, ly = size / 2 - 14;   // 🆕 잠금 자물쇠
+        lk.lineStyle(3, 0xffd34d).beginPath().arc(lx, ly - 5, 5, Math.PI, 0).strokePath(); lk.fillStyle(0xffd34d).fillRoundedRect(lx - 7, ly - 4, 14, 11, 2); c.add(lk); }
     }
     if (cb) { c.setSize(size, size).setInteractive({ useHandCursor: true }); c.on('pointerup', () => { SFX.resume(); SFX.go(); cb(); }); }
     return c;

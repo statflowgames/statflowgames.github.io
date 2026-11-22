@@ -606,12 +606,13 @@ class Bag extends MenuBase {
       const { y } = this.itemDetail(it, 1014, 124, 204);
       const eqSlot = Object.keys(s.eq).find(k => s.eq[k] === it.id);
       const canEq = it.cls === 'acc' || it.cls === s.hero;
+      UI.button(this, 1115, 540, it.lock ? '잠금 해제' : '잠그기', () => { it.lock = !it.lock; Save.write(); UI.toast(this, it.lock ? '잠갔어요 · 분해·조합 재료로 쓰이지 않아요' : '잠금을 풀었어요'); this.draw(); }, { w: 190, h: 44, size: 18, col: 0x3a2a1a });   // 🆕
       if (eqSlot) UI.button(this, 1115, 600, '해제', () => { delete s.eq[eqSlot]; Save.write(); this.draw(); }, { w: 190, h: 54, size: 22, col: 0x3a2a1a });
       else if (canEq) {
         const cur = this.targetSlot(it), curIt = s.eq[cur] && itemById(s, s.eq[cur]);
-        if (curIt) UI.text(this, 1014, Math.min(y + 6, 520), `지금: ${itemLabel(curIt)}\n전투력 ${this.powerDiff(it, cur)}`, 16, '#c8b8a0', { wrap: 204 });
+        if (curIt) UI.text(this, 1014, Math.min(y + 6, 470), `지금: ${itemLabel(curIt)}\n전투력 ${this.powerDiff(it, cur)}`, 16, '#c8b8a0', { wrap: 204 });
         UI.button(this, 1115, 600, '장착', () => { s.eq[cur] = it.id; Save.write(); SFX.ui('ui_equip'); this.draw(); }, { w: 190, h: 54, size: 22 });
-      } else UI.text(this, 1014, 560, `${DB.heroes[it.cls].name} 전용`, 18, '#ff9a8a');
+      } else UI.text(this, 1014, 492, `${DB.heroes[it.cls].name} 전용`, 18, '#ff9a8a');
     } else UI.text(this, 1115, 380, '아이템을\n누르면\n자세히 보여요', 20, '#8a7a68', { align: 'center' }).setOrigin(0.5);
   }
   targetSlot(it) {
@@ -642,7 +643,9 @@ class Smithy extends MenuBase {
     const tab = this.tab || 'gear';
     UI.button(this, 430, 66, '장비 손질', () => { this.tab = 'gear'; this.draw(); }, { w: 150, h: 46, size: 19, col: tab === 'gear' ? 0x8a3a1a : 0x3a2a1a });
     UI.button(this, 595, 66, '보스 전리품', () => { this.tab = 'trophy'; this.sel = null; this.draw(); }, { w: 160, h: 46, size: 19, col: tab === 'trophy' ? 0x8a3a1a : 0x3a2a1a });
+    UI.button(this, 745, 66, '조합', () => { this.tab = 'fuse'; this.sel = null; this.draw(); }, { w: 120, h: 46, size: 19, col: tab === 'fuse' ? 0x8a3a1a : 0x3a2a1a });
     if (tab === 'trophy') return this.drawTrophy();
+    if (tab === 'fuse') return this.drawFuse();
     const mats = Object.entries(MATS).map(([k, n]) => `${n} ${s.mats[k] || 0}`).join('   ');
     UI.text(this, 70, 96, mats, 19, '#d8c8ff');
     const eqIds = Object.values(s.eq);
@@ -660,9 +663,9 @@ class Smithy extends MenuBase {
       UI.text(this, 330, 660, `${this.page + 1}/${pages}`, 20, '#fff').setOrigin(0.5);
       UI.button(this, 420, 660, '▶', () => { this.page = (this.page + 1) % pages; this.draw(); }, { w: 70, h: 44, size: 22, col: 0x3a2a1a });
     }
-    UI.button(this, 640, 660, '일반·고급 모두 분해', () => {
+    UI.button(this, 640, 660, '일반 모두 분해', () => {   // ✏️ 고급은 조합 재료라 남긴다 · 잠근 장비 제외
       let n = 0;
-      for (const it of [...s.bag]) if (it.rar <= 1 && !eqIds.includes(it.id) && dismantle(s, it)) n++;
+      for (const it of [...s.bag]) if (it.rar === 0 && !eqIds.includes(it.id) && !it.lock && !it.story && dismantle(s, it)) n++;
       UI.toast(this, n ? `${n}개를 분해했어요` : '분해할 장비가 없어요'); this.sel = null; Save.write(); this.draw();
     }, { w: 300, h: 50, size: 20, col: 0x4a2a14 });
     UI.panel(this, 700, 110, 520, 520, { alpha: 0.6, line: 0x7a5a30 });
@@ -693,11 +696,70 @@ class Smithy extends MenuBase {
     });
     if (it.aff.length) UI.text(this, 720, yy + 62, `옵션 하나 재설정: 금화 ${rc.gold}, ${MATS[rc.mat]} ${rc.cnt}`, 16, '#c8b8a0');
     // 분해
-    if (!eqIds.includes(it.id)) UI.button(this, 1110, 590, '분해', () => {
+    if (!eqIds.includes(it.id) && !it.lock) UI.button(this, 1110, 590, '분해', () => {
       const r = dismantle(s, it);
       if (r) { UI.toast(this, `${MATS[r.m]} +${r.n}`, '#d8c8ff'); SFX.brk(640); }
       this.sel = null; Save.write(); this.draw();
     }, { w: 150, h: 50, size: 22, col: 0x5a2a2a });
+  }
+  // 🆕 조합: 같은 등급 2개 → 한 단계 위
+  drawFuse() {
+    const s = Save.data, F = this.fuse = this.fuse || { a: null, b: null, ad: false };
+    if (F.a && !s.bag.includes(F.a)) F.a = null; if (F.b && !s.bag.includes(F.b)) F.b = null;
+    UI.text(this, 70, 96, `금화 ${s.gold}   ${MATS.abyss} ${s.mats.abyss || 0}`, 19, '#d8c8ff');
+    UI.text(this, 70, 124, '같은 등급 장비 2개를 고르게. 장착 중·잠근 장비·보스 장신구는 못 써.', 15, '#8f8070');
+    const items = s.bag.filter(it => canFuse(s, it)).sort((x, y) => y.rar - x.rar || y.tier - x.tier || y.id - x.id);
+    const per = 30, pages = Math.max(1, Math.ceil(items.length / per));
+    this.fpage = Math.min(this.fpage || 0, pages - 1);
+    items.slice(this.fpage * per, this.fpage * per + per).forEach((it, i) => {
+      const x = 100 + (i % 6) * 96, y = 196 + Math.floor(i / 6) * 96;
+      const c = UI.itemSlot(this, x, y, it, 82, () => {
+        if (F.a === it) { F.a = F.b; F.b = null; } else if (F.b === it) F.b = null;
+        else if (!F.a) F.a = it;
+        else if (it.rar !== F.a.rar) return UI.toast(this, '같은 등급끼리만 조합할 수 있어요', '#ff9a8a');
+        else F.b = it;
+        F.ad = false; this.draw();
+      });
+      if (it === F.a || it === F.b) c.add(this.add.rectangle(0, 0, 88, 88).setStrokeStyle(3, 0xffffff));
+      if (F.a && !F.b && it !== F.a && it.rar !== F.a.rar) c.setAlpha(0.35);
+    });
+    if (!items.length) UI.text(this, 330, 360, '조합할 수 있는 장비가 없어요', 20, '#8a7a68').setOrigin(0.5);
+    if (pages > 1) {
+      UI.button(this, 240, 660, '◀', () => { this.fpage = (this.fpage + pages - 1) % pages; this.draw(); }, { w: 70, h: 44, size: 22, col: 0x3a2a1a });
+      UI.text(this, 330, 660, `${this.fpage + 1}/${pages}`, 20, '#fff').setOrigin(0.5);
+      UI.button(this, 420, 660, '▶', () => { this.fpage = (this.fpage + 1) % pages; this.draw(); }, { w: 70, h: 44, size: 22, col: 0x3a2a1a });
+    }
+    // 오른쪽: 재료 두 칸 → 결과
+    UI.panel(this, 700, 110, 520, 560, { alpha: 0.6, line: 0x7a5a30 });
+    UI.itemSlot(this, 790, 220, F.a, 96); UI.text(this, 862, 220, '+', 40, '#ffe7a8', { bold: true }).setOrigin(0.5);
+    UI.itemSlot(this, 934, 220, F.b, 96); UI.text(this, 1012, 220, '→', 40, '#ffe7a8', { bold: true }).setOrigin(0.5);
+    const rar = F.a ? F.a.rar : null, next = rar != null ? rar + 1 : null;
+    const g = this.add.graphics(); g.fillStyle(0x0e0805, 0.9).fillRoundedRect(1092 - 48, 172, 96, 96, 10); g.lineStyle(3, next != null ? RARITY[next].hex : 0x5a4030).strokeRoundedRect(1092 - 48, 172, 96, 96, 10);
+    UI.text(this, 1092, 220, next != null ? '?' : '', 40, next != null ? RARITY[next].col : '#8a7a68', { bold: true }).setOrigin(0.5);
+    UI.text(this, 790, 280, '재료 1', 14, '#c8b8a0').setOrigin(0.5, 0); UI.text(this, 934, 280, '재료 2', 14, '#c8b8a0').setOrigin(0.5, 0);
+    if (next != null) UI.text(this, 1092, 280, RARITY[next].ko, 16, RARITY[next].col, { bold: true }).setOrigin(0.5, 0);
+    if (rar != null) {
+      const f = fuseInfo(s, rar, F.ad);
+      const extra = [f.pity ? `실패 보정 +${f.pity}%p` : '', f.adB ? `광고 +${f.adB}%p` : ''].filter(Boolean).join(' · ');
+      UI.text(this, 724, 320, `${RARITY[rar].ko} + ${RARITY[rar].ko} → ${RARITY[next].ko}   성공 ${f.rate}%`, 22, '#fff', { bold: true });
+      if (extra) UI.text(this, 724, 352, extra, 16, '#9ae07a');
+      UI.text(this, 724, 380, { none: '실패해도 잃는 것이 없어요', one: '실패하면 재료 2가 사라져요 (재료 1은 남아요)', both: '실패하면 재료 둘 다 사라져요 (마석 조금 돌려받음)' }[f.lose], 16, f.lose === 'none' ? '#c8b8a0' : '#ff9a8a');
+      UI.text(this, 724, 408, `비용: 금화 ${f.gold}${f.abyss ? ` · ${MATS.abyss} ${f.abyss}` : ''}`, 18, '#ffd34d');
+      UI.text(this, 724, 436, '부위는 두 재료 중 하나 · 단계는 높은 쪽 · 강화는 높은 쪽의 절반 · 옵션은 새로', 14, '#8f8070');
+      if (F.b && !F.ad && f.rate < 100) UI.button(this, 860, 500, `▶ 광고 보고 +${rar >= 3 ? 1 : 10}%p`, () => Monet.rewardAd(this, 'fuse', () => { F.ad = true; this.draw(); }), { w: 260, h: 52, size: 19, col: 0x2a4a3a });
+      if (F.b) UI.button(this, 1110, 500, '조합', () => {
+        const r = tryFuse(s, F.a, F.b, F.ad);
+        if (r.r === 'cost') return UI.toast(this, '금화나 마석이 모자라요', '#ff9a8a');
+        if (r.r === 'bad') return UI.toast(this, '조합할 수 없는 장비예요', '#ff9a8a');
+        if (r.r === 'ok') { SFX.parry(); this.cameras.main.flash(200, 255, 230, 160); UI.toast(this, `조합 성공! ${RARITY[r.it.rar].ko} 「${r.it.name}」`, RARITY[r.it.rar].col, 400); }
+        else { SFX.guard(); UI.toast(this, r.lost.length ? `조합 실패… 재료 ${r.lost.length}개가 사라졌어요` + (Object.keys(r.refund).length ? ' · ' + Object.entries(r.refund).map(([m, n]) => `${MATS[m]} +${n}`).join(', ') : '') : '조합 실패', '#ff9a8a', 400); }
+        this.fuse = { a: null, b: null, ad: false }; Save.write(); this.draw();
+      }, { w: 150, h: 56, size: 24 });
+    } else UI.text(this, 960, 400, '왼쪽에서 장비를 골라 주게.\n같은 등급 두 개면 한 단계 위를 노려 보지.', 19, '#c8b8a0', { align: 'center' }).setOrigin(0.5);
+    // 확률표 (늘 공개)
+    UI.text(this, 724, 580, '조합 확률', 16, '#ffe7a8', { bold: true });
+    UI.text(this, 724, 604, FUSE_RULE.map((R, i) => `${RARITY[i].ko}→${RARITY[i + 1].ko} ${R.rate}%`).join('  ·  '), 15, '#c8b8a0');
+    UI.text(this, 724, 628, '실패할 때마다 다음 확률이 조금씩 오르고, 성공하면 처음으로 돌아가요.', 14, '#8f8070');
   }
   // 🆕 보스 전리품 → 그 보스만의 장신구
   drawTrophy() {
