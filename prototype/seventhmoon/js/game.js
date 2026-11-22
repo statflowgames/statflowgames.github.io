@@ -2544,13 +2544,16 @@ window.step = async (n = 1, dt = 16.6) => { window._t = Math.max(window._t || 0,
   const g = window.game;
   const arm = () => {
     const loop = g.loop;
-    if (!loop || !loop.callback || loop.callback.__guarded) return false;
+    // ✏️ 2026-11-23 Phaser가 시작(boot)할 때 loop.callback을 game.step으로 갈아 끼운다 → 그 전에 감싸면 안전장치가 떨어져 나간다
+    //   (지금까지 실제로는 한 번도 걸려 있지 않았음 — 가끔 '빨간 줄 없이 먹통'의 원인) → 시작한 뒤에 감싸고, 떨어지면 다시 감싼다
+    if (!loop || !loop.started || !loop.callback || loop.callback.__guarded) return false;
     const orig = loop.callback;
     let shown = 0;
     const wrapped = function (time, delta) {
       try { return orig.call(this, time, delta); }
       catch (e) {
         const msg = (e && e.message) || String(e);
+        if (typeof SMDiag !== 'undefined') SMDiag.note('오류:' + msg.slice(0, 40));
         const at = ((e && e.stack) || '').split('\n').slice(1, 3).map(s => s.trim().replace(/^at /, '').replace(/https?:\/\/[^ )]*\/js\//g, '')).join(' < ');
         try { localStorage.setItem('seventhmoon.lastError', JSON.stringify({ t: new Date().toISOString(), msg, at })); } catch (_) { /* 무시 */ }
         if (typeof console !== 'undefined') console.error('[frame error]', e);
@@ -2568,5 +2571,5 @@ window.step = async (n = 1, dt = 16.6) => { window._t = Math.max(window._t || 0,
     loop.callback = wrapped;
     return true;
   };
-  if (!arm()) { const t = setInterval(() => { if (arm()) clearInterval(t); }, 200); }
+  arm(); setInterval(arm, 1000);
 })();
