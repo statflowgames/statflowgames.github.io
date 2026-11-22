@@ -341,7 +341,7 @@ class Hero extends Actor {
       this.vx = this.motionSync ? (inp.x ? motionApproach(this.vx, inp.x * 220, 1800 * s) : this.vx * Math.pow(0.98, dt / 16.67)) : inp.x * 220 || this.vx * 0.98;
       if (inp.x && st === 'jump') this.face = inp.x;
       this.vy = inp.y * 90;
-      if (st === 'jump' && inp.atkP && !this.jumpAtkUsed) { this.jumpAtkUsed = true; this.state = 'jatk'; this.st = 0; this.atk = this.atkSet.jump; this.atkName = 'jump'; this.fired = false; this.swingFired = false; this.voicePower = null; this.hitSet.clear(); this.replay(this.atk.clip, 40); this.setHead('head_shout'); }
+      if (st === 'jump' && inp.atkP && !this.jumpAtkUsed) { this.jumpAtkUsed = true; this.state = 'jatk'; this.st = 0; this.atk = this.atkSet.jump; this.atkName = 'jump'; this.fired = false; this.swingFired = false; this.voicePower = null; this.hitSet.clear(); this.awkHitMon = false; this.replay(this.atk.clip, 40); this.setHead('head_shout'); }
       if (inp.jumpP && this.st8.doubleJump && !this.dj && this.z > 20) {
         this.dj = true; this.vz = 820;
         if (this.motionSync) { this.state = 'jump'; this.st = 0; this.voicePower = null; this.setHead(null); }
@@ -396,7 +396,7 @@ class Hero extends Actor {
   }
   startAttack(k) {
     const a = this.atkSet[k];
-    this.state = 'atk'; this.st = 0; this.atk = a; this.atkName = k; this.hitSet.clear(); this.fired = false;
+    this.state = 'atk'; this.st = 0; this.atk = a; this.atkName = k; this.hitSet.clear(); this.awkHitMon = false; this.fired = false;
     this.swingFired = false; this.voicePower = null;
     this.chain = { a1: 'a2', a2: 'a3', a3: 'a4' }[k] || null;
     this.replay(a.clip, 40);
@@ -486,18 +486,19 @@ class Hero extends Actor {
       if (this.scene.now - this.guardStart < 170 * (1 + (this.st8.parryWin || 0) / 100) && this.state === 'guard') {
         this.state = 'parry'; this.st = 0; this.replay('w_parry', 30);
         this.atk = { hit: [40, 160], dmg: 24, reach: [0, 170], dz: 40, kb: 300, type: 'knock', stop: 90, shake: 3 };
-        this.hitSet.clear(); this.awk = Math.min(100, this.awk + 12);
+        this.hitSet.clear(); this.awkHitMon = false; if (!(this.scene.buffs && this.scene.buffs.awk > 0)) this.awk = Math.min(100, this.awk + 12);   // ✏️ 각성 중에는 안 찬다
         return 'parry';
       }
       this.sta -= (type === 'heavy' ? 40 : 14) * (1 - (this.st8.guardCost || 0) / 100);
       this.x -= this.face * (type === 'heavy' ? 40 : 14);
-      this.awk = Math.min(100, this.awk + 2);
+      if (!(this.scene.buffs && this.scene.buffs.awk > 0)) this.awk = Math.min(100, this.awk + 2);
       if (this.sta <= 0) { this.sta = 0; this.state = 'hurt'; this.st = -300; this.play('w_hurt', 40); this.showEmote('dizzy', 900); }
       return 'guard';
     }
     if (this.scene.god) dmg = 0;
     this.hp = Math.max(0, this.hp - dmg);
-    this.awk = Math.min(100, this.awk + 6);
+    // ✏️ 2026-11-22 맞으면 차는 양은 받은 피해에 비례 (체력 10%를 잃으면 +6, 최소 +1.5, 최대 +10) → 위험할수록 빨리 찬다 (역전 수단)
+    if (!(this.scene.buffs && this.scene.buffs.awk > 0)) this.awk = Math.min(100, this.awk + Phaser.Math.Clamp(dmg / Math.max(1, this.maxHp) * 60, 1.5, 10));
     this.face = kbDir === 0 ? this.face : -kbDir;
     this.flash(0xffffff, 80);
     this.kick(-7, 6, -0.08);
@@ -516,7 +517,7 @@ class Hero extends Actor {
     const motion = heroSkillMotion(this.key, name, fx, this.baseStand);
     this.state = 'skill'; this.st = 0; this.vx = this.vy = 0;
     this.skillMotion = motion; this.skillCues = []; this.atk = null; this.atkName = 'skill:' + name;
-    this.combo = 0; this.buffer = 0; this.hitSet.clear(); this.voicePower = null;
+    this.combo = 0; this.buffer = 0; this.hitSet.clear(); this.awkHitMon = false; this.voicePower = null;
     this.replay(motion.clip, 45); this.setHead('head_attack');
     return motion;
   }

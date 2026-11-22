@@ -18,6 +18,7 @@ const MON_RIGS = {
   imp: () => autoHumanoid('imp', { h: 140, extra: [{ n: 'wingi', img: 'wing', on: 'torso', at: [-0.1, -0.7], a: [0.85, 0.8], z: 2 }, { img: 'tail', on: 'root', at: [-0.35, 0.1], a: [0.9, 0.3], z: 3 }], procs: [{ n: 'wingi', amp: 24, spd: 0.02 }, { n: 'tail', amp: 12, spd: 0.006 }], hover: 30 }),
   wolf: () => quadRig('wolf', { h: 118 }),
   frostwolf: () => quadRig('frostwolf', { h: 140 }),
+  spirit_wolf: () => quadRig('spirit_wolf', { h: 118 }),   // 🆕 2026-11-22 세릴 '늑대 정령' 소환체
   hound: () => quadRig('hound', { h: 140 }),
   slime: () => blobRig('slime', { h: 110, face: 'eyes', inner: [{ img: 'bones', at: [-0.1, -0.4], sc: 0.8 }] }),
   ice_spirit: () => blobRig('ice_spirit', { h: 90, body: 'core', orbit: ['shard_l', 'shard_m', 'shard_s', 'shard_c'], hover: 60, def: { imgAlias: { head_shout: 'core_crack' } } }),

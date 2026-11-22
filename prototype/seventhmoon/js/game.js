@@ -122,7 +122,7 @@ class Game extends Phaser.Scene {
     this.gold = 0; this.expGain = 0; this.loot = []; this.dmgTaken = 0;
     this.comboN = 0; this.comboT = 0; this.maxCombo = 0;
     this.monsters = []; this.props = []; this.projs = []; this.pickups = []; this.tokens = new Set(); this.zones = []; this.enemyZones = [];
-    this.buffs = {}; this.cds = [0, 0]; this.featherUsed = false; this.unyielding = false; this.reviveUsed = false; this.auras = []; this.healOnce = {}; this.cachePassives();   // 🆕 전투 패시브
+    this.buffs = {}; this.cds = [0, 0]; this.featherUsed = false; this.unyielding = false; this.reviveUsed = false; this.auras = []; this.summons = []; this.healOnce = {}; this.cachePassives();   // 🆕 전투 패시브
     this.cls = classOf(s.hero);
     this.boss = null; this.bossBar = null; this.bossName = null;
     this.rushT = null; this.spawning = false; this.quake = false; this.slowmo = 0; this.hpShow = undefined; this.bossShow = undefined; this.pauseUi = null;
@@ -1019,7 +1019,7 @@ class Game extends Phaser.Scene {
       GearFx.onMelee(this, h, m, a, dmg, crit, behind);
       h.hitSet.add(m); any = true;
       this.addCombo();
-      if (h === this.hero) h.awk = Math.min(100, h.awk + 3 * (1 + this.stats.awkPct / 100) * (this.rule.awkMul || 1));
+      if (h === this.hero) this.awkGain(m, !h.awkHitMon); h.awkHitMon = true;   // ✏️ 2026-11-22 한 번 휘두를 때 첫 적만 +3
       const hx = m.x - f * 20, hy = m.y - m.z - m.height * (big ? 0.45 : 0.55);
       this.fx('hit_spark', hx, hy, { s: crit ? 0.42 : 0.3, rot: Phaser.Math.Between(0, 360), dur: 220, depth: 4200 });
       if (crit) { this.fx('crit_flash', hx, hy, { s: 0.45, dur: 380, depth: 4201 }); SFX.crit(hx - this.cameras.main.scrollX); }
@@ -1452,6 +1452,13 @@ class Game extends Phaser.Scene {
     return false;
   }
   // ---------------- 스킬 ----------------
+  // 🆕 2026-11-22 각성 충전 규칙 (긴박감): 한 번 공격에 첫 적 +3, 더 맞힌 적은 +0.5, 보스는 ×0.7, 각성 중에는 안 찬다
+  awkGain(m, first) {
+    const h = this.hero; if (!h || this.buffs.awk > 0) return;
+    let v = first ? 3 : 0.5;
+    if (m && m.def && m.def.boss) v *= 0.7;
+    h.awk = Math.min(100, h.awk + v * (1 + this.stats.awkPct / 100) * (this.rule.awkMul || 1));
+  }
   hasSkill(name) { const s = this.save; return (DB.skills[s.hero]?.list || []).some((x, i) => x.name === name && s.skills[i]); }
   // 🆕 2026-11-22 전투 중에만 동작하는 패시브 (classes.js PASSIVE_NAMED 참고). 스테이지 시작 때 한 번 읽어 둔다
   cachePassives() {
@@ -1588,7 +1595,7 @@ class Game extends Phaser.Scene {
       // ✏️ 2026-11-22 원거리 보강: 쓰러진 적도 맞는다(otg), 각성 충전은 근접과 같이 +3·탑 규칙 배율 적용
       if (m.takeHit(h, { dmg: p.dmg, kb: p.pierce ? 120 : 200, type: 'light', stop: 35, proj: true, otg: true }, dmg)) {
         this.addCombo();
-        h.awk = Math.min(100, h.awk + 3 * (1 + this.stats.awkPct / 100) * (this.rule.awkMul || 1));
+        this.awkGain(m, !p.awkDone); p.awkDone = true;   // ✏️ 2026-11-22 투사체마다 첫 적만 크게
         this.floatText(m.x, m.y - m.height * 0.7, String(dmg), crit ? '#ffd34d' : '#fff', crit ? 34 : 28);
         this.fx('hit_spark', p.x, p.y - p.z, { s: 0.25, dur: 200, depth: 4200, tint: { fire: 0xff9050, ice: 0x90d0ff, bolt: 0xffff80 }[p.elem] });
         SFX.hit(false, m.px, 'blade');
@@ -1700,10 +1707,11 @@ class Game extends Phaser.Scene {
         if (a.strike) {
           let best = null, bd = 520;
           for (const m of this.monsters) if (!m.dead) { const d = Math.abs(m.x - h.x) + Math.abs(m.y - h.y); if (d < bd) { bd = d; best = m; } }
-          if (best) { this.fx(a.fx || 'lightning_bolt', best.x, best.y - best.height * 0.5, { s: 0.35, dur: 300, depth: best.y + 1002 }); this.heroArea(best.x, best.y, 60, 40, a.strike, { elem: a.elem, kb: 120, type: 'light' }); }
+          if (best && !(typeof Summons !== 'undefined' && Summons.strike(this, a, best))) { this.fx(a.fx || 'lightning_bolt', best.x, best.y - best.height * 0.5, { s: 0.35, dur: 300, depth: best.y + 1002 }); this.heroArea(best.x, best.y, 60, 40, a.strike, { elem: a.elem, kb: 120, type: 'light' }); }   // ✏️ 소환체가 있으면 소환체가 친다
         }
       }
     }
+    if (typeof Summons !== 'undefined') for (const a of this.auras) if (a.t <= 0) Summons.end(this, a);   // 🆕 소환체 사라짐
     this.auras = this.auras.filter(a => a.t > 0);
     // 보호막: 날아오는 투사체를 막는다
     if (this.buffs.shield > 0 && this.shieldReflect) for (const p of this.projs) if (!p.mine && Math.abs(p.x - h.x) < 120 && Math.abs(p.y - h.y) < 60) { p.life = 0; this.fx('guard_flash', p.x, p.y - p.z, { s: 0.25, dur: 200, depth: 4300 }); }
@@ -1842,6 +1850,7 @@ class Game extends Phaser.Scene {
           }
         } else if (t === 'aura') {
           this.auras.push({ slow: !!fx.slow, t: fx.ms, k: 0, tick: fx.tick, strike: fx.strike, heal: fx.heal, fx: fx.fx, elem: fx.elem });
+          if (typeof Summons !== 'undefined') Summons.start(this, this.auras[this.auras.length - 1], name);   // 🆕 2026-11-22 소환체
           if (fx.def) { this.buffs.shield = fx.ms; this.shieldRed = fx.def; }
           if (fx.buffAtk) this.buffs.eclipse = fx.ms;
           this.floatText(h.x, h.y - 270, name, '#d0c0ff', 26);
@@ -2453,6 +2462,7 @@ class Game extends Phaser.Scene {
     if (this.buffs.awk > 0) this.hero.awk = 0;
     this.hero.update(hdt, inp);
     if (this.ally) this.ally.update(dt);
+    if (typeof Summons !== 'undefined' && this.summons.length + this.auras.length) Summons.update(this, dt);   // 🆕 2026-11-22 소환체
     for (const m of this.monsters) if (!m.dead) m.update(dt);
     this.hero.draw(hdt, false);
     this.updateAwakenAura(dt);
