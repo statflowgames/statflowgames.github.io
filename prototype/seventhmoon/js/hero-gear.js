@@ -24,7 +24,8 @@ const HeroGear = {
       if (!sc.textures.exists(key) || b.spr.texture.key === key) continue;
       b.img = key; b.cur = undefined; b.spr.setTexture(key);   // 같은 배율 그대로 → 그림마다 원래 크기 비율 유지
     }
-    if (typeof Q === 'undefined' || !Q.has('nohelm')) this.helm(hero, s);
+    // ✏️ 2026-11-22 머리 장비 겉모습은 나중에 (착용용 그림을 받은 뒤). 지금은 주소에 ?helm 을 붙일 때만 시험으로 보인다.
+    if (typeof Q !== 'undefined' && Q.has('helm')) this.helm(hero, s);
   },
   // (시험) 머리 장비 아이콘을 머리 위에
   HELM: { warrior: [0.5, 0.18, 1.0], paladin: [0.5, 0.2, 0.95], mage: [0.5, 0.22, 1.0], rogue: [0.5, 0.25, 1.0], ranger: [0.5, 0.2, 0.95], hexblade: [0.5, 0.2, 1.0] },
