@@ -19,10 +19,10 @@ Object.assign(STORY, {
   c1_side_end: [
     { w: 'narr', if: 'c1_side', t: '사냥꾼 가족이 무사하다. 늙은 사냥꾼이 활 한 자루와 약초 주머니를 내밀었다.' },
     { w: 'lise', f: 'joy', if: 'c1_side', t: '다들 무사해서 다행이에요. 이런 게 진짜 상단 일이죠!' },
-    { if: 'c1_side', give: { gold: 120, exp: 60 } },
+    { if: 'c1_side', give: { gold: 120, exp: 60, gear: 'c1_hunter' } },
     { w: 'narr', ifNot: 'c1_side', t: '오두막은 무너져 있었다. 늦게 도착한 일행에게 남은 건 부서진 활 한 자루뿐이었다.' },
     { w: 'lise', f: 'sad', ifNot: 'c1_side', t: '…늦었어요. 다음엔 더 빨리 갈게요.' },
-    { ifNot: 'c1_side', give: { gold: 40 } },
+    { ifNot: 'c1_side', give: { gold: 40, gear: 'c1_hunter_broken' } },
   ],
   c2_side: [
     { w: 'narr', t: '부두 뒤편 밀수꾼 창고. 상자마다 보랏빛 낙인 — 교단의 무기가 실려 있다.' },
@@ -30,7 +30,7 @@ Object.assign(STORY, {
   ],
   c2_side_end: [
     { w: 'narr', if: 'c2_side', t: '불타는 창고 잔해 속에서 교단의 편지 한 장이 나왔다. "달사냥꾼께 — 항구의 열쇠는 우리 손에."' },
-    { if: 'c2_side', give: { gold: 150, item: 'uncommon' } },
+    { if: 'c2_side', give: { gold: 150, gear: 'c2_key' } },
     { w: 'narr', ifNot: 'c2_side', t: '제단은 늦게 부서졌다. 흑월빛을 먹은 칼 몇 자루는 이미 밀수꾼들과 함께 사라진 뒤였다.' },
     { ifNot: 'c2_side', give: { gold: 60 } },
   ],
@@ -40,7 +40,7 @@ Object.assign(STORY, {
   ],
   c3_side_end: [
     { w: 'narr', if: 'c3_side', t: '구해 낸 대상들이 낙타 젖과 지도 한 장을 건넸다. 지도에는 별이 떨어진 사막 — 더 먼 동쪽이 그려져 있다.' },
-    { if: 'c3_side', give: { gold: 180, exp: 120 } },
+    { if: 'c3_side', give: { gold: 180, exp: 120, gear: 'c3_hood' } },
     { w: 'narr', ifNot: 'c3_side', t: '모래가 대상 행렬을 덮었다. 모래 위로 지도 한 장만 바람에 날려 왔다. 별이 떨어진 사막 — 더 먼 동쪽이 그려져 있다.' },
     { w: 'tabel', t: '동쪽 끝 유리 사막이라… 언젠가 상단을 끌고 가 보고 싶군.' },
     { ifNot: 'c3_side', give: { gold: 60 } },
@@ -50,8 +50,8 @@ Object.assign(STORY, {
     { w: 'tabel', t: '엘라와 내가 일하던 광산이다. 저 친구들, 아직 버티고 있었군!' },
   ],
   c4_side_end: [
-    { w: 'narr', if: 'c4_side', t: '얼음에서 풀려난 드워프들이 잘 벼린 망치 하나를 건넸다. "타벨 형님 친구라면 우리 친구지."' },
-    { if: 'c4_side', give: { gold: 200, item: 'rare' } },
+    { w: 'narr', if: 'c4_side', t: '얼음에서 풀려난 드워프들이 형제의 증표인 반지 하나를 건넸다. "타벨 형님 친구라면 우리 친구지."' },
+    { if: 'c4_side', give: { gold: 200, gear: 'c4_brothers' } },
     { w: 'narr', ifNot: 'c4_side', t: '얼음은 끝내 깨지지 않았다.' },
     { w: 'tabel', f: 'sad', ifNot: 'c4_side', t: '…저 안의 녀석들을 꺼내지 못했군. 언젠가 다시 오마.' },
     { ifNot: 'c4_side', give: { gold: 80 } },
@@ -72,7 +72,7 @@ Object.assign(STORY, {
   ],
   c6_side_end: [
     { w: 'narr', t: '그림자가 흩어지며 마지막으로 고개를 숙였다. 발밑에 오래된 방패 조각이 남았다.' },
-    { give: { gold: 300, item: 'rare' } },
+    { give: { gold: 300, gear: 'c6_shard' } },
   ],
 
   // ================= 2부 「부서진 하늘」 =================
@@ -191,7 +191,7 @@ Object.assign(STORY, {
     { w: 'naia', t: '다음 씨앗은 불의 산으로 떨어졌다. 대장간의 산이지. 조심하거라.' },
   ],
   c8_side: [{ w: 'narr', t: '부서진 잠수종 안에 잠수부 둘이 갇혀 있다. 물이 차오르기 전에!' }],
-  c8_side_end: [{ w: 'narr', if: 'c8_side', t: '구해 낸 잠수부들이 산호 속 보물 상자를 가리켰다.' }, { if: 'c8_side', give: { gold: 700, item: 'rare' } }, { w: 'narr', ifNot: 'c8_side', t: '잠수종은 가라앉았다. 산호 사이로 잠수부의 낡은 보물 지도 한 장이 떠올랐다.' }, { ifNot: 'c8_side', give: { gold: 300 } }],
+  c8_side_end: [{ w: 'narr', if: 'c8_side', t: '구해 낸 잠수부들이 산호 속 보물 상자를 가리켰다.' }, { if: 'c8_side', give: { gold: 700, gear: 'c8_diver' } }, { w: 'narr', ifNot: 'c8_side', t: '잠수종은 가라앉았다. 산호 사이로 잠수부의 낡은 보물 지도 한 장이 떠올랐다.' }, { ifNot: 'c8_side', give: { gold: 300 } }],
   // ---- 9장 불꽃 대장간 산 ----
   c9_intro: [
     { bg: 'story/c4' },
@@ -236,7 +236,7 @@ Object.assign(STORY, {
     { w: 'kael', t: '스승님은 한 번도 포기하신 적이 없다. 희생 없는 끝을. …하지만 세상이 원하지 않는 답을 강요한다면, 그것도 또 다른 희생이지.' },
   ],
   c9_side: [{ w: 'narr', t: '식어 버린 광산 깊은 곳. 드워프 대장장이 하나가 마지막 화로를 지키고 있다. 의식 제단이 화로를 얼리고 있다!' }],
-  c9_side_end: [{ w: 'narr', if: 'c9_side', t: '화로에 불이 다시 붙었다. 대장장이가 감사의 뜻으로 무기를 벼려 주었다.' }, { if: 'c9_side', give: { gold: 800, mats: { high: 3, abyss: 1 } } }, { w: 'narr', ifNot: 'c9_side', t: '마지막 화로는 끝내 식어 버렸다. 대장장이는 고개를 숙인 채 녹슨 망치 하나를 건넸다.' }, { ifNot: 'c9_side', give: { gold: 350 } }],
+  c9_side_end: [{ w: 'narr', if: 'c9_side', t: '화로에 불이 다시 붙었다. 대장장이가 다시 붙은 불씨를 작은 반지에 담아 건넸다.' }, { if: 'c9_side', give: { gold: 800, gear: 'c9_ember', mats: { high: 2 } } }, { w: 'narr', ifNot: 'c9_side', t: '마지막 화로는 끝내 식어 버렸다. 대장장이는 고개를 숙인 채 녹슨 망치 하나를 건넸다.' }, { ifNot: 'c9_side', give: { gold: 350 } }],
   // ---- 10장 거꾸로 자라는 숲 ----
   c10_intro: [
     { bg: 'story/c1' },
@@ -282,7 +282,7 @@ Object.assign(STORY, {
     { give: { gear: 'c10_spirit' } },
   ],
   c10_side: [{ w: 'narr', t: '숲 정령의 샘. 정령 아이들이 포자 덫에 갇혀 있다.' }],
-  c10_side_end: [{ w: 'narr', if: 'c10_side', t: '정령 아이들이 샘물 한 병과 빛나는 씨앗 장식을 건넸다.' }, { if: 'c10_side', give: { gold: 900, item: 'rare', lise: 1 } }, { w: 'narr', ifNot: 'c10_side', t: '빛을 잃은 정령 아이의 자리에, 작은 씨앗 장식 하나가 남아 있었다.' }, { w: 'lise', f: 'sad', ifNot: 'c10_side', t: '…미안해. 다음엔 꼭 지켜 줄게.' }, { ifNot: 'c10_side', give: { gold: 400 } }],
+  c10_side_end: [{ w: 'narr', if: 'c10_side', t: '정령 아이들이 샘물 한 병과 빛나는 씨앗 장식을 건넸다.' }, { if: 'c10_side', give: { gold: 900, gear: 'c10_seed', lise: 1 } }, { w: 'narr', ifNot: 'c10_side', t: '빛을 잃은 정령 아이의 자리에, 작은 씨앗 장식 하나가 남아 있었다.' }, { w: 'lise', f: 'sad', ifNot: 'c10_side', t: '…미안해. 다음엔 꼭 지켜 줄게.' }, { ifNot: 'c10_side', give: { gold: 400, gear: 'c10_seed_dim' } }],
   // ---- 11장 구름 성채 ----
   c11_intro: [
     { bg: 'story/c5' },
@@ -354,7 +354,7 @@ Object.assign(STORY, {
     { give: { flag: 'p2_accepted' } },
   ],
   c11_side: [{ w: 'narr', t: '구름 아래 감옥. 은빛 신도들이 밤을 그리던 화가들을 가둬 두었다.' }],
-  c11_side_end: [{ w: 'narr', if: 'c11_side', t: '풀려난 화가들이 별이 가득한 밤하늘 그림을 선물했다.' }, { if: 'c11_side', give: { gold: 1000, mats: { high: 4, abyss: 2 } } }, { w: 'narr', ifNot: 'c11_side', t: '화가들이 끌려간 작업실에는 그리다 만 밤하늘 한 장만 남아 있었다.' }, { ifNot: 'c11_side', give: { gold: 450 } }],
+  c11_side_end: [{ w: 'narr', if: 'c11_side', t: '풀려난 화가들이 별이 가득한 밤하늘 그림을 선물했다.' }, { if: 'c11_side', give: { gold: 1000, gear: 'c11_painted', mats: { high: 2 } } }, { w: 'narr', ifNot: 'c11_side', t: '화가들이 끌려간 작업실에는 그리다 만 밤하늘 한 장만 남아 있었다.' }, { ifNot: 'c11_side', give: { gold: 450 } }],
   // ---- 12장 달의 뒷면 ----
   c12_intro: [
     { bg: 'story/c6' },
@@ -394,7 +394,7 @@ Object.assign(STORY, {
     } },
   ],
   c12_side: [{ w: 'narr', t: '달 위의 기억. 여섯 달이 처음 떠오르던 날의 풍경 속에, 그림자 몇이 길을 막는다.' }],
-  c12_side_end: [{ w: 'lise', t: '…달은 밤을 지키려고 떠오른 거였어요. 그걸 잊지 않을게요.' }, { give: { gold: 1500, mats: { high: 5, abyss: 3 }, lise: 1 } }],
+  c12_side_end: [{ w: 'lise', t: '…달은 밤을 지키려고 떠오른 거였어요. 그걸 잊지 않을게요.' }, { give: { gold: 1500, gear: 'c12_memory', mats: { abyss: 2 }, lise: 1 } }],
   // ---- 2부 엔딩 ----
   p2_true: [
     { music: 'bgm_end_p2_true' },
@@ -405,8 +405,10 @@ Object.assign(STORY, {
     { w: 'kael', if: 'kael_ally', t: '스승님. 이번엔 제가 곁에 있겠습니다.' },
     { w: 'orvex', ifEnd: 'end_true', f: 'sad', t: '두 번이나 너희에게 배우는구나. …이번에는 잊지 않으마.' },
     { w: 'narr', ifEnd: 'end_sacrifice', t: '봉인의 사슬이 풀리고, 붉은 머리의 소녀가 눈을 떴다. 리세가 돌아왔다.' },
+    { w: 'lise', f: 'joy', if: 'c10_let', t: '…아. 할머니 웃음소리가 들려요. 숲에 두고 온 기억이 돌아왔어요.' },
     { w: 'lise', f: 'joy', if: 'c12_promise', t: '집에 가요. 약속했잖아요.' },
     { w: 'lise', f: 'joy', ifNot: 'c12_promise', t: '집에 가요. 이번에는 함께요.' },
+    { w: 'narr', if: 'c8_promise', t: '아쿠아렐 기사의 반지는 약속대로 해안 마을의 늙은 어부에게 전해졌다. 그는 반지를 쥐고 오래 울었다.' },
     { w: 'narr', t: '— 2부 진 엔딩 「일곱 달의 하늘」. 벨카라의 밤하늘에는 이제 일곱 개의 달이 함께 떠, 밤과 꿈을 지킨다.' },
   ],
   p2_dark: [
@@ -415,6 +417,7 @@ Object.assign(STORY, {
     { w: 'narr', t: '여섯 씨앗의 빛과 그 그림자를 받아들인 오르벡스가 떠올랐다. 하늘에 은빛 달 하나가 영원히 걸렸다.' },
     { w: 'orvex', t: '이제 아무도 희생하지 않는다. 아무도… 꿈꾸지 않는다.' },
     { w: 'narr', t: '벨카라에 밤이 사라졌다. 사람들은 평온했고, 아무도 다음 날을 기다리지 않았다.' },
+    { w: 'narr', if: 'c8_promise', t: '아쿠아렐 기사의 반지는 약속대로 해안 마을의 늙은 어부에게 전해졌다. 그는 반지를 쥐고 오래 울었다.' },
     { w: 'narr', t: '— 2부 엔딩 「달의 왕」. (월석과 씨앗, 그리고 믿음이 있다면 다른 끝이 있을지도 모른다.)' },
   ],
   p2_dawn: [
@@ -423,6 +426,7 @@ Object.assign(STORY, {
     { w: 'narr', t: '오르벡스가 쓰러지고, 그가 품었던 그림자 잔향이 흩어져 바다로 떨어졌다. 씨앗들의 맑은 빛은 잠시 밤하늘을 비추었다.' },
     { w: 'tabel', t: '흑월은 막았다. 하지만 흩어진 그림자가 언젠가 다시 싹트겠지. …그래도 이번엔 기록을 남기고 대비할 수 있네.' },
     { w: 'lise', t: '그때는 또 우리가 막으면 돼요. 일단은 — 새벽이에요.' },
+    { w: 'narr', if: 'c8_promise', t: '아쿠아렐 기사의 반지는 약속대로 해안 마을의 늙은 어부에게 전해졌다. 그는 반지를 쥐고 오래 울었다.' },
     { w: 'narr', t: '— 2부 엔딩 「새벽의 항구」. (씨앗 여섯을 모두 정화하고, 리세의 깊은 믿음을 얻는다면 다른 끝이 있을지도 모른다.)' },
   ],
   // ---- 2부 캠프 대화 ----
@@ -435,17 +439,17 @@ Object.assign(STORY, {
   c7_cache: [
     { w: 'narr', t: '미궁의 심장. 씨앗이 있던 자리엔 유리로 굳은 조각만 남아 있다. 무언가 끌려간 자국이 분화구 쪽으로 이어진다.' },
     { w: 'lise', t: '씨앗은 분화구로 옮겨졌나 봐요. 대신… 오래된 관측소 상자가 있어요!' },
-    { give: { gold: 800, item: 'rare' } },
+    { give: { gold: 800, gear: 'c7_starring' } },
   ],
   c9_cache: [
     { w: 'narr', t: '모루의 방. 식은 모루 밑에 천으로 감싼 상자 하나가 숨겨져 있다.' },
     { w: 'tabel', t: '…엘라의 매듭이다. 씨앗은 놈들이 용광로로 가져갔어도, 이건 무사했군.' },
-    { give: { gold: 900, item: 'rare' } },
+    { give: { gold: 900, gear: 'c9_apron' } },
   ],
   c11_cache: [
     { w: 'lise', t: '하늘 온실 꼭대기… 씨앗이 뿌리내렸던 자국만 남았어요. 와이번이 물어 갔나 봐요.' },
     { w: 'narr', t: '시든 화분 사이에서 은빛 장비 상자 하나가 발견되었다.' },
-    { give: { gold: 1000, item: 'rare' } },
+    { give: { gold: 1000, gear: 'c11_coat' } },
   ],
   camp_lise_12: [{ w: 'lise', t: '마지막이에요. 이번엔 정말로, 같이 집에 가요.' }],
 });
