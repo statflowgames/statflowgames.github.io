@@ -1260,7 +1260,7 @@ class Game extends Phaser.Scene {
     else img.setFlipX(src.face < 0);
     if (src.def && src.def.tint && key !== 'orb') img.setTint(src.def.tint);
     const sh = this.add.image(img.x, src.y, 'shadow').setScale(0.4, 0.4).setAlpha(0.3).setDepth(999);
-    this.projs.push({ src, img, sh, x: img.x, y: src.y, z, vx: o.vx, vy: 0, dmg: o.dmg, life: o.life, home: o.home, key, mine: o.mine, hit: new Map(), spin: o.spin });  // ✏️ 영웅 투사체 판정이 Map을 쓴다 (단검 아이템 멈춤 수정)
+    this.projs.push({ src, img, sh, x: img.x, y: src.y, z, vx: o.vx, vy: 0, dmg: o.dmg, life: o.life, home: o.home, key, mine: o.mine, hit: new Map(), spin: o.spin, px: src.x });   // ✏️ px: 지난 위치(처음엔 쏜 사람 자리) — 붙어 있는 적도 맞게  // ✏️ 영웅 투사체 판정이 Map을 쓴다 (단검 아이템 멈춤 수정)
   }
   updateProjs(dt) {
     const s = dt / 1000, h = this.hero;
@@ -1502,7 +1502,10 @@ class Game extends Phaser.Scene {
     }
     if (p.spin) p.img.angle += 900 * s;
     for (const m of this.monsters) {
-      if (m.dead || Math.abs(p.x - m.x) > (m.kind === 'barkhaul' ? 90 : 55) || Math.abs(p.y - m.y) > 40 || p.z > m.height * 1.1 + 30) continue;
+      // ✏️ 2026-11-22 지난 위치부터 지금 위치까지 훑어서 판정 (몸에 붙은 적을 헛치던 문제, 빠른 투사체가 건너뛰던 문제)
+      const rr = m.kind === 'barkhaul' ? 90 : 55, from = p.px ?? p.x, fwd = p.vx >= 0;
+      const lo = fwd ? Math.min(from - 25, p.x - rr) : p.x - rr, hi = fwd ? p.x + rr : Math.max(from + 25, p.x + rr);
+      if (m.dead || m.x < lo || m.x > hi || Math.abs(p.y - m.y) > 40 || p.z > m.height * 1.1 + 30) continue;
       const last = p.hit.get(m);
       if (last !== undefined && !(p.rehit && this.now - last > p.rehit)) continue;
       p.hit.set(m, this.now);
@@ -1533,6 +1536,7 @@ class Game extends Phaser.Scene {
       this.heroArea(p.x, p.y, p.boom, 60, p.dmg * 0.8 / this.stats.dmgMul, { elem: p.elem, kb: 280, col: '#ff9a3a' });
       p.boom = 0;
     }
+    p.px = p.x;
   }
   chainBolt(from, dmg, n) {
     const done = new Set([from]);
