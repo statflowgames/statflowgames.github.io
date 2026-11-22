@@ -199,7 +199,8 @@ class MapScene extends Phaser.Scene {
       const big = n.type === 'boss';
       const r = big ? 34 : 24;
       const col = done ? 0xe0b45a : isOpen ? 0xfff2c0 : 0x6a5a48;
-      const nodeImg = 'uiset/' + (closed ? 'node_locked' : { stage: 'node_battle', midboss: 'node_elite', event: 'node_event', treasure: 'node_moonstone', boss: 'node_boss', side: 'node_event' }[n.type]);
+      const keyA = keyRoute(ch) === 'A';
+      const nodeImg = 'uiset/' + (closed ? 'node_locked' : { stage: 'node_battle', midboss: keyA ? 'node_moonstone' : 'node_elite', event: 'node_event', treasure: keyA ? 'node_treasure' : 'node_moonstone', boss: 'node_boss', side: 'node_event' }[n.type]);
       let circ;
       if (this.textures.exists(nodeImg)) {
         circ = this.add.image(x, y, nodeImg); circ.setScale(r * 2.3 / circ.height);
@@ -243,7 +244,8 @@ class MapScene extends Phaser.Scene {
     const c = this.add.container(0, 0).setDepth(60);
     c.add(UI.panel(this, W / 2 - 400, H - 150, 800, 140, { alpha: 0.94 }));
     const st = n.stage && STAGES[n.stage];
-    const typeKo = { stage: '전투', midboss: '중간 보스', event: '이벤트', treasure: CHAPTERS[ch - 1].part === 2 ? '보물 · 흑월 씨앗' : '보물 · 월석', boss: '챕터 보스', side: '곁가지 의뢰 (선택)' }[n.type];
+    const keyKo = CHAPTERS[ch - 1].part === 2 ? '흑월 씨앗' : '월석', keyA = keyRoute(ch) === 'A';
+    const typeKo = { stage: '전투', midboss: keyA ? '중간 보스 · ' + keyKo : '중간 보스', event: '이벤트', treasure: keyA ? '보물 · 장비 상자' : '보물 · ' + keyKo, boss: '챕터 보스', side: '곁가지 의뢰 (선택)' }[n.type];
     const title = st ? st.name : n.type === 'event' ? (CHAPTERS[ch - 1].routeB + ' 이벤트') : '';
     c.add(UI.text(this, W / 2 - 370, H - 138, `[${typeKo}]  ${title}`, 26, '#ffe7a8', { bold: true }));
     let desc = '';
@@ -290,7 +292,9 @@ class MapScene extends Phaser.Scene {
     const node = chapterNodes(ch)[a.node];
     const chain = [];
     if (a.node === 'void') { s.flags.void_done = true; Save.write(); return this.ending('end_true'); }
-    if (node && node.type === 'treasure') chain.push(`c${ch}_moon`);
+    // ✏️ 핵심 아이템은 장마다 A(중간 보스) 또는 B(보물)에 있다
+    if (node && node.type === 'treasure') chain.push(keyRoute(ch) === 'B' ? `c${ch}_moon` : `c${ch}_cache`);
+    if (node && node.type === 'midboss' && keyRoute(ch) === 'A') chain.push(`c${ch}_moon`);
     if (node && node.type === 'side') chain.push(`c${ch}_side_end`);
     if (a.node === 's2' && CLASS_ROOM[s.hero] === ch) chain.push('cls_' + s.hero);
     if (node && node.type === 'boss') {
@@ -911,14 +915,14 @@ class LiseMenu extends MenuBase {
     // 🆕 2부: 흑월 씨앗 줄
     if (s.ch >= 7 && typeof SEEDS !== 'undefined') {
       const got = Object.keys(s.seeds || {});
-      UI.text(this, 520, 512, `흑월 씨앗 ${got.length}/6` + (got.length >= 6 ? '' : '  — 2부 우회 길(B)에서 정화'), 18, '#c8d8ff');
+      UI.text(this, 520, 512, `흑월 씨앗 ${got.length}/6` + (got.length >= 6 ? '' : '  — 지도의 「얻는 것」에서 씨앗이 있는 길을 확인'), 18, '#c8d8ff');
       Object.keys(SEEDS).forEach((k, i) => { const ic = UI.img(this, 720 + i * 40, 520, 'icon/seed_' + k); if (ic) { ic.setScale(34 / ic.height); if (!got.includes(k)) ic.setTint(0x303038).setAlpha(0.6); } });
     }
     // 🆕 엔딩 단서: 무엇이 끝을 가르는지 넌지시
     const nm = Object.keys(s.moons).length, hint = [];
     if (s.flags.accepted) hint.push('오르벡스의 손을 잡았다. 흑월이 당신을 부른다…');
     else {
-      hint.push(nm >= 6 ? '여섯 달이 모두 모였다. 흑월을 비출 수 있을지도.' : `월석 ${nm}/6 — 우회하는 길(B)에 월석이 잠들어 있다. 지난 장도 다시 갈 수 있다.`);
+      hint.push(nm >= 6 ? '여섯 달이 모두 모였다. 흑월을 비출 수 있을지도.' : `월석 ${nm}/6 — 장마다 월석이 잠든 길이 다르다. 지난 장은 다른 길로 다시 갈 수 있다.`);
       hint.push(s.lise >= 4 ? '리세는 당신을 깊이 믿는다.' : '리세의 마음을 얻으려면 — 갈림길의 선택, 갇힌 사람 구출.');
     }
     UI.text(this, 520, 586, hint.join(String.fromCharCode(10)), 16, '#c8b8a0', { wrap: 380 });
