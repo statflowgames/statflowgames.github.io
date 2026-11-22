@@ -589,6 +589,15 @@ class Bag extends MenuBase {
       UI.text(this, 640, 560, `${this.page + 1}/${pages}`, 20, '#fff').setOrigin(0.5);
       UI.button(this, 720, 560, '▶', () => { this.page = (this.page + 1) % pages; this.draw(); }, { w: 70, h: 46, size: 22, col: 0x3a2a1a });
     }
+    // 🆕 등급 색 안내 (낮음 → 높음, 세트는 따로)
+    UI.text(this, 420, 612, '등급 색 · 왼쪽일수록 낮고 오른쪽일수록 좋아요', 15, '#a89880');
+    RARITY.forEach((r, i) => {
+      const x = 432 + i * 92 + (i === 5 ? 18 : 0), y = 652;
+      if (i === 5) this.add.rectangle(x - 26, y, 2, 26, 0x7a5a30);
+      this.add.circle(x, y, 8, r.hex).setStrokeStyle(2, 0x1a110c);
+      UI.text(this, x + 14, y, r.ko, 17, r.col, { bold: true }).setOrigin(0, 0.5);
+      if (i < 4) UI.text(this, x + 64, y, '›', 18, '#6a5a48').setOrigin(0.5);
+    });
     // 고른 아이템
     UI.panel(this, 1000, 110, 230, 560, { alpha: 0.6, line: 0x7a5a30 });
     if (this.sel && s.bag.includes(this.sel)) {
