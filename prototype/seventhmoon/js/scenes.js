@@ -754,7 +754,42 @@ class Shop extends MenuBase {
     }
     this.draw();
   }
-  price(it) { return Math.round((40 + it.tier * 60) * [1, 1.6, 2.6, 4.2, 9, 8][it.rar]); }
+  // ✏️ 2026-11-22 가격 = 그 장 스테이지 한 판 수입(대략 350 × 장 보정) × 등급 배율. 일반 ≈ 1판, 고급 ≈ 3.5판
+  stageIncome() { return 350 * (1 + (Save.data.ch - 1) * 0.35); }
+  price(it) { return Math.round(this.stageIncome() * [1, 3.5, 9, 20, 60, 40][it.rar] / 10) * 10; }
+  shopTier() { return Math.min(3, Math.floor((Save.data.ch - 1) / 2)); }
+  // 늘 파는 장비 미리보기 (가방에 넣지 않는 가짜 아이템)
+  preview(slot, rar) {
+    const s = Save.data, tier = this.shopTier();
+    if (slot === 'ring' || slot === 'amulet') return { cls: 'acc', slot: 'acc', kind: slot, tier, rar, plus: 0, name: DB.accessory[slot][tier], aff: [] };
+    return { cls: s.hero, slot, tier, rar, plus: 0, name: DB.gear[s.hero].tiers[slot][tier], aff: [] };
+  }
+  // 🆕 장비 탭: 늘 파는 일반·고급 + 오늘의 장비
+  drawGear() {
+    const s = Save.data, cols = ['weapon', 'offhand', 'head', 'body', 'ring', 'amulet'];
+    const colKo = { weapon: '무기', offhand: '보조', head: '머리', body: '몸', ring: '반지', amulet: '목걸이' };
+    UI.text(this, 70, 100, `늘 파는 장비 · ${DB.heroes[s.hero].name} T${this.shopTier() + 1}`, 24, '#ffe7a8', { bold: true });
+    UI.text(this, 70, 134, '옵션은 살 때 정해져요. 희귀 이상은 드롭과 조합으로만 얻어요.', 15, '#8f8070');
+    [0, 1].forEach((rar, r) => {
+      const y = 236 + r * 196;
+      UI.text(this, 70, y - 14, RARITY[rar].ko, 20, RARITY[rar].col, { bold: true }).setOrigin(0, 0.5);
+      cols.forEach((slot, i) => {
+        const x = 160 + i * 88, pv = this.preview(slot, rar), p = this.price(pv);
+        UI.itemSlot(this, x, y - 14, pv, 72);
+        UI.text(this, x, y + 30, colKo[slot], 14, '#c8b8a0').setOrigin(0.5, 0);
+        UI.button(this, x, y + 72, `${p}`, () => {
+          if (s.gold < p) return UI.toast(this, '금화가 모자라요', '#ff9a8a');
+          s.gold -= p;
+          const acc = slot === 'ring' || slot === 'amulet';
+          const it = makeItem(s, { cls: s.hero, slot: acc ? 'acc' : slot, kind: acc ? slot : undefined, tier: this.shopTier(), rar });
+          SFX.coin(); Save.write(); UI.toast(this, `「${it.name}」을 샀어요 · 가방에서 확인`); this.draw();
+        }, { w: 80, h: 40, size: 17 });
+      });
+    });
+    UI.text(this, 680, 100, '오늘의 장비', 24, '#ffe7a8', { bold: true });
+    UI.text(this, 830, 106, '장마다 새로 들어와요', 15, '#8f8070');
+    this.drawStock(150);
+  }
   // 🆕 특별 상품 (광고·결제 자리)
   drawSpecial() {
     const s = Save.data;
@@ -781,9 +816,11 @@ class Shop extends MenuBase {
     this.frame('포포 상회');
     // 🆕 탭: 물건 / 특별 상품
     const tab = this.tab || 'goods';
-    UI.button(this, 400, 66, '물건', () => { this.tab = 'goods'; this.draw(); }, { w: 120, h: 46, size: 19, col: tab === 'goods' ? 0x8a3a1a : 0x3a2a1a });
-    UI.button(this, 545, 66, '특별 상품', () => { this.tab = 'special'; this.draw(); }, { w: 150, h: 46, size: 19, col: tab === 'special' ? 0x8a3a1a : 0x3a2a1a });
+    UI.button(this, 380, 66, '소모품', () => { this.tab = 'goods'; this.draw(); }, { w: 120, h: 46, size: 19, col: tab === 'goods' ? 0x8a3a1a : 0x3a2a1a });
+    UI.button(this, 510, 66, '장비', () => { this.tab = 'gear'; this.draw(); }, { w: 120, h: 46, size: 19, col: tab === 'gear' ? 0x8a3a1a : 0x3a2a1a });
+    UI.button(this, 655, 66, '특별 상품', () => { this.tab = 'special'; this.draw(); }, { w: 150, h: 46, size: 19, col: tab === 'special' ? 0x8a3a1a : 0x3a2a1a });
     if (tab === 'special') return this.drawSpecial();
+    if (tab === 'gear') return this.drawGear();
     // ✏️ 소모품 14종을 2열로. 아이콘을 누르면 벨트 4칸 중 하나로 넣는다 (부활 깃털은 벨트 없이 자동)
     UI.text(this, 70, 96, '소모품', 24, '#ffe7a8', { bold: true });
     const slots = [...beltSlots(s)];
@@ -817,9 +854,11 @@ class Shop extends MenuBase {
         s.gold -= b.price; s.belt[k] = (s.belt[k] || 0) + 1; SFX.coin(); Save.write(); this.draw();
       }, { w: 70, h: 44, size: 17 });
     });
-    UI.text(this, 680, 100, '오늘의 장비', 24, '#ffe7a8', { bold: true });
+  }
+  drawStock(top) {
+    const s = Save.data;
     s.shop.stock.forEach((it, i) => {
-      const y = 190 + i * 118;
+      const y = top + 50 + i * 118;
       UI.panel(this, 670, y - 50, 540, 104, { alpha: 0.6, line: 0x7a5a30, inner: false });
       UI.itemSlot(this, 726, y + 2, it, 84);
       UI.text(this, 780, y - 40, itemLabel(it), 21, RARITY[it.rar].col, { bold: true });
@@ -832,7 +871,7 @@ class Shop extends MenuBase {
         s.gold -= p; s.bag.push(it); s.shop.stock.splice(i, 1); SFX.coin(); Save.write(); UI.toast(this, `「${it.name}」을 샀어요`); this.draw();
       }, { w: 120, h: 48, size: 20 });
     });
-    if (!s.shop.stock.length) UI.text(this, 940, 300, '다 팔렸소! 다음 장에서 또 보세.', 22, '#c8b8a0').setOrigin(0.5);
+    if (!s.shop.stock.length) UI.text(this, 940, top + 150, '다 팔렸소! 다음 장에서 또 보세.', 22, '#c8b8a0').setOrigin(0.5);
   }
 }
 
