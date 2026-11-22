@@ -46,6 +46,8 @@ const UI = {
   // 아이템 아이콘 텍스처 키
   itemIcon(it) {
     let k;
+    // 🆕 이야기 고유 장비는 전용 아이콘 (조합으로 등급이 올라도 같은 그림)
+    if (it.story && typeof MAN !== 'undefined' && MAN['icon/story_' + it.story]) return 'icon/story_' + it.story;
     if (it.boss) {
       k = 'icon/bossgear_' + it.boss;
       if (typeof game !== 'undefined' && game.textures && !game.textures.exists(k)) k = it.kind === 'ring' ? 'icon/acc_legend_1' : 'icon/acc_legend_5';
