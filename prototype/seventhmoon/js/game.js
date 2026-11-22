@@ -14,12 +14,13 @@ function touchControlLayout(safe = {}) {
       minX:120+l,maxX:250+l,minY:500-b,maxY:620-b},
     buttons:[
       {name:'atk',key:'attack',x:1110-r,y:590-b,size:178,radius:89,alpha:.68},
-      {name:'jump',key:'jump',x:960-r,y:640-b,size:124,radius:62,label:'점프'},
-      {name:'guard',key:'skill_frame',x:960-r,y:500-b,size:124,radius:62,label:'가드'},
-      {name:'roll',key:'roll',x:1190-r,y:440-b,size:113,radius:57,label:'회피'},
-      {name:'sk1',key:'skill_frame',x:850-r,y:420-b,size:93,radius:50,label:'스킬 1',slot:0},
-      {name:'sk2',key:'skill_frame',x:1190-r,y:300-b,size:93,radius:50,label:'스킬 2',slot:1},
-      {name:'awk',key:'awaken',x:1065-r,y:395-b,size:103,radius:52,label:'각성'},
+      // ✏️ 2026-11-22 공격 버튼(1110,590)을 중심으로 엄지가 닿는 반원(반지름 210) 위에 차례로: 점프 → 가드 → 스킬1 → 스킬2 → 회피, 각성은 바깥 위
+      {name:'jump',key:'jump',x:908-r,y:648-b,size:124,radius:62,label:'점프'},
+      {name:'guard',key:'skill_frame',x:913-r,y:518-b,size:124,radius:62,label:'가드'},
+      {name:'sk1',key:'skill_frame',x:993-r,y:416-b,size:112,radius:56,label:'스킬 1',slot:0},
+      {name:'sk2',key:'skill_frame',x:1110-r,y:380-b,size:112,radius:56,label:'스킬 2',slot:1},
+      {name:'roll',key:'roll',x:1221-r,y:412-b,size:113,radius:57,label:'회피'},
+      {name:'awk',key:'awaken',x:1195-r,y:268-b,size:103,radius:52,label:'각성'},
       {name:'pause',key:'pause',x:1118-r,y:54+t,size:52,radius:50,alpha:.7},
     ],
   };
@@ -368,7 +369,9 @@ class Game extends Phaser.Scene {
       if(d.slot!==undefined&&(idx===null||idx===undefined))continue;
       const button=this.add.image(d.x,d.y,'ui/'+d.key).setScrollFactor(0).setDepth(6000);
       Object.assign(button,{name2:d.name,slot:d.slot,restAlpha:d.alpha||.56,touchOwner:this,pointerIds:new Set()});
-      if(d.label)button.touchLabel=this.add.text(d.x,d.y+d.size*.31,d.label,{fontFamily:'sans-serif',fontSize:18,color:'#fff4d8',stroke:'#000',strokeThickness:3,fontStyle:'bold'}).setOrigin(.5).setScrollFactor(0).setDepth(6002);
+      const skName=d.slot!==undefined&&DB.skills[this.save.hero]&&DB.skills[this.save.hero].list[idx]?DB.skills[this.save.hero].list[idx].name:null;   // 🆕 스킬 이름
+      const lab=skName?(skName.length>5?skName.slice(0,5):skName):d.label;
+      if(d.label)button.touchLabel=this.add.text(d.x,d.y+d.size*.31,lab,{fontFamily:'sans-serif',fontSize:skName?15:18,color:'#fff4d8',stroke:'#000',strokeThickness:3,fontStyle:'bold'}).setOrigin(.5).setScrollFactor(0).setDepth(6002);
       const icon=d.name==='guard'
         ? ['offhand_0','shield_0','weapon_0'].map(n=>this.save.hero+'/'+n).find(k=>this.textures.exists(k))||'warrior/shield_0'
         : d.slot!==undefined?`icon/skill_${this.save.hero}_${idx}`:null;
@@ -420,7 +423,7 @@ class Game extends Phaser.Scene {
       const d=layout.buttons.find(q=>q.name===b.name2);b.setPosition(d.x,d.y);
       b.r=d.radius;b.restScale=d.size/Math.max(b.width,b.height);
       if(b.touchLabel)b.touchLabel.setPosition(d.x,d.y+d.size*.31);
-      if(b.touchIcon)b.touchIcon.setPosition(d.x,d.y-5).setScale(d.size*.48/Math.max(b.touchIcon.width,b.touchIcon.height));
+      if(b.touchIcon)b.touchIcon.setPosition(d.x,d.y-5).setScale(d.size*(b.slot!==undefined?.6:.48)/Math.max(b.touchIcon.width,b.touchIcon.height));   // ✏️ 스킬 그림은 크게
     }
     this.resetTouchControls();
   }
