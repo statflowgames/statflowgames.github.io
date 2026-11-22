@@ -543,6 +543,7 @@ class MenuBase extends Phaser.Scene {
     let yy = y + 68 + dy;
     if (it.base) { out.push(UI.text(this, x, yy, `${it.slot === 'weapon' ? '공격력' : '방어력'} +${itemPower(it)}${it.slot === 'body' ? `  · 체력 +${itemPower(it) * 3}` : ''}`, 21, '#fff')); yy += 32; }
     for (const a of it.aff) { out.push(UI.text(this, x, yy, '· ' + affText(a), 19, '#9ae0ff')); yy += 27; }
+    if (it.desc) { const t = UI.text(this, x, yy, it.desc, 16, '#d8c8a8', { wrap: w }).setFontStyle('italic'); out.push(t); yy += Math.round(t.height) + 10; }   // 🆕 이야기 장비
     if (it.fx) { const t = UI.text(this, x, yy, '★ ' + GearFx.desc(it), 19, it.boss ? '#ff9ad8' : '#ffb060', { wrap: w }); out.push(t); yy += Math.max(50, Math.round(t.height) + 10); }
     if (it.set) {
       const S = GearFx.setDesc(it.set, it.cls === 'acc' ? DB.accessory.sets.find(x => x.name === it.set) : DB.gear[it.cls].set);

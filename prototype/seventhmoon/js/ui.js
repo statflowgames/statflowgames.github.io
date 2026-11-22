@@ -50,7 +50,7 @@ const UI = {
       k = 'icon/bossgear_' + it.boss;
       if (typeof game !== 'undefined' && game.textures && !game.textures.exists(k)) k = it.kind === 'ring' ? 'icon/acc_legend_1' : 'icon/acc_legend_5';
     } else if (it.cls === 'acc') {
-      if (it.rar === 4) k = 'icon/acc_legend_' + DB.accessory.legend.findIndex(l => l.name === it.name);
+      if (it.rar === 4) k = 'icon/acc_legend_' + DB.accessory.legend.findIndex(l => l.name === (it.legendOf || it.name));   // ✏️ 이야기 전설은 빌려 온 전설 그림
       else if (it.rar === 5) { const si = DB.accessory.sets.findIndex(x => x.name === it.set); k = `icon/set_${si ? 'b' : 'a'}${it.kind === 'ring' ? 0 : 1}`; }
       else k = `icon/${it.kind}_${it.tier}`;
     } else if (it.rar === 4) k = `icon/${it.cls}_legend_${it.slot}`;
@@ -89,7 +89,9 @@ function applyGive(g) {
   if (g.exp) { const ups = gainExp(s, g.exp); out.push(`경험치 +${g.exp}`); if (ups.length) out.push(`레벨 업! Lv.${s.lv}`); }
   if (g.moon && !s.moons[g.moon]) { s.moons[g.moon] = true; out.push(`${MOONS[g.moon].ko}의 월석을 얻었다!`); }
   if (g.seed && typeof SEEDS !== 'undefined') { s.seeds = s.seeds || {}; if (!s.seeds[g.seed]) { s.seeds[g.seed] = true; out.push(`${SEEDS[g.seed].ko}를 정화했다!`); if (typeof SFX !== 'undefined' && SFX.jingle) SFX.jingle('jgl_seed'); } }
-  if (g.item) { const rar = { rare: 2, epic: 3, legend: 4 }[g.item] ?? 2; const it = makeItem(s, { cls: s.hero, slot: ['weapon', 'offhand', 'head', 'body'][Math.floor(Math.random() * 4)], tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar }); out.push(`${RARITY[rar].ko} 장비 「${it.name}」`); }
+  if (g.item) { const rar = { uncommon: 1, rare: 2, epic: 3, legend: 4 }[g.item] ?? 2; const it = makeItem(s, { cls: s.hero, slot: ['weapon', 'offhand', 'head', 'body'][Math.floor(Math.random() * 4)], tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar }); out.push(`${RARITY[rar].ko} 장비 「${it.name}」`); }
+  if (g.gear) { const it = makeStoryGear(s, g.gear); if (it) out.push(`${RARITY[it.rar].ko} 장비 「${it.name}」`); }   // 🆕 이야기 고유 장비
+  if (g.mats) for (const [k, n] of Object.entries(g.mats)) { s.mats[k] = (s.mats[k] || 0) + n; out.push(`${MATS[k]} +${n}`); }
   if (g.unlock && !s.unlocked[g.unlock]) { s.unlocked[g.unlock] = true; addGlobalUnlock(g.unlock); out.push(`새 직업 해금: ${DB.heroes[g.unlock].ko}`); }
   if (g.flag) s.flags[g.flag] = true;
   if (g.lise) s.lise += g.lise;

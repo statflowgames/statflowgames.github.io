@@ -100,7 +100,7 @@ const GearFx = {
       const it = s.eq[slot] && itemById(s, s.eq[slot]);
       if (!it) continue;
       if (it.boss && BOSS_GEAR[it.boss]) { if (BOSS_GEAR[it.boss].code) out.add(BOSS_GEAR[it.boss].code); }
-      else if (it.rar === 4 && GEAR_LEGEND[it.name]) out.add(GEAR_LEGEND[it.name].code);
+      else if (it.rar === 4 && GEAR_LEGEND[it.legendOf || it.name]) out.add(GEAR_LEGEND[it.legendOf || it.name].code);
       if (it.set) sets[it.set] = (sets[it.set] || 0) + 1;
     }
     for (const [n, c] of Object.entries(sets)) { if (c >= 2) out.add('set2:' + n); if (c >= 4) out.add('set4:' + n); }
@@ -109,7 +109,7 @@ const GearFx = {
   has(sc, code) { return !!(sc.gfx && sc.gfx.c.has(code)); },
   desc(it) {
     if (it.boss && BOSS_GEAR[it.boss]) return BOSS_GEAR[it.boss].fx;
-    return (GEAR_LEGEND[it.name] || {}).fx || it.fx;
+    return (GEAR_LEGEND[it.legendOf || it.name] || {}).fx || it.fx;
   },
   setDesc(name, fallback) { return GEAR_SET[name] || fallback; },
   // heroStats 안: 고정 능력치

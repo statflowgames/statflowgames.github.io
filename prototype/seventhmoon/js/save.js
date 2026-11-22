@@ -165,6 +165,25 @@ function makeItem(s, o) {
   s.bag.push(it);
   return it;
 }
+// 🆕 2026-11-22 이야기 장면에서 받는 고유 장비 (이름·부위·등급·설명 고정, 옵션은 무작위)
+//   rar: 1 고급 · 2 희귀 · 3 영웅 · 4 전설. legendOf: 전설 효과를 빌려 올 전설 장비 이름(GEAR_LEGEND)
+const STORY_GEAR = {
+  cls_warrior: { slot: 'offhand', rar: 1, name: '방패수의 방패', desc: '300년 전 국경을 지킨 방패수의 방패. 이끼 아래에서도 문양이 빛난다.' },
+  cls_rogue: { slot: 'weapon', rar: 1, name: '길드장의 비수', desc: '일곱 자물쇠 금고에서 챙긴 "위자료". 손잡이에 옛 길드 문장이 새겨져 있다.' },
+  cls_paladin: { slot: 'offhand', rar: 1, name: '백월 성당의 방패', desc: '모래에 묻힌 성당 제단 아래에서 찾은 방패. 백월의 빛이 깃들어 있다.' },
+  cls_ranger: { slot: 'weapon', rar: 2, name: '달빛 샘의 활', desc: '얼지 않는 엘프의 샘에서 떠오른 활. 시위가 은빛으로 떨린다.' },
+  cls_mage: { slot: 'offhand', rar: 2, name: '카엘의 질문 노트', desc: '"스승님, 희생 없는 봉인은 정말 있나요?" 어린 제자의 글씨가 빼곡하다.' },
+  cls_hexblade: { slot: 'offhand', rar: 2, name: '부서진 흑월 부적', desc: '심연의 제단을 부수고 남은 조각. 이제 속삭임은 들리지 않는다.' },
+  c6_seah: { slot: 'acc', kind: 'amulet', rar: 3, name: '세아의 맹세', desc: '마지막 싸움 앞에서 공명석이 빚어낸 목걸이. 300년 전 영웅의 온기가 남아 있다.' },
+  c10_spirit: { slot: 'acc', kind: 'ring', rar: 4, name: '숲 정령의 맹세', legendOf: '불사조의 반지', desc: '되살아난 숲의 정령들이 빛을 모아 빚은 반지. 쓰러져도 숲처럼 다시 일어선다.' },
+};
+function makeStoryGear(s, key) {
+  const d = STORY_GEAR[key]; if (!d) return null;
+  const it = makeItem(s, { cls: s.hero, slot: d.slot, kind: d.kind, tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar: d.rar });
+  it.name = d.name; it.desc = d.desc; it.story = key;
+  if (d.legendOf) { it.legendOf = d.legendOf; const L = DB.accessory.legend.find(l => l.name === d.legendOf) || (DB.gear[it.cls] && Object.values(DB.gear[it.cls].legend).find(l => l.name === d.legendOf)); if (L) it.fx = L.fx; }
+  return it;
+}
 function itemById(s, id) { return s.bag.find(i => i.id === id); }
 function itemPower(it) { return Math.round(it.base * (1 + it.plus * 0.08)); }
 function itemLabel(it) { return (it.plus ? `+${it.plus} ` : '') + it.name; }
