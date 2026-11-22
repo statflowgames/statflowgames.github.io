@@ -226,7 +226,7 @@ class Game extends Phaser.Scene {
     this.floatText(p.x, p.y - 160, first ? '숨은 보물 발견!' : '숨은 보물', '#ffe27a', first ? 38 : 26);
     for (let i = 0; i < (first ? 10 : 4); i++) this.dropPickup(p.x, p.y, 'coin');
     for (let i = 0; i < (first ? 2 : 1); i++) this.dropPickup(p.x, p.y, 'cons');
-    if (first || Math.random() < 0.3) this.dropPickup(p.x, p.y, 'loot', first ? { rar: 2, min: 2, special: true } : { rar: 1 });
+    if (first || Math.random() < 0.3) this.dropPickup(p.x, p.y, 'loot', first ? { rar: 2, min: 1, special: true } : { rar: 1 });
   }
   addProp(x, y, n, chest, secret) {
     const g = this.propGrp || 'props';
@@ -2022,7 +2022,7 @@ class Game extends Phaser.Scene {
     if (d.boss) {
       for (let i = 0; i < 25; i++) this.dropPickup(m.x, m.y, 'coin');
       const n = d.mid ? 1 : 2;
-      for (let i = 0; i < n; i++) this.dropPickup(m.x, m.y, 'loot', { rar: d.mid ? 1 : 2, boss: !d.mid, min: 2 });
+      for (let i = 0; i < n; i++) this.dropPickup(m.x, m.y, 'loot', { rar: d.mid ? 1 : 2, boss: !d.mid, min: 1 });
       return;
     }
     const [a, b] = d.gold;

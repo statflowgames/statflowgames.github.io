@@ -168,21 +168,27 @@ function makeItem(s, o) {
 function itemById(s, id) { return s.bag.find(i => i.id === id); }
 function itemPower(it) { return Math.round(it.base * (1 + it.plus * 0.08)); }
 function itemLabel(it) { return (it.plus ? `+${it.plus} ` : '') + it.name; }
-// 드롭 희귀도: bonus는 스테이지 등급·보스 보정
-// ✏️ 2026-11-22 장별 등급 상한: 1장은 회색·초록 위주(영웅은 보스·숨은 보물에서만), 2~3장은 영웅이 드물게, 4장부터 예전처럼
+// ✏️ 2026-11-22 장별 드롭 확률표 (일반·고급·희귀·영웅·전설 %). 영웅은 6장부터 드물게, 전설은 드롭으로 거의 안 나온다(앞으로 조합으로 얻는다)
+const DROP_TABLE = [
+  { upTo: 3, w: [90, 10, 0, 0, 0] },
+  { upTo: 5, w: [70, 20, 10, 0, 0] },
+  { upTo: 6, w: [60, 25, 14, 1, 0] },
+  { upTo: 9, w: [50, 30, 17, 3, 0] },
+  { upTo: 12, w: [40, 33, 22, 5, 0] },
+];
+function dropWeights(ch) { return (DROP_TABLE.find(r => ch <= r.upTo) || DROP_TABLE[DROP_TABLE.length - 1]).w; }
+// bonus(난이도·S등급·도전 과제)는 가끔 한 단계 위로 올려 준다 — 그 장에서 나올 수 있는 최고 등급까지만
+// boss·special(보스·숨은 보물): 최소 고급
 function rollRarity(ch, bonus = 0, boss = false, special = false) {
-  const early = ch <= 1, mid = ch <= 3;
-  const w = [
-    early ? 58 : 50,
-    early ? 32 : 30,
-    (early ? 7 : mid ? 11 : 14) + bonus * (early ? 1 : mid ? 2 : 3),
-    early ? (boss || special ? 4 + bonus : 0) : mid ? 2 + bonus : 5 + bonus * 2,
-    boss && ch >= 3 ? 3 + bonus : 0,
-    boss && ch >= 3 ? 3 : 0,
-  ];
-  let r = Math.random() * w.reduce((a, b) => a + b, 0);
-  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return i; }
-  return 0;
+  const w = dropWeights(ch);
+  let r = Math.random() * w.reduce((a, b) => a + b, 0), rar = 0;
+  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) { rar = i; break; } }
+  const top = w.reduce((m, x, i) => (x > 0 ? i : m), 0);
+  if (boss || special) rar = Math.max(rar, 1);
+  if (bonus > 0 && rar < top && Math.random() < Math.min(0.4, bonus * 0.06)) rar++;
+  if (boss && ch >= 3 && Math.random() < 0.03) rar = 5;   // 세트 장비: 3장 이후 보스에서 가끔
+  if (boss && ch >= 12 && Math.random() < 0.005) rar = 4;   // 전설: 2부 마지막 보스에서만 아주 드물게
+  return rar;
 }
 // min: 이 등급 아래로는 안 나온다 (보스·중간 보스·숨은 보물 = 희귀 이상) / special: 1장에서도 영웅이 나올 수 있다
 function rollDrop(s, ch, bonus = 0, boss = false, min = 0, special = false) {
@@ -195,7 +201,7 @@ function rollDrop(s, ch, bonus = 0, boss = false, min = 0, special = false) {
   const owned = Object.keys(s.unlocked).filter(k => s.unlocked[k]);
   const cls = Math.random() < 0.7 ? s.hero : owned[Math.floor(Math.random() * owned.length)];
   let rar = Math.max(min, rollRarity(ch, bonus, boss, special));
-  if (rar < 4 && typeof GearFx !== 'undefined' && GearFx.codes(s).has('luck') && Math.random() < (boss ? 0.04 : 0.006)) rar = 4;   // 🆕 은방울 행운 목걸이
+  if (rar < 4 && typeof GearFx !== 'undefined' && GearFx.codes(s).has('luck') && Math.random() < (boss ? 0.015 : 0.002)) rar = 4;   // 🆕 은방울 행운 목걸이 (✏️ 드롭표에 맞춰 낮춤)
   const it = makeItem(s, { cls, slot, tier, rar });
   if (ch >= 7) it.plus = Math.min(10, Math.max(it.plus, ch - 6 + (Math.random() < 0.3 ? 1 : 0)));   // 🆕 2부 장비는 강화가 붙어 나온다
   return it;
