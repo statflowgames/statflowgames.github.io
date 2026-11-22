@@ -84,6 +84,54 @@ const UI = {
     if (cb) { c.setSize(size, size).setInteractive({ useHandCursor: true }); c.on('pointerup', () => { SFX.resume(); SFX.go(); cb(); }); }
     return c;
   },
+  itemDetail(sc, it, x, y, w) {
+    const out = [];
+    const r = RARITY[it.rar];
+    const nameT = UI.text(sc, x, y, itemLabel(it), 26, r.col, { bold: true, wrap: w });
+    out.push(nameT);
+    const dy = Math.max(0, Math.round(nameT.height) - 36);   // ✏️ 긴 이름이 두 줄이 되면 아래를 민다
+    const slotKo = it.cls === 'acc' ? (it.kind === 'ring' ? '반지' : '목걸이') : SLOT_KO[it.slot];
+    const owner = it.boss ? '보스 장비' : it.cls === 'acc' ? '공용' : DB.heroes[it.cls].name;
+    out.push(UI.text(sc, x, y + 38 + dy, `${r.ko} ${slotKo} · ${owner} · T${it.tier + 1}`, 18, '#c8b8a0'));
+    let yy = y + 68 + dy;
+    if (it.base) { out.push(UI.text(sc, x, yy, `${it.slot === 'weapon' ? '공격력' : '방어력'} +${itemPower(it)}${it.slot === 'body' ? `  · 체력 +${itemPower(it) * 3}` : ''}`, 21, '#fff')); yy += 32; }
+    for (const a of it.aff) { const t = UI.text(sc, x, yy, '· ' + affText(a), 19, '#9ae0ff', { wrap: w }); out.push(t); yy += Math.max(27, Math.round(t.height) + 4); }   // ✏️ 긴 옵션은 줄바꿈
+    if (it.desc) { const t = UI.text(sc, x, yy, it.desc, 16, '#d8c8a8', { wrap: w }).setFontStyle('italic'); out.push(t); yy += Math.round(t.height) + 10; }   // 🆕 이야기 장비
+    if (it.fx) { const t = UI.text(sc, x, yy, '★ ' + GearFx.desc(it), 19, it.boss ? '#ff9ad8' : '#ffb060', { wrap: w }); out.push(t); yy += Math.max(50, Math.round(t.height) + 10); }
+    if (it.set) {
+      const S = GearFx.setDesc(it.set, it.cls === 'acc' ? DB.accessory.sets.find(x => x.name === it.set) : DB.gear[it.cls].set);
+      out.push(UI.text(sc, x, yy, `세트 「${it.set}」\n2조각: ${S.two}${S.four ? '\n4조각: ' + S.four : ''}`, 17, '#5ae8d0', { wrap: w })); yy += 80;
+    }
+    return { objs: out, y: yy };
+  },
+  // 🆕 2026-11-23 이름 있는 특수 장비를 얻었을 때 한 번 크게 보여 주는 카드. 닫으면 done()
+  itemCard(sc, it, done, title = '특별한 장비를 얻었다!') {
+    const r = RARITY[it.rar], x0 = W / 2 - 330, y0 = 110, w = 660, h = 500;
+    const c = sc.add.container(0, 0).setDepth(9500).setScrollFactor(0);
+    const bl = sc.add.rectangle(0, 0, W, H, 0x000000, 0.72).setOrigin(0).setInteractive();
+    c.add(bl);
+    const add = o => { c.add(o); return o; };
+    add(UI.panel(sc, x0, y0, w, h, { alpha: 0.98, line: r.hex }));
+    add(UI.text(sc, W / 2, y0 + 38, title, 32, '#ffe27a', { bold: true, serif: true, st: 6 }).setOrigin(0.5));
+    const cx = x0 + 120, cy = y0 + 190;
+    const glow = add(sc.add.circle(cx, cy, 90, r.hex, 0.3).setBlendMode(Phaser.BlendModes.ADD));
+    sc.tweens.add({ targets: glow, scale: 1.15, alpha: 0.12, yoyo: true, repeat: -1, duration: 700 });
+    const ray = add(sc.add.star(cx, cy, 12, 60, 120, r.hex, 0.18).setBlendMode(Phaser.BlendModes.ADD));
+    sc.tweens.add({ targets: ray, angle: 360, duration: 9000, repeat: -1 });
+    const slot = add(UI.itemSlot(sc, cx, cy, it, 140));
+    slot.setScale(0.3); sc.tweens.add({ targets: slot, scale: 1, duration: 380, ease: 'Back.out' });
+    for (const o of UI.itemDetail(sc, it, x0 + 240, y0 + 90, 390).objs) c.add(o);
+    add(UI.text(sc, W / 2, y0 + h - 96, '가방에 들어갔어요 — 캠프에서 장착할 수 있어요', 17, '#c8b8a0').setOrigin(0.5));
+    let closed = false;
+    const close = () => { if (closed) return; closed = true; c.destroy(); if (done) done(); };
+    const btn = UI.button(sc, W / 2, y0 + h - 48, '확인', close, { w: 200, h: 56, size: 24 });
+    c.add(btn);
+    bl.on('pointerup', () => { if (sc.time.now - t0 > 400) close(); });
+    const t0 = sc.time.now;
+    if (typeof SFX !== 'undefined') { SFX.ui(it.rar >= 3 ? 'equip_jewel' : 'chest_open'); if (it.rar >= 4 && SFX.jingle) SFX.jingle('jgl_legendary'); }
+    c.closeCard = close;
+    return c;
+  },
   // 이미지가 있으면 이미지, 없으면 null
   img(sc, x, y, key) { return sc.textures.exists(key) ? sc.add.image(x, y, key) : null; },
   // 장면 위에 덮는 어두운 바닥 (아래 입력을 막는다)
@@ -99,7 +147,7 @@ function applyGive(g) {
   if (g.moon && !s.moons[g.moon]) { s.moons[g.moon] = true; out.push(`${MOONS[g.moon].ko}의 월석을 얻었다!`); }
   if (g.seed && typeof SEEDS !== 'undefined') { s.seeds = s.seeds || {}; if (!s.seeds[g.seed]) { s.seeds[g.seed] = true; out.push(`${SEEDS[g.seed].ko}를 정화했다!`); if (typeof SFX !== 'undefined' && SFX.jingle) SFX.jingle('jgl_seed'); } }
   if (g.item) { const rar = { uncommon: 1, rare: 2, epic: 3, legend: 4 }[g.item] ?? 2; const it = makeItem(s, { cls: s.hero, slot: ['weapon', 'offhand', 'head', 'body'][Math.floor(Math.random() * 4)], tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar }); out.push(`${RARITY[rar].ko} 장비 「${it.name}」`); }
-  if (g.gear) { const it = makeStoryGear(s, g.gear); if (it) out.push(`${RARITY[it.rar].ko} 장비 「${it.name}」`); }   // 🆕 이야기 고유 장비
+  if (g.gear) { const it = makeStoryGear(s, g.gear); if (it) { out.push(`${RARITY[it.rar].ko} 장비 「${it.name}」`); out.items = [...(out.items || []), it]; } }   // ✏️ 2026-11-23 out.items → 획득 카드   // 🆕 이야기 고유 장비
   if (g.mats) for (const [k, n] of Object.entries(g.mats)) { s.mats[k] = (s.mats[k] || 0) + n; out.push(`${MATS[k]} +${n}`); }
   if (g.unlock && !s.unlocked[g.unlock]) { s.unlocked[g.unlock] = true; addGlobalUnlock(g.unlock); out.push(`새 직업 해금: ${DB.heroes[g.unlock].ko}`); }
   if (g.flag) s.flags[g.flag] = true;
@@ -114,7 +162,7 @@ function applyGive(g) {
 // ---------------------------------------------------------------------------
 class Talk extends Phaser.Scene {
   constructor() { super('talk'); }
-  init(d) { this.d = d; this.done = false; this.typing = false; this.choiceUi = null; }
+  init(d) { this.d = d; this.done = false; this.typing = false; this.choiceUi = null; this.cardUi = null; }
   create() {
     this.lines = [...(STORY[this.d.key] || [])];
     this.flag = null;
@@ -137,7 +185,14 @@ class Talk extends Phaser.Scene {
     this.input.keyboard.on('keydown-J', () => this.tap());
     this.next();
   }
+  showCards(items, then) {
+    const it = items.shift();
+    if (!it) return then();
+    this.cardUi = UI.itemCard(this, it, () => { this.cardUi = null; this.showCards(items, then); });
+    this.cardUi.setDepth(40);
+  }
   tap() {
+    if (this.cardUi) return;   // 카드는 확인 버튼·바깥 누르기로 닫는다
     if (this.choiceUi) return;
     if (this.typing) { this.typing = false; this.body.setText(this.full); return; }
     this.next();
@@ -161,7 +216,9 @@ class Talk extends Phaser.Scene {
     if (L.music !== undefined) { SFX.music(L.music); return this.next(); }
     if (L.give) {
       const out = applyGive(L.give);
-      out.forEach((m, i) => this.time.delayedCall(i * 500, () => UI.toast(this, m, '#ffe27a', 300)));
+      const items = out.items || [];
+      out.filter(m => !items.some(it => m.includes(it.name))).forEach((m, i) => this.time.delayedCall(i * 500, () => UI.toast(this, m, '#ffe27a', items.length ? 78 : 300).setDepth(60)));
+      if (items.length) return this.showCards(items, () => this.next());   // 🆕 이름 있는 장비는 카드로 한 번 보여 준다
       return this.next();
     }
     if (L.choice) return this.showChoice(L.choice);
@@ -292,14 +349,16 @@ class Talk extends Phaser.Scene {
     this.choiceUi = c;
   }
   finish(skip) {
-    if (this.done || (skip && this.choiceUi)) return;
+    if (this.done || (skip && (this.choiceUi || this.cardUi))) return;
     // 건너뛰어도 선택지와 보상은 지나칠 수 없다
     if (skip) {
+      const items = [];
       while (this.lines.length) {
         const L = this.lines.shift();
-        if (L.give && talkLineOk(L)) applyGive(L.give);
-        if (L.choice) { this.lines.unshift(L); this.typing = false; return this.next(); }
+        if (L.give && talkLineOk(L)) items.push(...(applyGive(L.give).items || []));
+        if (L.choice) { this.lines.unshift(L); this.typing = false; if (items.length) return this.showCards(items, () => this.next()); return this.next(); }
       }
+      if (items.length) return this.showCards(items, () => this.finish());   // 🆕 건너뛰어도 특수 장비 카드는 보여 준다
     }
     this.done = true;
     const d = this.d;

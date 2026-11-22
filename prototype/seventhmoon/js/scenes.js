@@ -544,26 +544,7 @@ class MenuBase extends Phaser.Scene {
       ...Object.entries(st.sets).map(([n, c]) => `세트 「${n}」 ${c}조각`),
     ].join('\n');
   }
-  itemDetail(it, x, y, w) {
-    const out = [];
-    const r = RARITY[it.rar];
-    const nameT = UI.text(this, x, y, itemLabel(it), 26, r.col, { bold: true, wrap: w });
-    out.push(nameT);
-    const dy = Math.max(0, Math.round(nameT.height) - 36);   // ✏️ 긴 이름이 두 줄이 되면 아래를 민다
-    const slotKo = it.cls === 'acc' ? (it.kind === 'ring' ? '반지' : '목걸이') : SLOT_KO[it.slot];
-    const owner = it.boss ? '보스 장비' : it.cls === 'acc' ? '공용' : DB.heroes[it.cls].name;
-    out.push(UI.text(this, x, y + 38 + dy, `${r.ko} ${slotKo} · ${owner} · T${it.tier + 1}`, 18, '#c8b8a0'));
-    let yy = y + 68 + dy;
-    if (it.base) { out.push(UI.text(this, x, yy, `${it.slot === 'weapon' ? '공격력' : '방어력'} +${itemPower(it)}${it.slot === 'body' ? `  · 체력 +${itemPower(it) * 3}` : ''}`, 21, '#fff')); yy += 32; }
-    for (const a of it.aff) { const t = UI.text(this, x, yy, '· ' + affText(a), 19, '#9ae0ff', { wrap: w }); out.push(t); yy += Math.max(27, Math.round(t.height) + 4); }   // ✏️ 긴 옵션은 줄바꿈
-    if (it.desc) { const t = UI.text(this, x, yy, it.desc, 16, '#d8c8a8', { wrap: w }).setFontStyle('italic'); out.push(t); yy += Math.round(t.height) + 10; }   // 🆕 이야기 장비
-    if (it.fx) { const t = UI.text(this, x, yy, '★ ' + GearFx.desc(it), 19, it.boss ? '#ff9ad8' : '#ffb060', { wrap: w }); out.push(t); yy += Math.max(50, Math.round(t.height) + 10); }
-    if (it.set) {
-      const S = GearFx.setDesc(it.set, it.cls === 'acc' ? DB.accessory.sets.find(x => x.name === it.set) : DB.gear[it.cls].set);
-      out.push(UI.text(this, x, yy, `세트 「${it.set}」\n2조각: ${S.two}${S.four ? '\n4조각: ' + S.four : ''}`, 17, '#5ae8d0', { wrap: w })); yy += 80;
-    }
-    return { objs: out, y: yy };
-  }
+  itemDetail(it, x, y, w) { return UI.itemDetail(this, it, x, y, w); }   // ✏️ 2026-11-23 UI로 옮김 (대화 장면 획득 카드도 같이 쓴다)
 }
 
 // ---------------- 가방 (장비) ----------------

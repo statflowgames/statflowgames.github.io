@@ -1068,9 +1068,9 @@ class Game extends Phaser.Scene {
     const r = Math.random();
     if (p.secret) return this.secretFound(p);
     if (p.ev) return StageEvents.onProp(this, p);
-    if (r < (Q.has('oldmob') ? 0.35 : 0.16) && !this.rule.noHeal && !this.rule.noHeart) this.dropPickup(p.x, p.y, 'heal');   // ✏️ 상자 회복 하트 35% → 16%
-    else if (r < (Q.has('oldmob') ? 0.42 : 0.22)) this.dropPickup(p.x, p.y, 'loot');   // ✏️ 장비 26% → 6% (상자가 스테이지당 10개 안팎)
-    else if (r < (Q.has('oldmob') ? 0.55 : 0.35)) this.dropPickup(p.x, p.y, 'cons');   // 소모품은 예전과 같은 13%
+    if (r < (Q.has('oldmob') ? 0.35 : 0.08) && !this.rule.noHeal && !this.rule.noHeart) this.dropPickup(p.x, p.y, 'heal');   // ✏️ 상자 회복 하트 35% → 16% → 8% (2026-11-23)
+    else if (r < (Q.has('oldmob') ? 0.42 : 0.14)) this.dropPickup(p.x, p.y, 'loot');   // ✏️ 장비 26% → 6% (상자가 스테이지당 10개 안팎)
+    else if (r < (Q.has('oldmob') ? 0.55 : 0.27)) this.dropPickup(p.x, p.y, 'cons');   // 소모품은 예전과 같은 13%
     const n = Phaser.Math.Between(3, 6);
     for (let i = 0; i < n; i++) this.dropPickup(p.x, p.y, 'coin');
   }
@@ -2129,7 +2129,7 @@ class Game extends Phaser.Scene {
     const [a, b] = d.gold;
     const n = Phaser.Math.Between(a, b);
     for (let i = 0; i < Math.ceil(n / 2); i++) this.dropPickup(m.x, m.y, 'coin');
-    if (Math.random() < 0.1 && !this.rule.noHeal) this.dropPickup(m.x, m.y, 'heal');
+    if (Math.random() < (Q.has('oldmob') ? 0.1 : 0.04) && !this.rule.noHeal) this.dropPickup(m.x, m.y, 'heal');   // ✏️ 2026-11-23 하트 10% → 4% (물약을 쓸 일이 생기게)
     if (Math.random() < (d.sc >= 1.3 ? 0.12 : 0.025)) this.dropPickup(m.x, m.y, 'loot');   // ✏️ 4% → 2.5% (큰 몬스터 18% → 12%)
     // 동료가 쓰러지면 남은 졸개가 움찔한다
     for (const o of this.monsters) if (!o.dead && o !== m && o.kind !== 'barkhaul' && (o.state === 'idle' || o.state === 'move') && Math.random() < 0.5) {
