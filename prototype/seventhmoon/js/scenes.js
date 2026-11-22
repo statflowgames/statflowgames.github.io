@@ -859,10 +859,16 @@ class Shop extends MenuBase {
   create() {
     const s = Save.data;
     // 장마다 장비 4개를 새로 들여온다
-    if (!s.shop || s.shop.ch !== s.ch || !s.shop.stock) {
-      s.shop = { ch: s.ch, stock: [] };
+    // ✏️ 2026-11-22 4개 중 3개는 지금 직업 장비(부위가 겹치지 않게), 1개만 자유(다른 직업·장신구가 나올 수 있음)
+    //   직업마다 진열대가 따로 (직업을 바꿔 다시 뽑는 일이 없게)
+    if (!s.shop || s.shop.ch !== s.ch || s.shop.v !== 2) s.shop = { ch: s.ch, v: 2, by: {} };
+    s.shop.by = s.shop.by || {};
+    if (s.shop.by[s.hero]) s.shop.stock = s.shop.by[s.hero];
+    else {
+      s.shop.stock = s.shop.by[s.hero] = [];
+      const parts = Phaser.Utils.Array.Shuffle(['weapon', 'offhand', 'head', 'body', 'acc']);
       for (let i = 0; i < 4; i++) {
-        const it = rollDrop(s, s.ch, 1);
+        const it = i < 3 ? rollDrop(s, s.ch, 1, false, 0, false, { cls: s.hero, slot: parts[i] }) : rollDrop(s, s.ch, 1);
         s.bag = s.bag.filter(x => x !== it);
         s.shop.stock.push(it);
       }
@@ -977,10 +983,17 @@ class Shop extends MenuBase {
     s.shop.stock.forEach((it, i) => {
       const y = top + 50 + i * 118;
       UI.panel(this, 670, y - 50, 540, 104, { alpha: 0.6, line: 0x7a5a30, inner: false });
-      UI.itemSlot(this, 726, y + 2, it, 84);
+      // ✏️ 2026-11-22 다른 직업 장비는 흐리게 + 빨간 꼬리표 (지금 직업으로는 장착 못 함)
+      const other = it.cls !== 'acc' && it.cls !== s.hero;
+      const slotC = UI.itemSlot(this, 726, y + 2, it, 84); if (other) slotC.setAlpha(0.55);
       UI.text(this, 780, y - 40, itemLabel(it), 21, RARITY[it.rar].col, { bold: true });
       const owner = it.cls === 'acc' ? '공용 장신구' : `${DB.heroes[it.cls].name} ${SLOT_KO[it.slot]}`;
-      UI.text(this, 780, y - 10, `${owner} · ${it.slot === 'weapon' ? '공격' : '방어'} +${itemPower(it)}`, 17, '#c8b8a0');
+      const ot = UI.text(this, 780, y - 10, `${owner} · ${it.slot === 'weapon' ? '공격' : '방어'} +${itemPower(it)}`, 17, other ? '#ff9a8a' : '#c8b8a0');
+      if (other) {
+        const tx = 780 + Math.round(ot.width) + 10, tag = this.add.graphics();
+        tag.fillStyle(0x8a2a2a, 1).fillRoundedRect(tx, y - 21, 84, 22, 6);
+        UI.text(this, tx + 42, y - 10, '다른 직업', 14, '#fff', { bold: true }).setOrigin(0.5);
+      }
       UI.text(this, 780, y + 14, it.aff.map(affText).join(', '), 15, '#9ae0ff', { wrap: 270 });
       const p = this.price(it);
       UI.button(this, 1140, y + 2, `${p}금`, () => {

@@ -233,15 +233,15 @@ function rollRarity(ch, bonus = 0, boss = false, special = false) {
   return rar;
 }
 // min: 이 등급 아래로는 안 나온다 (보스·중간 보스·숨은 보물 = 희귀 이상) / special: 1장에서도 영웅이 나올 수 있다
-function rollDrop(s, ch, bonus = 0, boss = false, min = 0, special = false) {
+function rollDrop(s, ch, bonus = 0, boss = false, min = 0, special = false, o = {}) {   // ✏️ 2026-11-22 o.cls·o.slot: 상점 진열용으로 직업·부위를 정할 수 있다
   const d = s.diff ?? 1;
   bonus += DIFFS[d].loot;
   const tier = Math.min(3, Math.floor((ch - 1) / 2) + (d >= 2 ? 1 : 0));
   const slots = ['weapon', 'offhand', 'head', 'body', 'acc'];
-  const slot = slots[Math.floor(Math.random() * slots.length)];
+  const slot = o.slot || slots[Math.floor(Math.random() * slots.length)];
   // 지금 직업 장비 70%, 나머지는 다른 직업(나중에 그 직업으로 할 때 쓴다)
   const owned = Object.keys(s.unlocked).filter(k => s.unlocked[k]);
-  const cls = Math.random() < 0.7 ? s.hero : owned[Math.floor(Math.random() * owned.length)];
+  const cls = o.cls || (Math.random() < 0.7 ? s.hero : owned[Math.floor(Math.random() * owned.length)]);
   let rar = Math.max(min, rollRarity(ch, bonus, boss, special));
   if (rar < 4 && typeof GearFx !== 'undefined' && GearFx.codes(s).has('luck') && Math.random() < (boss ? 0.015 : 0.002)) rar = 4;   // 🆕 은방울 행운 목걸이 (✏️ 드롭표에 맞춰 낮춤)
   const it = makeItem(s, { cls, slot, tier, rar });
