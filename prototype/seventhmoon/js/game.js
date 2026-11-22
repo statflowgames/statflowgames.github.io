@@ -92,7 +92,7 @@ class Boot extends Phaser.Scene {
 class Game extends Phaser.Scene {
   constructor() { super('game'); }
   init(d) { this.cfg = d && d.stage ? d : { stage: 'c1_s1', ch: 1, node: 's1' }; }
-  preload() { Assets.preloadFor(this, Assets.forStage(this.cfg.def || STAGES[this.cfg.stage] || STAGES.c1_s1, Save.data || Save.load())); }
+  preload() { Assets.preloadFor(this, [...Assets.forStage(this.cfg.def || STAGES[this.cfg.stage] || STAGES.c1_s1, Save.data || Save.load()), ...(this.cfg.stage ? StageEvents.assetKeys(this.cfg.stage) : [])]); }
   create() {
     const s = Save.data || Save.load() || Save.fresh('warrior');
     this.save = s;
@@ -285,9 +285,9 @@ class Game extends Phaser.Scene {
   startWave(w) {
     this.lock = w; this.groupIdx = 0;
     this.bounds = { l: w.l, r: w.r };
-    this.spawnGroup();
-    StageEvents.onWave(this, this.waveIdx);
-    if (w.boss) this.bossIntro(w.groups[0][0][0]);
+    // ✏️ 이야기 대사가 있으면 멈춘 장면이 끝난 뒤에 몬스터가 나온다
+    const go = () => { this.spawnGroup(); if (w.boss) this.bossIntro(w.groups[0][0][0]); };
+    if (!StageEvents.onWave(this, this.waveIdx, go)) go();
   }
   spawnGroup() {
     const g = this.lock.groups[this.groupIdx++];
@@ -591,7 +591,7 @@ class Game extends Phaser.Scene {
     return nearest;
   }
   onPointer(p) {
-    if (!p.isDown||this.paused||(this.won&&!this.looting)||this.lost) return;
+    if (!p.isDown||this.paused||this.cine||(this.won&&!this.looting)||this.lost) return;
     SFX.resume();
     const s = this.stick;
     if(p.btn&&p.btn.touchOwner!==this)p.btn=null;
@@ -2328,6 +2328,20 @@ class Game extends Phaser.Scene {
     for (const k in this.buffs) if (this.buffs[k] > 0) this.buffs[k] -= dt;
     this.cds = this.cds.map(c => Math.max(0, c - dt));
     const inp = this.readInput();
+    // 🆕 멈춘 대사 장면: 주인공은 멈춰 서고(입력 무시), 몬스터·시간 제한도 멈춘다
+    if (this.cine) {
+      this.hero.update(dt, { x: 0, y: 0, guard: false, itemN: 0 });
+      this.hero.draw(dt, false);
+      if (this.ally) this.ally.draw(dt, false);
+      for (const m of this.monsters) if (!m.dead) m.draw(dt, true);
+      StageEvents.cineUpdate(this, dt);
+      const cam = this.cameras.main;
+      let target = this.hero.x - W * 0.42;
+      if (this.lock) target = Phaser.Math.Clamp(target, this.lock.l, this.lock.r - W);
+      cam.scrollX = Phaser.Math.Linear(cam.scrollX, Phaser.Math.Clamp(target, 0, STAGE_W - W), 0.12);
+      this.drawHud();
+      return;
+    }
     const frozen = this.hitstop > 0;
     if (frozen) {
       this.hitstop -= rawDt;

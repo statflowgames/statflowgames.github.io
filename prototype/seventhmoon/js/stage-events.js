@@ -100,7 +100,7 @@ const STAGE_EVENTS = {
 
 const StageEvents = {
   start(sc) {
-    sc.barkQ = []; sc.barkUi = null; sc.barkT = 0; sc.evRage = false;
+    sc.barkQ = []; sc.barkUi = null; sc.barkT = 0; sc.evRage = false; sc.cine = null;
     const d = sc.mode === 'story' && STAGE_EVENTS[sc.cfg.stage];
     sc.sev = d ? { d, state: 'wait', t: 0, got: 0, props: [] } : null;
   },
@@ -114,49 +114,217 @@ const StageEvents = {
     if (w === 'lise' && s && s.lastEnding === 'end_sacrifice' && s.ch >= 7 && CAST.lise_stone) return CAST.lise_stone;
     return CAST[w] || { ko: w };
   },
-  // 말풍선 줄 넣기. lines: [[who, text, cond?], ...]
-  barks(sc, lines) {
-    for (const [w, t, cond] of lines || []) {
+  // ✏️ 2026-11-22 전투 중 대사 = 말풍선
+  //   이야기 대사(웨이브 시작 intro, 처음 볼 때): 몬스터가 나오기 전에 멈추고 말풍선으로 (누르면 넘김, 가만히 있으면 자동)
+  //   반응 대사(성공·실패, 다시 하는 스테이지의 intro): 멈추지 않고 작은 말풍선
+  //   주인공 → 머리 위 / 갇힌 사람 → 우리 위 / 전투 화면에 없는 인물 → 화면 가장자리 얼굴 + 말풍선 / 지문 → 위쪽 띠
+  // 줄 거르기 + 말풍선에 맞게 긴 줄 나누기
+  lines(sc, raw) {
+    const out = [];
+    for (const [w, t, cond] of raw || []) {
       if (cond && (!talkLineOk(cond) || (cond.skipFor && cond.skipFor.includes(sc.save.hero)))) continue;
-      sc.barkQ.push({ w, t });
+      for (const part of this.splitText(t)) out.push({ w, t: part });
     }
+    return out;
   },
+  splitText(t, max = 38) {
+    if (t.length <= max + 6) return [t];
+    const sents = t.split(/(?<=[.!?…」])\s+/);
+    const out = []; let cur = '';
+    for (const s of sents) {
+      if (!cur) cur = s;
+      else if ((cur + ' ' + s).length <= max) cur += ' ' + s;
+      else { out.push(cur); cur = s; }
+    }
+    if (cur) out.push(cur);
+    // 한 문장이 너무 길면 가운데 쯤의 띄어쓰기에서 자른다
+    return out.flatMap(s => {
+      if (s.length <= max + 10) return [s];
+      const mid = Math.floor(s.length / 2); let k = s.lastIndexOf(' ', mid); if (k < 8) k = s.indexOf(' ', mid);
+      return k > 0 ? [s.slice(0, k), s.slice(k + 1)] : [s];
+    });
+  },
+  // 반응 대사(멈추지 않음)
+  barks(sc, raw) { sc.barkQ.push(...this.lines(sc, raw)); },
+  // 이 스테이지 이벤트에 나오는 얼굴 그림 (미리 불러 두기)
+  assetKeys(stage) {
+    const d = STAGE_EVENTS[stage]; if (!d) return [];
+    const out = new Set();
+    for (const part of ['intro', 'ok', 'fail']) for (const [w] of d[part] || []) {
+      const sp = CAST[w]; if (sp && sp.portrait) out.add(sp.portrait);
+      if (w === 'lise_stone' || w === 'lise') out.add('portrait/lise');
+      if (w === 'odelia') out.add('portrait/paladin'); if (w === 'seril') out.add('portrait/ranger');
+    }
+    return [...out].filter(k => typeof MAN === 'undefined' || MAN[k]);
+  },
+  // 말하는 사람이 어디에 있나
+  anchor(sc, b) {
+    const hk = sc.save.hero, AS = { odelia: 'paladin', seril: 'ranger' };
+    if (b.w === 'narr') return { kind: 'narr' };
+    if (b.w === 'hero' || AS[b.w] === hk) return { kind: 'hero' };
+    if (b.w.startsWith('x:') && sc.sev) {
+      const p = sc.sev.props.find(q => q.ev === 'captive' && q.hp > 0 && q.img && q.img.active);
+      if (p && sc.sev.d.kind === 'rescue') return { kind: 'world', x: p.x, y: p.y - (p.img.displayHeight || 140) - 18 };
+    }
+    const right = ['hunter', 'kael', 'morgan', 'orvex', 'void'].includes(b.w) || (b.w.startsWith('x:') && !(sc.sev && sc.sev.d.kind === 'rescue' && sc.sev.d.who === b.w.slice(2)));
+    return { kind: 'edge', side: right ? 'r' : 'l' };
+  },
+  // 말풍선 하나 만들기. big = 멈춘 장면(조금 크게)
+  bubble(sc, b, big) {
+    const sp = this.who(b.w), at = this.anchor(sc, b);
+    const fs = big ? 21 : 18, wrap = big ? 380 : 320, pad = 14;
+    const c = sc.add.container(0, 0).setDepth(5250);
+    if (at.kind === 'narr') {
+      c.setScrollFactor(0);
+      // 멈춘 장면에서는 아래쪽 검은 띠 안에, 아니면 위쪽에 옅은 띠
+      const y = big ? H - 36 : 150, cx = big ? 560 : W / 2;
+      const body = UI.text(sc, cx, y, '', big ? 20 : 18, '#efe3cc', { wrap: big ? 640 : W - 260, st: big ? 0 : 4, align: 'center' }).setOrigin(0.5).setFontStyle('italic');
+      if (!big) { const bg = sc.add.graphics(); bg.fillStyle(0x0c0806, 0.6).fillRoundedRect(W / 2 - 420, y - 24, 840, 48, 22); c.add(bg); }
+      c.add(body); c.body = body; c.full = b.t;
+      return c;
+    }
+    // 글 크기를 먼저 재서 풍선 크기를 정한다
+    const body = UI.text(sc, 0, 0, b.t, fs, '#2a1a10', { wrap });
+    const bw = Math.max(120, Math.min(wrap, body.width) + pad * 2), bh = body.height + pad * 2;
+    body.setText('');
+    const g = sc.add.graphics();
+    const name = sp.ko ? UI.text(sc, 0, 0, sp.ko, big ? 17 : 15, sp.col || '#ffd38a', { bold: true, st: 4 }) : null;
+    let bx, by, tail;   // 풍선 왼쪽 위
+    if (at.kind === 'edge') {
+      c.setScrollFactor(0);
+      const fx = at.side === 'l' ? 66 : W - 66, fy = big ? 250 : 236, fsz = big ? 92 : 78;
+      const stone = sp === CAST.lise_stone || b.w === 'lise_stone';
+      const key = sp.portrait || (stone ? 'portrait/lise' : null) || ({ odelia: 'portrait/paladin', seril: 'portrait/ranger' })[b.w];
+      const ring = sc.add.graphics(); ring.fillStyle(0x1a110c, 0.92).fillCircle(fx, fy, fsz / 2 + 4).lineStyle(3, sp.col ? Phaser.Display.Color.HexStringToColor(sp.col).color : 0xe0b45a, 1).strokeCircle(fx, fy, fsz / 2 + 4);
+      c.add(ring);
+      if (key && sc.textures.exists(key)) {
+        const im = sc.add.image(fx, fy, key); const src = sc.textures.get(key).getSourceImage();
+        im.setScale(fsz / Math.min(src.width, src.height)).setCrop(0, 0, src.width, Math.min(src.height, src.width));
+        im.setOrigin(0.5, 0.5 * Math.min(src.height, src.width) / src.height);
+        const m = sc.make.graphics({ add: false }).setScrollFactor(0); m.fillStyle(0xffffff).fillCircle(fx, fy, fsz / 2); im.setMask(m.createGeometryMask());
+        if (stone) im.setTint(0xb8d0ff).setAlpha(0.75);   // 공명석 속 목소리
+        c.add(im);
+      } else {
+        c.add(UI.text(sc, fx, fy, (sp.ko || '?').slice(0, 1), 34, '#ffe7a8', { bold: true, st: 5 }).setOrigin(0.5));
+      }
+      bx = at.side === 'l' ? fx + fsz / 2 + 22 : fx - fsz / 2 - 22 - bw; by = fy - bh / 2 + 6;
+      tail = at.side === 'l' ? [[bx, by + bh / 2 - 9], [bx - 14, by + bh / 2], [bx, by + bh / 2 + 9]] : [[bx + bw, by + bh / 2 - 9], [bx + bw + 14, by + bh / 2], [bx + bw, by + bh / 2 + 9]];
+      if (name) name.setPosition(at.side === 'l' ? bx + 4 : bx + bw - 4, by - 4).setOrigin(at.side === 'l' ? 0 : 1, 1);
+    } else {
+      bx = -bw / 2; by = -bh - 14;
+      tail = [[-9, -15], [0, 0], [9, -15]];
+      if (name) name.setPosition(bx + 4, by - 4).setOrigin(0, 1);
+    }
+    g.fillStyle(0x000000, 0.25).fillRoundedRect(bx + 3, by + 4, bw, bh, 14);
+    g.fillStyle(0xfffaf0, 1).fillRoundedRect(bx, by, bw, bh, 14);
+    g.fillTriangle(tail[0][0], tail[0][1], tail[1][0], tail[1][1], tail[2][0], tail[2][1]);
+    g.lineStyle(3, 0x3a2414, 1).strokeRoundedRect(bx, by, bw, bh, 14);
+    g.lineBetween(tail[0][0], tail[0][1], tail[1][0], tail[1][1]); g.lineBetween(tail[1][0], tail[1][1], tail[2][0], tail[2][1]);
+    body.setPosition(bx + pad, by + pad);
+    c.add(g); c.add(body); if (name) c.add(name);
+    c.body = body; c.full = b.t; c.at = at; c.bw = bw;
+    this.place(sc, c);
+    return c;
+  },
+  // 머리 위·우리 위 말풍선 자리 (화면 밖으로 나가지 않게)
+  place(sc, c) {
+    const at = c.at; if (!at || at.kind === 'edge' || at.kind === 'narr') return;
+    const cam = sc.cameras.main;
+    let x = at.x, y = at.y;
+    if (at.kind === 'hero') { const h = sc.hero; x = h.x; y = h.y - (h.z || 0) - 215; }
+    const half = c.bw / 2 + 12;
+    c.setPosition(Phaser.Math.Clamp(x, cam.scrollX + half, cam.scrollX + W - half), Math.max(150 + 60, y));
+  },
+  // 글자 타이핑
+  type(sc, c, speed = 2) {
+    let i = 0;
+    c.typing = true;
+    c.ev = sc.time.addEvent({ delay: 30, loop: true, callback: () => {
+      if (!c.body.active) return c.ev.remove();
+      i += speed; c.body.setText(c.full.slice(0, i));
+      if (i >= c.full.length) { c.typing = false; c.ev.remove(); }
+    } });
+  },
+  finishType(c) { if (c && c.typing) { c.typing = false; c.ev.remove(); c.body.setText(c.full); } },
   showBark(sc, b) {
     if (sc.barkUi) sc.barkUi.destroy();
-    const sp = this.who(b.w);
-    const c = sc.add.container(0, 0).setDepth(5200).setScrollFactor(0);
-    const x0 = W / 2 - 420, y0 = 132, w = 840, h = 74;
-    const g = sc.add.graphics();
-    g.fillStyle(0x140c08, 0.86).fillRoundedRect(x0, y0, w, h, 14).lineStyle(2, b.w === 'hunter' || b.w === 'kael' ? 0xa070e0 : 0xe0b45a, 0.9).strokeRoundedRect(x0, y0, w, h, 14);
-    c.add(g);
-    const tx = x0 + 22;
-    const narr = b.w === 'narr';
-    if (!narr && sp.ko) c.add(UI.text(sc, tx, y0 + 8, sp.ko, 18, sp.col || '#ffd38a', { bold: true, st: 4 }));
-    const body = UI.text(sc, tx, narr || !sp.ko ? y0 + 22 : y0 + 34, '', narr ? 19 : 20, narr ? '#d8ccb8' : '#fff8ea', { wrap: w - (tx - x0) - 24, st: 3 });
-    if (narr) body.setFontStyle('italic');
-    c.add(body);
-    c.setAlpha(0); sc.tweens.add({ targets: c, alpha: 1, duration: 160 });
-    sc.barkUi = c; sc.barkT = Math.max(2400, 900 + b.t.length * 70);
-    let i = 0;
-    const ev = sc.time.addEvent({ delay: 70, loop: true, callback: () => { if (!body.active) return ev.remove(); i += 5; body.setText(b.t.slice(0, i)); if (i >= b.t.length) ev.remove(); } });
+    const c = this.bubble(sc, b, false);
+    c.setAlpha(0); sc.tweens.add({ targets: c, alpha: 1, duration: 140 });
+    sc.barkUi = c; sc.barkT = Math.max(1700, 800 + b.t.length * 55);
+    this.type(sc, c, 3);
   },
-  onWave(sc, n) {
-    const e = sc.sev; if (!e || e.state !== 'wait' || n !== e.d.wave) return;
+  // ---- 멈춘 장면 ----
+  startCine(sc, lines, go) {
+    const top = sc.add.rectangle(W / 2, -40, W, 72, 0x000000, 0.86).setScrollFactor(0).setDepth(4990);
+    const bot = sc.add.rectangle(W / 2, H + 40, W, 72, 0x000000, 0.86).setScrollFactor(0).setDepth(4990);
+    sc.tweens.add({ targets: top, y: 36, duration: 260, ease: 'Quad.out' });
+    sc.tweens.add({ targets: bot, y: H - 36, duration: 260, ease: 'Quad.out' });
+    const hint = UI.text(sc, W - 24, H - 36, '누르면 넘어가요 ▶', 16, '#c8b8a0').setOrigin(1, 0.5).setScrollFactor(0).setDepth(5241).setAlpha(0);
+    sc.tweens.add({ targets: hint, alpha: 0.85, duration: 400, delay: 400 });
+    if (sc.barkUi) { sc.barkUi.destroy(); sc.barkUi = null; }
+    sc.resetTouchControls && sc.resetTouchControls();
+    const k = sc.cine = { lines, i: -1, go, ui: null, t: 0, top, bot, hint, wait: 320 };
+    k.tap = () => { if (sc.cine !== k || k.wait > 0) return; if (k.ui && k.ui.typing) this.finishType(k.ui); else this.cineNext(sc); };
+    sc.input.on('pointerdown', k.tap);
+    k.key = e => { if (['Space', 'Enter', 'KeyJ', 'KeyZ'].includes(e.code)) k.tap(); };
+    sc.input.keyboard && sc.input.keyboard.on('keydown', k.key);
+  },
+  cineNext(sc) {
+    const k = sc.cine; if (!k) return;
+    if (k.ui) { const u = k.ui; sc.tweens.add({ targets: u, alpha: 0, duration: 120, onComplete: () => u.destroy() }); k.ui = null; }
+    k.i++;
+    if (k.i >= k.lines.length) return this.cineEnd(sc);
+    const b = k.lines[k.i];
+    k.ui = this.bubble(sc, b, true);
+    k.ui.setAlpha(0); sc.tweens.add({ targets: k.ui, alpha: 1, duration: 140 });
+    this.type(sc, k.ui, 2);
+    k.t = Math.max(2300, 1100 + b.t.length * 65);
+    k.wait = 180;
+  },
+  cineUpdate(sc, dt) {
+    const k = sc.cine; if (!k) return;
+    if (k.wait > 0) { k.wait -= dt; if (k.i < 0 && k.wait <= 0) this.cineNext(sc); return; }
+    if (k.ui) this.place(sc, k.ui);
+    if (k.ui && !k.ui.typing) { k.t -= dt; if (k.t <= 0) this.cineNext(sc); }
+  },
+  cineEnd(sc) {
+    const k = sc.cine; if (!k) return;
+    sc.cine = null;
+    if (k.ui) { this.finishType(k.ui); k.ui.destroy(); k.ui = null; }
+    sc.input.off('pointerdown', k.tap);
+    sc.input.keyboard && sc.input.keyboard.off('keydown', k.key);
+    sc.tweens.add({ targets: k.top, y: -40, duration: 220, onComplete: () => k.top.destroy() });
+    sc.tweens.add({ targets: k.bot, y: H + 40, duration: 220, onComplete: () => k.bot.destroy() });
+    k.hint.destroy();
+    sc.resetTouchControls && sc.resetTouchControls();
+    if (k.go) k.go();
+  },
+  // 웨이브 시작. 이야기 대사가 있으면 멈춘 장면으로 보여 주고, 끝나면 go()(몬스터 등장)를 부른다 → true
+  onWave(sc, n, go) {
+    const e = sc.sev; if (!e || e.state !== 'wait' || n !== e.d.wave) return false;
     const d = e.d;
-    this.barks(sc, d.intro);
-    if (d.kind === 'talk') { e.state = 'done'; return; }
-    e.state = 'run'; e.t = d.time;
-    const w = sc.lock || { l: sc.hero.x - 400, r: sc.hero.x + 600 };
-    if (d.kind === 'rescue') {
-      for (let i = 0; i < d.n; i++) {
-        const x = Math.round(w.l + 260 + (w.r - w.l - 520) * (d.n === 1 ? 0.5 : i / (d.n - 1)));
-        const y = FLOOR_TOP + 40 + (i % 2) * 120;
-        this.addEvProp(sc, x, y, 'captive', d.who, i);
+    const intro = this.lines(sc, d.intro);
+    const seen = sc.save.seen || (sc.save.seen = {}), sk = 'ev_' + sc.cfg.stage;
+    const pause = intro.length && !seen[sk] && go;
+    if (d.kind === 'talk') e.state = 'done';
+    else {
+      e.state = 'run'; e.t = d.time;
+      const w = sc.lock || { l: sc.hero.x - 400, r: sc.hero.x + 600 };
+      if (d.kind === 'rescue') {
+        for (let i = 0; i < d.n; i++) {
+          const x = Math.round(w.l + 260 + (w.r - w.l - 520) * (d.n === 1 ? 0.5 : i / (d.n - 1)));
+          const y = FLOOR_TOP + 40 + (i % 2) * 120;
+          this.addEvProp(sc, x, y, 'captive', d.who, i);
+        }
+      } else if (d.kind === 'ritual') {
+        this.addEvProp(sc, Math.round(w.r - 240), FLOOR_TOP + 60, 'altar');
       }
-    } else if (d.kind === 'ritual') {
-      this.addEvProp(sc, Math.round(w.r - 240), FLOOR_TOP + 60, 'altar');
+      this.drawGoal(sc);
     }
-    this.drawGoal(sc);
+    if (pause) { seen[sk] = true; this.startCine(sc, intro, go); return true; }
+    // 다시 하는 스테이지: 이미 본 이야기는 멈추지 않고 작은 말풍선으로 지나간다
+    sc.barkQ.push(...intro);
+    return false;
   },
   addEvProp(sc, x, y, ev, who, idx = 0) {
     const before = sc.props.length;
@@ -278,7 +446,8 @@ const StageEvents = {
   update(sc, dt) {
     // 말풍선
     if (sc.barkUi) { sc.barkT -= dt; if (sc.barkT <= 0) { const u = sc.barkUi; sc.barkUi = null; sc.tweens.add({ targets: u, alpha: 0, duration: 200, onComplete: () => u.destroy() }); } }
-    if (!sc.barkUi && sc.barkQ && sc.barkQ.length && !sc.won && !sc.lost) this.showBark(sc, sc.barkQ.shift());
+    if (sc.barkUi) this.place(sc, sc.barkUi);
+    if (!sc.barkUi && sc.barkQ && sc.barkQ.length && !sc.won && !sc.lost && !sc.cine) this.showBark(sc, sc.barkQ.shift());
     const e = sc.sev; if (!e || e.state !== 'run' || sc.won || sc.lost) return;
     e.t -= dt;
     // ✏️ 글자는 숫자가 바뀔 때만 다시 그린다 (매 프레임 다시 그리면 휴대폰에서 무겁다)
@@ -294,5 +463,6 @@ const StageEvents = {
     if (e && e.state === 'run') this.fail(sc);
     if (sc.barkUi) { sc.barkUi.destroy(); sc.barkUi = null; }
     sc.barkQ = [];
+    if (sc.cine) this.cineEnd(sc);
   },
 };
