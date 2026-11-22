@@ -339,7 +339,9 @@ class MapScene extends Phaser.Scene {
   ending(e) {
     const s = Save.data;
     s.endings[e] = true;
-    if (!e.startsWith('p2_')) { s.lastEnding = e; if (s.ch < 7) { s.ch = 7; this.time.delayedCall(1200, () => { UI.toast(this, '2부 「부서진 하늘」이 열렸어요', '#c8d8ff', 260); SFX.jingle && SFX.jingle('jgl_part2'); }); } }
+    // ✏️ 어둠 엔딩은 완결 분기: 2부를 열지 않고, 2부 대사가 기준으로 삼는 lastEnding도 바꾸지 않는다
+    if (e === 'end_dark') { if (s.ch < 7) this.time.delayedCall(1200, () => UI.toast(this, '어둠 엔딩에서는 2부가 열리지 않아요 — 6장 보스를 다시 깨면 다른 결말로 이어져요', '#c8b8ff', 320)); }
+    else if (!e.startsWith('p2_')) { s.lastEnding = e; if (s.ch < 7) { s.ch = 7; this.time.delayedCall(1200, () => { UI.toast(this, '2부 「부서진 하늘」이 열렸어요', '#c8d8ff', 260); SFX.jingle && SFX.jingle('jgl_part2'); }); } }
     const ne = Object.keys(s.endings).length;
     // 🆕 직업별 엔딩 기록: 처음 보는 (직업, 엔딩) 조합이면 보상
     const ck = `end_${s.hero}_${e}`;
