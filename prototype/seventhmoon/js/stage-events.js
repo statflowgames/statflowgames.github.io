@@ -184,7 +184,7 @@ const StageEvents = {
       return c;
     }
     // 글 크기를 먼저 재서 풍선 크기를 정한다
-    const body = UI.text(sc, 0, 0, b.t, fs, '#2a1a10', { wrap });
+    const body = UI.text(sc, 0, 0, b.t, fs, '#2a1a10', { wrap, st: 0 }).setResolution(2);   // ✏️ 흰 풍선 위 글씨는 검은 테두리 없이 (겹쳐 보이던 문제)
     const bw = Math.max(120, Math.min(wrap, body.width) + pad * 2), bh = body.height + pad * 2;
     body.setText('');
     const g = sc.add.graphics();
