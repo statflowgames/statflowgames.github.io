@@ -340,7 +340,7 @@ class MapScene extends Phaser.Scene {
     const s = Save.data;
     s.endings[e] = true;
     // ✏️ 어둠 엔딩은 완결 분기: 2부를 열지 않고, 2부 대사가 기준으로 삼는 lastEnding도 바꾸지 않는다
-    if (e === 'end_dark') { if (s.ch < 7) this.time.delayedCall(1200, () => UI.toast(this, '어둠 엔딩에서는 2부가 열리지 않아요 — 6장 보스를 다시 깨면 다른 결말로 이어져요', '#c8b8ff', 320)); }
+    if (e === 'end_dark') { /* 2부는 열지 않는다 — 크레딧 앞 할멈의 되감기 장면(dark_rewind)과 크레딧 문구로 안내 */ }
     else if (!e.startsWith('p2_')) { s.lastEnding = e; if (s.ch < 7) { s.ch = 7; this.time.delayedCall(1200, () => { UI.toast(this, '2부 「부서진 하늘」이 열렸어요', '#c8d8ff', 260); SFX.jingle && SFX.jingle('jgl_part2'); }); } }
     const ne = Object.keys(s.endings).length;
     // 🆕 직업별 엔딩 기록: 처음 보는 (직업, 엔딩) 조합이면 보상
@@ -350,7 +350,10 @@ class MapScene extends Phaser.Scene {
     if (ne >= 2) addGlobalUnlock('diff3');
     if (e === 'end_dark') { s.unlocked.hexblade = true; addGlobalUnlock('hexblade'); }
     Save.write();
-    runTalk(this, e, () => runTalk(this, 'ep_' + s.hero, () => this.scene.start('credits', { e }), { dim: 0.85 }), { dim: 0.85 });
+    const toCredits = () => this.scene.start('credits', { e });
+    // 🆕 어둠 엔딩(2부가 아직 안 열렸을 때): 천막의 할멈이 실을 되감아 준다 → 6장으로 돌아가는 이유
+    const afterEp = (e === 'end_dark' && s.ch < 7) ? () => runTalk(this, 'dark_rewind', toCredits, { dim: 0.85 }) : toCredits;
+    runTalk(this, e, () => runTalk(this, 'ep_' + s.hero, afterEp, { dim: 0.85 }), { dim: 0.85 });
   }
 }
 
@@ -945,6 +948,7 @@ class Credits extends Phaser.Scene {
     const p2 = this.e.startsWith('p2_'), seen2 = ['p2_true', 'p2_dark', 'p2_dawn'].filter(k => s.endings[k]).length;
     UI.text(this, W / 2, 300, p2 ? `${DB.heroes[s.hero].name} Lv.${s.lv} · 흑월 씨앗 ${Object.keys(s.seeds || {}).length}/6 · 2부 엔딩 ${seen2}/3` : `${DB.heroes[s.hero].name} Lv.${s.lv} · 월석 ${Object.keys(s.moons).length}/6 · 본 엔딩 ${seen}/4`, 26, '#f4e4c0').setOrigin(0.5);
     UI.text(this, W / 2, 380, '일곱 번째 달 — 끝까지 함께해 주셔서 고마워요\n다른 선택, 다른 길, 다른 직업으로 또 다른 결말을 찾아보세요', 22, '#c8b8a0', { align: 'center' }).setOrigin(0.5);
+    if (this.e === 'end_dark' && s.ch < 7) UI.text(this, W / 2, 462, '다른 결말을 보면 2부 「부서진 하늘」이 열려요 — 6장 보스를 다시 깨 보세요', 22, '#c8b8ff', { bold: true }).setOrigin(0.5);   // 🆕
     UI.button(this, W / 2, 540, '타이틀로', () => this.scene.start('title'), { w: 280, h: 64, size: 26 });
     if (this.e.startsWith('p2_')) {
       // 2부 회차: 12장을 다시 열고, 11장 보스를 다시 깨면 두 번째 제안을 다시 고른다
