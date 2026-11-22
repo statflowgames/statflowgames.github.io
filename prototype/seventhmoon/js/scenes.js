@@ -696,7 +696,8 @@ class Smithy extends MenuBase {
     });
     if (it.aff.length) UI.text(this, 720, yy + 62, `옵션 하나 재설정: 금화 ${rc.gold}, ${MATS[rc.mat]} ${rc.cnt}`, 16, '#c8b8a0');
     // 분해
-    if (!eqIds.includes(it.id) && !it.lock) UI.button(this, 1110, 590, '분해', () => {
+    if (it.story) UI.text(this, 1110, 590, '이야기 장비는\n분해할 수 없어요', 15, '#c8b8a0', { align: 'center' }).setOrigin(0.5);
+    else if (!eqIds.includes(it.id) && !it.lock) UI.button(this, 1110, 590, '분해', () => {
       const r = dismantle(s, it);
       if (r) { UI.toast(this, `${MATS[r.m]} +${r.n}`, '#d8c8ff'); SFX.brk(640); }
       this.sel = null; Save.write(); this.draw();
@@ -717,6 +718,7 @@ class Smithy extends MenuBase {
         if (F.a === it) { F.a = F.b; F.b = null; } else if (F.b === it) F.b = null;
         else if (!F.a) F.a = it;
         else if (it.rar !== F.a.rar) return UI.toast(this, '같은 등급끼리만 조합할 수 있어요', '#ff9a8a');
+        else if (it.story && F.a.story) return UI.toast(this, '이야기 장비끼리는 조합할 수 없어요', '#ff9a8a');
         else F.b = it;
         F.ad = false; this.draw();
       });
@@ -743,15 +745,21 @@ class Smithy extends MenuBase {
       const extra = [f.pity ? `실패 보정 +${f.pity}%p` : '', f.adB ? `광고 +${f.adB}%p` : ''].filter(Boolean).join(' · ');
       UI.text(this, 724, 320, `${RARITY[rar].ko} + ${RARITY[rar].ko} → ${RARITY[next].ko}   성공 ${f.rate}%`, 22, '#fff', { bold: true });
       if (extra) UI.text(this, 724, 352, extra, 16, '#9ae07a');
-      UI.text(this, 724, 380, { none: '실패해도 잃는 것이 없어요', one: '실패하면 재료 2가 사라져요 (재료 1은 남아요)', both: '실패하면 재료 둘 다 사라져요 (마석 조금 돌려받음)' }[f.lose], 16, f.lose === 'none' ? '#c8b8a0' : '#ff9a8a');
-      UI.text(this, 724, 408, `비용: 금화 ${f.gold}${f.abyss ? ` · ${MATS.abyss} ${f.abyss}` : ''}`, 18, '#ffd34d');
-      UI.text(this, 724, 436, '부위는 두 재료 중 하나 · 단계는 높은 쪽 · 강화는 높은 쪽의 절반 · 옵션은 새로', 14, '#8f8070');
-      if (F.b && !F.ad && f.rate < 100) UI.button(this, 860, 500, `▶ 광고 보고 +${rar >= 3 ? 1 : 10}%p`, () => Monet.rewardAd(this, 'fuse', () => { F.ad = true; this.draw(); }), { w: 260, h: 52, size: 19, col: 0x2a4a3a });
-      if (F.b) UI.button(this, 1110, 500, '조합', () => {
+      const risk = fuseStoryRisk(F.a, F.b);
+      let loseTxt = { none: '실패해도 잃는 것이 없어요', one: '실패하면 재료 2가 사라져요 (재료 1은 남아요)', both: '실패하면 재료 둘 다 사라져요 (마석 조금 돌려받음)' }[f.lose];
+      if (risk && f.lose !== 'none') loseTxt = risk.drop ? `실패하면 다른 재료는 사라지고 「${risk.item.name}」은 ${RARITY[risk.item.rar - 1].ko}(으)로 내려가요 (처음 받은 등급 아래로는 안 내려가요)` : `실패하면 다른 재료만 사라지고 「${risk.item.name}」은 그대로예요`;
+      const lt = UI.text(this, 724, 380, loseTxt, 16, f.lose === 'none' ? '#c8b8a0' : '#ff9a8a', { wrap: 480 });
+      const cy = 380 + Math.round(lt.height) + 8;   // ✏️ 안내가 여러 줄이면 아래 줄을 민다
+      UI.text(this, 724, cy, `비용: 금화 ${f.gold}${f.abyss ? ` · ${MATS.abyss} ${f.abyss}` : ''}`, 18, '#ffd34d');
+      if (!risk) UI.text(this, 724, cy + 28, '부위는 두 재료 중 하나 · 단계는 높은 쪽 · 강화는 높은 쪽의 절반 · 옵션은 새로', 14, '#8f8070');
+      if (F.b && !F.ad && f.rate < 100) UI.button(this, 860, 540, `▶ 광고 보고 +${rar >= 3 ? 1 : 10}%p`, () => Monet.rewardAd(this, 'fuse', () => { F.ad = true; this.draw(); }), { w: 260, h: 52, size: 19, col: 0x2a4a3a });
+      if (F.b) UI.button(this, 1110, 540, '조합', () => {
         const r = tryFuse(s, F.a, F.b, F.ad);
         if (r.r === 'cost') return UI.toast(this, '금화나 마석이 모자라요', '#ff9a8a');
         if (r.r === 'bad') return UI.toast(this, '조합할 수 없는 장비예요', '#ff9a8a');
+        if (r.r === 'twoStory') return UI.toast(this, '이야기 장비끼리는 조합할 수 없어요', '#ff9a8a');
         if (r.r === 'ok') { SFX.parry(); this.cameras.main.flash(200, 255, 230, 160); UI.toast(this, `조합 성공! ${RARITY[r.it.rar].ko} 「${r.it.name}」`, RARITY[r.it.rar].col, 400); }
+        else if (r.down) { SFX.guard(); UI.toast(this, `조합 실패… 「${r.down.name}」이 ${RARITY[r.down.rar].ko}(으)로 내려갔어요` + (r.lost.length ? ' · 다른 재료는 사라졌어요' : ''), '#ff9a8a', 400); }
         else { SFX.guard(); UI.toast(this, r.lost.length ? `조합 실패… 재료 ${r.lost.length}개가 사라졌어요` + (Object.keys(r.refund).length ? ' · ' + Object.entries(r.refund).map(([m, n]) => `${MATS[m]} +${n}`).join(', ') : '') : '조합 실패', '#ff9a8a', 400); }
         this.fuse = { a: null, b: null, ad: false }; Save.write(); this.draw();
       }, { w: 150, h: 56, size: 24 });

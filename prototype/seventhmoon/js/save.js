@@ -200,7 +200,7 @@ const STORY_GEAR = {
 function makeStoryGear(s, key) {
   const d = STORY_GEAR[key]; if (!d) return null;
   const it = makeItem(s, { cls: s.hero, slot: d.slot, kind: d.kind, tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar: d.rar });
-  it.name = d.name; it.desc = d.desc; it.story = key;
+  it.name = d.name; it.desc = d.desc; it.story = key; it.storyRar = d.rar;
   if (d.legendOf) { it.legendOf = d.legendOf; const L = DB.accessory.legend.find(l => l.name === d.legendOf) || (DB.gear[it.cls] && Object.values(DB.gear[it.cls].legend).find(l => l.name === d.legendOf)); if (L) it.fx = L.fx; }
   return it;
 }
@@ -316,8 +316,24 @@ function fuseInfo(s, rar, ad) {
   const R = FUSE_RULE[rar], pity = Math.min(R.pityMax || 0, ((s.fusePity || {})[rar] || 0) * (R.pity || 0)), adB = ad ? (rar >= 3 ? 1 : 10) : 0;
   return { rate: Math.min(100, R.rate + pity + adB), base: R.rate, pity, adB, gold: Math.round(stageIncome(s.ch) * R.cost / 10) * 10, abyss: R.abyss || 0, lose: R.lose };
 }
+// ✏️ 2026-11-22 고유 장비(이야기 장비)는 조합에서 사라지지 않는다. 실패하면 다른 재료만 사라지고,
+//   희귀→영웅·영웅→전설 도전이었다면 고유 장비가 한 단계 떨어진다 (처음 받은 등급 아래로는 안 떨어진다). 고유 장비끼리는 조합 불가.
+function storyFloor(it) { return it.storyRar ?? ((typeof STORY_GEAR !== 'undefined' && STORY_GEAR[it.story]) ? STORY_GEAR[it.story].rar : it.rar); }
+function fuseStoryRisk(a, b) {
+  const st = a && a.story ? a : b && b.story ? b : null;
+  if (!st) return null;
+  return { item: st, drop: st.rar >= 2 && st.rar > storyFloor(st) };
+}
+function downgradeItem(it) {
+  it.rar--;
+  const want = RARITY[it.rar].aff + (it.slot === 'acc' ? 1 : 0);
+  while (it.aff.length > want) it.aff.pop();
+  it.base = Math.round(BASE_STAT[it.slot][it.tier] * (1 + it.rar * 0.1));
+  if (it.rar < 4) { delete it.fx; delete it.legendOf; }
+}
 function tryFuse(s, a, b, ad) {
   if (!canFuse(s, a) || !canFuse(s, b) || a === b || a.rar !== b.rar) return { r: 'bad' };
+  if (a.story && b.story) return { r: 'twoStory' };
   const f = fuseInfo(s, a.rar, ad);
   if (s.gold < f.gold || (s.mats.abyss || 0) < f.abyss) return { r: 'cost' };
   s.gold -= f.gold; if (f.abyss) s.mats.abyss -= f.abyss;
@@ -327,17 +343,22 @@ function tryFuse(s, a, b, ad) {
     const story = a.story ? a : b.story ? b : null, base = story || (Math.random() < 0.5 ? a : b), acc = base.cls === 'acc';
     const it = makeItem(s, { cls: s.hero, slot: acc ? 'acc' : base.slot, kind: base.kind, tier: Math.max(a.tier, b.tier), rar: a.rar + 1 });
     it.plus = Math.floor(Math.max(a.plus, b.plus) / 2);
-    if (story) { if (it.rar === 4) it.legendOf = it.name; it.name = story.name; it.desc = story.desc; it.story = story.story; }
+    if (story) { if (it.rar === 4) it.legendOf = it.name; it.name = story.name; it.desc = story.desc; it.story = story.story; it.storyRar = storyFloor(story); it.lock = story.lock; }
     s.bag = s.bag.filter(x => x !== a && x !== b);
     s.fusePity[a.rar] = 0;
     s.stats = s.stats || {}; s.stats.fused = (s.stats.fused || 0) + 1;
     return { r: 'ok', it };
   }
   s.fusePity[a.rar] = (s.fusePity[a.rar] || 0) + 1;
-  const lost = f.lose === 'both' ? [a, b] : f.lose === 'one' ? [b] : [], refund = {};
+  const risk = fuseStoryRisk(a, b);
+  let lost = f.lose === 'both' ? [a, b] : f.lose === 'one' ? [b] : [], refund = {}, down = null;
+  if (risk) {
+    lost = f.lose === 'none' ? [] : [risk.item === a ? b : a];   // 고유 장비는 남고 다른 재료만 사라진다
+    if (risk.drop) { downgradeItem(risk.item); down = risk.item; }
+  }
   for (const x of lost) { const m = matOf(x); refund[m] = (refund[m] || 0) + 1 + x.rar; s.mats[m] = (s.mats[m] || 0) + 1 + x.rar; }
   s.bag = s.bag.filter(x => !lost.includes(x));
-  return { r: 'fail', lost, refund };
+  return { r: 'fail', lost, refund, down };
 }
 function matOf(it) { return it.rar >= 4 ? 'abyss' : ['low', 'low', 'mid', 'high'][it.tier]; }
 function enhanceCost(it) {
@@ -354,7 +375,7 @@ function tryEnhance(s, it) {
   return 'fail';   // 실패해도 부서지지 않는다
 }
 function dismantle(s, it) {
-  if (Object.values(s.eq).includes(it.id) || it.lock) return null;
+  if (Object.values(s.eq).includes(it.id) || it.lock || it.story) return null;   // ✏️ 고유 장비는 분해 불가
   const m = matOf(it), n = 1 + it.rar + Math.floor(it.plus / 2);
   s.mats[m] = (s.mats[m] || 0) + n;
   s.bag = s.bag.filter(x => x !== it);
