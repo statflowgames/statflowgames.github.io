@@ -57,7 +57,7 @@ const Assets = {
     const sum = !s ? [] : s.hero === 'ranger' ? this.group('spirit_wolf').filter(k => !k.endsWith('/ref')) : s.hero === 'mage' ? ['summon/thundercloud_0', 'summon/thundercloud_1'] : s.hero === 'warrior' ? ['summon/war_banner'] : [];
     return [...this.groups(g), ...(typeof CuteHeroes !== 'undefined' ? CuteHeroes.keys(g) : []), ...helms, ...sum];
   },
-  portraits(list) { return list.flatMap(k => ['portrait/' + k, ...['joy', 'angry', 'sad', 'surprise'].map(f => `portrait/${k}_${f}`)]); },
+  portraits(list) { return list.flatMap(k => ['portrait/' + k, ...['joy', 'angry', 'sad', 'surprise', 'resolve', 'tearsmile'].map(f => `portrait/${k}_${f}`)]); },   // ✏️ 2026-11-22 결의·눈물 미소 (없는 인물은 manifest에 없어 건너뜀)
   // ✏️ 2026-11-22 아이콘(400여 장)은 메뉴가 열리는 지도·캠프·탑 입구에서만. 전투는 battleIcons만, 떨어진 장비 아이콘은 그때 불러온다
   icons() { return this.group('icon'); },
   battleIcons(s) {

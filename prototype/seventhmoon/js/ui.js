@@ -183,7 +183,16 @@ class Talk extends Phaser.Scene {
       const im = this.add.image(left ? 250 : W - 250, 530, key).setOrigin(0.5, 1).setDepth(5);
       im.setScale(400 / im.height).setFlipX(!left).setAlpha(0);
       im.x += left ? -30 : 30;
-      this.tweens.add({ targets: im, alpha: 1, x: left ? 250 : W - 250, duration: 160 });
+      // 🆕 2026-11-22 공명석 속 리세: 푸른 달빛으로 비치는 반투명한 모습, 천천히 일렁인다
+      const stone = !!sp.stone, toA = stone ? 0.62 : 1;
+      if (stone) {
+        im.setTint(0xcfe8ff, 0xcfe8ff, 0x9ab8ff, 0x9ab8ff);
+        const glow = this.add.image(im.x, im.y, key).setOrigin(0.5, 1).setScale(im.scaleX * 1.04, im.scaleY * 1.04).setFlipX(!left).setDepth(4).setTint(0x8ac8ff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+        this.tweens.add({ targets: glow, alpha: 0.35, x: left ? 250 : W - 250, duration: 160 });
+        this.tweens.add({ targets: glow, alpha: { from: 0.18, to: 0.4 }, duration: 1400, yoyo: true, repeat: -1, delay: 200 });
+        im.once('destroy', () => glow.destroy());
+      }
+      this.tweens.add({ targets: im, alpha: toA, x: left ? 250 : W - 250, duration: 160 });
       this.portrait = im;
     }
     // 🆕 2026-11-22 중요한 대사 연출: shake(세기 1~3) · flash('white'|'gold'|'violet'|'red'|'black') · cam(그림 카메라 바꾸기)

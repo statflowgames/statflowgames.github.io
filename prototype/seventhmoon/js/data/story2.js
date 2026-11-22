@@ -5,7 +5,7 @@
 // 1부를 희생 엔딩으로 끝냈다면 리세는 월석 속 목소리로 함께한다 (ui.js Talk.speaker).
 Object.assign(CAST, {
   morgan: { ko: '은빛 사도 모르간', col: '#e0e8ff', portrait: 'portrait/morgan' },
-  lise_stone: { ko: '리세 (공명석 속 목소리)', col: '#ffc8d8' },
+  lise_stone: { ko: '리세 (공명석 속 목소리)', col: '#ffc8d8', portrait: 'portrait/lise', faces: 'portrait/lise_', stone: true },   // ✏️ 2026-11-22 새 리세를 반투명 달빛으로 (공명석 속 모습)
   naia: { ko: '나이아', col: '#a0e0f0', portrait: 'portrait/naia' },
 });
 
@@ -345,7 +345,7 @@ Object.assign(STORY, {
     { w: 'orvex', t: '씨앗 여섯에서 떼어 낸 그림자를 내가 품고 일곱 번째 달이 되면, 흑월은 다시는 뜨지 않는다. 300년도, 30일도 아니라 — 영원히.' },
     { w: 'orvex', t: '대가는 밤이다. 하늘엔 늘 은빛이 떠 있고, 사람들은 더 이상 꿈을 꾸지 않겠지. 꿈이 없으면 악몽도 없다.' },
     { w: 'orvex', t: '네가 정화한 씨앗으로 그 힘을 안정시켜 다오. 그림자는 이미 내게 있다. 이번엔… 거절하지 말아 다오.' },
-    { w: 'lise', ifLise: 6, t: '…꿈이 없는 세상은 싫어요. 저는 무서운 꿈을 꿔도, 다음 날 아침이 좋아요.' },
+    { w: 'lise', f: 'resolve', ifLise: 6, t: '…꿈이 없는 세상은 싫어요. 저는 무서운 꿈을 꿔도, 다음 날 아침이 좋아요.' },
     { w: 'lise', ifLiseBelow: 6, f: 'sad', t: '…정하는 건, 당신이에요.' },
     { choice: [['거절한다. 밤도, 꿈도 지키겠다', 'p2_refuse'], ['씨앗을 건넨다', 'p2_accept']] },
   ],
@@ -436,7 +436,7 @@ Object.assign(STORY, {
     { w: 'kael', if: 'kael_ally', t: '스승님. 이번엔 제가 곁에 있겠습니다.' },
     { w: 'orvex', ifEnd: 'end_true', f: 'sad', t: '두 번이나 너희에게 배우는구나. …이번에는 잊지 않으마.' },
     { w: 'narr', ifEnd: 'end_sacrifice', t: '봉인의 사슬이 풀리고, 붉은 머리의 소녀가 눈을 떴다. 리세가 돌아왔다.' },
-    { w: 'lise', f: 'joy', if: 'c10_let', t: '…아. 할머니 웃음소리가 들려요. 숲에 두고 온 기억이 돌아왔어요.' },
+    { w: 'lise', f: 'tearsmile', if: 'c10_let', t: '…아. 할머니 웃음소리가 들려요. 숲에 두고 온 기억이 돌아왔어요.' },
     { w: 'lise', f: 'joy', if: 'c12_promise', t: '집에 가요. 약속했잖아요.' },
     { w: 'lise', f: 'joy', ifNot: 'c12_promise', t: '집에 가요. 이번에는 함께요.' },
     { w: 'narr', if: 'c8_promise', t: '아쿠아렐 기사의 반지는 약속대로 해안 마을의 늙은 어부에게 전해졌다. 그는 반지를 쥐고 오래 울었다.' },
