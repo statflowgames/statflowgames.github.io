@@ -51,7 +51,9 @@ const Assets = {
   heroKeys(s) {
     const g = [s ? s.hero : 'warrior', 'warrior'];
     if (s && s.ally && s.ally !== s.hero) g.push(s.ally);
-    return [...this.groups(g), ...(typeof CuteHeroes !== 'undefined' ? CuteHeroes.keys(g) : [])];
+    // 🆕 주인공 머리 장비 착용 그림 (지금 직업 것만)
+    const helms = s ? this.group('head_gear').filter(k => k.startsWith('head_gear/' + s.hero + '_')) : [];
+    return [...this.groups(g), ...(typeof CuteHeroes !== 'undefined' ? CuteHeroes.keys(g) : []), ...helms];
   },
   portraits(list) { return list.flatMap(k => ['portrait/' + k, ...['joy', 'angry', 'sad', 'surprise'].map(f => `portrait/${k}_${f}`)]); },
   forTitle(s) { return [...this.heroKeys(s), 'story/opening', 'bg/far', ...HERO_KEYS.map(k => 'portrait/' + k)]; },
