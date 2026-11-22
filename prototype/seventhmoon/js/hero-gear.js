@@ -52,6 +52,9 @@ const HeroGear = {
     rig.apply = p => {
       orig(p);
       img.setPosition(hs.x, hs.y).setRotation(hs.rotation).setScale(hs.scaleX, hs.scaleY).setVisible(hs.visible);
+      // ✏️ 2026-11-22 하르반은 칼을 앞뒤로 옮길 때 몸 부품 순서를 다시 쌓는다 → 투구가 맨 아래로 밀려 머리 뒤에 숨던 문제. 늘 머리 바로 위로
+      const c = rig.c, hi = c.getIndex(hs);
+      if (c.getIndex(img) !== hi + 1) { c.remove(img); c.addAt(img, c.getIndex(hs) + 1); }
     };
   },
 };
