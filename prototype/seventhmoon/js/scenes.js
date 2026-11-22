@@ -21,8 +21,11 @@ class Title extends Phaser.Scene {
     const ts = 0.62 * 0.5 / r.def.scale * (r.def.scale / 0.5);
     r.c.setPosition(230, 690 - r.foot * r.def.scale * 1.24).setScale(r.def.scale * 1.24);
     this.rig = r; this.t = 0;
-    UI.text(this, W / 2 + 120, 150, '일곱 번째 달', 96, '#ffe7a8', { serif: true, stroke: '#3a1606', st: 12 }).setOrigin(0.5);
-    UI.text(this, W / 2 + 120, 232, 'SEVENTH MOON', 26, '#f0d9b0', { stroke: '#2a1206', st: 5 }).setOrigin(0.5);
+    // ✏️ 2026-11-22 제목 변경: 일곱 번째 달 → 흑월 — 여섯 달의 수호자 (다국어 표는 js/data/title.js)
+    const GT = gameTitle('ko');
+    UI.text(this, W / 2 + 120, 128, GT.main, 120, '#ffe7a8', { serif: true, stroke: '#3a1606', st: 14 }).setOrigin(0.5);
+    UI.text(this, W / 2 + 120, 214, '— ' + GT.sub + ' —', 32, '#f0d9b0', { serif: true, stroke: '#2a1206', st: 6 }).setOrigin(0.5);
+    UI.text(this, W / 2 + 120, 254, GT.brand.toUpperCase(), 20, '#c8b090', { stroke: '#2a1206', st: 4 }).setOrigin(0.5).setLetterSpacing(8);
     const has = Save.has() && Save.load();
     let y = 340;
     if (has) {
@@ -1126,7 +1129,7 @@ class Credits extends Phaser.Scene {
     const seen = ['end_seal', 'end_true', 'end_dark', 'end_sacrifice'].filter(k => s.endings[k]).length;
     const p2 = this.e.startsWith('p2_'), seen2 = ['p2_true', 'p2_dark', 'p2_dawn'].filter(k => s.endings[k]).length;
     UI.text(this, W / 2, 300, p2 ? `${DB.heroes[s.hero].name} Lv.${s.lv} · 흑월 씨앗 ${Object.keys(s.seeds || {}).length}/6 · 2부 엔딩 ${seen2}/3` : `${DB.heroes[s.hero].name} Lv.${s.lv} · 월석 ${Object.keys(s.moons).length}/6 · 본 엔딩 ${seen}/4`, 26, '#f4e4c0').setOrigin(0.5);
-    UI.text(this, W / 2, 380, '일곱 번째 달 — 끝까지 함께해 주셔서 고마워요\n다른 선택, 다른 길, 다른 직업으로 또 다른 결말을 찾아보세요', 22, '#c8b8a0', { align: 'center' }).setOrigin(0.5);
+    UI.text(this, W / 2, 380, gameTitle('ko').main + ' — 끝까지 함께해 주셔서 고마워요\n다른 선택, 다른 길, 다른 직업으로 또 다른 결말을 찾아보세요', 22, '#c8b8a0', { align: 'center' }).setOrigin(0.5);
     if (this.e === 'end_dark' && s.ch < 7) UI.text(this, W / 2, 462, '다른 결말을 보면 2부 「부서진 하늘」이 열려요 — 6장 보스를 다시 깨 보세요', 22, '#c8b8ff', { bold: true }).setOrigin(0.5);   // 🆕
     UI.button(this, W / 2, 540, '타이틀로', () => this.scene.start('title'), { w: 280, h: 64, size: 26 });
     if (this.e.startsWith('p2_')) {
