@@ -334,6 +334,16 @@ function downgradeItem(it) {
   it.base = Math.round(BASE_STAT[it.slot][it.tier] * (1 + it.rar * 0.1));
   if (it.rar < 4) { delete it.fx; delete it.legendOf; }
 }
+// 🆕 2026-11-22 조합으로 나올 수 있는 부위 (화면 미리 보기용): 이야기 장비가 있으면 그 부위, 같은 부위면 하나, 다르면 둘 중 하나
+function fuseSlotKo(it) { return it.cls === 'acc' ? (it.kind === 'ring' ? '반지' : '목걸이') : SLOT_KO[it.slot]; }
+function fuseOutcomes(a, b) {
+  if (!a) return [];
+  const st = a.story ? a : b && b.story ? b : null;
+  const list = st ? [st] : b ? [a, b] : [a];
+  const out = [];
+  for (const it of list) { const ko = fuseSlotKo(it); if (!out.some(o => o.ko === ko)) out.push({ it, ko }); }
+  return out;
+}
 function tryFuse(s, a, b, ad) {
   if (!canFuse(s, a) || !canFuse(s, b) || a === b || a.rar !== b.rar) return { r: 'bad' };
   if (a.story && b.story) return { r: 'twoStory' };

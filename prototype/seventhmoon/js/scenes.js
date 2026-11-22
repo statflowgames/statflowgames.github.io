@@ -738,9 +738,15 @@ class Smithy extends MenuBase {
     UI.itemSlot(this, 934, 220, F.b, 96); UI.text(this, 1012, 220, '→', 40, '#ffe7a8', { bold: true }).setOrigin(0.5);
     const rar = F.a ? F.a.rar : null, next = rar != null ? rar + 1 : null;
     const g = this.add.graphics(); g.fillStyle(0x0e0805, 0.9).fillRoundedRect(1092 - 48, 172, 96, 96, 10); g.lineStyle(3, next != null ? RARITY[next].hex : 0x5a4030).strokeRoundedRect(1092 - 48, 172, 96, 96, 10);
-    UI.text(this, 1092, 220, next != null ? '?' : '', 40, next != null ? RARITY[next].col : '#8a7a68', { bold: true }).setOrigin(0.5);
+    // ✏️ 2026-11-22 결과 칸에 '나올 부위'를 미리 보여 준다: 같은 부위면 그 부위, 다르면 둘 중 하나
+    const outs = F.b ? fuseOutcomes(F.a, F.b) : [];
+    outs.forEach((o, i) => {
+      const ix = 1092 + (outs.length > 1 ? (i ? 20 : -20) : 0), im = UI.img(this, ix, 220 + (outs.length > 1 ? (i ? 14 : -14) : 0), UI.itemIcon(o.it));
+      if (im) im.setScale((outs.length > 1 ? 56 : 80) / Math.max(im.width, im.height)).setAlpha(0.42);
+    });
+    UI.text(this, 1092, 220, next != null ? '?' : '', 40, next != null ? RARITY[next].col : '#8a7a68', { bold: true, st: 6 }).setOrigin(0.5);
     UI.text(this, 790, 280, '재료 1', 14, '#c8b8a0').setOrigin(0.5, 0); UI.text(this, 934, 280, '재료 2', 14, '#c8b8a0').setOrigin(0.5, 0);
-    if (next != null) UI.text(this, 1092, 280, RARITY[next].ko, 16, RARITY[next].col, { bold: true }).setOrigin(0.5, 0);
+    if (next != null) UI.text(this, 1092, 280, RARITY[next].ko + (outs.length ? ' ' + outs.map(o => o.ko).join('/') : ''), 16, RARITY[next].col, { bold: true }).setOrigin(0.5, 0);
     if (rar != null) {
       const f = fuseInfo(s, rar, F.ad);
       const extra = [f.pity ? `실패 보정 +${f.pity}%p` : '', f.adB ? `광고 +${f.adB}%p` : ''].filter(Boolean).join(' · ');
@@ -752,16 +758,18 @@ class Smithy extends MenuBase {
       const lt = UI.text(this, 724, 380, loseTxt, 16, f.lose === 'none' ? '#c8b8a0' : '#ff9a8a', { wrap: 480 });
       const cy = 380 + Math.round(lt.height) + 8;   // ✏️ 안내가 여러 줄이면 아래 줄을 민다
       UI.text(this, 724, cy, `비용: 금화 ${f.gold}${f.abyss ? ` · ${MATS.abyss} ${f.abyss}` : ''}`, 18, '#ffd34d');
-      if (!risk) UI.text(this, 724, cy + 28, '부위는 두 재료 중 하나 · 단계는 높은 쪽 · 강화는 높은 쪽의 절반 · 옵션은 새로', 14, '#8f8070');
+      const partTxt = !F.b ? '재료 2를 고르면 나올 부위가 보여요' : outs.length === 1 ? `나오는 부위: ${outs[0].ko}${risk ? ` (「${risk.item.name}」이 자라요)` : ''}` : `나오는 부위: ${outs[0].ko} 또는 ${outs[1].ko} (반반)`;
+      UI.text(this, 724, cy + 28, partTxt, 17, '#ffe7a8', { bold: true });
+      UI.text(this, 724, cy + 54, '단계는 높은 쪽 · 강화는 높은 쪽의 절반 · 옵션은 새로', 14, '#8f8070');
       if (F.b && !F.ad && f.rate < 100) UI.button(this, 860, 540, `▶ 광고 보고 +${rar >= 3 ? 1 : 10}%p`, () => Monet.rewardAd(this, 'fuse', () => { F.ad = true; this.draw(); }), { w: 260, h: 52, size: 19, col: 0x2a4a3a });
       if (F.b) UI.button(this, 1110, 540, '조합', () => {
         const r = tryFuse(s, F.a, F.b, F.ad);
         if (r.r === 'cost') return UI.toast(this, '금화나 마석이 모자라요', '#ff9a8a');
         if (r.r === 'bad') return UI.toast(this, '조합할 수 없는 장비예요', '#ff9a8a');
         if (r.r === 'twoStory') return UI.toast(this, '이야기 장비끼리는 조합할 수 없어요', '#ff9a8a');
-        if (r.r === 'ok') { SFX.parry(); this.cameras.main.flash(200, 255, 230, 160); UI.toast(this, `조합 성공! ${RARITY[r.it.rar].ko} 「${r.it.name}」`, RARITY[r.it.rar].col, 400); }
-        else if (r.down) { SFX.guard(); UI.toast(this, `조합 실패… 「${r.down.name}」이 ${RARITY[r.down.rar].ko}(으)로 내려갔어요` + (r.lost.length ? ' · 다른 재료는 사라졌어요' : ''), '#ff9a8a', 400); }
-        else { SFX.guard(); UI.toast(this, r.lost.length ? `조합 실패… 재료 ${r.lost.length}개가 사라졌어요` + (Object.keys(r.refund).length ? ' · ' + Object.entries(r.refund).map(([m, n]) => `${MATS[m]} +${n}`).join(', ') : '') : '조합 실패', '#ff9a8a', 400); }
+        if (r.r === 'ok') { SFX.parry(); this.cameras.main.flash(200, 255, 230, 160); } else SFX.guard();
+        // ✏️ 2026-11-22 결과를 한눈에: 토스트 대신 결과 카드 (닫을 때까지 남는다)
+        this.fuseRes = { ...r, mats: [F.a, F.b] };
         this.fuse = { a: null, b: null, ad: false }; Save.write(); this.draw();
       }, { w: 150, h: 56, size: 24 });
     } else UI.text(this, 960, 400, '왼쪽에서 장비를 골라 주게.\n같은 등급 두 개면 한 단계 위를 노려 보지.', 19, '#c8b8a0', { align: 'center' }).setOrigin(0.5);
@@ -769,6 +777,43 @@ class Smithy extends MenuBase {
     UI.text(this, 724, 580, '조합 확률', 16, '#ffe7a8', { bold: true });
     UI.text(this, 724, 604, FUSE_RULE.map((R, i) => `${RARITY[i].ko}→${RARITY[i + 1].ko} ${R.rate}%`).join('  ·  '), 15, '#c8b8a0');
     UI.text(this, 724, 628, '실패할 때마다 다음 확률이 조금씩 오르고, 성공하면 처음으로 돌아가요.', 14, '#8f8070');
+    if (this.fuseRes) this.drawFuseResult(this.fuseRes);
+  }
+  // 🆕 2026-11-22 조합 결과 카드: 성공이면 새 장비 전체 정보, 실패면 무엇을 잃고 무엇이 남았는지
+  drawFuseResult(r) {
+    const close = () => { this.fuseRes = null; this.draw(); };
+    UI.blocker(this, 0.72).on('pointerup', close);
+    const x0 = W / 2 - 330, y0 = 120, w = 660, h = 480, ok = r.r === 'ok';
+    UI.panel(this, x0, y0, w, h, { alpha: 0.98, line: ok ? RARITY[r.it.rar].hex : 0x8a3a3a });
+    this.add.zone(x0, y0, w, h).setOrigin(0).setInteractive();   // 카드 안을 눌러도 닫히지 않게
+    UI.text(this, W / 2, y0 + 36, ok ? '조합 성공!' : '조합 실패…', 34, ok ? '#ffe27a' : '#ff9a8a', { bold: true, serif: true, st: 6 }).setOrigin(0.5);
+    if (ok) {
+      const it = r.it, cx = x0 + 120, cy = y0 + 170;
+      const glow = this.add.circle(cx, cy, 86, RARITY[it.rar].hex, 0.28).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: glow, scale: 1.15, alpha: 0.12, yoyo: true, repeat: -1, duration: 700 });
+      UI.itemSlot(this, cx, cy, it, 132);
+      UI.text(this, cx, cy + 82, '재료', 14, '#8f8070').setOrigin(0.5, 0);
+      r.mats.forEach((m, i) => { const sl = UI.itemSlot(this, cx - 30 + i * 60, cy + 132, m, 52); sl.setAlpha(0.6); });
+      this.itemDetail(it, x0 + 230, y0 + 84, 400);
+    } else {
+      let y = y0 + 90;
+      const row = (it, label, col) => {
+        UI.itemSlot(this, x0 + 90, y + 44, it, 80);
+        UI.text(this, x0 + 150, y + 16, itemLabel(it), 21, RARITY[it.rar].col, { bold: true, wrap: 460 });
+        UI.text(this, x0 + 150, y + 50, label, 17, col, { wrap: 460 });
+        y += 100;
+      };
+      const kept = r.mats.filter(m => !r.lost.includes(m));
+      for (const m of r.lost) {
+        row(m, '사라졌어요', '#ff9a8a');
+        const g = this.add.graphics().lineStyle(5, 0xff5a4a, 0.9); g.lineBetween(x0 + 58, y - 88, x0 + 122, y - 24).lineBetween(x0 + 122, y - 88, x0 + 58, y - 24);
+      }
+      for (const m of kept) row(m, m === r.down ? `▼ ${RARITY[m.rar].ko}(으)로 내려갔어요 (처음 받은 등급 아래로는 안 내려가요)` : '그대로 남았어요', m === r.down ? '#ffb060' : '#9ae07a');
+      const ref = Object.entries(r.refund || {}).map(([m, n]) => `${MATS[m]} +${n}`).join(', ');
+      if (ref) UI.text(this, W / 2, y + 6, '돌려받은 재료: ' + ref, 18, '#d8c8ff').setOrigin(0.5, 0);
+      UI.text(this, W / 2, y0 + h - 104, '다음 조합 확률이 조금 올랐어요', 16, '#9ae07a').setOrigin(0.5);
+    }
+    UI.button(this, W / 2, y0 + h - 48, '확인', close, { w: 200, h: 56, size: 24 });
   }
   // 🆕 보스 전리품 → 그 보스만의 장신구
   drawTrophy() {
@@ -1090,7 +1135,7 @@ class Credits extends Phaser.Scene {
 function towerOpen(s) { return s && (s.ch > 1 || (s.cleared.c1 || []).includes('boss')); }
 class TowerGate extends Phaser.Scene {
   constructor() { super('towergate'); }
-  preload() { Assets.preloadFor(this, ['bg/abyss_far', 'bg/far']); }
+  preload() { Assets.preloadFor(this, ['bg/abyss_far', 'bg/far', ...Assets.icons()]); }
   create() {
     const s = Save.data || Save.load();
     if (!s) { this.scene.start('title'); return; }

@@ -61,6 +61,7 @@ class Boot extends Phaser.Scene {
     const t = this.add.text(W / 2, H / 2, '불러오는 중… 0%', { fontFamily: 'sans-serif', fontSize: 28, color: '#f4e4c0' }).setOrigin(0.5);
     this.load.on('progress', p => t.setText('불러오는 중… ' + Math.round(p * 100) + '%'));
     this.load.json('man', 'assets/manifest.json');
+    this.load.image('coin', 'assets/ui/coin.png');   // 🆕 2026-11-22 달 문양 금화 (못 불러오면 아래에서 동그라미로 대신)
     this.load.once('filecomplete-json-man', (k, ty, data) => {
       const ext = data.__ext || '.png';
       MAN = data; Assets.ext = ext;
@@ -74,7 +75,7 @@ class Boot extends Phaser.Scene {
     Settings.apply();
     const g = this.make.graphics({ x: 0, y: 0, add: false });
     g.fillStyle(0x000000, 1).fillEllipse(60, 18, 120, 36); g.generateTexture('shadow', 120, 36); g.clear();
-    g.fillStyle(0xffd34d).fillCircle(12, 12, 12); g.fillStyle(0xfff3b0).fillCircle(9, 9, 5); g.lineStyle(2, 0x9a6a10).strokeCircle(12, 12, 11); g.generateTexture('coin', 24, 24); g.clear();
+    if (!this.textures.exists('coin')) { g.fillStyle(0xffd34d).fillCircle(12, 12, 12); g.fillStyle(0xfff3b0).fillCircle(9, 9, 5); g.lineStyle(2, 0x9a6a10).strokeCircle(12, 12, 11); g.generateTexture('coin', 24, 24); g.clear(); }
     g.fillStyle(0xb34dff, 0.35).fillCircle(26, 26, 26); g.fillStyle(0xd28cff).fillCircle(26, 26, 15); g.fillStyle(0xffffff).fillCircle(22, 22, 6); g.generateTexture('orb', 52, 52); g.clear();
     g.fillStyle(0xffffff).fillRect(0, 0, 4, 4); g.generateTexture('px', 4, 4); g.destroy();
     // 테스트 진입: ?stage=c2_s1 / ?scene=map|camp / ?play
@@ -172,8 +173,13 @@ class Game extends Phaser.Scene {
       const im = this.add.image(i * fw, -40, far).setOrigin(0, 0).setScale(fs).setFlipX(i % 2 === 1).setScrollFactor(0.35, 1).setDepth(0);
       if (this.theme.standin) im.setTint(tint);
     }
-    const gt = this.add.tileSprite(0, 448, STAGE_W, H - 448, ground).setOrigin(0).setDepth(10);
+    // ✏️ 2026-11-22 바닥: 스테이지 길이(최대 6600px)만큼 큰 그림을 만들지 않고, 화면 폭 하나를 카메라에 고정해 무늬만 흘린다
+    //   (휴대폰 중에는 한 장에 가로 4096px까지만 되는 기기가 있다 · 그래픽 메모리 절약)
+    const gt = this.add.tileSprite(0, 448, W + 8, H - 448, ground).setOrigin(0).setScrollFactor(0, 1).setDepth(10);
     gt.tileScaleX = 0.62; gt.tileScaleY = 0.62; gt.tilePositionY = 30;
+    const gscroll = () => { gt.tilePositionX = this.cameras.main.scrollX / gt.tileScaleX; };
+    gscroll(); this.events.on('prerender', gscroll);
+    this.events.once('shutdown', () => this.events.off('prerender', gscroll));
     if (this.theme.standin) gt.setTint(tint);
     const edge = this.add.graphics().setDepth(11);
     edge.fillGradientStyle(0x1a1a10, 0x1a1a10, 0x1a1a10, 0x1a1a10, 0.5, 0.5, 0, 0).fillRect(0, 448, STAGE_W, 34);
@@ -684,7 +690,7 @@ class Game extends Phaser.Scene {
     hud.add(this.add.text(220, 26, `${DB.heroes[s.hero].ko.split(' ')[0]} Lv.${s.lv}`, { fontFamily: 'sans-serif', fontSize: 15, color: '#c8b08a' }));
     this.bars = this.add.graphics(); hud.add(this.bars);
     this.goldText = this.add.text(W - 24, 22, '0', { fontFamily: 'sans-serif', fontSize: 26, color: '#ffd34d', stroke: '#3a1606', strokeThickness: 5 }).setOrigin(1, 0);
-    hud.add(this.add.image(W - 24 - 70, 37, 'coin').setScale(1.1)); hud.add(this.goldText);
+    hud.add(this.add.image(W - 24 - 70, 37, 'coin').setDisplaySize(30, 30)); hud.add(this.goldText);
     this.comboText = this.add.text(W - 30, 120, '', { fontFamily: 'sans-serif', fontSize: 54, color: '#fff2c0', stroke: '#7a2a06', strokeThickness: 8, fontStyle: 'bold italic' }).setOrigin(1, 0.5).setAlpha(0);
     this.comboSub = this.add.text(W - 34, 160, 'HIT', { fontFamily: 'sans-serif', fontSize: 22, color: '#ffd34d', stroke: '#3a1606', strokeThickness: 5 }).setOrigin(1, 0.5).setAlpha(0);
     hud.add(this.comboText); hud.add(this.comboSub);
@@ -1067,7 +1073,13 @@ class Game extends Phaser.Scene {
   }
   dropPickup(x, y, type, o = {}) {
     let img;
-    if (type === 'coin') img = this.add.image(x, y - 50, 'coin');
+    if (type === 'coin') {
+      // ✏️ 2026-11-22 달 문양 금화: 빙글빙글 돌며 떨어진다 (옆으로 좁아졌다 넓어졌다)
+      img = this.add.image(x, y - 50, 'coin').setDisplaySize(28, 28);
+      const sx = img.scaleX;
+      const tw = this.tweens.add({ targets: img, scaleX: { from: sx, to: sx * 0.18 }, duration: 260 + Math.random() * 120, yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: Math.random() * 200 });
+      img.once('destroy', () => tw.remove());
+    }
     else if (type === 'heal') img = this.add.image(x, y - 50, 'emote/heart').setScale(0.32);
     else if (type === 'cons') {
       // 🆕 소모품 드롭 (지정 안 하면 무작위)
@@ -1083,8 +1095,11 @@ class Game extends Phaser.Scene {
       o.item = it;
       img = this.add.container(x, y - 50);
       const glow = this.add.circle(0, 0, 26, RARITY[it.rar].hex, 0.35).setBlendMode(Phaser.BlendModes.ADD);
-      const ic = UI.img(this, 0, 0, UI.itemIcon(it)); if (ic) ic.setScale(46 / ic.height);
-      img.add(glow); if (ic) img.add(ic);
+      // ✏️ 2026-11-22 장비 아이콘은 전투에 미리 들고 있지 않다 → 없으면 그때 불러와서 붙인다
+      const ik = UI.itemIcon(it), box = img;
+      const put = () => { if (!box.active) return; const ic = UI.img(this, 0, 0, ik); if (ic) { ic.setScale(46 / ic.height); box.add(ic); } };
+      img.add(glow);
+      if (this.textures.exists(ik)) put(); else Assets.ensure(this, [ik], put);
       this.tweens.add({ targets: glow, scale: 1.3, alpha: 0.15, yoyo: true, repeat: -1, duration: 500 });
     }
     img.setDepth(1000 + y);

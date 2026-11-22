@@ -155,6 +155,8 @@ const StageEvents = {
       if (w === 'lise_stone' || w === 'lise') out.add('portrait/lise');
       if (w === 'odelia') out.add('portrait/paladin'); if (w === 'seril') out.add('portrait/ranger');
     }
+    // ✏️ 2026-11-22 구출 인물 그림은 구출 스테이지에서만 불러온다 (늘 들고 있지 않게)
+    if (d.kind === 'rescue') { const t = CAPTIVE_TYPE[d.who] || 'villager'; out.add(`captive/${t}_trapped`).add(`captive/${t}_free`).add('npc/merchant'); }
     return [...out].filter(k => typeof MAN === 'undefined' || MAN[k]);
   },
   // 말하는 사람이 어디에 있나

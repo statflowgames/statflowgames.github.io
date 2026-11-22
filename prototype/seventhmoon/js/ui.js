@@ -50,7 +50,7 @@ const UI = {
     if (it.story && typeof MAN !== 'undefined' && MAN['icon/story_' + it.story]) return 'icon/story_' + it.story;
     if (it.boss) {
       k = 'icon/bossgear_' + it.boss;
-      if (typeof game !== 'undefined' && game.textures && !game.textures.exists(k)) k = it.kind === 'ring' ? 'icon/acc_legend_1' : 'icon/acc_legend_5';
+      if (typeof MAN !== 'undefined' && !MAN[k]) k = it.kind === 'ring' ? 'icon/acc_legend_1' : 'icon/acc_legend_5';
     } else if (it.cls === 'acc') {
       if (it.rar === 4) k = 'icon/acc_legend_' + DB.accessory.legend.findIndex(l => l.name === (it.legendOf || it.name));   // ✏️ 이야기 전설은 빌려 온 전설 그림
       else if (it.rar === 5) { const si = DB.accessory.sets.findIndex(x => x.name === it.set); k = `icon/set_${si ? 'b' : 'a'}${it.kind === 'ring' ? 0 : 1}`; }
@@ -70,8 +70,13 @@ const UI = {
     c.add(g);
     if (it) {
       const key = UI.itemIcon(it);
-      if (sc.textures.exists(key)) { const im = sc.add.image(0, 0, key); im.setScale((size - 12) / Math.max(im.width, im.height)); c.add(im); }
-      else c.add(UI.text(sc, 0, 0, it.name.slice(0, 2), 22, RARITY[it.rar].col, { bold: true }).setOrigin(0.5));
+      const put = () => { const im = sc.add.image(0, 0, key); im.setScale((size - 12) / Math.max(im.width, im.height)); c.addAt(im, 1); };
+      if (sc.textures.exists(key)) put();
+      else {
+        const ph = UI.text(sc, 0, 0, it.name.slice(0, 2), 22, RARITY[it.rar].col, { bold: true }).setOrigin(0.5); c.add(ph);
+        // ✏️ 2026-11-22 전투 결과 화면 등 아이콘을 들고 있지 않은 곳: 그때 불러와서 바꾼다
+        if (typeof MAN !== 'undefined' && MAN[key] && typeof Assets !== 'undefined') Assets.ensure(sc, [key], () => { if (c.active && sc.textures.exists(key)) { ph.destroy(); put(); } });
+      }
       if (it.plus) c.add(UI.text(sc, size / 2 - 6, -size / 2 + 2, '+' + it.plus, 16, '#ffe27a', { bold: true }).setOrigin(1, 0));
       if (it.lock) { const lk = sc.add.graphics(), lx = -size / 2 + 14, ly = size / 2 - 14;   // 🆕 잠금 자물쇠
         lk.lineStyle(3, 0xffd34d).beginPath().arc(lx, ly - 5, 5, Math.PI, 0).strokePath(); lk.fillStyle(0xffd34d).fillRoundedRect(lx - 7, ly - 4, 14, 11, 2); c.add(lk); }

@@ -1,7 +1,7 @@
 // 필요한 그림만 불러오고, 안 쓰는 큰 그림은 비운다 (휴대폰 메모리 절약).
 // 공통 그룹은 처음에 한 번 불러 두고, 나머지는 장면마다 preload()에서 필요한 것만.
 const Assets = {
-  CORE: new Set(['ui', 'uiset', 'icon', 'emote', 'fx', 'debris', 'debris2', 'chest', 'faces', 'trap', 'props', 'captive', 'npc']),   // ✏️ captive: 우리에 갇힌 사람(그림이 오기 전엔 npc 실루엣)
+  CORE: new Set(['ui', 'uiset', 'emote', 'fx', 'debris', 'debris2', 'chest', 'faces', 'trap', 'props']),   // ✏️ 2026-11-22 captive·npc·icon은 필요한 장면에서만 (휴대폰 메모리)
   ext: '.png',
   group(g) { return Object.keys(MAN).filter(k => k.startsWith(g + '/')); },
   groups(list) { const out = []; for (const g of list) if (g) out.push(...this.group(g)); return out; },
@@ -56,9 +56,16 @@ const Assets = {
     return [...this.groups(g), ...(typeof CuteHeroes !== 'undefined' ? CuteHeroes.keys(g) : []), ...helms];
   },
   portraits(list) { return list.flatMap(k => ['portrait/' + k, ...['joy', 'angry', 'sad', 'surprise'].map(f => `portrait/${k}_${f}`)]); },
+  // ✏️ 2026-11-22 아이콘(400여 장)은 메뉴가 열리는 지도·캠프·탑 입구에서만. 전투는 battleIcons만, 떨어진 장비 아이콘은 그때 불러온다
+  icons() { return this.group('icon'); },
+  battleIcons(s) {
+    const h = s ? s.hero : 'warrior';
+    const belt = typeof BELT !== 'undefined' ? Object.values(BELT).map(b => 'icon/' + b.icon) : [];
+    return [...belt, ...this.group('icon').filter(k => k.startsWith(`icon/skill_${h}_`)), 'icon/hammer'];
+  },
   forTitle(s) { return [...this.heroKeys(s), 'story/opening', 'bg/far', ...HERO_KEYS.map(k => 'portrait/' + k)]; },
-  forMap(s, ch) { const C = typeof CHAPTERS !== 'undefined' && CHAPTERS[ch - 1]; return [C ? C.map : `map/c${ch}`, 'map/c1', 'portrait/' + (s ? s.hero : 'warrior')]; },
-  forCamp(s) { return [...this.heroKeys(s), 'bg/camp_far', 'bg/far', ...this.group('npc'), ...HERO_KEYS.map(k => 'portrait/' + k), ...this.portraits(['lise', 'tabel']), 'portrait/merchant', 'portrait/fortune']; },
+  forMap(s, ch) { const C = typeof CHAPTERS !== 'undefined' && CHAPTERS[ch - 1]; return [...this.icons(), C ? C.map : `map/c${ch}`, 'map/c1', 'portrait/' + (s ? s.hero : 'warrior')]; },
+  forCamp(s) { return [...this.heroKeys(s), ...this.icons(), 'bg/camp_far', 'bg/far', ...this.group('npc'), ...HERO_KEYS.map(k => 'portrait/' + k), ...this.portraits(['lise', 'tabel']), 'portrait/merchant', 'portrait/fortune']; },
   forStage(def, s) {
     const th = THEMES[def.theme] || THEMES.forest;
     const g = new Set([th.props || 'props', 'barkhaul', 'spear', 'grunt']);
@@ -70,7 +77,7 @@ const Assets = {
       if (d && d.summon) g.add(this.rigGroup(d.summon));
       if (id === 'toothcrusher') g.add('toothcrusher');
     }
-    return [...this.heroKeys(s), ...this.groups([...g]), th.far, th.ground, 'bg/far', 'bg/ground'];
+    return [...this.heroKeys(s), ...this.battleIcons(s), ...this.groups([...g]), th.far, th.ground, 'bg/far', 'bg/ground'];
   },
   // 대화 장면에 나오는 그림
   forTalk(key, s) {
