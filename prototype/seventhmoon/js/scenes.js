@@ -272,7 +272,8 @@ class MapScene extends Phaser.Scene {
     const s = Save.data, ch = this.ch, node = chapterNodes(ch)[id];
     if (node.route && ch === s.ch && !s.route['c' + ch]) { s.route['c' + ch] = node.route; Save.write(); }
     if (node.type === 'event') {
-      runTalk(this, `c${ch}_event`, () => { clearNode(s, ch, id); Save.write(); this.scene.restart({ ch }); });
+      // ✏️ 사건은 한 번만 (다시 하기에서 반복해 리세 신뢰가 쌓이던 버그)
+      runTalk(this, `c${ch}_event`, () => { clearNode(s, ch, id); Save.write(); this.scene.restart({ ch }); }, { once: true });
       return;
     }
     const go = () => { SFX.music(null, { fade: 0.4 }); this.scene.start('game', { stage: node.stage, ch, node: id }); };

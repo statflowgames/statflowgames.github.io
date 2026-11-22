@@ -102,6 +102,9 @@ const Save = {
   load() {
     try { const t = localStorage.getItem(SAVE_KEY); if (t) this.data = JSON.parse(t); } catch (e) { this.data = null; }
     if (this.data && this.data.v !== 1) this.data = null;
+    // ✏️ 2026-11-22 4장·9장 선택이 공통 장면으로 옮겨짐: 예전에 이미 고른 저장이면 다시 묻지 않는다
+    const f = this.data && this.data.flags;
+    if (f) { if (f.c4_truth || f.c4_hide) f.c4_decided = true; if (f.kael_ally || f.kael_alone) f.c9_decided = true; }
     return this.data;
   },
   write() { try { const t = JSON.stringify(this.data); localStorage.setItem(SAVE_KEY, t); NativeStore.mirror(SAVE_KEY, t); } catch (e) { /* 저장 실패는 조용히 */ } },
