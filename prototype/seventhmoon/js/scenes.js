@@ -376,7 +376,7 @@ class Camp extends Phaser.Scene {
   create() {
     const s = Save.data || Save.load();
     if (!s) { this.scene.start('title'); return; }
-    if (s.spNotice) this.time.delayedCall(700, () => UI.toast(this, '스킬 포인트 기준이 바뀌었어요 — 마법 천막에서 스킬을 다시 배워 주세요', '#9ae0ff', 800));   // 🆕 2026-11-22
+    if (s.spNotice) this.time.delayedCall(700, () => UI.toast(this, '스킬 포인트 기준이 바뀌었어요 — 마법 천막에서 스킬을 다시 배워 주세요', '#9ae0ff', 170));   // 🆕 2026-11-22
     const bg = UI.img(this, W / 2, -60, 'bg/camp_far') || this.add.image(W / 2, -40, 'bg/far');
     bg.setOrigin(0.5, 0).setScale(W / bg.width);
     const shade = this.add.graphics();
@@ -1025,7 +1025,7 @@ class Skills extends MenuBase {
     UI.text(this, 400, 66, `스킬 포인트 ${s.sp}`, 24, '#9ae0ff', { bold: true }).setOrigin(0, 0.5);
     // ✏️ 2026-11-22 포인트가 드물다: 다음 포인트 레벨과 전체 개수를 보여 준다
     const nx = spNextLv(s.lv);
-    UI.text(this, 580, 66, `${nx ? `다음 포인트 Lv.${nx}` : '포인트를 모두 받았어요'} · 최대 ${spTotal(LV_CAP)}개 (스킬 15개)`, 16, '#c8b8a0').setOrigin(0, 0.5);
+    UI.text(this, 580, 66, `${nx ? `다음 포인트 Lv.${nx}` : '레벨 포인트를 모두 받았어요'} · 레벨로 최대 ${spTotal(LV_CAP)}개 + 스킬의 서 ${Object.keys(SKILL_BOOK_STAGES).length}권`, 16, '#c8b8a0').setOrigin(0, 0.5);
     if (s.spNotice) { delete s.spNotice; Save.write(); this.time.delayedCall(200, () => UI.toast(this, '스킬 포인트 기준이 바뀌어 스킬을 초기화했어요. 포인트를 다시 나눠 주세요', '#9ae0ff', 600)); }
     sk.branches.forEach((b, bi) => {
       const x = 130 + bi * 210;
@@ -1079,15 +1079,30 @@ class Skills extends MenuBase {
           s.active = s.active.map(a => (a === i ? null : a)); s.active[k] = i; Save.write(); this.draw();
         }, { w: 140, h: 52, size: 19 }));
       } else UI.text(this, 870, 460, '배운 패시브는 바로 적용돼요', 18, '#9ae07a');
+      // 🆕 2026-11-22 갈래 맨 끝에 배운 스킬 하나만 되돌리기 (반값)
+      const tail = learned && (r === 4 || !s.skills[i + 1]);
+      if (tail) {
+        const oc = refundOneCost(s);
+        UI.button(this, 1040, 520, `이것만 되돌리기 ${oc}금`, () => {
+          if (s.gold < oc) return UI.toast(this, '금화가 모자라요', '#ff9a8a');
+          s.gold -= oc; delete s.skills[i]; s.sp++; s.active = s.active.map(a => (a === i ? null : a)); SFX.go(); Save.write(); this.draw();
+        }, { w: 260, h: 40, size: 17, col: 0x3a2a1a });
+      }
     } else UI.text(this, 1040, 330, '스킬을 누르면\n설명이 보여요', 22, '#8a7a68', { align: 'center' }).setOrigin(0.5);
     // 초기화
-    const cost = 50 * s.lv;
-    UI.button(this, 1040, 610, `초기화 ${cost}금`, () => {
+    // ✏️ 2026-11-22 포인트는 전부 돌려준다. 직업마다 첫 1번 무료, 그 뒤로는 그 장 한 판 값
+    const cost = respecCost(s);
+    UI.button(this, 1040, 610, cost ? `전체 초기화 ${cost}금` : '전체 초기화 (첫 1번 무료)', () => {
       const n = Object.keys(s.skills).length;
-      if (!n) return;
+      if (!n) return UI.toast(this, '배운 스킬이 없어요', '#c8b8a0');
       if (s.gold < cost) return UI.toast(this, '금화가 모자라요', '#ff9a8a');
-      s.gold -= cost; s.sp += n; s.skills = {}; s.active = [null, null]; Save.write(); this.draw();
-    }, { w: 260, h: 50, size: 20, col: 0x4a2a14 });
+      s.gold -= cost; s.respecUsed = s.respecUsed || {}; s.respecUsed[s.hero] = true;
+      s.sp += n; s.skills = {}; s.active = [null, null]; Save.write(); this.draw();
+    }, { w: 300, h: 50, size: 20, col: 0x4a2a14 });
+    // 🆕 스킬의 서
+    if (s.books > 0) UI.button(this, 740, 600, `📖 스킬의 서 쓰기 (${s.books})`, () => {
+      if (useSkillBook(s)) { SFX.heal(); Save.write(); UI.toast(this, `${DB.heroes[s.hero].name}의 스킬 포인트 +1`, '#9ae0ff'); this.draw(); }
+    }, { w: 240, h: 50, size: 18, col: 0x2a3a5a });
     UI.button(this, 740, 520, '할멈과 이야기', () => runTalk(this, 'camp_fortune'), { w: 200, h: 50, size: 19, col: 0x3a2a1a });
   }
 }

@@ -2204,7 +2204,9 @@ class Game extends Phaser.Scene {
     s.mats.low += 1 + bonus; if (this.ch >= 3) s.mats.mid += Math.floor(bonus / 2) + 1; if (this.ch >= 5) s.mats.high += 1;
     if (this.cfg.node && this.cfg.node !== 'void' && !this.tower) clearNode(s, this.ch, this.cfg.node);
     if (this.mode === 'story') s.hpPct = this.def.boss ? 1 : Math.max(0, Math.min(1, this.hero.hp / this.hero.maxHp));   // 🆕 체력 이어가기
+    const gotBook = this.mode === 'story' && grantSkillBook(s, this.cfg.stage);   // 🆕 2026-11-22 스킬의 서
     Save.write();
+    if (gotBook) this.time.delayedCall(1200, () => { SFX.ui && SFX.ui('chest_open'); UI.toast(this, '📖 스킬의 서를 얻었어요! 마법 천막에서 쓰면 스킬 포인트 +1', '#9ae0ff', 640); });
     // 화면
     c.add(UI.text(this, W / 2, 86, '스테이지 클리어!', 60, '#ffe27a', { serif: true, st: 10 }).setOrigin(0.5));
     const gT = UI.text(this, W - 200, 180, g, 150, { S: '#ffd34d', A: '#9ae07a', B: '#8ac8ff', C: '#d8c8b0' }[g], { serif: true, st: 12, bold: true }).setOrigin(0.5).setScale(3).setAlpha(0);

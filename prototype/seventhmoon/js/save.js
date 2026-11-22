@@ -51,8 +51,8 @@ function switchHero(s, key) {
   if (!s.eq.acc2 && prev.acc2) s.eq.acc2 = prev.acc2;
   const sk = s.skillsBy[key];
   // 스킬 포인트는 레벨에서 나오므로, 처음 쓰는 직업은 전체 포인트를 새로 받는다
-  if (sk) { s.skills = sk.skills; s.active = sk.active; s.sp = Math.max(0, spTotal(s.lv) - Object.keys(s.skills).length); }
-  else { s.skills = {}; s.active = [null, null]; s.sp = spTotal(s.lv); }
+  if (sk) { s.skills = sk.skills; s.active = sk.active; s.sp = Math.max(0, spOwned(s, key) - Object.keys(s.skills).length); }
+  else { s.skills = {}; s.active = [null, null]; s.sp = spOwned(s, key); }
 }
 // 난이도: 0 견습, 1 기사(기본), 2 영웅(엔딩 1개 이상), 3 전설(엔딩 2개 이상)
 const DIFFS = [
@@ -108,7 +108,7 @@ const Save = {
     // ✏️ 2026-11-22 스킬 포인트 기준이 바뀜: 새 기준보다 많이 배운 직업은 스킬을 초기화하고 포인트를 다시 준다 (한 번만)
     const d = this.data;
     if (d && d.spV !== 2) {
-      const tot = spTotal(d.lv);
+      const tot = spTotal(d.lv) + ((d.spBonus || {})[d.hero] || 0);
       let reset = false;
       if (Object.keys(d.skills || {}).length > tot) { d.skills = {}; d.active = [null, null]; reset = true; }
       d.sp = Math.max(0, tot - Object.keys(d.skills || {}).length);
@@ -307,6 +307,24 @@ function heroStats(s) {
 // ✏️ 2026-11-22 스킬 포인트는 드물게: Lv 2·4·6·8·10, 그 뒤로 8레벨마다(18·26·34·42·50·58) → Lv60에 11개 (스킬 15개 중 두 갈래 + 맛보기)
 function spAt(lv) { return lv <= 10 ? (lv >= 2 && lv % 2 === 0 ? 1 : 0) : ((lv - 10) % 8 === 0 ? 1 : 0); }
 function spTotal(lv) { let n = 0; for (let l = 2; l <= lv; l++) n += spAt(l); return n; }
+// 🆕 2026-11-22 스킬의 서: 정해진 보스를 처음 쓰러뜨리면 1권(총 3권). 마법 천막에서 지금 직업에 써서 스킬 포인트 +1
+const SKILL_BOOK_STAGES = { c6_boss: '1부 마지막 보스', x_void: '숨은 보스 「심연」', c12_boss: '2부 마지막 보스' };
+function spOwned(s, hero) { return spTotal(s.lv) + ((s.spBonus || {})[hero || s.hero] || 0); }
+function grantSkillBook(s, stage) {
+  if (!SKILL_BOOK_STAGES[stage]) return false;
+  s.bookGot = s.bookGot || {};
+  if (s.bookGot[stage]) return false;
+  s.bookGot[stage] = true; s.books = (s.books || 0) + 1;
+  return true;
+}
+function useSkillBook(s) {
+  if (!(s.books > 0)) return false;
+  s.books--; s.spBonus = s.spBonus || {}; s.spBonus[s.hero] = (s.spBonus[s.hero] || 0) + 1; s.sp++;
+  return true;
+}
+// 🆕 2026-11-22 스킬 초기화: 직업마다 첫 1번 무료, 그 뒤로는 그 장 한 판 값. 갈래 끝 스킬 하나만 되돌리기는 반값
+function respecCost(s) { return (s.respecUsed || {})[s.hero] ? Math.round(stageIncome(s.ch) / 10) * 10 : 0; }
+function refundOneCost(s) { return Math.round(stageIncome(s.ch) / 20) * 10; }
 function spNextLv(lv) { for (let l = lv + 1; l <= LV_CAP; l++) if (spAt(l)) return l; return null; }
 function gainExp(s, n) {
   const ups = [];
