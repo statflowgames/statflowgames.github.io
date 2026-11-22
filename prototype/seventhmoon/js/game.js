@@ -135,6 +135,7 @@ class Game extends Phaser.Scene {
     // 🆕 체력 이어가기 (이야기 모드): 스테이지를 깨도 체력이 차지 않는다. 보스(중간·장)를 깨면 다음 스테이지에서 꽉 찬다
     else if (this.mode === 'story' && typeof s.hpPct === 'number' && s.hpPct < 1) this.hero.hp = Math.max(Math.round(this.hero.maxHp * HP_CARRY_MIN), Math.round(this.hero.maxHp * s.hpPct));
     this.tut = !s.seen.tutorial && this.cfg.stage === 'c1_s1' && !this.def.mode ? { i: 0, x0: 260, ui: null, wait: 1800 } : null;
+    this.heroTip = this.mode === 'story' && typeof HERO_TIP !== 'undefined' && HERO_TIP[s.hero] && !s.seen['tip_' + s.hero] ? { wait: 6500 } : null;   // 🆕 2026-11-22 직업 대표 기술 안내 (한 번)
     // AI 동료
     this.ally = null; this.allyCmd = s.allyCmd || 'cover'; this.allyBonus = null;
     if (s.ally && s.ally !== s.hero && s.unlocked[s.ally] && RIGS[s.ally]) {
@@ -674,6 +675,7 @@ class Game extends Phaser.Scene {
       c.add(UI.button(this, W / 2, 490, '지도로 나가기', () => { SFX.heartbeat(false); this.scene.start(this.tower ? 'towergate' : 'map'); }, { w: 320, col: 0x3a2a1a }));
       c.add(UI.button(this, W - 120, 60, '설정', () => openSettings(this), { w: 160, h: 50, size: 20, col: 0x2a3a5a }));
       c.add(UI.text(this, W / 2, 560, '스테이지 도중에 나가면 그 스테이지를 처음부터 다시 해요', 18, '#c8b8a0').setOrigin(0.5));
+      c.add(UI.button(this, 150, 60, `${DB.heroes[this.hero.key].name} 조작법`, () => MoveList.open(this, this.hero.key, { depth: 9600 }), { w: 220, h: 50, size: 20, col: 0x2a3a5a }));   // 🆕 직업별 기술표
       c.each(o => o.setScrollFactor && o.setScrollFactor(0));
       this.pauseUi = c;
     } else if (this.pauseUi) this.pauseUi.destroy();
@@ -2385,6 +2387,21 @@ class Game extends Phaser.Scene {
       t.setDepth(9999); SFX.jingle('jgl_rank_s');
     }));
   }
+  // 🆕 2026-11-22 그 직업으로 처음 들어간 스테이지에서 대표 기술을 한 번 알려 준다 (튜토리얼이 끝난 뒤)
+  updateHeroTip(dt) {
+    const T = this.heroTip;
+    if (T.wait > 0) { T.wait -= dt; return; }
+    if (T.ui) { T.show -= dt; if (T.show <= 0) { const c = T.ui; this.tweens.add({ targets: c, alpha: 0, duration: 300, onComplete: () => c.destroy() }); this.heroTip = null; } return; }
+    const s = this.save; s.seen['tip_' + s.hero] = true; Save.write();
+    const c = this.add.container(W / 2, 205).setScrollFactor(0).setDepth(7600);
+    const t = UI.text(this, 0, 0, HERO_TIP[s.hero], 22, '#fff4d8', { bold: true, st: 5 }).setOrigin(0.5);
+    const t2 = UI.text(this, 0, 34, '모든 기술은 일시 정지 → 조작법', 15, '#c8b8a0').setOrigin(0.5);
+    const g = this.add.graphics();
+    g.fillStyle(0x1a0f08, 0.88).fillRoundedRect(-t.width / 2 - 24, -28, t.width + 48, 80, 14).lineStyle(3, 0x9ae0ff).strokeRoundedRect(-t.width / 2 - 24, -28, t.width + 48, 80, 14);
+    c.add([g, t, t2, UI.text(this, -t.width / 2 - 14, -26, DB.heroes[s.hero].name + ' 비법', 13, '#9ae0ff').setOrigin(0, 1)]);
+    c.setAlpha(0); this.tweens.add({ targets: c, alpha: 1, y: 195, duration: 250 });
+    T.ui = c; T.show = 7000;
+  }
   updateTutorial(dt) {
     const T = this.tut, h = this.hero;
     if (h.state === 'jatk') T.jatk = true;
@@ -2489,6 +2506,7 @@ class Game extends Phaser.Scene {
     this.updateZones(dt);
     this.updateEnemyZones(dt);
     if (this.tut) this.updateTutorial(dt);
+    else if (this.heroTip) this.updateHeroTip(dt);
     this.updateStatus(dt);
     GearFx.update(this, dt);
     StageEvents.update(this, dt);

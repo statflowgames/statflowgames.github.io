@@ -80,6 +80,7 @@ class Title extends Phaser.Scene {
       c.add(UI.text(this, x, y + 98, hidden ? HERO_HINT[k] : DB.heroes[k].ko.split(' ')[0], 16, '#d8c8b0', { align: 'center', wrap: 170 }).setOrigin(0.5));
       c.add(UI.text(this, x, y + 126, '★'.repeat(star[k]) + '☆'.repeat(3 - star[k]), 20, '#ffd34d').setOrigin(0.5));
       if (ok) c.add(UI.button(this, x, y + 172, '선택', () => this.begin(k), { w: 150, h: 52, size: 24 }));
+      if (ok) c.add(UI.button(this, x, y + 240, '조작법', () => MoveList.open(this, k, { depth: 300 }), { w: 150, h: 42, size: 18, col: 0x2a3a5a }));   // 🆕 직업별 기술표
       else c.add(UI.text(this, x, y + 172, '잠김', 18, '#9a8a78').setOrigin(0.5));
     });
     c.add(UI.button(this, W / 2, 650, '뒤로', () => c.destroy(), { w: 200, h: 52, size: 22, col: 0x3a2a1a }));
@@ -478,6 +479,7 @@ class Camp extends Phaser.Scene {
       c.add(UI.text(this, x, y + 84, open ? DB.heroes[k].ko.split(' ')[0] : HERO_HINT[k], 15, '#d8c8b0', { align: 'center', wrap: 170 }).setOrigin(0.5));
       if (k === s.hero) c.add(UI.text(this, x, y + 128, '지금 직업', 18, '#ffe27a').setOrigin(0.5));
       else if (open) c.add(UI.button(this, x, y + 128, '바꾸기', () => { switchHero(s, k); if (s.ally === k) s.ally = null; Save.write(); this.scene.restart(); }, { w: 150, h: 50, size: 22 }));
+      if (open) c.add(UI.button(this, x, y + 190, '조작법', () => MoveList.open(this, k, { depth: 300 }), { w: 150, h: 42, size: 18, col: 0x2a3a5a }));   // 🆕 직업별 기술표
     });
     c.add(UI.button(this, W / 2, 650, '닫기', () => c.destroy(), { w: 200, h: 52, size: 22, col: 0x3a2a1a }));
   }
