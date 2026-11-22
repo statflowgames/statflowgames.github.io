@@ -226,7 +226,7 @@ class Game extends Phaser.Scene {
     this.floatText(p.x, p.y - 160, first ? '숨은 보물 발견!' : '숨은 보물', '#ffe27a', first ? 38 : 26);
     for (let i = 0; i < (first ? 10 : 4); i++) this.dropPickup(p.x, p.y, 'coin');
     for (let i = 0; i < (first ? 2 : 1); i++) this.dropPickup(p.x, p.y, 'cons');
-    if (first || Math.random() < 0.3) this.dropPickup(p.x, p.y, 'loot', { rar: first ? 3 : 1 });
+    if (first || Math.random() < 0.3) this.dropPickup(p.x, p.y, 'loot', first ? { rar: 2, min: 2, special: true } : { rar: 1 });
   }
   addProp(x, y, n, chest, secret) {
     const g = this.propGrp || 'props';
@@ -1057,8 +1057,8 @@ class Game extends Phaser.Scene {
     if (p.secret) return this.secretFound(p);
     if (p.ev) return StageEvents.onProp(this, p);
     if (r < (Q.has('oldmob') ? 0.35 : 0.16) && !this.rule.noHeal && !this.rule.noHeart) this.dropPickup(p.x, p.y, 'heal');   // ✏️ 상자 회복 하트 35% → 16%
-    else if (r < 0.42) this.dropPickup(p.x, p.y, 'loot');
-    else if (r < 0.55) this.dropPickup(p.x, p.y, 'cons');
+    else if (r < (Q.has('oldmob') ? 0.42 : 0.22)) this.dropPickup(p.x, p.y, 'loot');   // ✏️ 장비 26% → 6% (상자가 스테이지당 10개 안팎)
+    else if (r < (Q.has('oldmob') ? 0.55 : 0.35)) this.dropPickup(p.x, p.y, 'cons');   // 소모품은 예전과 같은 13%
     const n = Phaser.Math.Between(3, 6);
     for (let i = 0; i < n; i++) this.dropPickup(p.x, p.y, 'coin');
   }
@@ -1075,7 +1075,7 @@ class Game extends Phaser.Scene {
     }
     else {
       // 장비: 미리 뽑아 둔다(희귀도 색으로 빛난다)
-      const it = rollDrop(this.save, this.ch, (o.rar || 0) + (Q.has('hard') ? 2 : 0), !!o.boss);
+      const it = rollDrop(this.save, this.ch, (o.rar || 0) + (Q.has('hard') ? 2 : 0), !!o.boss, o.min || 0, !!o.special);
       this.save.bag = this.save.bag.filter(b => b !== it);
       o.item = it;
       img = this.add.container(x, y - 50);
@@ -2016,20 +2016,20 @@ class Game extends Phaser.Scene {
       c.maxHp = c.hp = Math.round(m.maxHp * 0.3); c.rig.def.scale *= 0.8; c.state = 'air'; c.z = 60; c.vz = 380; c.vx = (i ? 1 : -1) * 200; c.play('m_air');
       this.monsters.push(c);
     }
-    if (m.elite) { this.dropPickup(m.x, m.y, 'loot', { rar: 1 }); this.expGain += (d.exp || 6); }
+    if (m.elite) { this.dropPickup(m.x, m.y, 'loot', { rar: 1, min: 1 }); this.expGain += (d.exp || 6); }
     this.expGain += Math.round((d.exp || 6) * (1 + this.stats.expPct / 100));
     if (this.stats.leech) { const h = this.hero; h.hp = Math.min(h.maxHp, h.hp + Math.round(h.maxHp * this.stats.leech / 100)); }
     if (d.boss) {
       for (let i = 0; i < 25; i++) this.dropPickup(m.x, m.y, 'coin');
       const n = d.mid ? 1 : 2;
-      for (let i = 0; i < n; i++) this.dropPickup(m.x, m.y, 'loot', { rar: d.mid ? 1 : 2, boss: !d.mid });
+      for (let i = 0; i < n; i++) this.dropPickup(m.x, m.y, 'loot', { rar: d.mid ? 1 : 2, boss: !d.mid, min: 2 });
       return;
     }
     const [a, b] = d.gold;
     const n = Phaser.Math.Between(a, b);
     for (let i = 0; i < Math.ceil(n / 2); i++) this.dropPickup(m.x, m.y, 'coin');
     if (Math.random() < 0.1 && !this.rule.noHeal) this.dropPickup(m.x, m.y, 'heal');
-    if (Math.random() < (d.sc >= 1.3 ? 0.18 : 0.04)) this.dropPickup(m.x, m.y, 'loot');
+    if (Math.random() < (d.sc >= 1.3 ? 0.12 : 0.025)) this.dropPickup(m.x, m.y, 'loot');   // ✏️ 4% → 2.5% (큰 몬스터 18% → 12%)
     // 동료가 쓰러지면 남은 졸개가 움찔한다
     for (const o of this.monsters) if (!o.dead && o !== m && o.kind !== 'barkhaul' && (o.state === 'idle' || o.state === 'move') && Math.random() < 0.5) {
       o.showEmote(Math.random() < 0.5 ? 'sweat' : 'shock', 800);
@@ -2096,11 +2096,14 @@ class Game extends Phaser.Scene {
     }
     const g = this.grade();
     const bonus = { S: 3, A: 2, B: 1, C: 0 }[g];
-    const chests = { S: 3, A: 2, B: 1, C: 1 }[g];
+    // ✏️ 2026-11-22 클리어 보상은 금화·마석 위주. 장비는 S면 1개(조금 좋게), A면 50% 확률로 1개
+    const chests = g === 'S' ? 1 : g === 'A' && Math.random() < 0.5 ? 1 : 0;
+    const clearGold = Math.round((12 + this.ch * 8) * { S: 3, A: 2.2, B: 1.6, C: 1 }[g]);
     const prev = s.grades[this.cfg.stage];
     if (!prev || 'SABC'.indexOf(g) < 'SABC'.indexOf(prev)) s.grades[this.cfg.stage] = g;
     const reward = [];
-    for (let i = 0; i < chests; i++) { const it = rollDrop(s, this.ch, bonus); s.bag = s.bag.filter(b => b !== it); reward.push(it); }
+    for (let i = 0; i < chests; i++) { const it = rollDrop(s, this.ch, g === 'S' ? 1 : 0); s.bag = s.bag.filter(b => b !== it); reward.push(it); }
+    s.gold += clearGold;
     const all = [...this.loot, ...reward];
     all.forEach(it => s.bag.push(it));
     s.gold += this.gold;
@@ -2123,7 +2126,7 @@ class Game extends Phaser.Scene {
       `최대 콤보 ${this.maxCombo}`,
       `금화 +${this.gold}   경험치 +${this.expGain}`,
     ].join('\n'), 26, '#fff', { ls: 12 }));
-    c.add(UI.text(this, 120, 352, `보상 상자 ${chests}개 (등급 ${g})  ·  주운 장비 ${this.loot.length}개`, 22, '#ffe7a8'));
+    c.add(UI.text(this, 120, 352, `클리어 보상 (등급 ${g}) · 금화 +${clearGold}${chests ? ' · 장비 1개' : ''}  ·  주운 장비 ${this.loot.length}개`, 22, '#ffe7a8'));
     all.slice(0, 10).forEach((it, i) => {
       const slot = UI.itemSlot(this, 160 + i * 96, 420, it, 84);
       slot.setScrollFactor(0).setAlpha(0).setScale(0.6);

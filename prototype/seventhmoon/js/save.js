@@ -169,13 +169,23 @@ function itemById(s, id) { return s.bag.find(i => i.id === id); }
 function itemPower(it) { return Math.round(it.base * (1 + it.plus * 0.08)); }
 function itemLabel(it) { return (it.plus ? `+${it.plus} ` : '') + it.name; }
 // 드롭 희귀도: bonus는 스테이지 등급·보스 보정
-function rollRarity(ch, bonus = 0, boss = false) {
-  const w = [50, 30, 14 + bonus * 3, 5 + bonus * 2, boss ? 4 + bonus : 0, boss && ch >= 3 ? 3 : 0];
+// ✏️ 2026-11-22 장별 등급 상한: 1장은 회색·초록 위주(영웅은 보스·숨은 보물에서만), 2~3장은 영웅이 드물게, 4장부터 예전처럼
+function rollRarity(ch, bonus = 0, boss = false, special = false) {
+  const early = ch <= 1, mid = ch <= 3;
+  const w = [
+    early ? 58 : 50,
+    early ? 32 : 30,
+    (early ? 7 : mid ? 11 : 14) + bonus * (early ? 1 : mid ? 2 : 3),
+    early ? (boss || special ? 4 + bonus : 0) : mid ? 2 + bonus : 5 + bonus * 2,
+    boss && ch >= 3 ? 3 + bonus : 0,
+    boss && ch >= 3 ? 3 : 0,
+  ];
   let r = Math.random() * w.reduce((a, b) => a + b, 0);
   for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return i; }
   return 0;
 }
-function rollDrop(s, ch, bonus = 0, boss = false) {
+// min: 이 등급 아래로는 안 나온다 (보스·중간 보스·숨은 보물 = 희귀 이상) / special: 1장에서도 영웅이 나올 수 있다
+function rollDrop(s, ch, bonus = 0, boss = false, min = 0, special = false) {
   const d = s.diff ?? 1;
   bonus += DIFFS[d].loot;
   const tier = Math.min(3, Math.floor((ch - 1) / 2) + (d >= 2 ? 1 : 0));
@@ -184,7 +194,7 @@ function rollDrop(s, ch, bonus = 0, boss = false) {
   // 지금 직업 장비 70%, 나머지는 다른 직업(나중에 그 직업으로 할 때 쓴다)
   const owned = Object.keys(s.unlocked).filter(k => s.unlocked[k]);
   const cls = Math.random() < 0.7 ? s.hero : owned[Math.floor(Math.random() * owned.length)];
-  let rar = rollRarity(ch, bonus, boss);
+  let rar = Math.max(min, rollRarity(ch, bonus, boss, special));
   if (rar < 4 && typeof GearFx !== 'undefined' && GearFx.codes(s).has('luck') && Math.random() < (boss ? 0.04 : 0.006)) rar = 4;   // 🆕 은방울 행운 목걸이
   const it = makeItem(s, { cls, slot, tier, rar });
   if (ch >= 7) it.plus = Math.min(10, Math.max(it.plus, ch - 6 + (Math.random() < 0.3 ? 1 : 0)));   // 🆕 2부 장비는 강화가 붙어 나온다
