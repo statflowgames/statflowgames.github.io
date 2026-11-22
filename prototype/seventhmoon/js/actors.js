@@ -249,6 +249,7 @@ class Hero extends Actor {
     this.side = 'hero';
     // 새 그림(1차 4등신 느낌)으로 리그 교체. setHead도 새 표정 시트로 바뀐다.
     if (typeof CuteHeroes !== 'undefined') CuteHeroes.apply(this);
+    if (typeof HeroGear !== 'undefined') HeroGear.apply(this);   // 🆕 장착 장비를 겉모습에
   }
   setHead(img) { this.rig.setImg('head', img); }
   motionClip(phase) { return this.motionPolish ? 'harvan_' + phase : heroMotionClip(this, phase); }
