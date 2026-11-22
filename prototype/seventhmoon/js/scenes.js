@@ -200,7 +200,7 @@ class MapScene extends Phaser.Scene {
       const r = big ? 34 : 24;
       const col = done ? 0xe0b45a : isOpen ? 0xfff2c0 : 0x6a5a48;
       const keyA = keyRoute(ch) === 'A';
-      const nodeImg = 'uiset/' + (closed ? 'node_locked' : { stage: 'node_battle', midboss: keyA ? 'node_moonstone' : 'node_elite', event: 'node_event', treasure: keyA ? 'node_treasure' : 'node_moonstone', boss: 'node_boss', side: 'node_event' }[n.type]);
+      const nodeImg = 'uiset/' + (closed ? 'node_locked' : { stage: 'node_battle', midboss: keyA ? 'node_moonstone' : 'node_elite', event: 'node_event', treasure: keyRoute(ch) === 'B' ? 'node_moonstone' : 'node_treasure', boss: 'node_boss', side: 'node_event' }[n.type]);
       let circ;
       if (this.textures.exists(nodeImg)) {
         circ = this.add.image(x, y, nodeImg); circ.setScale(r * 2.3 / circ.height);
@@ -245,7 +245,7 @@ class MapScene extends Phaser.Scene {
     c.add(UI.panel(this, W / 2 - 400, H - 150, 800, 140, { alpha: 0.94 }));
     const st = n.stage && STAGES[n.stage];
     const keyKo = CHAPTERS[ch - 1].part === 2 ? '흑월 씨앗' : '월석', keyA = keyRoute(ch) === 'A';
-    const typeKo = { stage: '전투', midboss: keyA ? '중간 보스 · ' + keyKo : '중간 보스', event: '이벤트', treasure: keyA ? '보물 · 장비 상자' : '보물 · ' + keyKo, boss: '챕터 보스', side: '곁가지 의뢰 (선택)' }[n.type];
+    const typeKo = { stage: '전투', midboss: keyA ? '중간 보스 · ' + keyKo : '중간 보스', event: '이벤트', treasure: keyA ? '보물 · 장비 상자' : keyRoute(ch) === 'none' ? '보물 · 길드 금고' : '보물 · ' + keyKo, boss: '챕터 보스', side: '곁가지 의뢰 (선택)' }[n.type];
     const title = st ? st.name : n.type === 'event' ? (CHAPTERS[ch - 1].routeB + ' 이벤트') : '';
     c.add(UI.text(this, W / 2 - 370, H - 138, `[${typeKo}]  ${title}`, 26, '#ffe7a8', { bold: true }));
     let desc = '';
@@ -294,7 +294,7 @@ class MapScene extends Phaser.Scene {
     const chain = [];
     if (a.node === 'void') { s.flags.void_done = true; Save.write(); return this.ending('end_true'); }
     // ✏️ 핵심 아이템은 장마다 A(중간 보스) 또는 B(보물)에 있다
-    if (node && node.type === 'treasure') chain.push(keyRoute(ch) === 'B' ? `c${ch}_moon` : `c${ch}_cache`);
+    if (node && node.type === 'treasure') chain.push(keyRoute(ch) === 'A' ? `c${ch}_cache` : `c${ch}_moon`);   // 'none'(2장)은 보물 장면(c2_moon = 길드 장부)
     if (node && node.type === 'midboss' && keyRoute(ch) === 'A') chain.push(`c${ch}_moon`);
     if (node && node.type === 'side') chain.push(`c${ch}_side_end`);
     if (a.node === 's2' && CLASS_ROOM[s.hero] === ch) chain.push('cls_' + s.hero);

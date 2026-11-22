@@ -170,7 +170,8 @@ const ROUTES = {
        B: { gain: '녹월의 월석 (진 엔딩 조건) · 첫 영웅의 이야기', risk: '무덤의 냉기 — 회복 하트 없음 · 받는 피해 +10%', tag: '월석 · 이야기', rule: { noHeart: true, dmgMul: 1.1, ko: '무덤의 냉기 — 회복 하트 없음 · 받는 피해 +10%' } } },
 };
 // 🆕 핵심 아이템(월석·흑월 씨앗)이 있는 길. 적지 않은 장은 B(b3 보물), A면 중간 보스(a3)가 지키고 있다.
-const KEY_ROUTE = { 4: 'A', 5: 'A', 7: 'A', 9: 'A', 11: 'A' };
+// 2장은 갈림길에 핵심 아이템이 없다 (백월은 보스 뒤 공통 장면에서 오델리아가 맡긴다)
+const KEY_ROUTE = { 2: 'none', 4: 'A', 5: 'A', 7: 'A', 9: 'A', 11: 'A' };
 function keyRoute(ch) { return KEY_ROUTE[ch] || 'B'; }
 // 장의 노드 목록 (id, 종류, 스테이지 키, 다음 노드)
 function chapterNodes(n) {

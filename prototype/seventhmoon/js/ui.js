@@ -233,6 +233,8 @@ function talkLineOk(L) {
   if (L.ifEnd && s.lastEnding !== L.ifEnd) return false;   // 🆕 1부 마지막으로 본 엔딩
   if (L.ifNotEnd && s.lastEnding === L.ifNotEnd) return false;
   if (L.ifSeeds !== undefined && Object.keys(s.seeds || {}).length < L.ifSeeds) return false;
+  if (L.ifMoons !== undefined && Object.keys(s.moons || {}).length < L.ifMoons) return false;   // 🆕 월석 n개 이상
+  if (L.ifMoonsBelow !== undefined && Object.keys(s.moons || {}).length >= L.ifMoonsBelow) return false;
   return true;
 }
 // 다른 장면에서 대화를 띄운다
