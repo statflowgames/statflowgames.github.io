@@ -1127,9 +1127,20 @@ class LiseMenu extends MenuBase {
 class Credits extends Phaser.Scene {
   constructor() { super('credits'); }
   init(d) { this.e = d.e; }
+  // 🆕 2026-11-22 엔딩 그림을 뒤에 깔고 천천히 움직인다 (마지막 컷이 있으면 그것)
+  preload() { const k = this.endBg(); if (k) Assets.queue(this, [k]); }
+  endBg() { return [`story/${this.e}_3`, `story/${this.e}`].find(k => typeof MAN !== 'undefined' && MAN[k]); }
   create() {
     const s = Save.data;
     this.cameras.main.setBackgroundColor('#0a0610');
+    const bk = this.endBg();
+    if (bk && this.textures.exists(bk)) {
+      const im = this.add.image(W / 2, H / 2 - 40, bk); im.base = Math.max(W / im.width, (H + 40) / im.height); im.setScale(im.base);
+      Talk.prototype.kenBurns.call(this, im, 'out');
+      this.add.rectangle(0, 0, W, H, 0x0a0610, 0.7).setOrigin(0);
+      const em = Talk.prototype.mood.call(this, Talk.prototype.autoFx(bk)); if (em) em.setDepth(0);   // 글자 아래
+    }
+    this.cameras.main.fadeIn(1200, 0, 0, 0);
     const name = { end_seal: '봉인 엔딩', end_true: '진 엔딩', end_dark: '다크 엔딩', end_sacrifice: '희생 엔딩', p2_true: '2부 · 일곱 달의 하늘', p2_dark: '2부 · 달의 왕', p2_dawn: '2부 · 새벽의 항구' }[this.e];
     UI.text(this, W / 2, 180, name, 64, '#ffe7a8', { serif: true, st: 8 }).setOrigin(0.5);
     const seen = ['end_seal', 'end_true', 'end_dark', 'end_sacrifice'].filter(k => s.endings[k]).length;

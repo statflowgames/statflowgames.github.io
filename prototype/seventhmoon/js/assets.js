@@ -87,6 +87,7 @@ const Assets = {
     for (const L of STORY[key] || []) if (L.choice) for (const [, k] of L.choice) if (STORY[k]) lines.push(...STORY[k]);
     for (const L of lines) {
       if (L.bg) out.add(L.bg);
+      if (L.alt) out.add(L.alt);   // 🆕 새 컷 그림이 아직 없을 때 쓸 그림
       if (!L.w || L.w === 'narr') continue;
       const who = L.w === 'hero' ? (s ? s.hero : 'warrior') : null;
       const c = who ? { portrait: 'portrait/' + who, faces: 'portrait/' + who + '_' } : CAST[L.w];

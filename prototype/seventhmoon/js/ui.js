@@ -157,12 +157,7 @@ class Talk extends Phaser.Scene {
     if (!L) return this.finish();
     // 🆕 조건 줄: if/ifNot = 깃발, ifLise = 리세 신뢰 이상, onlyFor = 그 직업일 때만
     if (!talkLineOk(L)) return this.next();
-    if (L.bg) {
-      if (this.bg) this.bg.destroy();
-      this.bg = UI.img(this, W / 2, H / 2 - 40, L.bg);
-      if (this.bg) { this.bg.setDisplaySize(W, W * this.bg.height / this.bg.width).setDepth(1).setAlpha(0); this.tweens.add({ targets: this.bg, alpha: 1, duration: 500 }); this.back.setFillStyle(0x000000, 1); }
-      return this.next();
-    }
+    if (L.bg) { this.showBg(L); return this.next(); }
     if (L.music !== undefined) { SFX.music(L.music); return this.next(); }
     if (L.give) {
       const out = applyGive(L.give);
@@ -191,6 +186,10 @@ class Talk extends Phaser.Scene {
       this.tweens.add({ targets: im, alpha: 1, x: left ? 250 : W - 250, duration: 160 });
       this.portrait = im;
     }
+    // 🆕 2026-11-22 중요한 대사 연출: shake(세기 1~3) · flash('white'|'gold'|'violet'|'red'|'black') · cam(그림 카메라 바꾸기)
+    if (L.shake) this.cameras.main.shake(260 + L.shake * 120, 0.004 * L.shake);
+    if (L.flash) { const c = { white: [255, 255, 255], gold: [255, 220, 140], violet: [170, 90, 255], red: [255, 60, 40], black: [0, 0, 0] }[L.flash] || [255, 255, 255]; this.cameras.main.flash(L.flash === 'black' ? 700 : 450, ...c); }
+    if (L.cam && this.bg) this.kenBurns(this.bg, L.cam);
     this.full = (L.by && L.by[hk]) || L.t; this.body.setText(''); this.typing = true; this.ci = 0;
     if (this.typeEv) this.typeEv.remove();
     this.typeEv = this.time.addEvent({ delay: 28, loop: true, callback: () => {
@@ -198,6 +197,78 @@ class Talk extends Phaser.Scene {
       this.ci += 1; this.body.setText(this.full.slice(0, this.ci));
       if (this.ci >= this.full.length) { this.typing = false; this.typeEv.remove(); }
     } });
+  }
+  // 🆕 2026-11-22 이야기 그림 연출 ------------------------------------------------
+  //   { bg: 'story/키', alt: '대신 쓸 그림', cam: 'in'|'out'|'left'|'right'|'up'|'down'|'still', fx: 'moon'|'dark'|'gold'|'light'|'ember'|'none' }
+  //   - 그림이 아직 없으면(의뢰 중) alt를 쓰고, 그것도 없으면 지금 그림을 그대로 둔다 → 컷 줄을 미리 넣어 둘 수 있다
+  //   - 새 그림은 천천히 확대·이동(켄 번스), 앞 그림과 겹쳐 사라지며 바뀐다
+  showBg(L) {
+    const key = [L.bg, L.alt].find(k => k && this.textures.exists(k));
+    if (!key) return;
+    if (this.bg && this.bg.texture.key === key) { if (L.cam) this.kenBurns(this.bg, L.cam); return; }
+    const old = this.bg, oldFx = this.bgFx;
+    const im = this.add.image(W / 2, H / 2 - 40, key).setDepth(1).setAlpha(0);
+    im.base = Math.max(W / im.width, (H + 40) / im.height);   // 화면을 꽉 채우는 배율
+    im.setScale(im.base);
+    this.bg = im; this.back.setFillStyle(0x000000, 1);
+    this.kenBurns(im, L.cam || this.autoCam(key));
+    this.tweens.add({ targets: im, alpha: 1, duration: old ? 900 : 700, ease: 'Sine.inOut' });
+    if (old) this.tweens.add({ targets: old, alpha: 0, duration: 900, onComplete: () => { this.tweens.killTweensOf(old); old.destroy(); } });
+    if (!this.vig) this.vig = this.vignette();
+    if (oldFx) { oldFx.stop(); this.time.delayedCall(2500, () => oldFx.destroy()); }
+    this.bgFx = this.mood(L.fx || this.autoFx(key));
+  }
+  autoCam(key) { let h = 0; for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0; return ['in', 'left', 'right', 'out', 'up'][h % 5]; }
+  autoFx(key) {
+    const k = key.replace('story/', '');
+    if (/dark/.test(k)) return 'dark';
+    if (/true|dawn|seal/.test(k)) return 'gold';
+    if (/sacrifice/.test(k)) return 'light';
+    if (/c4|c9/.test(k)) return 'ember';
+    return 'moon';
+  }
+  // 켄 번스: 두 구도 사이를 아주 천천히 오간다
+  kenBurns(im, cam) {
+    this.tweens.killTweensOf(im, ['x', 'y', 'scale']);
+    const b = im.base || im.scale, cx = W / 2, cy = H / 2 - 40, dx = 46, dy = 26;
+    const A = { in: [b * 1.04, cx, cy, b * 1.16, cx, cy - 10], out: [b * 1.18, cx, cy - 10, b * 1.04, cx, cy], left: [b * 1.12, cx + dx, cy, b * 1.12, cx - dx, cy], right: [b * 1.12, cx - dx, cy, b * 1.12, cx + dx, cy], up: [b * 1.12, cx, cy + dy, b * 1.12, cx, cy - dy], down: [b * 1.12, cx, cy - dy, b * 1.12, cx, cy + dy], still: [b * 1.06, cx, cy, b * 1.06, cx, cy] }[cam] || null;
+    if (!A) return;
+    im.setScale(A[0]).setPosition(A[1], A[2]);
+    if (cam !== 'still') this.tweens.add({ targets: im, scale: A[3], x: A[4], y: A[5], duration: 16000, ease: 'Sine.inOut', yoyo: true, repeat: -1 });
+  }
+  // 화면 가장자리를 어둡게 (그림이 영화 장면처럼 보이게)
+  vignette() {
+    const g = this.add.graphics().setDepth(2);
+    g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.75, 0.75, 0, 0).fillRect(0, 0, W, 130);
+    g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.7, 0.7).fillRect(0, 360, W, 170);
+    g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.55, 0, 0.55, 0).fillRect(0, 0, 160, 530);
+    g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.55, 0, 0.55).fillRect(W - 160, 0, 160, 530);
+    g.setAlpha(0); this.tweens.add({ targets: g, alpha: 1, duration: 800 });
+    return g;
+  }
+  // 떠다니는 빛가루: 분위기마다 색·방향이 다르다
+  mood(fx) {
+    if (!fx || fx === 'none') return null;
+    if (!this.textures.exists('mote')) {
+      const c = this.textures.createCanvas('mote', 32, 32), x = c.getContext(), gr = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      x.fillStyle = gr; x.fillRect(0, 0, 32, 32); c.refresh();
+    }
+    const C = {
+      moon: { tint: [0xcfe0ff, 0xffffff, 0xb8c8ff], sy: [-14, -34], sx: [-10, 10], sc: [0.2, 0.6], a: 0.8, f: 120 },
+      dark: { tint: [0x9a5aff, 0x6a2ad0, 0xd0a0ff], sy: [-20, -50], sx: [-14, 14], sc: [0.2, 0.7], a: 0.9, f: 100 },
+      gold: { tint: [0xffe08a, 0xffc860, 0xfff4d0], sy: [-16, -40], sx: [-12, 12], sc: [0.2, 0.6], a: 0.9, f: 100 },
+      light: { tint: [0xffffff, 0xfff0e0, 0xe0e8ff], sy: [12, 30], sx: [-8, 8], sc: [0.2, 0.55], a: 0.75, f: 140 },
+      ember: { tint: [0xff8a3a, 0xffc060, 0xff5a20], sy: [-40, -90], sx: [-20, 20], sc: [0.15, 0.4], a: 0.95, f: 80 },
+    }[fx];
+    if (!C) return null;
+    const down = C.sy[0] > 0;
+    return this.add.particles(0, 0, 'mote', {
+      x: { min: 0, max: W }, y: down ? { min: -20, max: 200 } : { min: 200, max: 540 },
+      speedY: { min: C.sy[0], max: C.sy[1] }, speedX: { min: C.sx[0], max: C.sx[1] },
+      scale: { min: C.sc[0], max: C.sc[1] }, alpha: { onEmit: () => 0, onUpdate: (p, k, t) => Math.sin(t * Math.PI) * C.a },
+      lifespan: { min: 5000, max: 9000 }, frequency: C.f, tint: C.tint, blendMode: 'ADD', advance: 4000,
+    }).setDepth(3);
   }
   showChoice(opts) {
     const c = this.add.container(0, 0).setDepth(30);
