@@ -23,9 +23,9 @@ function makeClasses() {
   C.mage = {
     hp: 0.82, smear: 'smear_mage', awaken: 'meteors', ranged: true, guardFx: 'holy_ring',
     atk: {
-      a1: { clip: 'mg_atk1', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_fire', 'fire', 13) },
-      a2: { clip: 'mg_atk2', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_ice', 'ice', 13) },
-      a3: { clip: 'mg_atk3', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_bolt', 'bolt', 13) },
+      a1: { clip: 'mg_atk1', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_fire', 'fire', 15) },
+      a2: { clip: 'mg_atk2', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: bolt('crystal_ice', 'ice', 15) },
+      a3: { clip: 'mg_atk3', dur: 300, hit: [150, 160], dmg: 0, next: 170, proj: { ...bolt('crystal_bolt', 'bolt', 15), pierce: true } },   // ✏️ 2026-11-22 3타 번개 구슬은 관통, 피해 13→15,
       a4: { clip: 'mg_big', dur: 560, hit: [380, 390], dmg: 0, special: 'burst', sdmg: 34, fin: true, shake: 6 },
       dash: { clip: 'mage_roll', dur: 300, hit: [60, 70], dmg: 0, special: 'blink' },
       up: { clip: 'mg_big', dur: 460, hit: [300, 310], dmg: 0, special: 'icepillar', sdmg: 24 },
@@ -134,7 +134,7 @@ function heroRig(key) {
 const SKILL_FX = {
   // 하르반
   '방패 반사': { t: 'shield', ms: 2000, red: 0.6, cd: 10000, reflect: true },
-  '회전 방패': { t: 'proj', img: 'warrior/shield_0', dmg: 26, pierce: true, sc: 0.7, spin: true, cd: 7000 },
+  '회전 방패': { t: 'proj', img: 'warrior/shield_0', dmg: 34, pierce: true, sc: 0.7, spin: true, cd: 7000 },
   '산 가르기': { t: 'area', at: 140, r: 130, dmg: 62, fx: 'impact_ring', poise: 40, cd: 12000 },
   '군기 꽂기': { t: 'aura', ms: 7000, tick: 1000, heal: 0.03, def: 0.25, fx: 'holy_ring', cd: 20000 },
   // 미라엘
@@ -146,13 +146,13 @@ const SKILL_FX = {
   '절대영도': { t: 'freeze', ms: 2000, fx: 'ice_shards', cd: 22000 },
   '번개 화살': { t: 'proj', img: 'mage/crystal_bolt', dmg: 22, elem: 'bolt', chain: 2, vx: 1300, sc: 0.8, cd: 4000 },
   '뇌운': { t: 'aura', ms: 6000, tick: 650, strike: 20, fx: 'lightning_bolt', elem: 'bolt', cd: 16000 },
-  '천둥창': { t: 'line', n: 7, step: 140, dmg: 40, fx: 'lightning_bolt', elem: 'bolt', cd: 12000 },
+  '천둥창': { t: 'line', n: 7, step: 140, dmg: 40, fx: 'lightning_bolt', elem: 'bolt', cd: 9000 },
   // 오델리아
   '성광 일격': { t: 'area', at: 120, r: 110, dmg: 40, fx: 'holy_pillar', elem: 'holy', cd: 5000 },
   '심판의 망치': { t: 'delayed', at: 220, r: 150, dmg: 64, fx: 'holy_pillar', elem: 'holy', delay: 400, cd: 12000 },
-  '백월의 선고': { t: 'line', n: 6, step: 130, dmg: 36, fx: 'holy_pillar', elem: 'holy', cd: 10000 },
+  '백월의 선고': { t: 'line', n: 6, step: 130, dmg: 36, fx: 'holy_pillar', elem: 'holy', cd: 7000 },
   '성스러운 방패': { t: 'shield', ms: 4000, red: 0.5, fx: 'holy_ring', cd: 14000 },
-  '보호의 원': { t: 'shield', ms: 6000, red: 0.4, fx: 'holy_ring', cd: 18000 },
+  '보호의 원': { t: 'shield', ms: 2500, red: 1, fx: 'holy_pillar', cd: 18000 },   // ✏️ 2026-11-22 성스러운 방패와 겹쳐서 '짧은 무적'으로
   '치유의 손': { t: 'heal', pct: 0.25, fx: 'holy_ring', cd: 16000 },
   '정화의 물결': { t: 'heal', pct: 0.12, wave: 18, fx: 'holy_ring', cd: 12000 },
   '기적': { t: 'heal', pct: 1, once: true, fx: 'holy_pillar', cd: 60000 },
@@ -168,23 +168,23 @@ const SKILL_FX = {
   // 세릴
   '관통 화살': { t: 'proj', img: 'fx/arrow_trail', dmg: 32, pierce: true, vx: 1500, sc: 0.45, cd: 4000 },
   '삼연사': { t: 'proj', img: 'fx/arrow_trail', dmg: 17, pierce: true, vx: 1400, sc: 0.32, burst: 3, cd: 5000 },
-  '저격': { t: 'proj', img: 'fx/arrow_trail', dmg: 74, pierce: true, vx: 2000, sc: 0.55, poise: 30, cd: 12000 },
+  '저격': { t: 'proj', img: 'fx/arrow_trail', dmg: 110, pierce: true, vx: 2000, sc: 0.55, poise: 30, cd: 12000 },
   '덩굴 덫': { t: 'zone', at: 200, r: 120, dmg: 4, ms: 4000, root: true, fx: 'poison_cloud', tint: 0x80d060, cd: 12000 },
   '늑대 정령': { t: 'aura', ms: 15000, tick: 800, strike: 16, fx: 'dust_run', cd: 28000 },
   '대지의 분노': { t: 'zone', at: 160, r: 260, dmg: 9, ms: 5000, fx: 'poison_cloud', tint: 0x90c070, cd: 16000 },
   '달빛 화살': { t: 'proj', img: 'fx/arrow_trail', dmg: 24, home: true, burst: 3, vx: 900, sc: 0.35, tint: 0xd0e0ff, cd: 6000 },
   '월광 장막': { t: 'shield', ms: 3000, red: 0.5, reflect: true, fx: 'holy_ring', cd: 12000 },
-  '초승달 사격': { t: 'proj', img: 'fx/slash_arc', dmg: 56, pierce: true, vx: 1100, sc: 0.5, tint: 0xd8e8ff, cd: 12000 },
+  '초승달 사격': { t: 'proj', img: 'fx/slash_arc', dmg: 85, pierce: true, vx: 1100, sc: 0.5, tint: 0xd8e8ff, cd: 12000 },
   // 녹타
   '저주의 낙인': { t: 'mark', ms: 8000, val: 0.25, cd: 9000 },
   '고통의 사슬': { t: 'area', at: 0, r: 260, dmg: 20, mark: 0.15, fx: 'void_crack', cd: 10000 },
   '파멸의 선고': { t: 'delayed', at: 'target', r: 140, dmg: 90, fx: 'void_crack', delay: 3000, cd: 16000 },
-  '피의 대가': { t: 'area', at: 120, r: 120, dmg: 72, hpCost: 0.1, fx: 'void_crack', cd: 6000 },
+  '피의 대가': { t: 'area', at: 120, r: 120, dmg: 60, hpCost: 0.1, fx: 'void_crack', cd: 6000 },
   '핏빛 회오리': { t: 'area', at: 0, r: 150, dmg: 18, pulses: 3, leech: 0.3, fx: 'slash_arc', tint: 0xff5050, cd: 8000 },
   '혈월': { t: 'buff', key: 'bloodmoon', ms: 10000, cd: 24000 },
   '공허 베기': { t: 'proj', img: 'fx/slash_arc', dmg: 34, pierce: true, vx: 1000, sc: 0.45, tint: 0xb070ff, cd: 5000 },
   '일식 폭발': { t: 'area', at: 0, r: 210, dmg: 46, fx: 'void_crack', cd: 9000 },
-  '월식': { t: 'aura', ms: 8000, tick: 700, strike: 14, buffAtk: 0.25, fx: 'shadow_smoke', cd: 22000 },
+  '월식': { t: 'aura', ms: 8000, tick: 700, strike: 14, buffAtk: 0.25, slow: true, fx: 'shadow_smoke', cd: 22000 },
 };
 
 // ---------------------------------------------------------------------------
@@ -204,23 +204,66 @@ const PASSIVE_RULES = [
   [/구르기 스태미나 소모 -(\d+)%/, (st, v) => { st.rollCost += v; }],
   [/스테이지당 1회, 쓰러지면 체력 50%로 부활/, st => { st.revive = 1; }],
   [/받은 피해의 (\d+)%를 반사/, (st, v) => { st.thorns += v; }],
-  [/멀리 있는 적에게 치명타 \+(\d+)%/, (st, v) => { st.crit += v / 2; }],
   [/공중에서 한 번 더 점프/, st => { st.doubleJump = 1; }],
-  [/상태이상 저항 \+(\d+)%/, (st, v) => { st.redMelee += 3; }],
+  [/상태이상 저항 \+(\d+)%/, (st, v) => { st.statusRed += v; }],   // ✏️ 2026-11-22 상태이상 시간을 줄인다 (예전엔 근접 피해 -3%로 잘못 들어감)
   [/저스트 가드 판정 \+(\d+)%/, (st, v) => { st.parryWin += v; }],
 ];
+// ✏️ 2026-11-22 설명 문장으로 못 읽는 패시브는 이름으로 직접 처리한다 (예전엔 전부 '속성 피해 +12%'로 바뀌어,
+//   속성 없는 직업은 효과 0, 미라엘은 숨은 +72%였다). 전투 중에만 동작하는 효과(처치 시 폭발 등)는 game.js가 hasSkill로 본다.
+const PASSIVE_NAMED = {
+  '무거운 손': st => { st.vsElite += 15; st.vsBoss += 15; },
+  '피의 기세': () => {},                                   // game.js: 처치마다 공격 속도
+  '철벽의 달인': st => { st.parryWin += 50; },
+  '잔불': st => { st.fireDmg += 25; },                      // + game.js: 화상 피해 1.5배
+  '연소': () => {},                                        // game.js: 화상 걸린 적이 죽으면 폭발
+  '한기': st => { st.iceDmg += 20; },                       // + game.js: 2번 맞으면 빙결
+  '깨지는 얼음': () => {},                                  // game.js
+  '정전기': st => { st.boltDmg += 10; },                    // + game.js: 연쇄 +1
+  '과부하': st => { st.boltDmg += 25; },
+  '성흔': () => {},                                        // game.js: 같은 적 3번 → 폭발
+  '순교자의 맹세': st => { st.hpPct += 15; },
+  '신앙 충만': st => { st.faith += 50; },                   // gear-fx: 오델리아 신앙 → 각성 충전
+  '맹독': () => {},                                        // game.js: 중독 피해 2배
+  '전염': () => {},                                        // game.js
+  '잔상': () => {},                                        // actors.js: 구르면 잔상 공격
+  '매의 눈': () => {},                                      // game.js: 멀리 있는 적에게 치명타
+  '약점 사격': st => { st.vsBoss += 20; st.vsElite += 10; },
+  '가시 화살': () => {},                                    // game.js: 화살 30% 중독
+  '은빛 조준': st => { st.aspd += 15; },
+  '별빛 분열': () => {},                                    // game.js
+  '쇠약': () => {},                                        // game.js: 낙인 찍힌 적의 공격 피해 -20%
+  '심연의 부름': () => {},                                  // game.js: 처치 시 15% 암흑 폭발
+  '불굴': () => {}, '최후의 보루': () => {},                // game.js가 이름으로 처리
+};
+// 🆕 2026-11-22 스킬 화면에 보여 줄 숫자 (재사용 시간·피해). 피해는 공격력 보정 전 기본값
+const SKILL_NUM_EXTRA = { '도발의 외침': { cd: 12000, txt: '받는 피해 -50% 3초' }, '대지 가르기': { cd: 8000, dmg: 26, extra: '+ 충격파 34' }, '전투 함성': { cd: 20000, txt: '공격력 +20% 8초' } };
+function skillNumbers(name) {
+  const f = SKILL_FX[name] || SKILL_NUM_EXTRA[name]; if (!f) return '';
+  const cd = (typeof SKILL_CD !== 'undefined' && SKILL_CD[name]) || f.cd;
+  const out = [];
+  if (cd) out.push(`재사용 ${+(cd / 1000).toFixed(1)}초`);
+  if (f.dmg) out.push(`피해 ${f.dmg}${f.pulses ? ` × ${f.pulses}` : f.burst ? ` × ${f.burst}발` : f.t === 'line' ? ' (줄마다)' : ''}${f.back ? ` (등 뒤 ×${f.back})` : ''}${f.extra ? ' ' + f.extra : ''}`);
+  if (f.strike) out.push(`${(f.tick / 1000).toFixed(1)}초마다 피해 ${f.strike}`);
+  if (f.t === 'zone' && f.ms) out.push(`${f.ms / 1000}초 지속`);
+  if (f.t === 'shield') out.push(f.red >= 1 ? `${f.ms / 1000}초 무적` : `받는 피해 -${Math.round(f.red * 100)}% ${f.ms / 1000}초`);
+  if (f.t === 'heal') out.push(`체력 ${Math.round(f.pct * 100)}% 회복`);
+  if (f.t === 'mark') out.push(`받는 피해 +${Math.round(f.val * 100)}% ${f.ms / 1000}초`);
+  if (f.hpCost) out.push(`체력 ${Math.round(f.hpCost * 100)}% 소모`);
+  if (f.txt) out.push(f.txt);
+  return out.join(' · ');
+}
 function applyPassives(s, st) {
   const list = DB.skills[s.hero]?.list || [];
-  for (const k of ['vsUndead', 'execute', 'executeAt', 'vsBack', 'lifesteal', 'frenzy', 'regen', 'lowHpDef', 'rollCost', 'revive', 'thorns', 'doubleJump', 'elemPct']) st[k] = st[k] || 0;
+  for (const k of ['vsUndead', 'execute', 'executeAt', 'vsBack', 'lifesteal', 'frenzy', 'regen', 'lowHpDef', 'rollCost', 'revive', 'thorns', 'doubleJump', 'elemPct', 'vsElite', 'vsBoss', 'parryWin', 'fireDmg', 'iceDmg', 'boltDmg', 'hpPct', 'faith', 'aspd', 'statusRed']) st[k] = st[k] || 0;
   list.forEach((sk, i) => {
     if (!s.skills[i] || sk.kind !== '패시브') return;
+    if (PASSIVE_NAMED[sk.name]) { PASSIVE_NAMED[sk.name](st); return; }
     let hit = false;
     for (const [re, fn] of PASSIVE_RULES) {
       const m = sk.fx.match(re);
       if (m) { fn(st, ...m.slice(1).map(x => (x === undefined ? undefined : +x))); hit = true; }
     }
-    // 상태이상·연쇄 같은 세부 효과는 속성 피해 보너스로 단순화한다
-    if (!hit) st.elemPct += 12;
+    if (!hit && typeof console !== 'undefined') console.warn('패시브 효과를 못 읽음:', sk.name);   // ✏️ 더 이상 몰래 '속성 +12%'로 바꾸지 않는다
   });
 }
 

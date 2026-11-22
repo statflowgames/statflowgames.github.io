@@ -122,7 +122,7 @@ class Game extends Phaser.Scene {
     this.gold = 0; this.expGain = 0; this.loot = []; this.dmgTaken = 0;
     this.comboN = 0; this.comboT = 0; this.maxCombo = 0;
     this.monsters = []; this.props = []; this.projs = []; this.pickups = []; this.tokens = new Set(); this.zones = []; this.enemyZones = [];
-    this.buffs = {}; this.cds = [0, 0]; this.featherUsed = false; this.unyielding = false; this.reviveUsed = false; this.auras = []; this.healOnce = {};
+    this.buffs = {}; this.cds = [0, 0]; this.featherUsed = false; this.unyielding = false; this.reviveUsed = false; this.auras = []; this.healOnce = {}; this.cachePassives();   // 🆕 전투 패시브
     this.cls = classOf(s.hero);
     this.boss = null; this.bossBar = null; this.bossName = null;
     this.rushT = null; this.spawning = false; this.quake = false; this.slowmo = 0; this.hpShow = undefined; this.bossShow = undefined; this.pauseUi = null;
@@ -438,7 +438,7 @@ class Game extends Phaser.Scene {
   heroHaste() {
     let k = 1;
     if (this.buffs.awk > 0) k *= AWAKEN_BUFF.haste;
-    const a = this.stats.aspd || 0, st = this.hero.state;
+    const a = (this.stats.aspd || 0) + (this.rushT > 0 ? this.rushN * 5 : 0), st = this.hero.state;   // ✏️ 피의 기세
     if (a > 0 && (st === 'atk' || st === 'jatk')) k *= 1 + Math.min(30, a) / 100;
     return k;
   }
@@ -1158,7 +1158,8 @@ class Game extends Phaser.Scene {
   resolveHeroHit(src, dmg, type, sx, sy) {
     const h = this.hero, st = this.stats;
     let k = 1 - st.red;
-    if (this.buffs.taunt > 0) k *= 0.7;
+    if (this.buffs.taunt > 0) k *= 0.5;   // ✏️ 2026-11-22 도발의 외침 -30% → -50%
+    if (this.pWeaken && src && src.markT > 0) k *= 0.8;   // 🆕 쇠약: 낙인 찍힌 적의 공격 -20%
     if (this.evRage && src && src.def) k *= 1.25;   // 🆕 흑월 의식을 못 막았다
     if (this.buffs.shield > 0) k *= 1 - (this.shieldRed || 0.4);
     if (this.buffs.holy > 0) k = 0;
@@ -1225,7 +1226,7 @@ class Game extends Phaser.Scene {
       if (m.takeHit(h, { dmg: base, kb: o.kb ?? 300, type: o.type || 'knock', stop: 60, otg: true }, dmg)) {
         n++; if (o.hitSet) o.hitSet.add(m);
         this.afterHeroHit(m, dmg, o.elem, o.leech);
-        if (o.mark) { m.markT = 6000; m.markV = o.mark; }
+        if (o.mark) { m.markV = m.markT > 0 ? Math.max(m.markV || 0, o.mark) : o.mark; m.markT = Math.max(m.markT || 0, 6000); }   // ✏️ 더 센 표식을 덮어쓰지 않는다
         this.addCombo();
         this.floatText(m.x, m.y - m.height * 0.7, String(dmg), o.col || '#ffb060', crit ? 38 : 32);
         if (m.kind === 'barkhaul') m.poise -= o.poise || 8;
@@ -1452,6 +1453,61 @@ class Game extends Phaser.Scene {
   }
   // ---------------- 스킬 ----------------
   hasSkill(name) { const s = this.save; return (DB.skills[s.hero]?.list || []).some((x, i) => x.name === name && s.skills[i]); }
+  // 🆕 2026-11-22 전투 중에만 동작하는 패시브 (classes.js PASSIVE_NAMED 참고). 스테이지 시작 때 한 번 읽어 둔다
+  cachePassives() {
+    this.pBurn = this.hasSkill('잔불'); this.pPoison = this.hasSkill('맹독'); this.pHawk = this.hasSkill('매의 눈'); this.pWeaken = this.hasSkill('쇠약');
+    this.pP = {};
+    for (const n of ['연소', '깨지는 얼음', '성흔', '전염', '심연의 부름', '피의 기세', '가시 화살', '별빛 분열', '잔상']) this.pP[n] = this.hasSkill(n);
+    this.rushN = 0; this.rushT = 0;
+  }
+  passiveOnKill(m) {
+    const P = this.pP || {};
+    if (P['피의 기세']) { this.rushN = Math.min(5, (this.rushN || 0) + 1); this.rushT = 5000; }
+    if (P['연소'] && m.burnT > 0) this.time.delayedCall(120, () => { this.fx('fire_burst', m.x, m.y - 50, { s: 0.45, dur: 450, depth: m.y + 1002 }); this.heroArea(m.x, m.y, 120, 55, 22, { elem: 'fire', kb: 240, col: '#ff9a3a' }); });
+    if (P['전염'] && m.poisonT > 0) for (const o of this.monsters) if (!o.dead && o !== m && Math.abs(o.x - m.x) < 220 && Math.abs(o.y - m.y) < 90) { if (!(o.poisonT > 0)) this.floatText(o.x, o.y - o.height - 10, '중독', '#90e070', 20); o.poisonT = 4000; }
+    if (P['심연의 부름'] && Math.random() < 0.15) this.time.delayedCall(150, () => { this.fx('void_crack', m.x, m.y - 40, { s: 0.5, dur: 500, depth: m.y + 1002 }); this.heroArea(m.x, m.y, 150, 60, 28, { kb: 300, col: '#c890ff' }); });
+  }
+  passiveOnHit(m, dmg, elem) {
+    const P = this.pP || {};
+    if (m.dead) return;
+    if (P['깨지는 얼음'] && m.freezeT > 0 && !(m.shatterAt > this.now)) {
+      m.shatterAt = this.now + 700;
+      this.fx('ice_shards', m.x, m.y - m.height * 0.5, { s: 0.4, dur: 400, depth: m.y + 1002 });
+      this.time.delayedCall(60, () => this.heroArea(m.x, m.y, 110, 50, 16, { kb: 120, type: 'light', col: '#a0e0ff' }));
+    }
+    if (P['성흔'] && !this.inStigma) {
+      m.stig = (m.stig || 0) + 1;
+      if (m.stig >= 3) {
+        m.stig = 0; this.inStigma = true;
+        this.fx('holy_pillar', m.x, m.y - 40, { s: 0.4, dur: 450, depth: m.y + 1002 });
+        this.heroArea(m.x, m.y, 100, 50, 22, { elem: 'holy', kb: 160, col: '#fff0a0' });
+        this.inStigma = false;
+      }
+    }
+  }
+  // 잔상: 구른 자리에 그림자가 남아 한 번 벤다 (actors.js startRoll에서 부른다)
+  afterImage(x, y, face) {
+    if (!(this.pP && this.pP['잔상'])) return;
+    this.time.delayedCall(180, () => {
+      this.fx('shadow_smoke', x, y - 80, { s: 0.4, dur: 400, depth: y + 1002 });
+      this.fx('slash_arc', x + face * 40, y - 80, { s: 0.4, dur: 260, depth: y + 1003, flip: face < 0 });
+      this.heroArea(x + face * 40, y, 100, 50, 14, { kb: 150, type: 'light', col: '#c8a0ff' });
+    });
+  }
+  rangerArrowHit(p, m) {
+    const P = this.pP || {};
+    if (P['가시 화살'] && !m.dead && Math.random() < 0.3) { if (!(m.poisonT > 0)) this.floatText(m.x, m.y - m.height - 10, '가시 독', '#90e070', 20); m.poisonT = 3000; }
+    if (P['별빛 분열'] && Math.random() < 0.3) {
+      const near = this.monsters.filter(o => !o.dead && o !== m && Math.abs(o.x - m.x) < 300 && Math.abs(o.y - m.y) < 120).sort((a, b) => Math.abs(a.x - m.x) - Math.abs(b.x - m.x)).slice(0, 2);
+      for (const o of near) {
+        const g = this.add.line(0, 0, m.x, m.y - m.height * 0.6, o.x, o.y - o.height * 0.6, 0xd8e8ff, 0.9).setOrigin(0).setLineWidth(3).setDepth(4100).setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
+        const d = this.heroDamage(p.dmg * 0.5, o, false, p.elem);
+        o.invuln = 0;
+        if (o.takeHit(this.hero, { dmg: p.dmg * 0.5, kb: 80, type: 'light', stop: 20, proj: true, otg: true }, d)) { this.floatText(o.x, o.y - o.height * 0.7, String(d), '#d8e8ff', 24); this.addCombo(); }
+      }
+    }
+  }
   useSkill(k) {
     const s = this.save, idx = s.active[k], h = this.hero;
     if (!['idle','move','land'].includes(h.state) || idx === null || idx === undefined || this.cds[k] > 0) return false;
@@ -1525,18 +1581,21 @@ class Game extends Phaser.Scene {
       const last = p.hit.get(m);
       if (last !== undefined && !(p.rehit && this.now - last > p.rehit)) continue;
       p.hit.set(m, this.now);
-      const crit = Math.random() * 100 < this.stats.crit + GearFx.critAdd(this, m);
+      const hawk = this.pHawk && Math.abs(m.x - h.x) > 300 ? 25 : 0;   // 🆕 매의 눈: 멀리 있는 적에게 치명타 +25%
+      const crit = Math.random() * 100 < this.stats.crit + GearFx.critAdd(this, m) + hawk;
       const dmg = this.heroDamage(p.dmg, m, crit, p.elem);
       m.invuln = 0;
-      if (m.takeHit(h, { dmg: p.dmg, kb: p.pierce ? 120 : 200, type: 'light', stop: 35, proj: true }, dmg)) {
+      // ✏️ 2026-11-22 원거리 보강: 쓰러진 적도 맞는다(otg), 각성 충전은 근접과 같이 +3·탑 규칙 배율 적용
+      if (m.takeHit(h, { dmg: p.dmg, kb: p.pierce ? 120 : 200, type: 'light', stop: 35, proj: true, otg: true }, dmg)) {
         this.addCombo();
-        h.awk = Math.min(100, h.awk + 2 * (1 + this.stats.awkPct / 100));
+        h.awk = Math.min(100, h.awk + 3 * (1 + this.stats.awkPct / 100) * (this.rule.awkMul || 1));
         this.floatText(m.x, m.y - m.height * 0.7, String(dmg), crit ? '#ffd34d' : '#fff', crit ? 34 : 28);
         this.fx('hit_spark', p.x, p.y - p.z, { s: 0.25, dur: 200, depth: 4200, tint: { fire: 0xff9050, ice: 0x90d0ff, bolt: 0xffff80 }[p.elem] });
         SFX.hit(false, m.px, 'blade');
         this.afterHeroHit(m, dmg, p.elem);
         if (p.poise && m.kind === 'barkhaul') m.poise -= p.poise;
-        if (p.chain) this.chainBolt(m, dmg * 0.5, p.chain);
+        if (h.key === 'ranger') this.rangerArrowHit(p, m);   // 🆕 가시 화살·별빛 분열
+        if (p.chain) this.chainBolt(m, dmg * 0.5, p.chain + (this.hasSkill('정전기') ? 1 : 0));
       }
       if (!p.pierce) { p.life = 0; break; }
     }
@@ -1549,7 +1608,7 @@ class Game extends Phaser.Scene {
     }
     if (p.life <= 0 && p.boom) {
       this.fx('fire_burst', p.x, p.y - 60, { s: 0.4, dur: 450, depth: p.y + 1001 });
-      this.heroArea(p.x, p.y, p.boom, 60, p.dmg * 0.8 / this.stats.dmgMul, { elem: p.elem, kb: 280, col: '#ff9a3a' });
+      this.heroArea(p.x, p.y, p.boom, 60, p.dmg * 0.8, { elem: p.elem, kb: 280, col: '#ff9a3a' });   // ✏️ 2026-11-22 공격력으로 나누던 버그 (폭발이 레벨과 상관없이 24로 고정)
       p.boom = 0;
     }
     p.px = p.x;
@@ -1579,12 +1638,13 @@ class Game extends Phaser.Scene {
     if (ls) { const add = dmg * ls / 100, over = h.hp + add - h.maxHp; h.hp = Math.min(h.maxHp, h.hp + add); if (over > 0) GearFx.overheal(this, over); }
     elem = GearFx.elemOf(this, elem);
     GearFx.afterHit(this, m, dmg, elem);
+    this.passiveOnHit(m, dmg, elem);   // 🆕 2026-11-22
     if (!elem || m.dead) return;
     if (elem === 'fire') { if (!(m.burnT > 0)) this.floatText(m.x, m.y - m.height - 10, '화상', '#ff9050', 20); m.burnT = 3000; }
     if (elem === 'poison') { if (!(m.poisonT > 0)) this.floatText(m.x, m.y - m.height - 10, '중독', '#90e070', 20); m.poisonT = 4000; }
     if (elem === 'ice') {
       m.chill = (m.chill || 0) + 1; m.slowT = 2500;
-      if (m.chill >= 3 && !m.def.boss) { m.chill = 0; this.freeze(m, 1500); }
+      if (m.chill >= (this.hasSkill('한기') ? 2 : 3) && !m.def.boss) { m.chill = 0; this.freeze(m, 1500); }
     }
   }
   freeze(m, ms) {
@@ -1601,7 +1661,7 @@ class Game extends Phaser.Scene {
       m.dotT = (m.dotT || 0) - dt;
       if (m.dotT <= 0 && (m.burnT > 0 || m.poisonT > 0)) {
         m.dotT = 500;
-        const d = Math.max(1, Math.round(this.stats.dmgMul * (m.burnT > 0 ? 3 : 0) + this.stats.dmgMul * (m.poisonT > 0 ? 2.2 : 0)));
+        const d = Math.max(1, Math.round(this.stats.dmgMul * (m.burnT > 0 ? 3 * (this.pBurn ? 1.5 : 1) : 0) + this.stats.dmgMul * (m.poisonT > 0 ? 2.2 * (this.pPoison ? 2 : 1) : 0)));   // ✏️ 잔불·맹독
         m.hp -= d;
         this.floatText(m.x, m.y - m.height * 0.6, String(d), m.burnT > 0 ? '#ff9050' : '#90e070', 20);
         if (m.hp <= 0 && !m.def.boss && m.state !== 'dying') { m.invuln = 0; m.takeHit(this.hero, { dmg: 1, kb: 100, type: 'knock', otg: true }, 1); }
@@ -1635,6 +1695,7 @@ class Game extends Phaser.Scene {
       a.t -= dt; a.k -= dt;
       if (a.k <= 0) {
         a.k = a.tick;
+        if (a.slow) for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < 420) m.slowT = Math.max(m.slowT || 0, 900);   // 🆕 월식: 적 둔화
         if (a.heal) { h.hp = Math.min(h.maxHp, h.hp + h.maxHp * a.heal); this.fx('holy_ring', h.x, h.y - 20, { s: 0.3, dur: 400, depth: h.y - 1, flat: true }); }
         if (a.strike) {
           let best = null, bd = 520;
@@ -1765,7 +1826,8 @@ class Game extends Phaser.Scene {
           h.hp = Math.min(h.maxHp, h.hp + v); SFX.heal();
           this.floatText(h.x, h.y - 250, '+' + v, '#8f8', 32);
           this.fx(fx.fx, h.x, h.y - 60, { s: 0.5, dur: 600, depth: h.y + 1001 });
-          if (fx.wave) this.heroArea(h.x, h.y, 220, 90, fx.wave, { elem: 'holy', kb: 200 });
+          if (fx.wave) { this.heroArea(h.x, h.y, 220, 90, fx.wave, { elem: 'holy', kb: 200 }); for (const k of ['poisonT', 'burnT', 'slowT', 'freezeT']) h[k] = 0; }   // ✏️ 상태이상 해제
+          const al = this.ally; if (al && al.hp > 0 && al.state !== 'down') { al.hp = Math.min(al.maxHp, al.hp + Math.round(al.maxHp * fx.pct)); this.fx(fx.fx, al.x, al.y - 60, { s: 0.4, dur: 500, depth: al.y + 1001 }); }   // 🆕 동료도 회복
         } else if (t === 'shield') {
           this.buffs.shield = fx.ms; this.shieldRed = fx.red; this.shieldReflect = !!fx.reflect;
           this.fx(fx.fx || 'guard_flash', h.x, h.y - 100, { s: 0.5, dur: 600, depth: h.y + 1001 });
@@ -1779,7 +1841,7 @@ class Game extends Phaser.Scene {
             h.queueSkillCue(motion.fire + 120, () => { this.skillMotionCue(h, motion, 0); this.fx('slash_arc', best.x, best.y - best.height * 0.5, { s: 0.5, dur: 300, depth: best.y + 1003 }); this.heroArea(best.x, best.y, 70, 40, fx.dmg, { kb: 300, type: 'knock', back: 1.5 }); });
           }
         } else if (t === 'aura') {
-          this.auras.push({ t: fx.ms, k: 0, tick: fx.tick, strike: fx.strike, heal: fx.heal, fx: fx.fx, elem: fx.elem });
+          this.auras.push({ slow: !!fx.slow, t: fx.ms, k: 0, tick: fx.tick, strike: fx.strike, heal: fx.heal, fx: fx.fx, elem: fx.elem });
           if (fx.def) { this.buffs.shield = fx.ms; this.shieldRed = fx.def; }
           if (fx.buffAtk) this.buffs.eclipse = fx.ms;
           this.floatText(h.x, h.y - 270, name, '#d0c0ff', 26);
@@ -1787,7 +1849,7 @@ class Game extends Phaser.Scene {
           this.cameras.main.flash(200, 160, 220, 255);
           for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < W) this.freeze(m, fx.ms);
         } else if (t === 'mark') {
-          for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < 500) { m.markT = fx.ms; m.markV = fx.val; m.showEmote('skull', 800); }
+          for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < 500) { m.markV = m.markT > 0 ? Math.max(m.markV || 0, fx.val) : fx.val; m.markT = Math.max(m.markT || 0, fx.ms); m.showEmote('skull', 800); }
         } else if (t === 'zone') {
           const p = pos(), img = UI.img(this, p.x, p.y, 'fx/' + fx.fx) || this.add.image(p.x, p.y, 'px');
           img.setDepth(999).setScale(fx.r / 240, fx.r / 600).setAlpha(0.85); if (fx.tint) img.setTint(fx.tint);
@@ -1795,7 +1857,7 @@ class Game extends Phaser.Scene {
         } else if (t === 'taunt') {
           this.buffs.taunt = 3000; SFX.heroAtk(2, h.px, h.key); SFX.roar && SFX.cheer(h.px);
           this.fx('impact_ring', h.x, h.y - 120, { s: 0.6, dur: 450, tint: 0xff5a3a, depth: h.y + 1001 });
-          for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < 500) { m.showEmote('anger', 900); m.face = Math.sign(h.x - m.x) || 1; m.cool = Math.min(m.cool, 200); }
+          for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < 500) { m.showEmote('anger', 900); m.face = Math.sign(h.x - m.x) || 1; if (!m.def.boss && Math.abs(m.x - h.x) < 320 && m.state !== 'down' && m.state !== 'enter') { m.state = 'hurt'; m.st = 0; m.stun = Math.max(m.stun || 0, 900); m.vx = m.vy = 0; } }   // ✏️ 2026-11-22 가까운 적 0.9초 기절
           h.showEmote('anger', 800);
         } else if (t === 'shout') {
           this.buffs.shout = 8000; SFX.heroAtk(2, h.px, h.key); SFX.ui('use_scroll');
@@ -1875,7 +1937,10 @@ class Game extends Phaser.Scene {
       const signal = this.add.image(muzzle.x, muzzle.y, 'fx/arrow_trail').setAngle(f > 0 ? -50 : -130).setScale(.3).setDepth(h.y+1003).setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets:signal, x:muzzle.x+f*220, y:muzzle.y-380, alpha:0, duration:180, onComplete:()=>signal.destroy() });
       for (let i = 0; i < 16; i++) this.scheduleAbility(100 + i * 90, () => {
-        const x = this.cameras.main.scrollX + 120 + Math.random() * (W - 240), y = Phaser.Math.Between(FLOOR_TOP + 10, FLOOR_BOT - 10);
+        // ✏️ 2026-11-22 16발 중 10발은 화면 안의 적을 노린다 (전부 무작위라 많이 빗나갔다)
+        const cx0 = this.cameras.main.scrollX, foes = this.monsters.filter(q => !q.dead && q.x > cx0 && q.x < cx0 + W);
+        const tg = i % 8 < 5 && foes.length ? foes[Math.floor(Math.random() * foes.length)] : null;
+        const x = tg ? tg.x + Phaser.Math.Between(-25, 25) : cx0 + 120 + Math.random() * (W - 240), y = tg ? tg.y : Phaser.Math.Between(FLOOR_TOP + 10, FLOOR_BOT - 10);
         SFX.awakenImpact(h.key,x-this.cameras.main.scrollX,'arrow');
         const ar = this.add.image(x, y - 500, 'fx/arrow_trail').setAngle(90).setScale(0.35).setDepth(4000).setTint(0xd8e8ff).setBlendMode(Phaser.BlendModes.ADD);
         this.tweens.add({ targets: ar, y: y - 40, duration: 180, onComplete: () => { ar.destroy(); this.heroArea(x, y, 90, 50, 28, { kb: 140, type: 'light' }); this.fx('dust_land', x, y, { s: 0.3, dur: 300, depth: y + 2 }); } });
@@ -1886,9 +1951,10 @@ class Game extends Phaser.Scene {
       this.scheduleAbility(550, () => {
         SFX.awakenImpact(h.key,h.px);
         this.cameras.main.shake(500, 0.02);
+        const once = new Set();   // ✏️ 2026-11-22 붙어 있는 적이 여러 번 맞던 문제
         for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < W) {
           this.fx('void_crack', m.x, m.y - m.height * 0.5, { s: 0.6, dur: 600, depth: m.y + 1003 });
-          this.heroArea(m.x, m.y, 40, 30, 120, { kb: 500, type: 'knock', poise: 50 });
+          this.heroArea(m.x, m.y, 40, 30, 120, { kb: 500, type: 'knock', poise: 50, hitSet: once });
         }
       });
     }
@@ -2032,6 +2098,7 @@ class Game extends Phaser.Scene {
     const d = m.def;
     Codex.kill(this.save, m);
     GearFx.onKill(this, m);
+    this.passiveOnKill(m);   // 🆕 2026-11-22
     // 🆕 소모품 드롭: 정예 60%, 보스 3개, 일반 3%
     if (!this.won || d.boss) { const n = d.boss ? 3 : m.elite ? (Math.random() < 0.6 ? 1 : 0) : (Math.random() < 0.03 ? 1 : 0); for (let i = 0; i < n; i++) this.dropPickup(m.x, m.y, 'cons'); }
     if (m.elite === 'split' && !this.won) for (let i = 0; i < 2; i++) {
@@ -2352,6 +2419,7 @@ class Game extends Phaser.Scene {
     if (this.slowmo > 0) { this.slowmo -= dt; dt *= 0.3; }
     this.now += dt;
     for (const k in this.buffs) if (this.buffs[k] > 0) this.buffs[k] -= dt;
+    if (this.rushT > 0) this.rushT -= dt;   // 🆕 피의 기세
     this.cds = this.cds.map(c => Math.max(0, c - dt));
     const inp = this.readInput();
     // 🆕 멈춘 대사 장면: 주인공은 멈춰 서고(입력 무시), 몬스터·시간 제한도 멈춘다

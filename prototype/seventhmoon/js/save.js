@@ -51,8 +51,8 @@ function switchHero(s, key) {
   if (!s.eq.acc2 && prev.acc2) s.eq.acc2 = prev.acc2;
   const sk = s.skillsBy[key];
   // 스킬 포인트는 레벨에서 나오므로, 처음 쓰는 직업은 전체 포인트를 새로 받는다
-  if (sk) { s.skills = sk.skills; s.active = sk.active; s.sp = Math.max(0, s.lv - 1 - Object.keys(s.skills).length); }
-  else { s.skills = {}; s.active = [null, null]; s.sp = s.lv - 1; }
+  if (sk) { s.skills = sk.skills; s.active = sk.active; s.sp = Math.max(0, spTotal(s.lv) - Object.keys(s.skills).length); }
+  else { s.skills = {}; s.active = [null, null]; s.sp = spTotal(s.lv); }
 }
 // 난이도: 0 견습, 1 기사(기본), 2 영웅(엔딩 1개 이상), 3 전설(엔딩 2개 이상)
 const DIFFS = [
@@ -84,7 +84,7 @@ function newSave(hero = 'warrior') {
   const s = {
     v: 1, hero, lv: 1, exp: 0, gold: 0, mats: { low: 0, mid: 0, high: 0, abyss: 0 },
     bag: [], eq: {}, nextId: 1, belt: { potion: 2, dagger: 3, oil: 0, scroll: 0, feather: 0 },
-    sp: 0, skills: {}, active: [null, null],
+    sp: 0, spV: 2, skills: {}, active: [null, null],
     ch: 1, at: 'camp', cleared: {}, route: {}, grades: {}, moons: {}, flags: {}, lise: 0,
     endings: {}, unlocked: { warrior: true, mage: true, paladin: true, rogue: true, ...globalUnlocks() }, seen: {}, play: 0, runs: 1, eqBy: {}, skillsBy: {},
   };
@@ -105,6 +105,16 @@ const Save = {
     // ✏️ 2026-11-22 4장·9장 선택이 공통 장면으로 옮겨짐: 예전에 이미 고른 저장이면 다시 묻지 않는다
     const f = this.data && this.data.flags;
     if (f) { if (f.c4_truth || f.c4_hide) f.c4_decided = true; if (f.kael_ally || f.kael_alone) f.c9_decided = true; }
+    // ✏️ 2026-11-22 스킬 포인트 기준이 바뀜: 새 기준보다 많이 배운 직업은 스킬을 초기화하고 포인트를 다시 준다 (한 번만)
+    const d = this.data;
+    if (d && d.spV !== 2) {
+      const tot = spTotal(d.lv);
+      let reset = false;
+      if (Object.keys(d.skills || {}).length > tot) { d.skills = {}; d.active = [null, null]; reset = true; }
+      d.sp = Math.max(0, tot - Object.keys(d.skills || {}).length);
+      for (const k of Object.keys(d.skillsBy || {})) { const b = d.skillsBy[k]; if (b && Object.keys(b.skills || {}).length > tot) { b.skills = {}; b.active = [null, null]; reset = true; } }
+      d.spV = 2; if (reset) d.spNotice = true;
+    }
     return this.data;
   },
   write() { try { const t = JSON.stringify(this.data); localStorage.setItem(SAVE_KEY, t); NativeStore.mirror(SAVE_KEY, t); } catch (e) { /* 저장 실패는 조용히 */ } },
@@ -294,10 +304,14 @@ function heroStats(s) {
   st.power = Math.round(st.atk * 3 + st.def * 2 + st.hp / 10);
   return st;
 }
+// ✏️ 2026-11-22 스킬 포인트는 드물게: Lv 2·4·6·8·10, 그 뒤로 8레벨마다(18·26·34·42·50·58) → Lv60에 11개 (스킬 15개 중 두 갈래 + 맛보기)
+function spAt(lv) { return lv <= 10 ? (lv >= 2 && lv % 2 === 0 ? 1 : 0) : ((lv - 10) % 8 === 0 ? 1 : 0); }
+function spTotal(lv) { let n = 0; for (let l = 2; l <= lv; l++) n += spAt(l); return n; }
+function spNextLv(lv) { for (let l = lv + 1; l <= LV_CAP; l++) if (spAt(l)) return l; return null; }
 function gainExp(s, n) {
   const ups = [];
   s.exp += n;
-  while (s.lv < LV_CAP && s.exp >= expNeed(s.lv)) { s.exp -= expNeed(s.lv); s.lv++; s.sp++; ups.push(s.lv); }
+  while (s.lv < LV_CAP && s.exp >= expNeed(s.lv)) { s.exp -= expNeed(s.lv); s.lv++; s.sp += spAt(s.lv); ups.push(s.lv); }
   if (s.lv >= LV_CAP) s.exp = Math.min(s.exp, expNeed(s.lv));
   return ups;
 }

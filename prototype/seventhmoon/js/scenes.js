@@ -376,6 +376,7 @@ class Camp extends Phaser.Scene {
   create() {
     const s = Save.data || Save.load();
     if (!s) { this.scene.start('title'); return; }
+    if (s.spNotice) this.time.delayedCall(700, () => UI.toast(this, '스킬 포인트 기준이 바뀌었어요 — 마법 천막에서 스킬을 다시 배워 주세요', '#9ae0ff', 800));   // 🆕 2026-11-22
     const bg = UI.img(this, W / 2, -60, 'bg/camp_far') || this.add.image(W / 2, -40, 'bg/far');
     bg.setOrigin(0.5, 0).setScale(W / bg.width);
     const shade = this.add.graphics();
@@ -1022,6 +1023,10 @@ class Skills extends MenuBase {
     const s = Save.data, sk = DB.skills[s.hero];
     this.frame('마법 천막 · 스킬');
     UI.text(this, 400, 66, `스킬 포인트 ${s.sp}`, 24, '#9ae0ff', { bold: true }).setOrigin(0, 0.5);
+    // ✏️ 2026-11-22 포인트가 드물다: 다음 포인트 레벨과 전체 개수를 보여 준다
+    const nx = spNextLv(s.lv);
+    UI.text(this, 580, 66, `${nx ? `다음 포인트 Lv.${nx}` : '포인트를 모두 받았어요'} · 최대 ${spTotal(LV_CAP)}개 (스킬 15개)`, 16, '#c8b8a0').setOrigin(0, 0.5);
+    if (s.spNotice) { delete s.spNotice; Save.write(); this.time.delayedCall(200, () => UI.toast(this, '스킬 포인트 기준이 바뀌어 스킬을 초기화했어요. 포인트를 다시 나눠 주세요', '#9ae0ff', 600)); }
     sk.branches.forEach((b, bi) => {
       const x = 130 + bi * 210;
       UI.text(this, x, 110, b, 24, '#ffe7a8', { bold: true }).setOrigin(0.5);
@@ -1062,7 +1067,9 @@ class Skills extends MenuBase {
       const r = i % 5, avail = r === 0 || s.skills[i - 1];
       UI.text(this, 870, 128, info.name, 26, '#ffe7a8', { bold: true });
       UI.text(this, 870, 166, `${sk.branches[Math.floor(i / 5)]} · ${info.kind}`, 17, '#c8b8a0');
-      UI.text(this, 870, 200, info.fx, 20, '#fff', { wrap: 340 });
+      const fxT = UI.text(this, 870, 200, info.fx, 20, '#fff', { wrap: 340 });
+      const num = info.kind === '액티브' ? skillNumbers(info.name) : '';   // 🆕 2026-11-22 재사용·피해 숫자
+      if (num) UI.text(this, 870, 200 + Math.round(fxT.height) + 14, num, 17, '#9ae0ff', { wrap: 340 });
       if (!learned) UI.button(this, 1040, 470, avail ? '배우기 (SP 1)' : '앞 단계 먼저', () => {
         if (!avail || s.sp < 1) return UI.toast(this, s.sp < 1 ? '스킬 포인트가 없어요' : '앞 단계를 먼저 배워요', '#ff9a8a');
         s.sp--; s.skills[i] = true; SFX.heal(); Save.write(); this.draw();

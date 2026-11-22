@@ -456,6 +456,7 @@ class Hero extends Actor {
     this.sta -= this.rollCost;
     const d = inp.x || this.face; this.face = d;
     this.state = 'roll'; this.st = 0; this.vx = d * 560; this.vy = inp.y * 120; this.invuln = 380;
+    if (this.scene.hero === this && this.scene.afterImage) this.scene.afterImage(this.x, this.y, d);   // 🆕 2026-11-22 키르 '잔상'
     this.replay(this.motionSync ? this.motionClip('roll') : 'w_roll', 30); SFX.roll(this.px);
     this.scene.fx('dash_trail', this.x - d * 40, this.y - 60, { s: 0.35, flip: d < 0, dur: 320, depth: this.y - 1 });
     if (typeof GearFx !== 'undefined' && this.scene.gfx) GearFx.onRoll(this.scene, this);
@@ -845,6 +846,8 @@ class Monster extends Actor {
     if (boss) return this.bossHit(a, dir, dmg);
     this.hurtFace();
     if (this.hp>0) SFX.gob('hurt', this.px, this.pitch, this.id);
+    // ✏️ 2026-11-22 투사체는 쓰러진 적에게 피해만 준다 (다시 띄우면 쓰러짐 시간이 계속 새로 시작돼 영영 안 죽었다)
+    if (isDown && a.proj) return true;
     if (isDown) { this.vz = 260; this.z = 1; this.state = 'air'; this.st = 0; this.play('m_air', 30); return true; }
     if (this.state === 'air' || this.z > 0) {
       // 이미 체력이 0인 적은 공중에서 더 띄우지 않고 바로 떨어뜨린다 (계속 맞으면 영영 안 내려온다)
