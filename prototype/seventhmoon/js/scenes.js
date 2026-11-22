@@ -23,15 +23,15 @@ class Title extends Phaser.Scene {
     this.rig = r; this.t = 0;
     // ✏️ 2026-11-22 제목 변경: 일곱 번째 달 → 흑월 — 여섯 달의 수호자 (다국어 표는 js/data/title.js)
     const GT = gameTitle('ko');
-    if (this.textures.exists('logo_ko')) {
+    if (this.textures.exists(GT.logo)) {
       // ✏️ 로고 그림 (금속 금빛 글자 + 흑월 광환). 천천히 숨 쉬듯 빛난다
-      const lg = this.add.image(W / 2 + 120, 138, 'logo_ko').setDisplaySize(480, 480 * 330 / 648);
+      const lg = this.add.image(W / 2 + 120, 146, GT.logo); lg.setScale(Math.min(520 / lg.width, 270 / lg.height));
       this.tweens.add({ targets: lg, scale: lg.scale * 1.02, duration: 2600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     } else {
       UI.text(this, W / 2 + 120, 128, GT.main, 120, '#ffe7a8', { serif: true, stroke: '#3a1606', st: 14 }).setOrigin(0.5);
       UI.text(this, W / 2 + 120, 214, '— ' + GT.sub + ' —', 32, '#f0d9b0', { serif: true, stroke: '#2a1206', st: 6 }).setOrigin(0.5);
+      UI.text(this, W / 2 + 120, 284, GT.brand.toUpperCase(), 16, '#c8b090', { stroke: '#2a1206', st: 4 }).setOrigin(0.5).setLetterSpacing(10);
     }
-    UI.text(this, W / 2 + 120, 284, GT.brand.toUpperCase(), 16, '#c8b090', { stroke: '#2a1206', st: 4 }).setOrigin(0.5).setLetterSpacing(10);
     const has = Save.has() && Save.load();
     let y = 340;
     if (has) {

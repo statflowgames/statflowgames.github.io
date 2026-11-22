@@ -62,7 +62,7 @@ class Boot extends Phaser.Scene {
     this.load.on('progress', p => t.setText('불러오는 중… ' + Math.round(p * 100) + '%'));
     this.load.json('man', 'assets/manifest.json');
     this.load.image('coin', 'assets/ui/coin.png');
-    this.load.image('logo_ko', 'assets/ui/logo_ko.png');   // 🆕 2026-11-22 제목 로고 (없으면 글자로)   // 🆕 2026-11-22 달 문양 금화 (못 불러오면 아래에서 동그라미로 대신)
+    { const lg = gameTitle('ko').logo; this.load.image(lg, 'assets/ui/' + lg + '.png'); }   // 🆕 2026-11-22 제목 로고 (없으면 글자로)   // 🆕 2026-11-22 달 문양 금화 (못 불러오면 아래에서 동그라미로 대신)
     this.load.once('filecomplete-json-man', (k, ty, data) => {
       const ext = data.__ext || '.png';
       MAN = data; Assets.ext = ext;
