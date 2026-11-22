@@ -20,7 +20,9 @@ const HeroGear = {
     for (const [bone, slot, pre] of this.MAP[hero.key] || []) {
       const b = rig.map[bone]; if (!b) continue;
       const it = s.eq[slot] && itemById(s, s.eq[slot]);
-      const key = `${hero.key}/${pre}_${this.idx(it)}`;
+      // 이야기 고유 장비는 전용 그림 (<직업>/<부품>_story_<키>), 없으면 단계 그림
+      const sk = it && it.story && `${hero.key}/${pre}_story_${it.story}`;
+      const key = sk && sc.textures.exists(sk) ? sk : `${hero.key}/${pre}_${this.idx(it)}`;
       if (!sc.textures.exists(key) || b.spr.texture.key === key) continue;
       b.img = key; b.cur = undefined; b.spr.setTexture(key);   // 같은 배율 그대로 → 그림마다 원래 크기 비율 유지
     }
