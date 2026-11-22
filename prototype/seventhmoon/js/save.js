@@ -311,9 +311,15 @@ const FUSE_RULE = [
   { rate: 100, lose: 'none', cost: 1.6 },
   { rate: 70, lose: 'one', cost: 2.5, pity: 10, pityMax: 30 },
   { rate: 25, lose: 'both', cost: 5, pity: 3, pityMax: 20 },
-  { rate: 2, lose: 'both', cost: 15, abyss: 3, pity: 0.5, pityMax: 10 },   // 평균 약 15번 (영웅 30개쯤)
+  { rate: 2, lose: 'both', cost: 4, abyss: 3, pity: 0.5, pityMax: 10 },   // 평균 약 15번 (영웅 30개쯤) · ✏️ 2026-11-22 한 번에 15판 값 → 4판 값(합치면 상점 전설값과 비슷)
 ];
-function stageIncome(ch) { return 350 * (1 + (ch - 1) * 0.35); }
+// ✏️ 2026-11-22 경제 맞추기: 가격 기준(한 판 값). 1부는 예전 그대로(장마다 +35%),
+//   2부는 실제 수입(몬스터 금화·상자 10~12개·클리어 보상, 1장 대비 배율)에 맞춘 표. 1장 한 판 ≈ 280금 → 기준 350
+const PART2_UNIT = { 7: 2400, 8: 2700, 9: 3100, 10: 3300, 11: 4200, 12: 4600 };
+function stageIncome(ch) { ch = Math.max(1, Math.min(12, ch || 1)); return PART2_UNIT[ch] || 350 * (1 + (ch - 1) * 0.35); }
+// 소모품 가격 배율: 수입이 오른 만큼의 절반쯤 따라 오른다 (1장 1배 · 6장 약 1.9배 · 12장 약 7배)
+function priceMul(ch) { return 1 + (stageIncome(ch) / 350 - 1) * 0.5; }
+function beltPrice(k, s) { const b = BELT[k]; return Math.round(b.price * priceMul(s ? s.ch : 1) / 5) * 5; }
 function canFuse(s, it) { return !!it && it.rar <= 3 && !it.boss && !it.lock && !Object.values(s.eq).includes(it.id); }
 function fuseInfo(s, rar, ad) {
   const R = FUSE_RULE[rar], pity = Math.min(R.pityMax || 0, ((s.fusePity || {})[rar] || 0) * (R.pity || 0)), adB = ad ? (rar >= 3 ? 1 : 10) : 0;
@@ -374,14 +380,15 @@ function tryFuse(s, a, b, ad) {
   return { r: 'fail', lost, refund, down };
 }
 function matOf(it) { return it.rar >= 4 ? 'abyss' : ['low', 'low', 'mid', 'high'][it.tier]; }
-function enhanceCost(it) {
-  const n = it.plus + 1;
-  return { gold: 20 * n * (it.tier + 1), mat: n <= 4 ? 'low' : n <= 7 ? 'mid' : 'high', cnt: n <= 4 ? n : n <= 7 ? n - 4 : n - 7 };
+// ✏️ 2026-11-22 강화비는 지금 장의 한 판 값을 따라간다 (1장은 예전과 거의 같고, 2부에서 +10까지면 몇 판 분량)
+function enhanceCost(it, s) {
+  const n = it.plus + 1, ch = (s || (typeof Save !== 'undefined' && Save.data) || {}).ch || 1;
+  return { gold: Math.max(20, Math.round(stageIncome(ch) * 0.06 * n * (1 + 0.15 * Math.min(it.rar, 4)) / 10) * 10), mat: n <= 4 ? 'low' : n <= 7 ? 'mid' : 'high', cnt: n <= 4 ? n : n <= 7 ? n - 4 : n - 7 };
 }
 function enhanceRate(it) { return [100, 100, 100, 90, 80, 70, 60, 50, 40, 30][it.plus] || 0; }
 function tryEnhance(s, it) {
   if (it.plus >= 10) return 'max';
-  const c = enhanceCost(it);
+  const c = enhanceCost(it, s);
   if (s.gold < c.gold || (s.mats[c.mat] || 0) < c.cnt) return 'cost';
   s.gold -= c.gold; s.mats[c.mat] -= c.cnt;
   if (Math.random() * 100 < enhanceRate(it)) { it.plus++; return 'ok'; }
@@ -394,9 +401,9 @@ function dismantle(s, it) {
   s.bag = s.bag.filter(x => x !== it);
   return { m, n };
 }
-function rerollCost(it) { return { mat: it.rar >= 4 ? 'abyss' : 'mid', cnt: 1, gold: 60 * (it.tier + 1) }; }
+function rerollCost(it, s) { const ch = (s || (typeof Save !== 'undefined' && Save.data) || {}).ch || 1; return { mat: it.rar >= 4 ? 'abyss' : 'mid', cnt: 1, gold: Math.max(60, Math.round(stageIncome(ch) * 0.17 / 10) * 10) }; }   // ✏️ 장에 따라
 function reroll(s, it, k) {
-  const c = rerollCost(it);
+  const c = rerollCost(it, s);
   if (!it.aff[k] || s.gold < c.gold || (s.mats[c.mat] || 0) < c.cnt) return false;
   s.gold -= c.gold; s.mats[c.mat] -= c.cnt;
   const keep = it.aff.filter((_, i) => i !== k).map(a => a.i);

@@ -674,7 +674,7 @@ class Smithy extends MenuBase {
     if (!it) { UI.text(this, 960, 360, '손볼 장비를 고르게.\n강화는 실패해도 부서지지 않아.', 22, '#c8b8a0', { align: 'center' }).setOrigin(0.5); return; }
     const { y } = this.itemDetail(it, 720, 124, 480);
     // 강화
-    const c = enhanceCost(it), rate = enhanceRate(it);
+    const c = enhanceCost(it, Save.data), rate = enhanceRate(it);
     const yy = Math.max(y + 10, 380);
     if (it.plus < 10) {
       UI.text(this, 720, yy, `강화 +${it.plus} → +${it.plus + 1}   성공 ${rate}%\n비용: 금화 ${c.gold}, ${MATS[c.mat]} ${c.cnt}`, 19, '#fff');
@@ -687,13 +687,13 @@ class Smithy extends MenuBase {
       }, { w: 150, h: 52, size: 22 });
     } else UI.text(this, 720, yy, '최대 강화 (+10)', 20, '#ffe27a');
     // 옵션 재설정
-    const rc = rerollCost(it);
+    const rc = rerollCost(it, Save.data);
     it.aff.forEach((a, k) => {
-      UI.button(this, 790, yy + 92 + k * 46, '재설정', () => {
+      UI.button(this, 790, yy + 106 + k * 44, '재설정', () => {
         if (reroll(s, it, k)) { UI.toast(this, '새 옵션: ' + affText(it.aff[k]), '#9ae0ff'); SFX.coin(); } else UI.toast(this, '재료가 모자라요', '#ff9a8a');
         Save.write(); this.draw();
       }, { w: 120, h: 40, size: 17, col: 0x2a3a5a });
-      UI.text(this, 860, yy + 92 + k * 46, affText(a), 17, '#9ae0ff').setOrigin(0, 0.5);
+      UI.text(this, 860, yy + 106 + k * 44, affText(a), 17, '#9ae0ff', { wrap: 170 }).setOrigin(0, 0.5);   // ✏️ 2026-11-22 안내 줄과 겹치지 않게 아래로
     });
     if (it.aff.length) UI.text(this, 720, yy + 62, `옵션 하나 재설정: 금화 ${rc.gold}, ${MATS[rc.mat]} ${rc.cnt}`, 16, '#c8b8a0');
     // 분해
@@ -871,7 +871,7 @@ class Shop extends MenuBase {
     this.draw();
   }
   // ✏️ 2026-11-22 가격 = 그 장 스테이지 한 판 수입(대략 350 × 장 보정) × 등급 배율. 일반 ≈ 1판, 고급 ≈ 3.5판
-  stageIncome() { return 350 * (1 + (Save.data.ch - 1) * 0.35); }
+  stageIncome() { return stageIncome(Save.data.ch); }   // ✏️ 2026-11-22 2부는 실제 수입 표
   price(it) { return Math.round(this.stageIncome() * [1, 3.5, 9, 20, 60, 40][it.rar] / 10) * 10; }
   shopTier() { return Math.min(3, Math.floor((Save.data.ch - 1) / 2)); }
   // 늘 파는 장비 미리보기 (가방에 넣지 않는 가짜 아이템)
@@ -963,11 +963,12 @@ class Shop extends MenuBase {
       }
       UI.text(this, x0 + 64, y - 25, `${b.ko} ×${s.belt[k] || 0}`, 17, '#fff', { bold: true });
       UI.text(this, x0 + 64, y - 2, b.fx, 13, '#c8b8a0', { wrap: 140 });
-      UI.button(this, x0 + 236, y + 1, `${b.price}`, () => {
-        if (s.gold < b.price) return UI.toast(this, '금화가 모자라요', '#ff9a8a');
+      const bp = beltPrice(k, s);   // ✏️ 2026-11-22 장에 따라 오른다
+      UI.button(this, x0 + 236, y + 1, `${bp}`, () => {
+        if (s.gold < bp) return UI.toast(this, '금화가 모자라요', '#ff9a8a');
         if (k === 'feather' && (s.belt.feather || 0) >= 3) return UI.toast(this, '부활 깃털은 3개까지', '#ff9a8a');
         if ((s.belt[k] || 0) >= 9) return UI.toast(this, '9개까지 가질 수 있어요', '#ff9a8a');
-        s.gold -= b.price; s.belt[k] = (s.belt[k] || 0) + 1; SFX.coin(); Save.write(); this.draw();
+        s.gold -= bp; s.belt[k] = (s.belt[k] || 0) + 1; SFX.coin(); Save.write(); this.draw();
       }, { w: 70, h: 44, size: 17 });
     });
   }

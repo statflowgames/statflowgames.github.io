@@ -77,7 +77,7 @@ const ELEM_DMG_KEY = { fire: 'fireDmg', ice: 'iceDmg', bolt: 'boltDmg', holy: 'h
 // 보스 장비 제작 비용
 function bossGearCost(id) {
   const g = BOSS_GEAR[id], ch = g.ch;
-  return { trophy: 2, gold: 150 + ch * 120, mat: ch <= 2 ? 'mid' : ch <= 4 ? 'high' : 'abyss', cnt: ch <= 2 ? 3 : ch <= 4 ? 3 : 2 };
+  return { trophy: 2, gold: ch >= 7 ? Math.round(stageIncome(ch) * 0.8 / 10) * 10 : 150 + ch * 120, mat: ch <= 2 ? 'mid' : ch <= 4 ? 'high' : 'abyss', cnt: ch <= 2 ? 3 : ch <= 4 ? 3 : 2 };
 }
 function craftBossGear(s, id) {
   const g = BOSS_GEAR[id], c = bossGearCost(id);
