@@ -1,7 +1,7 @@
 // 필요한 그림만 불러오고, 안 쓰는 큰 그림은 비운다 (휴대폰 메모리 절약).
 // 공통 그룹은 처음에 한 번 불러 두고, 나머지는 장면마다 preload()에서 필요한 것만.
 const Assets = {
-  CORE: new Set(['ui', 'uiset', 'icon', 'emote', 'fx', 'debris', 'debris2', 'chest', 'faces', 'trap', 'props']),
+  CORE: new Set(['ui', 'uiset', 'icon', 'emote', 'fx', 'debris', 'debris2', 'chest', 'faces', 'trap', 'props', 'captive', 'npc']),   // ✏️ captive: 우리에 갇힌 사람(그림이 오기 전엔 npc 실루엣)
   ext: '.png',
   group(g) { return Object.keys(MAN).filter(k => k.startsWith(g + '/')); },
   groups(list) { const out = []; for (const g of list) if (g) out.push(...this.group(g)); return out; },

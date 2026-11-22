@@ -4,6 +4,15 @@
 //   kind 'talk'   : 대화만 (wave 번째 잠금 전투가 시작될 때)
 // 말하는 사람: STORY의 CAST 키, 'hero', 또는 'x:이름'(그 자리 인물). 줄 조건(if/ifNot/onlyFor)은 대본과 같다.
 // 연결: Game.create(start) · startWave(onWave) · hitProp(onProp) · update(update) · stageClear(onClear) · resolveHeroHit(rage)
+// 🆕 구출 대상 → 그림 종류 (captive/<종류>_trapped.png · _free.png, 의뢰서 docs/art-brief-captives.md)
+const CAPTIVE_TYPE = {
+  '사냥꾼': 'hunter', '나무꾼': 'hunter', '사냥꾼 가족': 'child', '정령 아이': 'spirit',
+  '마을 사람': 'villager', '교단 포로': 'villager', '포로': 'villager', '화가': 'villager',
+  '선원': 'sailor', '조개잡이': 'sailor', '잠수부': 'sailor',
+  '드워프 광부': 'dwarf', '드워프': 'dwarf', '대장장이': 'dwarf',
+  '견습 마법사': 'apprentice', '유목민': 'nomad', '대상': 'nomad',
+  '거울 속 사람': 'mirror', '거울 속 영웅': 'mirror',
+};
 const STAGE_EVENTS = {
   // ---- 1장 ----
   c1_s2: { wave: 2, kind: 'rescue', n: 2, who: '사냥꾼', time: 40000,
@@ -142,20 +151,20 @@ const StageEvents = {
       for (let i = 0; i < d.n; i++) {
         const x = Math.round(w.l + 260 + (w.r - w.l - 520) * (d.n === 1 ? 0.5 : i / (d.n - 1)));
         const y = FLOOR_TOP + 40 + (i % 2) * 120;
-        this.addEvProp(sc, x, y, 'captive');
+        this.addEvProp(sc, x, y, 'captive', d.who, i);
       }
     } else if (d.kind === 'ritual') {
       this.addEvProp(sc, Math.round(w.r - 240), FLOOR_TOP + 60, 'altar');
     }
     this.drawGoal(sc);
   },
-  addEvProp(sc, x, y, ev) {
+  addEvProp(sc, x, y, ev, who, idx = 0) {
     const before = sc.props.length;
     sc.addProp(x, y, 'crate');
     const p = sc.props[before];
     p.ev = ev; p.hp = ev === 'altar' ? 6 : 3;
     const key = ev === 'altar' ? 'props/ritual_altar' : 'props/captive_cage';
-    if (sc.textures.exists(key)) p.img.setTexture(key).setScale(120 / sc.textures.get(key).getSourceImage().height);
+    if (sc.textures.exists(key)) p.img.setTexture(key).setScale((ev === 'altar' ? 120 : 140) / sc.textures.get(key).getSourceImage().height);
     else p.img.setTint(ev === 'altar' ? 0x8a50c0 : 0xd8b070);
     p.label = UI.text(sc, x, y - p.img.displayHeight - 14, ev === 'altar' ? '흑월 의식' : '구출!', 18, ev === 'altar' ? '#d0a0ff' : '#ffe27a', { bold: true, st: 5 }).setOrigin(0.5, 1).setDepth(1002 + y);
     sc.tweens.add({ targets: p.label, y: p.label.y - 8, yoyo: true, repeat: -1, duration: 500 });
@@ -163,7 +172,47 @@ const StageEvents = {
       p.glow = sc.add.ellipse(x, y, 150, 46, 0x9050ff, 0.35).setBlendMode(Phaser.BlendModes.ADD).setDepth(999);
       sc.tweens.add({ targets: p.glow, alpha: { from: 0.15, to: 0.5 }, yoyo: true, repeat: -1, duration: 420 });
     }
+    if (ev === 'captive') p.captive = this.addCaptive(sc, p, who, idx);
     this.sev(sc).props.push(p);
+  },
+  // 🆕 우리 안에 갇힌 사람: captive/<종류>_trapped · _free 그림 (없으면 실루엣으로 대신)
+  addCaptive(sc, p, who, i) {
+    const type = CAPTIVE_TYPE[who] || 'villager';
+    const real = sc.textures.exists(`captive/${type}_trapped`);
+    const key = real ? `captive/${type}_trapped` : sc.textures.exists('npc/merchant') ? 'npc/merchant' : null;
+    if (!key) return null;
+    const ch = p.img.displayHeight;
+    const img = sc.add.image(p.x, p.y + 6 - ch * 0.05, key).setOrigin(0.5, 1).setDepth(p.img.depth + 0.2);
+    img.setScale(ch * ({ child: 0.62, dwarf: 0.7, spirit: 0.62 }[type] || 0.8) / img.height);
+    if (i % 2) img.setFlipX(true);
+    if (type === 'spirit') img.setTint(real ? 0xffffff : 0xa0ffd8).setAlpha(real ? 0.9 : 0.75).setBlendMode(real ? Phaser.BlendModes.NORMAL : Phaser.BlendModes.ADD);
+    else if (type === 'mirror') img.setTint(real ? 0xffffff : 0xb8c8ff).setAlpha(0.7);
+    else if (!real) img.setTint(0x3a3040);   // 그림이 오기 전: 실루엣
+    // 우리 그림은 속이 거의 막혀 있어서, 사람을 우리 앞에 그리고 우리를 반투명하게 한 겹 더 덮는다 (창살 너머로 보이게)
+    const over = sc.add.image(p.img.x, p.img.y, p.img.texture.key).setOrigin(0.5, 1).setScale(p.img.scaleX, p.img.scaleY).setDepth(p.img.depth + 0.5).setAlpha(0.5);
+    // 창살을 붙잡고 흔드는 듯이
+    const tw = sc.tweens.add({ targets: img, angle: { from: -3, to: 3 }, duration: 360 + i * 50, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    return { img, tw, type, real, over };
+  },
+  // 풀려난 사람: 한 번 뛰어오르고 인사한 뒤 싸움터 밖으로 달아난다
+  freeCaptive(sc, p) {
+    const c = p.captive; if (!c) return;
+    c.tw.stop(); c.over.destroy(); c.img.setAngle(0).setDepth(p.y + 1002);
+    const free = `captive/${c.type}_free`;
+    if (c.real && sc.textures.exists(free)) { const h = c.img.displayHeight; c.img.setTexture(free).setScale(h / sc.textures.get(free).getSourceImage().height); }
+    const dir = p.x < sc.hero.x ? -1 : 1;
+    sc.floatText(p.x, p.y - 200, '고마워요!', '#ffffff', 24);
+    sc.tweens.add({ targets: c.img, y: c.img.y - 46, duration: 200, yoyo: true, ease: 'Quad.out', onComplete: () => {
+      c.img.setFlipX(dir < 0);
+      sc.tweens.add({ targets: c.img, x: c.img.x + dir * 460, alpha: 0, duration: 1100, delay: 220, onComplete: () => c.img.destroy() });
+    } });
+  },
+  // 시간 초과: 갇힌 사람이 끌려간다
+  loseCaptive(sc, p) {
+    const c = p.captive; if (!c) return;
+    c.tw.stop();
+    sc.tweens.add({ targets: c.over, alpha: 0, duration: 500, onComplete: () => c.over.destroy() });
+    sc.tweens.add({ targets: c.img, alpha: 0, y: c.img.y + 10, duration: 500, onComplete: () => c.img.destroy() });
   },
   sev(sc) { return sc.sev; },
   // 이벤트 물체가 부서졌다 (hitProp에서)
@@ -172,6 +221,7 @@ const StageEvents = {
     if (p.label) p.label.destroy(); if (p.glow) p.glow.destroy();
     if (!e || e.state !== 'run') return;
     if (p.ev === 'captive') {
+      this.freeCaptive(sc, p);
       e.got++;
       sc.floatText(p.x, p.y - 140, `${e.d.who} 구출! ${e.got}/${e.d.n}`, '#ffe27a', 28);
       SFX.ui('chest_open');
@@ -202,7 +252,7 @@ const StageEvents = {
     this.barks(sc, d.fail);
     for (const p of e.props) if (p.hp > 0) {
       // 시간이 지나면 갇힌 사람은 끌려가고, 제단은 의식을 마친다
-      p.hp = 0; if (p.label) p.label.destroy();
+      p.hp = 0; if (p.label) p.label.destroy(); this.loseCaptive(sc, p);
       sc.tweens.add({ targets: [p.img, p.sh], alpha: 0, duration: 500, onComplete: () => { p.img.destroy(); p.sh.destroy(); if (p.glow) p.glow.destroy(); } });
     }
     if (d.kind === 'ritual') {

@@ -1039,7 +1039,7 @@ class Game extends Phaser.Scene {
     p.hp--;
     SFX.brk(p.x - this.cameras.main.scrollX, 'wood');
     this.hitstop = Math.max(this.hitstop, 40);
-    this.tweens.add({ targets: p.img, x: p.x + h.face * 6, duration: 40, yoyo: true, repeat: 1 });
+    this.tweens.add({ targets: p.captive ? [p.img, p.captive.over] : p.img, x: p.x + h.face * 6, duration: 40, yoyo: true, repeat: 1 });
     if (p.hp > 0) return;
     this.spawnDebrisAt(p.x, p.y, 5, p.n);
     this.fx('dust_land', p.x, p.y, { s: 0.35, dur: 400, depth: p.y + 1 });
