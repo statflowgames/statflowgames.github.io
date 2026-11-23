@@ -203,8 +203,7 @@ class Talk extends Phaser.Scene {
       return { ko: DB.heroes[h].name, portrait: 'portrait/' + h, faces: 'portrait/' + h + '_', hero: true };
     }
     // 🆕 2부: 1부를 희생 엔딩으로 끝냈다면 리세는 월석 속 목소리
-    const s = Save.data;
-    if (w === 'lise' && s && s.lastEnding === 'end_sacrifice' && s.ch >= 7 && !s.endings.p2_true && CAST.lise_stone) return CAST.lise_stone;
+    if (w === 'lise' && liseInStone(talkChapter(this.d && this.d.key))) return CAST.lise_stone;
     return CAST[w] || { ko: w };
   }
   next() {
@@ -368,6 +367,18 @@ class Talk extends Phaser.Scene {
   }
 }
 
+// 🆕 2026-11-23 희생 엔딩 뒤 2부(7~12장)에서 리세는 공명석 속 목소리. 2부 진 엔딩에서 풀려난다.
+//   ch = 지금 보는 장면의 장 (2부를 연 뒤 1부를 다시 해도 1부 리세는 그대로)
+function liseInStone(ch) {
+  const s = Save.data;
+  return !!(s && s.lastEnding === 'end_sacrifice' && !(s.endings || {}).p2_true && ch >= 7 && typeof CAST !== 'undefined' && CAST.lise_stone);
+}
+// 대화 묶음 키 → 그 장면의 장 (c9_event → 9, camp_lise_10 → 10, 2부 제안 갈래 → 11, 엔딩 등 → 0)
+function talkChapter(key) {
+  const m = /^c(\d+)_/.exec(key || '') || /^camp_lise_(\d+)$/.exec(key || '');
+  if (m) return +m[1];
+  return /^p2_(accept|refuse)$/.test(key || '') ? 11 : 0;
+}
 // 🆕 조건 줄 판정 (대화·말풍선 공용)
 function talkLineOk(L) {
   const s = Save.data || { flags: {}, lise: 0, hero: 'warrior' };

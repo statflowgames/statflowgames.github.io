@@ -29,7 +29,7 @@ const STAGE_EVENTS = {
     intro: [['narr', '안개 너머에서 보랏빛 망토가 스쳐 지나갔다.'], ['hunter', '…적월이 깨어났군. 아이야, 그 돌은 네 것이 아니다.'], ['lise', '누, 누구예요?!']] },
   // ---- 2장 ----
   c2_s1: { wave: 1, kind: 'talk',
-    intro: [['odelia', '지켜보겠다고 했죠. 정말 교단과 무관하다면, 싸우는 모습으로 보여 주세요.'], ['lise', '보세요, 우리가 얼마나 열심히 싸우는지!']] },
+    intro: [['odelia', '지켜보겠다고 했죠. 정말 교단과 무관하다면, 싸우는 모습으로 보여 주세요.', { skipFor: ['paladin'] }], ['lise', '보세요, 우리가 얼마나 열심히 싸우는지!']] },
   c2_s2: { wave: 2, kind: 'ritual', time: 30000,
     intro: [['odelia', '저 제단… 흑월 교단의 표식입니다! 의식이 끝나기 전에 부숴야 해요!'], ['lise', '보랏빛 연기가 올라가요!']],
     ok: [['odelia', '표식이 깨졌습니다. 이 도시 안에 교단이 숨어 있다는 증거군요.']],
@@ -52,7 +52,7 @@ const STAGE_EVENTS = {
     intro: [['narr', '묘실 벽의 그림이 일렁이더니, 300년 전의 목소리가 새어 나왔다.'], ['x:옛 목소리', '"오르벡스, 봉인에 다른 길은 없어. 내가 갈게."'], ['lise', '방금… 누구 목소리예요? 제 목걸이가 떨려요.']] },
   c3_b1: { wave: 2, kind: 'rescue', n: 2, who: '교단 포로', time: 40000,
     intro: [['x:포로', '교단이 우릴 달 찾는 데 쓰려고 잡아 왔어요! 도와주세요!'], ['lise', '이 사람들도 월석 냄새를 맡는다는 이유로…!']],
-    ok: [['x:포로', '협곡 끝 감옥에 엘프 하나가 더 갇혀 있어요. 은빛 활을 쓰던 사냥꾼이요.']],
+    ok: [['x:포로', '협곡 끝 감옥에 엘프 하나가 더 갇혀 있어요. 은빛 활을 쓰던 사냥꾼이요.', { skipFor: ['ranger'] }], ['x:포로', '협곡 끝 감옥에 교단이 빼앗은 활이 있어요. 은빛이 도는 활이요!', { onlyFor: ['ranger'] }]],
     fail: [['lise', '…끌려가 버렸어요.']],
     reward: { gold: 50, lise: 1, flag: 'c3_prisoners' } },
   // ---- 4장 ----
@@ -80,10 +80,10 @@ const STAGE_EVENTS = {
     fail: [['lise', '견습생들이 톱니에 끌려 들어갔어요…']],
     reward: { gold: 100, lise: 1, flag: 'c5_apprentices' } },
   c5_b1: { wave: 2, kind: 'talk',
-    intro: [['seril', '하피들이 은빛 깃털을 물어 나르고 있어. 둥지가 가까워.', { if: 'seril_freed' }], ['lise', '바람이 저를 부르는 것 같아요.']] },
+    intro: [['seril', '하피들이 은빛 깃털을 물어 나르고 있어. 둥지가 가까워.', { if: 'seril_joined' }], ['lise', '바람이 저를 부르는 것 같아요.']] },
   // ---- 6장 ----
   c6_s1: { wave: 1, kind: 'talk',
-    intro: [['kael', '여기까지 왔나. 흑월룡의 숨소리가 들리지? 곧 세상이 새로 쓰인다.'], ['lise', '카엘… 당신도 누군가에게 속고 있는 거 아니에요?'], ['kael', '……닥쳐라.']] },
+    intro: [['kael', '여기까지 왔나. 흑월룡의 숨소리가 들리지? 곧 세상이 새로 쓰인다.'], ['lise', '카엘… 당신, 정말 그걸 원해요? 꼭 무서워하는 사람 같은 얼굴이에요.'], ['kael', '……닥쳐라.']] },
   c6_s2: { wave: 2, kind: 'ritual', time: 26000,
     intro: [['orvex', '저 제단이 흑월룡에게 힘을 보낸다! 부숴라!', { if: 'refused' }], ['lise', '하늘이 뒤집혀요! 저 제단부터!']],
     ok: [['lise', '흑월의 맥박이 약해졌어요!']],
@@ -104,14 +104,13 @@ const StageEvents = {
     const d = sc.mode === 'story' && STAGE_EVENTS[sc.cfg.stage];
     sc.sev = d ? { d, state: 'wait', t: 0, got: 0, props: [] } : null;
   },
-  who(w) {
+  who(w, sc) {
     const hk = (Save.data && Save.data.hero) || 'warrior';
     const AS = { odelia: 'paladin', seril: 'ranger' };
     if (AS[w] === hk) w = 'hero';
     if (w === 'hero') return { ko: DB.heroes[hk].name, portrait: 'portrait/' + hk };
     if (w.startsWith('x:')) return { ko: w.slice(2) };
-    const s = Save.data;
-    if (w === 'lise' && s && s.lastEnding === 'end_sacrifice' && s.ch >= 7 && CAST.lise_stone) return CAST.lise_stone;
+    if (w === 'lise' && typeof liseInStone === 'function' && liseInStone(sc && sc.cfg ? sc.cfg.ch : 0)) return CAST.lise_stone;   // ✏️ 지금 스테이지의 장 기준
     return CAST[w] || { ko: w };
   },
   // ✏️ 2026-11-22 전투 중 대사 = 말풍선
@@ -173,7 +172,7 @@ const StageEvents = {
   },
   // 말풍선 하나 만들기. big = 멈춘 장면(조금 크게)
   bubble(sc, b, big) {
-    const sp = this.who(b.w), at = this.anchor(sc, b);
+    const sp = this.who(b.w, sc), at = this.anchor(sc, b);
     const fs = big ? 21 : 18, wrap = big ? 380 : 320, pad = 14;
     const c = sc.add.container(0, 0).setDepth(5250);
     if (at.kind === 'narr') {

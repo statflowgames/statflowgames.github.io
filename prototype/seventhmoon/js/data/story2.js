@@ -47,7 +47,7 @@ Object.assign(STORY, {
   ],
   c4_side: [
     { w: 'narr', t: '얼어붙은 광산 입구. 갱도 안에 드워프 광부들이 얼음에 갇혀 있다.' },
-    { w: 'tabel', t: '엘라와 내가 일하던 광산이다. 저 친구들, 아직 버티고 있었군!' },
+    { w: 'tabel', t: '젊을 적 내가 일하던 광산이다. 저 친구들, 아직 버티고 있었군!' },
   ],
   c4_side_end: [
     { w: 'narr', if: 'c4_side', t: '얼음에서 풀려난 드워프들이 형제의 증표인 반지 하나를 건넸다. "타벨 형님 친구라면 우리 친구지."' },
@@ -149,8 +149,8 @@ Object.assign(STORY, {
   ],
   c7_side: [{ w: 'narr', t: '모래에 반쯤 묻힌 둥근 관측소. 문 위에 대마법사의 문장 — 오르벡스의 것이다.' }],
   c7_side_end: [
-    { w: 'narr', t: '관측소 책상 위 찢긴 연구 노트. "일곱 번째 달 계획 — 씨앗 여섯, 그릇 하나."' },
-    { w: 'tabel', f: 'sad', t: '오르벡스의 글씨다. \'씨앗 여섯, 그릇 하나\'… 예전의 그 영웅이 왜 또 사람을 그릇이라 부르는 거지?' },
+    { w: 'narr', t: '관측소 책상 위 찢긴 연구 노트. "은빛 달 계획 — 씨앗 여섯, 그릇 하나."' },
+    { w: 'tabel', f: 'sad', t: '오르벡스의 글씨다. \'씨앗 여섯, 그릇 하나\'… 그릇이라니, 대체 무엇을 담겠다는 거지?' },
     { give: { gold: 600, exp: 800, flag: 'c7_note' } },
   ],
   // ---- 8장 가라앉은 왕국 ----
@@ -220,7 +220,7 @@ Object.assign(STORY, {
     { w: 'lise', if: 'kael_ally', t: '그럼 이번엔 같이 확인해요. 혼자 짊어지지 말고요.' },
     { w: 'tabel', if: 'kael_ally', t: '…여긴 엘라와 내가 처음 만난 대장간이다. 이런 데서 사제의 이야기를 듣게 될 줄이야.' },
     { w: 'narr', ifNot: 'kael_ally', t: '잊힌 대장간. 화로 옆에 보랏빛 망토 한 자락이 걸려 있다. 카엘이 잠시 머물다 간 자리다.' },
-    { w: 'narr', ifNot: 'kael_ally', t: '망토 주머니의 접힌 쪽지: "스승님의 인형을 쫓는다. 불은 태우기도 하고, 벼리기도 한다."' },
+    { w: 'narr', ifNot: 'kael_ally', t: '망토 주머니의 접힌 쪽지: "은빛 가면을 쫓는다. 불은 태우기도 하고, 벼리기도 한다."' },
     { w: 'lise', ifNot: 'kael_ally', f: 'sad', t: '…혼자 가 버렸네요.' },
     { give: { exp: 1500, gold: 300, flag: 'c9_forge_talk' } },
   ],
@@ -247,6 +247,7 @@ Object.assign(STORY, {
   ],
   c9_end: [
     { w: 'narr', t: '불의 거인이 무릎을 꿇자 산이 조용해졌다.' },
+    { w: 'narr', ifNot: 'kael_ally', t: '능선 위, 홀로 따라온 보랏빛 망토가 서 있었다. 바람을 타고 낮은 목소리가 내려왔다.' },
     { w: 'kael', t: '모르간이 씨앗의 검은 잔향을 모으는 방식… 스승님이 300년 전 쓰시던 방식이다.' },
     { w: 'kael', t: '씨앗은 너희가 정화해도, 벗겨 낸 그림자는 누군가 가져갈 수 있어. 의심이 확신이 되어 간다.' },
     { w: 'tabel', f: 'sad', t: '오르벡스가… 정말 그런 짓을 할까.' },
@@ -258,7 +259,8 @@ Object.assign(STORY, {
   c10_intro: [
     { bg: 'story/c10', alt: 'story/c1' },   // ✏️ 2026-11-22 2부 장 그림(의뢰 중) — 오기 전엔 1부 그림
     { w: 'narr', t: '나무가 하늘로 뿌리를 뻗고, 잎은 땅속으로 자란다. 포자가 눈처럼 내린다.' },
-    { w: 'seril', asHero: true, t: '…엘프 숲이 이렇게 됐어. 씨앗이 숲의 마음에 떨어졌어.' },
+    { w: 'seril', asHero: true, if: 'seril_joined', t: '…엘프 숲이 이렇게 됐어. 씨앗이 숲의 마음에 떨어졌어.' },
+    { w: 'lise', ifNot: 'seril_joined', skipFor: ['ranger'], t: '여기가 엘프들의 숲이었대요. 씨앗이 숲의 마음에 떨어졌나 봐요.' },
     { w: 'lise', t: '숲이 거꾸로 숨을 쉬어요. 빨리 씨앗을 찾아야 해요.' },
   ],
   c10_event: [
@@ -338,6 +340,8 @@ Object.assign(STORY, {
     { w: 'lise', f: 'surprise', t: '오르벡스…!' },
     { w: 'orvex', ifEnd: 'end_true', t: '빛을 찾아 준 너희에게 고마웠다. 진심이다. 그러나 나는 보았다. 흑월이 사라진 하늘에 금이 가는 것을. 순환은 끝나지 않았다. 모양만 바뀌었을 뿐.' },
     { w: 'orvex', ifNotEnd: 'end_true', t: '300년을 기다렸다. 다시 열린 균열을 보고 깨달았다. 봉인만으로는 끝나지 않는다고. 이번만은 내 손으로 끝낸다.' },
+    { w: 'orvex', t: '하늘의 금은, 300년마다 흑월을 억지로 눌러 온 자리에 남은 상처다. 씨앗은 그 상처에서 흘러내린 흑월의 찌꺼기지.' },
+    { w: 'tabel', f: 'sad', if: 'c7_note', t: '관측소의 그 노트… \'그릇 하나\'란 결국 당신 자신이었군.' },
     { w: 'kael', if: 'kael_ally', t: '스승님. 저를 버리신 것도 그 때문입니까.' },
     { w: 'orvex', if: 'kael_ally', f: 'sad', t: '…너를 끌어들이고 싶지 않았다, 카엘. 결국 끌어들였지만.' },
   ],
@@ -386,6 +390,14 @@ Object.assign(STORY, {
   c12_event: [
     { w: 'narr', t: '첫 달의 무덤. 은빛 관 속에 \'첫 달지기\'가 잠들어 있다. 관 위에 글귀: "달은 밤을 지키기 위해 떠오른다."' },
     { w: 'narr', ifEnd: 'end_sacrifice', t: '관 옆, 빛나는 사슬에 묶인 붉은 머리의 소녀가 보인다. 리세의 모습이다.' },
+    { w: 'hero', ifEnd: 'end_sacrifice', t: '리세…! 여기 있었군.', by: {
+      mage: '리세…! 찾았어요. 드디어.',
+      paladin: '리세… 여기 계셨군요.',
+      rogue: '리세! …자고 있는 거지? 그렇지?',
+      ranger: '…리세. 찾았다.',
+      hexblade: '…리세. 이런 데 혼자 있었던 거냐.',
+    } },
+    { w: 'lise_stone', ifEnd: 'end_sacrifice', t: '…보이죠? 저, 아직 거기 있어요. 조금만 더 기다릴게요.' },
     { w: 'lise', ifNotEnd: 'end_sacrifice', t: '…끝나면, 같이 집에 가요. 제가 아직 못 끓인 수프도 있잖아요. 약속해 줄래요?' },
     { w: 'lise_stone', ifEnd: 'end_sacrifice', t: '…끝나면, 저도 집으로 돌아갈 수 있을까요? 약속해 줄래요?' },
     { choice: [['약속한다 (리세의 신뢰)', 'c12_promise'], ['지금은 싸움에 집중하자', 'c12_focus']] },
@@ -441,7 +453,7 @@ Object.assign(STORY, {
     { w: 'lise', f: 'joy', ifNot: 'c12_promise', t: '집에 가요. 이번에는 함께요.' },
     { w: 'narr', if: 'c8_promise', t: '아쿠아렐 기사의 반지는 약속대로 해안 마을의 늙은 어부에게 전해졌다. 그는 반지를 쥐고 오래 울었다.' },
     { bg: 'story/p2_true_3', cam: 'out', fx: 'gold' },   // 🆕 2026-11-22 컷 (그림 의뢰 중 — 없으면 앞 그림 유지)
-    { w: 'narr', t: '— 2부 진 엔딩 「일곱 달의 하늘」. 벨카라의 밤하늘에는 이제 일곱 개의 달이 함께 떠, 밤과 꿈을 지킨다.' },
+    { w: 'narr', t: '— 2부 진 엔딩 「일곱 달의 하늘」. 은빛 달은 이제 밤을 지우지 않고, 다른 달들 곁에서 밤과 꿈을 함께 지킨다.' },
   ],
   p2_dark: [
     { music: 'bgm_end_p2_dark' },
@@ -470,7 +482,7 @@ Object.assign(STORY, {
   camp_lise_7: [{ w: 'lise', t: '씨앗이 울어요. 누군가에게 억지로 끌려온 것처럼요.' }, { w: 'lise', t: '여섯 개를 모두 정화하면… 하늘의 금도 아물지 않을까요?' }],
   camp_lise_8: [{ w: 'lise', t: '은빛 가면 속 늙은 목소리… 설마, 아니겠죠? 사람을 구하려는 말인데 왜 이렇게 두려울까요?' }],
   camp_lise_9: [{ w: 'lise', if: 'kael_ally', t: '카엘이 밤마다 혼자 칼을 갈아요. 스승을 베는 연습일까요, 지키는 연습일까요.' }, { w: 'lise', ifNot: 'kael_ally', t: '멀리서 보랏빛 망토가 따라와요. 혼자서.' }],
-  camp_lise_10: [{ w: 'lise', if: 'c10_share', f: 'joy', t: '그때 말려 줘서 고마워요. 저, 할머니 웃음소리 아직 기억해요.' }, { w: 'lise', ifNot: 'c10_share', f: 'sad', t: '뭘 잃었는지 기억이 안 나요. 그게 제일 무서워요.' }],
+  camp_lise_10: [{ w: 'lise', if: 'c10_share', f: 'joy', t: '그때 말려 줘서 고마워요. 저, 할머니 웃음소리 아직 기억해요.' }, { w: 'lise', if: 'c10_let', f: 'sad', t: '뭘 잃었는지 기억이 안 나요. 그게 제일 무서워요.' }],
   camp_lise_11: [{ w: 'lise', t: '오르벡스의 말, 이해는 돼요. 그래도 저는 밤이 좋아요. 별을 볼 수 있으니까.' }],
   // ✏️ 7·9·11장 씨앗은 A(중간 보스)에 있다. B 보물 자리에서는 장비 상자를 얻는다.
   c7_cache: [
@@ -527,12 +539,12 @@ Object.assign(STAGE_EVENTS, {
   c8_x1: { wave: 1, kind: 'rescue', n: 2, who: '잠수부', time: 40000, intro: [['x:잠수부', '잠수종에 물이 차요!']], ok: [['x:잠수부', '살았다! 저 산호 밑에 보물이 있어요!']], fail: [['lise', '…잠수종이 가라앉았어요.']], reward: { gold: 300, flag: 'c8_side' } },
   c9_s1: { wave: 1, kind: 'talk', intro: [['tabel', '재가 눈처럼 내리는군. 대장간 마을이 무사해야 할 텐데.']] },
   c9_s2: { wave: 2, kind: 'rescue', n: 3, who: '대장장이', time: 45000, intro: [['x:대장장이', '용암이 대장간을 덮쳐! 도와줘!']], ok: [['x:대장장이', '불의 거인이 미쳤어. 갑옷이 굳기 전에 깨야 해!']], fail: [['tabel', '…늦었다.']], reward: { gold: 380, lise: 1, flag: 'c9_smiths' } },
-  c9_a1: { wave: 2, kind: 'ritual', time: 26000, intro: [['kael', '저 제단 — 내가 쓰던 방식이다. 빨리 부숴라!']], ok: [['kael', '…부서졌군. 내 죄 하나가 줄었다.']], fail: [['kael', '용광로가 깨어난다…!']], reward: { gold: 400, flag: 'c9_ritual' } },
+  c9_a1: { wave: 2, kind: 'ritual', time: 26000, intro: [['kael', '저 제단 — 내가 쓰던 방식이다. 빨리 부숴라!', { if: 'kael_ally' }], ['lise', '저 제단… 카엘이 쓰던 것과 같은 모양이에요! 부숴요!', { ifNot: 'kael_ally' }]], ok: [['kael', '…부서졌군. 내 죄 하나가 줄었다.', { if: 'kael_ally' }], ['lise', '부서졌어요!', { ifNot: 'kael_ally' }]], fail: [['kael', '용광로가 깨어난다…!', { if: 'kael_ally' }], ['lise', '용광로가 깨어나요…!', { ifNot: 'kael_ally' }]], reward: { gold: 400, flag: 'c9_ritual' } },
   c9_b1: { wave: 2, kind: 'talk', intro: [['tabel', '잊힌 대장간… 엘라와 내가 처음 만난 곳이다.'], ['lise', '할머니가 여기도 오셨어요?']] },
   c9_x1: { wave: 1, kind: 'ritual', time: 28000, intro: [['x:대장장이', '저 제단이 마지막 화로를 얼리고 있어!']], ok: [['x:대장장이', '불이 붙었다!']], fail: [['x:대장장이', '…화로가 꺼졌어.']], reward: { gold: 420, flag: 'c9_side' } },
-  c10_s1: { wave: 1, kind: 'talk', intro: [['seril', '…숲이 거꾸로 숨 쉬어. 나무들이 비명을 질러.', { skipFor: ['ranger'] }], ['hero', '…숲이 거꾸로 숨 쉬어. 나무들이 비명을 질러.', { onlyFor: ['ranger'] }], ['lise', '서둘러요.']] },
+  c10_s1: { wave: 1, kind: 'talk', intro: [['seril', '…숲이 거꾸로 숨 쉬어. 나무들이 비명을 질러.', { skipFor: ['ranger'], if: 'seril_joined' }], ['lise', '숲이 거꾸로 숨을 쉬어요… 나무들이 비명을 질러요.', { skipFor: ['ranger'], ifNot: 'seril_joined' }], ['hero', '…숲이 거꾸로 숨 쉬어. 나무들이 비명을 질러.', { onlyFor: ['ranger'] }], ['lise', '서둘러요.']] },
   c10_s2: { wave: 2, kind: 'rescue', n: 2, who: '나무꾼', time: 40000, intro: [['x:나무꾼', '포자에 휘감겼어요! 살려 줘요!']], ok: [['x:나무꾼', '썩은 숲지기가 늪을 지켜요. 불에 약해요!']], fail: [['lise', '…포자에 삼켜졌어요.']], reward: { gold: 420, lise: 1, flag: 'c10_woodcutter' } },
-  c10_a1: { wave: 2, kind: 'ritual', time: 26000, intro: [['seril', '저 제단이 포자를 뿜어. 부숴!']], ok: [['seril', '숲이 조금 숨을 쉬어.']], fail: [['seril', '…포자가 더 짙어졌어.']], reward: { gold: 440, flag: 'c10_ritual' } },
+  c10_a1: { wave: 2, kind: 'ritual', time: 26000, intro: [['seril', '저 제단이 포자를 뿜어. 부숴!', { if: 'seril_joined' }], ['lise', '저 제단이 포자를 뿜어요! 부숴요!', { ifNot: 'seril_joined' }]], ok: [['seril', '숲이 조금 숨을 쉬어.', { if: 'seril_joined' }], ['lise', '숲이 조금 숨을 쉬어요.', { ifNot: 'seril_joined' }]], fail: [['seril', '…포자가 더 짙어졌어.', { if: 'seril_joined' }], ['lise', '…포자가 더 짙어졌어요.', { ifNot: 'seril_joined' }]], reward: { gold: 440, flag: 'c10_ritual' } },
   c10_b1: { wave: 2, kind: 'talk', intro: [['narr', '늪 위로 거꾸로 흐르는 강이 하늘로 이어진다.'], ['lise', '물이 하늘로 떨어져요… 이상한데, 예뻐요.']] },
   c10_x1: { wave: 1, kind: 'rescue', n: 3, who: '정령 아이', time: 45000, intro: [['x:정령 아이', '덫에 걸렸어! 꺼내 줘!']], ok: [['x:정령 아이', '고마워! 고마워!']], fail: [['lise', '…빛이 꺼졌어요.']], reward: { gold: 400, flag: 'c10_side' } },
   c11_s1: { wave: 1, kind: 'talk', intro: [['narr', '구름 계단을 오를수록 바람이 차가워진다.'], ['lise', '여기서는 별이 안 보여요. 하늘이 너무 밝아요.']] },
@@ -540,8 +552,8 @@ Object.assign(STAGE_EVENTS, {
   c11_a1: { wave: 2, kind: 'ritual', time: 24000, intro: [['x:은빛 신도', '밤을 지워라! 은빛만 남겨라!']], ok: [['lise', '하늘에 별 하나가 돌아왔어요!']], fail: [['morgan', '은빛이 하늘을 덮는다.']], reward: { gold: 480, flag: 'c11_ritual' } },
   c11_b1: { wave: 2, kind: 'talk', intro: [['narr', '떠도는 정원 사이로 은빛 인형들이 정원을 가꾼다.'], ['kael', '모르간과 같은 인형이다. 스승님은 사람보다 인형을 믿으신 거지.', { if: 'kael_ally' }]] },
   c11_x1: { wave: 1, kind: 'rescue', n: 3, who: '화가', time: 45000, intro: [['x:화가', '그림을 다 태우기 전에!']], ok: [['x:화가', '밤하늘을 다시 그릴게요!']], fail: [['lise', '…그림이 다 타 버렸어요.']], reward: { gold: 500, flag: 'c11_side' } },
-  c12_s1: { wave: 1, kind: 'talk', intro: [['narr', '달의 해안. 은빛 모래가 발밑에서 노래한다.'], ['lise', '여기서는… 집이 보여요. 아주 작게.']] },
-  c12_s2: { wave: 2, kind: 'ritual', time: 24000, intro: [['orvex', '와 주었구나. 그러나 이 제단이 꺼지면 내 달도 늦게 뜨겠지.']], ok: [['orvex', '…훌륭하다.']], fail: [['orvex', '은빛이 차오른다.']], reward: { gold: 520, flag: 'c12_ritual' } },
+  c12_s1: { wave: 1, kind: 'talk', intro: [['narr', '달의 해안. 은빛 모래가 발밑에서 노래한다.'], ['lise', '여기서는… 집이 보여요. 아주 작게.', { ifNotEnd: 'end_sacrifice' }], ['lise_stone', '여기서는… 집이 느껴져요. 아주 멀리서요.', { ifEnd: 'end_sacrifice' }]] },
+  c12_s2: { wave: 2, kind: 'ritual', time: 24000, intro: [['orvex', '와 주었구나. 그러나 이 제단이 꺼지면 내 달도 늦게 뜨겠지.', { ifNot: 'p2_accepted' }], ['orvex', '이 제단은 은빛 달의 받침이다. 흑월의 찌꺼기만 걷어 다오. 그래야 달이 맑게 뜬다.', { if: 'p2_accepted' }]], ok: [['orvex', '…훌륭하다.']], fail: [['orvex', '은빛이 차오른다.', { ifNot: 'p2_accepted' }], ['orvex', '…찌꺼기가 남았구나. 괜찮다, 내가 거두마.', { if: 'p2_accepted' }]], reward: { gold: 520, flag: 'c12_ritual' } },
   c12_a1: { wave: 2, kind: 'rescue', n: 2, who: '거울 속 영웅', time: 38000, intro: [['x:거울 속 영웅', '300년마다… 여기 갇혔어… 꺼내 줘…']], ok: [['x:거울 속 영웅', '고맙다… 이번 영웅은 다르구나.']], fail: [['lise', '…거울이 닫혔어요.']], reward: { gold: 540, lise: 1, flag: 'c12_heroes' } },
   c12_b1: { wave: 2, kind: 'talk', intro: [['narr', '첫 달의 무덤으로 가는 길. 은빛 꽃이 피어 있다.'], ['lise', '이 꽃… 봉인의 문 앞에서 본 것 같아요. 가 본 적도 없는데, 이상하죠?', { ifNotEnd: 'end_sacrifice' }], ['lise_stone', '…그 꽃이에요. 제가 잠든 봉인 문 앞에 피던 꽃.', { ifEnd: 'end_sacrifice' }]] },
   c12_x1: { wave: 1, kind: 'talk', intro: [['narr', '달 위의 기억. 여섯 달이 처음 떠오르던 날의 풍경이 펼쳐진다.'], ['lise', '…달은 밤을 지키려고 떠오른 거였어요.']] },

@@ -364,7 +364,7 @@ class MapScene extends Phaser.Scene {
     const toCredits = () => this.scene.start('credits', { e });
     // 🆕 어둠 엔딩(2부가 아직 안 열렸을 때): 천막의 할멈이 실을 되감아 준다 → 6장으로 돌아가는 이유
     const afterEp = (e === 'end_dark' && s.ch < 7) ? () => runTalk(this, 'dark_rewind', toCredits, { dim: 0.85 }) : toCredits;
-    runTalk(this, e, () => runTalk(this, 'ep_' + s.hero, afterEp, { dim: 0.85 }), { dim: 0.85 });
+    runTalk(this, e, () => (e === 'end_dark' ? afterEp() : runTalk(this, 'ep_' + s.hero, afterEp, { dim: 0.85 })), { dim: 0.85 });   // ✏️ 2026-11-23 어둠 엔딩은 후일담 없음
   }
 }
 
@@ -395,8 +395,10 @@ class Camp extends Phaser.Scene {
       if (!im) continue;
       im.setOrigin(0.5, 1).setScale(270 / im.height).setInteractive({ useHandCursor: true, pixelPerfect: false });
       if (k === 'fortune' || k === 'lise') im.setFlipX(true);
+      const stone = k === 'lise' && liseInStone(s.ch);   // 🆕 2026-11-23 희생 엔딩 뒤 2부: 리세는 공명석 속
+      if (stone) { im.setTint(0x9ad8ff).setAlpha(0.62); this.tweens.add({ targets: im, alpha: 0.42, yoyo: true, repeat: -1, duration: 1600 }); }
       this.tweens.add({ targets: im, scaleY: im.scaleY * 1.012, yoyo: true, repeat: -1, duration: 1400 + Math.random() * 400 });
-      im.on('pointerover', () => im.setTint(0xfff0c0)); im.on('pointerout', () => im.clearTint());
+      im.on('pointerover', () => im.setTint(0xfff0c0)); im.on('pointerout', () => (stone ? im.setTint(0x9ad8ff) : im.clearTint()));
       im.on('pointerup', () => { SFX.resume(); SFX.go(); openMenu(this, menu); });
       const tag = UI.text(this, x, 380, label, 24, '#ffe7a8', { bold: true, st: 6 }).setOrigin(0.5);
       this.tweens.add({ targets: tag, y: 372, yoyo: true, repeat: -1, duration: 900 });

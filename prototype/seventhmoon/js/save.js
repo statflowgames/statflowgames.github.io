@@ -115,6 +115,8 @@ const Save = {
       for (const k of Object.keys(d.skillsBy || {})) { const b = d.skillsBy[k]; if (b && Object.keys(b.skills || {}).length > tot) { b.skills = {}; b.active = [null, null]; reset = true; } }
       d.spV = 2; if (reset) d.spNotice = true;
     }
+    // 🆕 2026-11-23 세릴 합류 깃발 (대사 조건 기준)
+    if (d && d.moons && d.moons.yellow && d.flags && !d.flags.seril_joined) d.flags.seril_joined = true;
     return this.data;
   },
   write() { try { const t = JSON.stringify(this.data); localStorage.setItem(SAVE_KEY, t); NativeStore.mirror(SAVE_KEY, t); } catch (e) { /* 저장 실패는 조용히 */ } },
