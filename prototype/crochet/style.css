@@ -152,3 +152,40 @@ svg { display: block; }
 #busy.off { display: none; }
 .spin { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: 50%; border: 5px solid var(--rose-l); border-top-color: var(--rose); animation: sp 0.9s linear infinite; }
 @keyframes sp { to { transform: rotate(360deg); } }
+
+/* 움직이는 뜨는 법 (motion.js) */
+.motion-btn { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 14px; padding: 12px 14px; border-radius: 18px; background: linear-gradient(135deg, #fde3e7, #fbefd9); border: 1px solid #f3c4cc; text-align: left; }
+.motion-btn .pi { width: 44px; height: 44px; border-radius: 50%; background: var(--rose); color: #fff; display: grid; place-items: center; font-size: 18px; flex: none; box-shadow: 0 3px 0 var(--rose-d); }
+.motion-btn b { font-family: Jua, sans-serif; font-weight: normal; font-size: 17px; display: block; }
+.motion-btn span { font-size: 13px; color: var(--sub); }
+.mini-motion { margin-top: 10px; font-size: 14px; color: var(--rose-d); background: var(--rose-l); border-radius: 99px; padding: 6px 12px; }
+.mo { position: fixed; inset: 0; z-index: 50; background: var(--paper); display: flex; flex-direction: column; padding: calc(10px + var(--safe-t)) 14px calc(12px + var(--safe-b)); max-width: 560px; margin: 0 auto; }
+.mo-top { display: flex; align-items: center; gap: 10px; }
+.mo-top b { font-family: Jua, sans-serif; font-weight: normal; font-size: 18px; display: block; line-height: 1.2; }
+.mo-top span { font-size: 13px; color: var(--sub); }
+.mo-x { width: 38px; height: 38px; border-radius: 50%; background: var(--card); border: 1px solid var(--line); font-size: 16px; flex: none; }
+.mo-stage { position: relative; flex: 1; min-height: 200px; display: grid; place-items: center; margin: 6px 0; }
+.mo-cv { border-radius: 50%; background: radial-gradient(circle, #fffdf9 0%, #f4ece1 70%); }
+.mo-cap { position: absolute; left: 0; right: 0; top: 0; text-align: center; pointer-events: none; padding: 0 6px; }
+.mo-cap b { display: inline-block; font-family: Jua, sans-serif; font-weight: normal; font-size: 19px; background: rgba(255,255,255,.92); padding: 3px 12px; border-radius: 99px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.mo-cap span { display: block; margin: 6px auto 0; max-width: 460px; font-size: 14.5px; background: rgba(255,255,255,.88); border-radius: 12px; padding: 5px 10px; line-height: 1.45; }
+.mo-cap.in b, .mo-cap.in span { animation: capin .35s ease-out; }
+@keyframes capin { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.mo-count { position: absolute; right: 4px; bottom: 4px; background: #fff; border: 2px solid #f3c4cc; border-radius: 16px; padding: 4px 12px; font-size: 14px; color: var(--sub); }
+.mo-count:empty { display: none; }
+.mo-count b { font-family: Jua, sans-serif; font-weight: normal; font-size: 24px; color: var(--rose-d); }
+.mo-count.done { border-color: #bcd8c2; } .mo-count.done b { color: var(--sage); }
+.mo-tech { display: flex; gap: 10px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 8px 10px; min-height: 128px; }
+.mo-tech.off { visibility: hidden; }
+.mo-tc { width: 164px; height: 114px; flex: none; background: #fbf6ee; border-radius: 12px; }
+.mo-tt { flex: 1; min-width: 0; }
+.mo-tt b { font-family: Jua, sans-serif; font-weight: normal; font-size: 15.5px; color: var(--rose-d); }
+.mo-tt ol { margin: 4px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.45; color: #9a8f96; }
+.mo-tt li.on { color: var(--ink); font-weight: 700; }
+.mo-bar { height: 8px; background: var(--soft); border-radius: 99px; margin: 10px 0 8px; cursor: pointer; overflow: hidden; }
+.mo-bar i { display: block; height: 100%; background: var(--rose); border-radius: 99px; }
+.mo-ctl { display: flex; gap: 8px; }
+.mo-ctl button { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 6px 0 5px; font-size: 18px; line-height: 1.1; }
+.mo-ctl button small { display: block; font-size: 11.5px; color: var(--sub); margin-top: 2px; }
+.mo-ctl button.pl { background: var(--rose); color: #fff; border-color: var(--rose); }
+.mo-ctl button.pl small { color: #ffe3e8; }

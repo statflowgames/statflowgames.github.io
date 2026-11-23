@@ -2,7 +2,7 @@
 // analyze(pattern) → { ok, errors, warnings, steps, stats }
 //   steps: 실제로 뜨는 단 하나하나 (times 로 묶인 단도 풀어서)
 //   errors 가 하나라도 있으면 앱에 올릴 수 없다. warnings 는 확인만 하면 된다.
-import { STITCH, FLAT_INC } from './stitches.js?v=1123121541';
+import { STITCH, FLAT_INC } from './stitches.js?v=1123122847';
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;

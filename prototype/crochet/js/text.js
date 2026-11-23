@@ -1,5 +1,5 @@
 // 검증된 데이터에서 '뜨는 법' 글을 만든다. 글을 사람이 따로 쓰지 않으니 숫자가 틀릴 수 없다.
-import { STITCH, TURN_CH } from './stitches.js?v=1123121541';
+import { STITCH, TURN_CH } from './stitches.js?v=1123122847';
 
 export function opText(el) {
   if (Array.isArray(el)) {

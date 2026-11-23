@@ -1,11 +1,12 @@
 // 코바늘 도안함 — 화면 (#/ 목록, #/p/아이디 상세, #/k/아이디 뜨기, #/mine 내 도안, #/tools 도구)
-import { analyze } from './validate.js?v=1123121541';
-import { instructions } from './text.js?v=1123121541';
-import { chartSVG, lookSVG, legendItems, symbolSVG, esc } from './chart.js?v=1123121541';
-import { LEVELS, CATEGORIES } from './stitches.js?v=1123121541';
-import { makePatternPdf, savePdf } from './pdf.js?v=1123121541';
-import { Ads } from './ads.js?v=1123121541';
-import { Store } from './store.js?v=1123121541';
+import { analyze } from './validate.js?v=1123122847';
+import { instructions } from './text.js?v=1123122847';
+import { chartSVG, lookSVG, legendItems, symbolSVG, esc } from './chart.js?v=1123122847';
+import { LEVELS, CATEGORIES } from './stitches.js?v=1123122847';
+import { makePatternPdf, savePdf } from './pdf.js?v=1123122847';
+import { Ads } from './ads.js?v=1123122847';
+import { Store } from './store.js?v=1123122847';
+import { motionSupported, openMotion } from './motion.js?v=1123122847';
 
 const $ = (s) => document.querySelector(s);
 const view = $('#view');
@@ -73,6 +74,7 @@ function detail(id) {
       <span class="badge gray">${LEVELS[p.level]}</span>
       <span class="badge gray">${a.stats.steps}${stepsWord(p)}</span>
     </div>
+    ${motionSupported(p) ? `<button class="motion-btn" id="bMotion"><span class="pi">▶</span><span><b>움직이는 뜨는 법</b><span>${open ? `${a.stats.steps}단을 한 코씩 움직임으로 보여 줘요` : '1~2단을 먼저 움직임으로 볼 수 있어요'}</span></span></button>` : ''}
     <div class="box"><h2>재료와 크기</h2><dl class="kv">
       <dt>완성 크기</dt><dd>${esc(p.size)}</dd>
       <dt>걸리는 시간</dt><dd>${esc(p.time || '-')}</dd>
@@ -107,6 +109,8 @@ function detail(id) {
   };
   const bPdf = $('#bPdf');
   if (bPdf) bPdf.onclick = () => exportPdf(it);
+  const bMotion = $('#bMotion');
+  if (bMotion) bMotion.onclick = () => openMotion(p, a, ins, open ? {} : { maxStep: Math.min(2, a.stats.steps) });
 }
 
 async function exportPdf({ p, a }) {
@@ -140,6 +144,7 @@ function knit(id) {
         <div class="n">${pr.step}단<small>${line && line.from !== line.to ? `(${line.label} 중)` : ''}</small></div>
         <div class="tx">${esc(line ? line.text : '')}</div>
         <div class="goal">다 뜨면 <b>${s.total}코</b>${s.spaces && s.into !== 'st' ? ` · 공간 ${s.spaces}개` : ''}${pr.step > 1 ? ` (앞 단 ${s.prev}코)` : ''}</div>
+        ${motionSupported(p) ? `<button class="mini-motion" id="bMo">▶ 이 단을 움직임으로 보기</button>` : ''}
       </div>
       <div class="tally">
         <button class="mini" id="stMinus" aria-label="한 코 빼기">−</button>
@@ -159,6 +164,8 @@ function knit(id) {
     on('#prev', () => { if (pr.step > 1) { pr.step--; pr.st = 0; } });
     on('#next', () => { if (pr.step < N) { pr.step++; pr.st = 0; } else pr.done = true; });
     on('#again', () => { pr = { step: 1, st: 0, done: false }; });
+    const bMo = $('#bMo');
+    if (bMo) bMo.onclick = () => openMotion(p, a, ins, { startStep: pr.step });
     // 지금 단이 보이게 (원형 기호도는 가운데부터라 그대로 둔다)
   };
   render();
