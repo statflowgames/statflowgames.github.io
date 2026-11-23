@@ -1,0 +1,183 @@
+{
+  "id": "two-row-ridge-scrubby",
+  "status": "published",
+  "title": "두 줄 이랑 수세미",
+  "summary": "두 단마다 색을 바꾸는 이랑 줄무늬 수세미. 뒷고리 짧은뜨기와 일정한 배색 간격을 연습해요.",
+  "craft": "crochet",
+  "category": "수세미",
+  "level": 2,
+  "time": "약 1시간 20분",
+  "size": "약 12×12cm",
+  "hook": "5/0호 (3.0mm)",
+  "yarn": [
+    {
+      "name": "아크릴 수세미실 (권장 바늘 3.0~3.5mm)",
+      "color": "하늘",
+      "hex": "#8cb9cd",
+      "amount": "약 12g"
+    },
+    {
+      "name": "아크릴 수세미실 (권장 바늘 3.0~3.5mm)",
+      "color": "크림",
+      "hex": "#f2e6ce",
+      "amount": "약 12g"
+    }
+  ],
+  "type": "rows",
+  "shape": "rect",
+  "foundation": 24,
+  "rows": [
+    {
+      "seq": [
+        [
+          "sc",
+          24
+        ]
+      ],
+      "total": 24,
+      "color": 0
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "color": 0
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 1
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 0
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 1
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 0
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 1
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 0
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 1
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 0
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 1
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 0
+    },
+    {
+      "seq": [
+        [
+          "sc_blo",
+          24
+        ]
+      ],
+      "total": 24,
+      "times": 2,
+      "color": 1
+    }
+  ],
+  "notes": [
+    "돗바늘과 가위, 단코 표시핀을 준비해요.",
+    "1단을 제외한 모든 단에서 지금 바라보는 쪽의 뒷고리만 잡아요.",
+    "두 단마다 새 색으로 바꾸고, 쉬는 실은 같은 쪽 옆선에서 느슨하게 올려 가져가요.",
+    "이 도안은 한 단에 한 색만 쓰는 줄무늬예요."
+  ],
+  "finish": [
+    "실을 15cm 남겨 자른 뒤 돗바늘로 뒷면의 여러 코 사이에 나누어 숨겨요.",
+    "실 라벨의 세탁 방법에 따라 가볍게 적신 뒤 모양을 잡아 평평하게 말려요."
+  ],
+  "start": "사슬 25코를 뜬 뒤 바늘에서 두 번째 사슬부터 짧은뜨기 24코를 떠요."
+}

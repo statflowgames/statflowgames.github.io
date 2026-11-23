@@ -1,12 +1,12 @@
 // 코바늘 도안함 — 화면 (#/ 목록, #/p/아이디 상세, #/k/아이디 뜨기, #/mine 내 도안, #/tools 도구)
-import { analyze } from './validate.js?v=1123122847';
-import { instructions } from './text.js?v=1123122847';
-import { chartSVG, lookSVG, legendItems, symbolSVG, esc } from './chart.js?v=1123122847';
-import { LEVELS, CATEGORIES } from './stitches.js?v=1123122847';
-import { makePatternPdf, savePdf } from './pdf.js?v=1123122847';
-import { Ads } from './ads.js?v=1123122847';
-import { Store } from './store.js?v=1123122847';
-import { motionSupported, openMotion } from './motion.js?v=1123122847';
+import { analyze } from './validate.js?v=1123134540';
+import { instructions } from './text.js?v=1123134540';
+import { chartSVG, lookSVG, legendItems, symbolSVG, esc } from './chart.js?v=1123134540';
+import { LEVELS, CATEGORIES } from './stitches.js?v=1123134540';
+import { makePatternPdf, savePdf } from './pdf.js?v=1123134540';
+import { Ads } from './ads.js?v=1123134540';
+import { Store } from './store.js?v=1123134540';
+import { motionSupported, openMotion } from './motion.js?v=1123134540';
 
 const $ = (s) => document.querySelector(s);
 const view = $('#view');

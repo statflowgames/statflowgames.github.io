@@ -2,7 +2,7 @@
 //   큰 화면: 코스터가 한 코씩 생겨나고, 바늘이 지금 뜨는 자리를 따라간다. 늘리기는 +1, 코 수 카운터.
 //   작은 화면: 지금 하는 기법(매직링·짧은뜨기·늘리기·모아뜨기·빼뜨기)을 바늘과 고리로 천천히 반복.
 // 지금은 평평한 원형(짧은뜨기·늘리기·모아뜨기·뒷고리 짧은뜨기)만. motionSupported 로 확인.
-import { shade } from './chart.js?v=1123122847';
+import { shade } from './chart.js?v=1123134540';
 
 const OPS = new Set(['sc', 'inc', 'dec', 'sc_blo']);
 const NAME = { sc: '짧은뜨기', sc_blo: '뒷고리 짧은뜨기', inc: '늘리기', dec: '모아뜨기' };
@@ -144,7 +144,8 @@ export function openMotion(p, a, ins, opt = {}) {
   el.className = 'mo';
   el.innerHTML = `
     <div class="mo-top"><button class="mo-x" aria-label="닫기">✕</button><div><b>${p.title}</b><span class="mo-where"></span></div></div>
-    <div class="mo-stage"><canvas class="mo-cv"></canvas><div class="mo-cap"><b></b><span></span></div><div class="mo-count"></div></div>
+    <div class="mo-cap"><b></b><span></span></div>
+    <div class="mo-stage"><canvas class="mo-cv"></canvas><div class="mo-count"></div></div>
     <div class="mo-tech off"><canvas class="mo-tc" width="180" height="125"></canvas><div class="mo-tt"><b></b><ol></ol></div></div>
     <div class="mo-bar"><i></i></div>
     <div class="mo-ctl"><button data-c="prev">⏮<small>이전 단</small></button><button data-c="play" class="pl">⏸<small>멈춤</small></button><button data-c="next">⏭<small>다음 단</small></button><button data-c="speed">1×<small>속도</small></button></div>`;
@@ -162,6 +163,8 @@ export function openMotion(p, a, ins, opt = {}) {
     cv.width = cv.height = W * dpr;
   };
   fit(); window.addEventListener('resize', fit);
+  const ro = window.ResizeObserver ? new ResizeObserver(fit) : null;
+  if (ro) ro.observe(el.querySelector('.mo-stage'));
 
   let T = 0, playing = true, speed = 1, last = performance.now(), raf = 0;
   let techKey = null, techU = 0;
@@ -353,7 +356,7 @@ export function openMotion(p, a, ins, opt = {}) {
     if (c === 'prev') { const cur = [...roundStarts].reverse().find((x) => x.t0 <= T - 1.0); T = cur ? cur.t0 : 0; }
   };
   el.querySelector('.mo-bar').onclick = (e) => { const r = e.currentTarget.getBoundingClientRect(); T = Math.max(0, Math.min(TOTAL - 0.01, ((e.clientX - r.left) / r.width) * TOTAL)); };
-  const close = () => { cancelAnimationFrame(raf); window.removeEventListener('resize', fit); document.body.style.overflow = ''; el.remove(); opt.onClose && opt.onClose(); };
+  const close = () => { cancelAnimationFrame(raf); window.removeEventListener('resize', fit); ro && ro.disconnect(); document.body.style.overflow = ''; el.remove(); opt.onClose && opt.onClose(); };
   el.querySelector('.mo-x').onclick = close;
   raf = requestAnimationFrame((t) => { last = t; frame(t); });
   // 테스트·검수용
