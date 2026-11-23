@@ -2,7 +2,7 @@
 //   큰 화면: 코스터가 한 코씩 생겨나고, 바늘이 지금 뜨는 자리를 따라간다. 늘리기는 +1, 코 수 카운터.
 //   작은 화면: 지금 하는 기법(매직링·짧은뜨기·늘리기·모아뜨기·빼뜨기)을 바늘과 고리로 천천히 반복.
 // 지금은 평평한 원형(짧은뜨기·늘리기·모아뜨기·뒷고리 짧은뜨기)만. motionSupported 로 확인.
-import { shade } from './chart.js?v=1123134540';
+import { shade } from './chart.js?v=1123134803';
 
 const OPS = new Set(['sc', 'inc', 'dec', 'sc_blo']);
 const NAME = { sc: '짧은뜨기', sc_blo: '뒷고리 짧은뜨기', inc: '늘리기', dec: '모아뜨기' };
@@ -158,7 +158,7 @@ export function openMotion(p, a, ins, opt = {}) {
   let W = 0;
   const fit = () => {
     const box = el.querySelector('.mo-stage').getBoundingClientRect();
-    W = Math.floor(Math.min(box.width, box.height));
+    W = Math.max(80, Math.floor(Math.min(box.width, box.height)));
     cv.style.width = cv.style.height = W + 'px';
     cv.width = cv.height = W * dpr;
   };

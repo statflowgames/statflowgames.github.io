@@ -2,7 +2,7 @@
 //   chartSVG(p, a, opt)  기호도 (원형·평뜨기) 또는 배색 차트
 //   lookSVG(p, a)        완성 모습 미리보기 (목록 카드·표지)
 //   legendItems(p)       이 도안에 쓰인 기호 목록 → symbolSVG(code)
-import { STITCH } from './stitches.js?v=1123134540';
+import { STITCH } from './stitches.js?v=1123134803';
 
 const INK = ['#3b3340', '#c0573e']; // 단마다 번갈아 (일본·한국식 기호도처럼 읽기 쉽게)
 const f1 = (n) => Math.round(n * 10) / 10;

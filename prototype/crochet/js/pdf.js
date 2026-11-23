@@ -1,8 +1,8 @@
 // 도안 PDF 만들기 — 쪽마다 캔버스(A4, 150dpi)에 그린 뒤 JPEG 로 PDF 에 넣는다.
 // 한글 글꼴을 PDF 에 넣지 않아도 되고(기기 글꼴로 그림), 외부 라이브러리도 필요 없다.
-import { instructions } from './text.js?v=1123134540';
-import { chartSVG, lookSVG, legendItems, symbolSVG } from './chart.js?v=1123134540';
-import { LEVELS } from './stitches.js?v=1123134540';
+import { instructions } from './text.js?v=1123134803';
+import { chartSVG, lookSVG, legendItems, symbolSVG } from './chart.js?v=1123134803';
+import { LEVELS } from './stitches.js?v=1123134803';
 
 export const APP_NAME = '코바늘 도안함';
 const PW = 1240, PH = 1754, M = 96;
