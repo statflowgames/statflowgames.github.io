@@ -1,0 +1,29 @@
+{
+  "id": "stripe-scrubby-square",
+  "status": "published",
+  "title": "줄무늬 네모 수세미",
+  "summary": "짧은뜨기로 왔다 갔다 뜨는 가장 쉬운 수세미. 두 색을 번갈아 줄무늬를 넣어요.",
+  "craft": "crochet",
+  "category": "수세미",
+  "level": 1,
+  "time": "약 1시간",
+  "size": "약 12×12cm",
+  "hook": "5/0호 (3.0mm)",
+  "yarn": [
+    { "name": "아크릴 수세미실", "color": "하늘", "hex": "#8fc1d9", "amount": "약 10g" },
+    { "name": "아크릴 수세미실", "color": "흰색", "hex": "#f6f4ee", "amount": "약 5g" }
+  ],
+  "type": "rows",
+  "shape": "rect",
+  "foundation": 20,
+  "rows": [
+    { "seq": [["sc", 20]], "total": 20, "times": 4, "color": 0 },
+    { "seq": [["sc", 20]], "total": 20, "times": 2, "color": 1 },
+    { "seq": [["sc", 20]], "total": 20, "times": 4, "color": 0 },
+    { "seq": [["sc", 20]], "total": 20, "times": 2, "color": 1 },
+    { "seq": [["sc", 20]], "total": 20, "times": 4, "color": 0 },
+    { "seq": [["sc", 20]], "total": 20, "times": 2, "color": 1 },
+    { "seq": [["sc", 20]], "total": 20, "times": 4, "color": 0 }
+  ],
+  "finish": ["원하면 마지막에 사슬 12코로 고리를 만들어 걸이를 달아요.", "실 끝은 뒷면 코 사이로 넣어 정리해요."]
+}

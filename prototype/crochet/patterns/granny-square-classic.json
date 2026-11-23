@@ -1,0 +1,28 @@
+{
+  "id": "granny-square-classic",
+  "status": "published",
+  "title": "알록달록 네모 모티브",
+  "summary": "한길긴뜨기 3코 묶음으로 뜨는 기본 네모 모티브. 여러 장 이어 담요나 가방을 만들 수 있어요.",
+  "craft": "crochet",
+  "category": "모티브",
+  "level": 2,
+  "time": "약 30분",
+  "size": "약 10×10cm",
+  "hook": "5/0호 (3.0mm)",
+  "yarn": [
+    { "name": "아크릴 혼방사 (중간 굵기)", "color": "겨자", "hex": "#e3b04b", "amount": "약 2g" },
+    { "name": "아크릴 혼방사 (중간 굵기)", "color": "장미", "hex": "#d9667b", "amount": "약 3g" },
+    { "name": "아크릴 혼방사 (중간 굵기)", "color": "세이지", "hex": "#86a98f", "amount": "약 4g" },
+    { "name": "아크릴 혼방사 (중간 굵기)", "color": "크림", "hex": "#f1e7d2", "amount": "약 5g" }
+  ],
+  "type": "round",
+  "shape": "square",
+  "start": "실로 고리를 만들어(매직링) 시작해요. 첫 한길긴뜨기 1코는 기둥코 사슬 3코로 대신해요.",
+  "rounds": [
+    { "seq": [["dc", 3], ["ch", 2]], "repeat": 4, "total": 12, "spaces": 4, "color": 0, "note": "사슬 2코 자리가 모서리가 돼요" },
+    { "into": "sp", "seq": [{ "in": "sp", "do": [["dc", 3], ["ch", 2], ["dc", 3]] }, ["ch", 1]], "repeat": 4, "total": 24, "spaces": 8, "color": 1, "note": "모서리 공간에서 새 색으로 시작" },
+    { "into": "sp", "seq": [{ "in": "sp", "do": [["dc", 3], ["ch", 2], ["dc", 3]] }, ["ch", 1], { "in": "sp", "do": [["dc", 3]] }, ["ch", 1]], "repeat": 4, "total": 36, "spaces": 12, "color": 2 },
+    { "into": "sp", "seq": [{ "in": "sp", "do": [["dc", 3], ["ch", 2], ["dc", 3]] }, ["ch", 1], { "rep": 2, "seq": [{ "in": "sp", "do": [["dc", 3]] }, ["ch", 1]] }], "repeat": 4, "total": 48, "spaces": 16, "color": 3 }
+  ],
+  "finish": ["마지막 단 끝을 기둥코 3번째 사슬에 빼뜨기로 잇고, 색마다 남은 실 끝을 뒷면에 정리해요."]
+}
