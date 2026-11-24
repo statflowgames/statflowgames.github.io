@@ -40,7 +40,24 @@ const Cinema = {
     const c = sc.cutin; if (!c) return;
     sc.cutin = null;
     for (const o of c.objs || []) if (o && o.scene) o.destroy();
+    this.showUi(sc);
     if (c.onEnd) c.onEnd();
+  },
+  // 🆕 2026-11-24 연출 동안 터치 버튼·안내 상자·말풍선·콤보 숫자를 숨기고, 끝나면 바로 다시 보인다 (버튼은 살짝 페이드 인)
+  //   연출 동안은 전투가 통째로 멈춰 있어서 남은 몬스터도 움직이거나 공격하지 못한다
+  hideUi(sc) {
+    if (sc.cineHidden) return;
+    const list = sc.children.list.filter(o => o.visible && ((o.depth >= 5200 && o.depth <= 6105) || o.depth === 7600));
+    for (const o of [sc.comboText, sc.comboSub]) if (o && o.visible) list.push(o);
+    for (const o of list) o.setVisible(false);
+    sc.cineHidden = list;
+    if (sc.resetTouchControls) sc.resetTouchControls();
+  },
+  showUi(sc) {
+    const list = sc.cineHidden; if (!list) return;
+    sc.cineHidden = null;
+    for (const o of list) if (o && o.scene) o.setVisible(true);
+    for (const b of sc.btns || []) b.fadeK = 0;   // updateTouchFade가 0 → 원래 진하기로 부드럽게 되돌린다
   },
   // 사선 띠 꼭짓점 (왼쪽 아래 → 오른쪽 위로 기운다)
   band(y0, h, tilt) { return [{ x: -40, y: y0 + tilt }, { x: W + 40, y: y0 - tilt }, { x: W + 40, y: y0 - tilt + h }, { x: -40, y: y0 + tilt + h }]; },
@@ -106,6 +123,7 @@ const Cinema = {
           .fillPoints([{ x: gx - R * 1.3, y: gy }, { x: gx, y: gy - w }, { x: gx + R * 1.3, y: gy }, { x: gx, y: gy + w }], true);
       } else glint.setVisible(false);
     };
+    this.hideUi(sc);
     sc.cutin = {
       kind: 'hero', t: 0, dur, tick, objs: [c, mg],
       // ✏️ 2026-11-24 컷인이 끝나는 번쩍임 바로 뒤에 기술이 터지게 (예전엔 0.6초쯤 비었다)
@@ -209,9 +227,11 @@ const Cinema = {
     };
     const skip = () => { if (sc.cutin && sc.cutin.kind === 'boss' && sc.cutin.t > 250) { if (!roared && boss) SFX.roar(boss.px, boss.id); this.end(sc); } };
     sc.input.once('pointerdown', skip);
+    this.hideUi(sc);
     sc.cutin = {
       kind: 'boss', t: 0, dur: T.end, tick, objs,
-      onEnd: () => { sc.input.off('pointerdown', skip); sc.bossBar = true; if (after) after(); },
+      // ✏️ 끝나면 주인공 0.6초 무적 (멈췄던 몬스터가 다시 움직이는 순간 바로 맞지 않게)
+      onEnd: () => { sc.input.off('pointerdown', skip); sc.bossBar = true; sc.hero.invuln = Math.max(sc.hero.invuln || 0, 600); if (after) after(); },
     };
   },
 };

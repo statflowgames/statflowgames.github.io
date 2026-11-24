@@ -55,6 +55,7 @@ const BossUlt = {
     sc.tweens.add({ targets: band, x: 0, duration: 220, ease: 'Cubic.out' });
     sc.tweens.add({ targets: band, alpha: 0, duration: 250, delay: 1150, onComplete: () => band.destroy() });
     m.ult = { warn, sx, sy, RX, RY, g, top, dim, safeT };
+    sc.onceHint && sc.onceHint('ult', '보스 필살기! 초록색 「안전」 자리로 피하세요.\n폭발 순간에 구르면 무적으로도 피할 수 있어요.', 3200);
     m.rig.setTintAll(0xff6050);
     sc.statUlt = (sc.statUlt || 0) + 1;
   },

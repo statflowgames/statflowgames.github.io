@@ -4,6 +4,7 @@
 //   3) 큰 각도: 어깨·몸통·손목의 움직임 폭을 키우고, 맞는 순간 앞으로 늘어났다가 넘쳐 지나간다
 //   🆕 5차(같은 날, '더 화려하게'): 내딛기·도약 크게, 잔상 더 많이, 맞는 순간 몸 기운·칼끝 빛 터짐·막타 땅 충격파
 //   🆕 4차(같은 날, '주인공 동작 더 화려하게·자연스럽게'): 몸 전체 내딛기·막타 도약·잔상·칼끝 반짝·머리/망토 출렁임 (아래 '4차 몸 전체')
+//   ✏️ 2026-11-24 빛 터짐·빛무리·막타 충격파는 실제로 맞혔을 때만 (궤적·잔상·내딛기·먼지는 헛쳐도)
 //   끄기: 주소에 ?oldfeel  · 배우 하나만 끄기: actor.feelOff = true (비교 화면 왼쪽)
 const AttackFeel = {
   get enabled() { return !(typeof Q !== 'undefined' && Q.has('oldfeel')); },
@@ -344,31 +345,35 @@ const AttackFeel = {
       const w = actor.swingTrail?.weapon || 'wpn', p = actor.rig.imagePoint(w, 0.5, 0.0);
       sc.feelFx.push({ kind: 'glint', actor, w, x: p.x, y: p.y, face: actor.face, col, age: 0, dur: fin ? 220 : 160, big: fin ? 1.3 : 1 });
     }
-    // e) 맞는 순간: 머리·망토가 뒤따라 출렁이고, 디딤발에 먼지
+    // e) 맞는 순간: 머리·망토가 뒤따라 출렁이고, 디딤발에 먼지 (헛쳐도 — 동작의 일부)
     if (!R.hitFx && st >= hit) {
       R.hitFx = true;
       actor.kick(-6 * big, 26 * big, this.hop(actor) ? -.07 : -.03);
-      // 🆕 5차: 몸에서 직업색 기운이 확 퍼지고, 칼끝 닿는 곳에 빛 터짐, 막타 착지는 땅 충격파
-      if (!a.proj && !frozen) {
-        if (this.lvl < 2) this.ghost(actor, col, fin, true);   // ✏️ 자동 가볍게 2단계·절전이면 빛무리 끔
-        // ✏️ 빛 터짐은 칼끝이 아니라 실제로 맞는 적의 몸(없으면 공격 사거리 끝)에서 — 칼끝은 발밑·머리 위로 갈 때가 있었다
-        if (sc.feelFx) {
-          const f = actor.face, rch = a.reach || [0, 160];
-          const tgt = (sc.monsters || []).filter(m => !m.dead && (m.x - actor.x) * f > rch[0] - 20 && (m.x - actor.x) * f < rch[1] + 40 && Math.abs(m.y - actor.y) < (a.dz || 40) + 20)
-            .sort((m1, m2) => Math.abs(m1.x - actor.x) - Math.abs(m2.x - actor.x))[0];
-          const bx = tgt ? tgt.x - f * 18 : actor.x + f * rch[1] * .7, by = tgt ? tgt.y - tgt.z - tgt.height * .5 : actor.y - actor.z - 95;
-          sc.feelFx.push({ kind: 'burst', x: bx, y: by, face: f, col, age: 0, dur: fin ? 340 : 260, big: fin ? 1.4 : .9 });
-        }
-        if (this.hop(actor) && sc.feelFx) {
-          const o = this.offset(actor) || { x: 0 };
-          sc.feelFx.push({ kind: 'quake', x: actor.x + o.x, y: actor.y, face: actor.face, col, age: 0, dur: 420, big: 1 });
-          sc.cameras.main.shake(140, .006);
-        }
-      }
       if (!a.proj && sc.fx) {
         const o = this.offset(actor) || { x: 0 };
         sc.fx('dust_run', actor.x + o.x - actor.face * 26, actor.y, { s: .28 * big, flip: actor.face < 0, dur: 380, depth: actor.y - 1 });
         if (this.hop(actor)) sc.fx('dust_land', actor.x + o.x, actor.y, { s: .42, dur: 420, depth: actor.y - 1 });
+      }
+    }
+    // f) ✏️ 2026-11-24 실제로 맞혔을 때만: 몸 뒤 직업색 빛무리, 맞은 적 몸에서 빛 터짐, 막타 땅 충격파·흔들림
+    //    (예전엔 헛쳐도 사거리 끝에서 터져서 허공을 쳐도 맞은 것처럼 보였다 — 이제 '맞혔다'는 손맛이 구분된다)
+    //    공격 판정 구간 동안 hitSet(이번 휘두름에 맞은 적·통)을 지켜보다가 처음 맞은 순간 한 번
+    if (!R.impact && !a.proj && st >= hit && st <= (a.hit[1] || hit) + 60 && actor.hitSet && actor.hitSet.size) {
+      R.impact = true;
+      if (this.lvl < 2) this.ghost(actor, col, fin, true);   // 자동 가볍게 2단계·절전이면 빛무리 끔
+      if (sc.feelFx) {
+        const f = actor.face;
+        const tgt = [...actor.hitSet].filter(m => m && !m.dead && m.x !== undefined)
+          .sort((m1, m2) => Math.abs(m1.x - actor.x) - Math.abs(m2.x - actor.x))[0];
+        if (tgt) {
+          const th = tgt.height || (tgt.img ? tgt.img.displayHeight : 80) || 80;
+          sc.feelFx.push({ kind: 'burst', x: tgt.x - f * 18, y: tgt.y - (tgt.z || 0) - th * .5, face: f, col, age: 0, dur: fin ? 340 : 260, big: fin ? 1.4 : .9 });
+        }
+        if (this.hop(actor)) {
+          const o = this.offset(actor) || { x: 0 };
+          sc.feelFx.push({ kind: 'quake', x: actor.x + o.x, y: actor.y, face: actor.face, col, age: 0, dur: 420, big: 1 });
+          sc.cameras.main.shake(140, .006);
+        }
       }
     }
     // c) 잔상

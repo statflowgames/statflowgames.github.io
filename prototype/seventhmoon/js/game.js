@@ -612,7 +612,7 @@ class Game extends Phaser.Scene {
     return nearest;
   }
   onPointer(p) {
-    if (!p.isDown||this.paused||this.cine||(this.won&&!this.looting)||this.lost) return;
+    if (!p.isDown||this.paused||this.cine||this.cutin||(this.won&&!this.looting)||this.lost) return;   // ✏️ 2026-11-24 연출 중 터치는 버튼으로 안 받는다
     SFX.resume();
     const s = this.stick;
     if(p.btn&&p.btn.touchOwner!==this)p.btn=null;
@@ -1216,6 +1216,7 @@ class Game extends Phaser.Scene {
       if (h.state === 'guard' && front && this.now - h.guardStart >= pw) {
         h.sta = 0; h.state = 'idle'; dmg = Math.max(1, Math.round(dmg * 0.6));
         this.floatText(h.x, h.y - h.z - 240, '가드 브레이크!', '#ffb070', 30);
+        this.onceHint('gbreak', '강공격은 그냥 가드로는 못 막아요.\n맞는 순간에 가드를 누르면(저스트 가드) 막혀요!');
       }
     }
     const before = h.hp;
@@ -1255,6 +1256,23 @@ class Game extends Phaser.Scene {
       return true;
     }
     return r !== 'miss';
+  }
+  // 🆕 2026-11-24 처음 한 번만 뜨는 짧은 전투 안내 (보스 강공격·필살기·가드 브레이크). 본 것은 seen.hint_<키>
+  onceHint(key, text, ms = 3600) {
+    const s = this.save; if (!s || this.mode !== 'story') return;
+    s.seen = s.seen || {}; if (s.seen['hint_' + key]) return;
+    s.seen['hint_' + key] = true; Save.write();
+    if (this.hintUi && this.hintUi.scene) this.hintUi.destroy();
+    const c = this.add.container(W / 2, 330).setScrollFactor(0).setDepth(7610);
+    const t = UI.text(this, 0, 0, text, 23, '#fff4d8', { bold: true, st: 5, wrap: 860, align: 'center' }).setOrigin(0.5);
+    const g = this.add.graphics();
+    g.fillStyle(0x2a0806, 0.9).fillRoundedRect(-t.width / 2 - 26, -t.height / 2 - 18, t.width + 52, t.height + 36, 14).lineStyle(3, 0xff6a4a).strokeRoundedRect(-t.width / 2 - 26, -t.height / 2 - 18, t.width + 52, t.height + 36, 14);
+    c.add([g, t, UI.text(this, -t.width / 2 - 14, -t.height / 2 - 16, '처음 보는 공격', 13, '#ff9a7a').setOrigin(0, 1)]);
+    c.setAlpha(0).setScale(0.9);
+    this.tweens.add({ targets: c, alpha: 1, scale: 1, duration: 180, ease: 'Back.out' });
+    this.tweens.add({ targets: c, alpha: 0, duration: 300, delay: ms, onComplete: () => c.destroy() });
+    this.hintUi = c;
+    this.slowmo = Math.max(this.slowmo || 0, 500);   // 읽을 틈을 조금
   }
   // 🆕 2026-11-24 화면 전체를 반투명 색으로 잠깐 덮는다 (카메라 flash는 첫 프레임이 꽉 찬 색이라 너무 강했다)
   tintFlash(col, a = 0.35, ms = 220) {

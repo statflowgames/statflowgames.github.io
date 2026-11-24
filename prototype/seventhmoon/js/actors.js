@@ -1179,7 +1179,7 @@ class Monster extends Actor {
     this.empower = typeof BossUlt !== 'undefined' && BossUlt.rollEmpower(this);
     this.scene.telegraph(px, this.y, this.empower ? 1.25 : 1.0, (this.raged ? 650 : 900) + (this.empower ? 320 : 0));
     this.rig.setTintAll(this.empower ? 0xff3a20 : 0xffb0a0);
-    if (this.empower) { this.scene.floatText(this.x, this.y - this.height - 30, '강공격!', '#ff5a3a', 34); this.showEmote('anger', 900); }
+    if (this.empower) { this.scene.floatText(this.x, this.y - this.height - 30, '강공격!', '#ff5a3a', 34); this.showEmote('anger', 900); this.scene.onceHint && this.scene.onceHint('crit', '보스가 붉게 빛나면 강공격!\n구르기로 피하거나, 맞는 순간에 가드해서 막으세요.'); }
   }
   startStomp(rage) {
     this.state = 'stomp'; this.st = 0; this.vx = this.vy = 0; this.hitDone = false; this.stompAt = rage ? 520 : 700;
