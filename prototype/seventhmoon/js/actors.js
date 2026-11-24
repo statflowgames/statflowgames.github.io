@@ -839,11 +839,14 @@ class Monster extends Actor {
     if (this.state === 'dying') return false;
     if (this.gimmick) dmg = BossGimmicks.damage(this, src, a, dmg);
     this.hp -= dmg;
-    this.flash(0xffffff, 70);
-    this.kick(-8, 0, -0.1);
-    this.shake = a.stop || 60;
     this.releaseTok();
     this.rig.setTintAll(null);
+    // ✏️ 2026-11-24 하얀 번쩍임은 색 되돌리기(setTintAll) 뒤에 — 예전엔 setTint가 번쩍임(tintFill)을 바로 지워서 거의 안 보였다
+    //   막타는 더 길게 번쩍이고 몸이 크게 출렁인다
+    const big = !!(a.fin || a.type === 'slam');
+    this.flash(0xffffff, big ? 120 : 85);
+    this.kick(big ? -14 : -8, 0, big ? -0.18 : -0.1);
+    this.shake = a.stop || 60;
     this.rig.setVisible('wpn', true);
     const dir = Math.sign(this.x - src.x) || src.face;
     this.face = -dir;
@@ -863,6 +866,8 @@ class Monster extends Actor {
     }
     if (this.hp <= 0 || a.type === 'knock' || a.type === 'slam') {
       this.state = 'air'; this.st = 0; this.vz = a.type === 'slam' ? 380 : 440; this.z = 1; this.vx = dir * (a.kb || 300); this.vy = 0;
+      // 🆕 2026-11-24 막타(또는 마지막 일격)로 날아갈 때: 더 멀리·높이 날아가 땅에 한 번 튕긴다
+      if (big || (this.hp <= 0 && src.side === 'hero')) { this.vx *= 1.35; this.vz += 120; this.bigKnock = true; }
       this.play('m_air', 30);
       return true;
     }
@@ -877,11 +882,16 @@ class Monster extends Actor {
   }
   onLand(v) {
     if (this.state !== 'air') return;
-    if (v < -500 && !this.bounced) {
-      this.bounced = true; this.vz = 260; this.z = 1; this.vx *= 0.4; this.kick(8, 0, -0.15);
-      this.scene.fx('dust_land', this.x, this.y, { s: 0.3, dur: 380, depth: this.y - 1 }); SFX.land(this.px); return;
+    if ((v < -500 || this.bigKnock) && !this.bounced) {
+      // ✏️ 2026-11-24 막타로 날아온 적은 속도와 상관없이 한 번 튕긴다 (예전엔 높이 띄운 적만 튕김)
+      const bk = this.bigKnock;
+      this.bounced = true; this.vz = bk ? 300 : 260; this.z = 1; this.vx *= bk ? 0.55 : 0.4; this.kick(bk ? 12 : 8, 0, bk ? -0.22 : -0.15);
+      this.scene.fx('dust_land', this.x, this.y, { s: bk ? 0.45 : 0.3, dur: 420, depth: this.y - 1 }); SFX.land(this.px);
+      if (bk) { this.scene.fx('dust_run', this.x - Math.sign(this.vx || 1) * 20, this.y, { s: 0.3, flip: this.vx > 0, dur: 360, depth: this.y - 1 }); this.scene.cameras.main.shake(90, 0.004); }
+      this.bigKnock = false;
+      return;
     }
-    this.bounced = false; this.gravMul = 1;
+    this.bounced = false; this.gravMul = 1; this.bigKnock = false;
     this.kick(6, 0, -0.12);
     this.state = 'down'; this.st = 0; this.vx = 0; this.vy = 0; this.downTime = 750;
     this.play('m_down', 40);

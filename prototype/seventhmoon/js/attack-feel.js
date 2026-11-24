@@ -14,6 +14,28 @@ const AttackFeel = {
     3: { AMP: { uab: .85, uaf: .85, torso: .7, rr: .7, hb: .5, hf: .5 }, cap: 46, capF: 52, big: 1.25, overK: 1.8, torsoO: 16, rxO: 30, sqO: .11, ext: .4, extF: .6, life: 200, lifeF: 260, a: .65, line: 10, lineF: 14 },
   },
   get L() { const v = typeof Q !== 'undefined' && Q.get('feelLv'); return this.LVS[v] || this.LVS[3]; },
+  // 🆕 2026-11-24 자동 가볍게: 0 = 전부, 1 = 잔상 절반, 2 = 잔상·빛무리 끔. 절전 모드는 처음부터 2
+  //   화면이 느려지면(평균 프레임 23ms↑, 약 43fps 아래가 1.5초) 한 단계 내리고, 10초 넉넉하면 한 단계 되돌린다. 주소 ?feelQ=0|1|2 로 고정
+  q: 0, qAvg: 16.7, qSlow: 0, qFast: 0,
+  get lvl() {
+    const f = typeof Q !== 'undefined' && Q.get('feelQ');
+    if (f !== null && f !== undefined && f !== '') return +f;
+    return typeof Settings !== 'undefined' && Settings.d && Settings.d.low ? 2 : this.q;
+  },
+  watch(scene) {
+    const loop = scene.game && scene.game.loop, d = loop ? loop.delta : 16.7;
+    if (!(d > 0) || d > 250 || document.hidden) return;   // 탭 전환·멈춤 직후 튀는 값은 버린다
+    this.qAvg += (d - this.qAvg) * .05;
+    if (this.qAvg > 23) { this.qSlow += d; this.qFast = 0; } else if (this.qAvg < 18.5) { this.qFast += d; this.qSlow = 0; } else { this.qSlow = this.qFast = 0; }
+    if (this.qSlow > 1500 && this.q < 2) { this.q++; this.qSlow = 0; }
+    if (this.qFast > 10000 && this.q > 0) { this.q--; this.qFast = 0; }
+  },
+  // 🆕 화면에 적이 많으면 빛무리를 약하게 (적 공격이 묻히지 않게)
+  crowd(scene) {
+    const cx = scene.cameras.main.scrollX + W / 2;
+    let n = 0; for (const m of scene.monsters || []) if (!m.dead && Math.abs(m.x - cx) < W * .6) n++;
+    return n >= 6 ? .4 : n >= 4 ? .65 : 1;
+  },
   on(actor) { return this.enabled && !actor.feelOff && actor.side === 'hero' && actor.motionSync; },
   active(actor) { return this.on(actor) && (actor.state === 'atk' || actor.state === 'jatk') && actor.atk && actor.atk.hit; },   // ✏️ 원거리(쏘는 공격)도 포함
 
@@ -178,6 +200,7 @@ const AttackFeel = {
   },
   tick(scene, dt) {
     if (!scene.feelFx) return;
+    this.watch(scene);
     const h = scene.hero;
     const g = this.gfx(scene).clear().setDepth(1000 + (h ? h.y : 0) + 3);
     // 1) 모으기
@@ -327,8 +350,7 @@ const AttackFeel = {
       actor.kick(-6 * big, 26 * big, this.hop(actor) ? -.07 : -.03);
       // 🆕 5차: 몸에서 직업색 기운이 확 퍼지고, 칼끝 닿는 곳에 빛 터짐, 막타 착지는 땅 충격파
       if (!a.proj && !frozen) {
-        const low2 = typeof Settings !== 'undefined' && Settings.d && Settings.d.low;
-        if (!low2) this.ghost(actor, col, fin, true);
+        if (this.lvl < 2) this.ghost(actor, col, fin, true);   // ✏️ 자동 가볍게 2단계·절전이면 빛무리 끔
         // ✏️ 빛 터짐은 칼끝이 아니라 실제로 맞는 적의 몸(없으면 공격 사거리 끝)에서 — 칼끝은 발밑·머리 위로 갈 때가 있었다
         if (sc.feelFx) {
           const f = actor.face, rch = a.reach || [0, 160];
@@ -350,9 +372,9 @@ const AttackFeel = {
       }
     }
     // c) 잔상
-    const low = typeof Settings !== 'undefined' && Settings.d && Settings.d.low;
+    const lv = this.lvl, gap = lv === 1 ? 60 : 30;   // ✏️ 자동 가볍게 1단계면 잔상 절반, 2단계(절전 포함)면 없음
     // ✏️ 가장 빠른 구간에만 2~3장 (많으면 겹쳐서 불덩어리처럼 보였다)
-    if (!a.proj && !frozen && !low && st >= hit - (fin ? 130 : 90) && st <= hit + 30 && (!R.ghostAt || st - R.ghostAt >= 30)) {   // ✏️ 5차 더 많이
+    if (!a.proj && !frozen && lv < 2 && st >= hit - (fin ? 130 : 90) && st <= hit + 30 && (!R.ghostAt || st - R.ghostAt >= gap)) {   // ✏️ 5차 더 많이
       R.ghostAt = st;
       this.ghost(actor, col, fin);
     }
@@ -370,7 +392,8 @@ const AttackFeel = {
     // 🆕 5차 aura: 맞는 순간의 몸을 직업색 빛으로 채워 부풀리며 사라지게 (기운이 터지는 느낌)
     if (aura) rt.setTintFill(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(c.depth - 2);   // ✏️ 몸 뒤에서 (앞에 두면 몸이 하얗게 덮였다)
     else rt.clearTint().setTint(col).setBlendMode(Phaser.BlendModes.NORMAL);
-    const q = aura ? { rt, age: 0, life: fin ? 320 : 240, a0: fin ? .7 : .55, grow: fin ? .26 : .16 }
+    const ck = aura ? this.crowd(sc) : 1;   // 🆕 적이 많으면 빛무리를 옅고 작게
+    const q = aura ? { rt, age: 0, life: fin ? 320 : 240, a0: (fin ? .7 : .55) * ck, grow: (fin ? .26 : .16) * (.5 + .5 * ck) }
                    : { rt, age: 0, life: fin ? 320 : 260, a0: fin ? .7 : .6 };   // ✏️ 5차 더 오래·진하게
     rt.setAlpha(q.a0);
     sc.feelGhosts.push(q);

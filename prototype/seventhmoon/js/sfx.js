@@ -349,9 +349,20 @@ const SFX = (() => {
     if (master) master.gain.value = 0.8 * sfx;
     if (musicBus) musicBus.gain.value = music;
   }
+  // 🆕 2026-11-24 앱이 뒤로 가면(다른 앱·화면 꺼짐) 소리를 전부 멈추고, 돌아오면 이어서 튼다
+  let bgHeld = false;
+  function background(hidden) {
+    if (hidden === bgHeld) return;
+    bgHeld = hidden;
+    try {
+      for (const k in chan) { const c = chan[k]; if (!c || !c.el) continue; if (hidden) c.el.pause(); else c.el.play().catch(() => {}); }
+      if (ctx) { if (hidden) ctx.suspend().catch(() => {}); else ctx.resume().catch(() => {}); }
+    } catch (e) { /* 무시 */ }
+  }
   const api = {
     setVolume,
     resume,
+    background,
     _render: render,
     ambience: mode => { wantAmb = mode; if (ctx) { try { ambience(mode); } catch (e) { /* 무시 */ } } },
     // ---------- 휘두르기 ----------

@@ -75,5 +75,6 @@ function openSettings(scene, onClose) {
     c.each(o => o.setScrollFactor && o.setScrollFactor(0));
   };
   draw();
+  if (typeof AppLife !== 'undefined') AppLife.modal(scene, c, () => { c.destroy(); if (onClose) onClose(); });   // 🆕 안드로이드 뒤로가기로 닫기
   return c;
 }

@@ -157,6 +157,7 @@ const MoveList = {
       if (!keep && o.onClose) o.onClose();
     };
     pick(list.find(m => m.id === o.start) || list[0]);
+    if (typeof AppLife !== 'undefined') AppLife.modal(scene, c, () => close());   // 🆕 안드로이드 뒤로가기로 닫기
     return { close };
   },
 };

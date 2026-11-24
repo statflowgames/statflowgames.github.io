@@ -948,6 +948,18 @@ class Game extends Phaser.Scene {
     this.tweens.add({ targets: g, alpha: 1, duration: ms * 0.6 });
     this.tweens.add({ targets: g, alpha: 0.4, yoyo: true, repeat: -1, duration: 110, delay: ms * 0.6 });
     this.time.delayedCall(ms + 80, () => g.destroy());
+    // 🆕 2026-11-24 테두리·화살표는 모든 전투 효과 위(HUD 아래)에 한 겹 더 — 주인공 효과가 커져도 예고가 묻히지 않게
+    const top = this.add.graphics().setDepth(4950);
+    top.lineStyle(4, 0xff5030, 0.95).strokeRect(l, y - hh / 2, w, hh);
+    const dir = Math.sign(x2 - x1) || 1;
+    for (let i = 1; i <= 3; i++) {
+      const ax = x1 + dir * w * i / 4;
+      top.fillStyle(0xff7050, 0.85).fillTriangle(ax + dir * 16, y, ax - dir * 8, y - 13, ax - dir * 8, y + 13);
+    }
+    top.setAlpha(0);
+    this.tweens.add({ targets: top, alpha: 0.9, duration: ms * 0.4 });
+    this.tweens.add({ targets: top, alpha: 0.35, yoyo: true, repeat: -1, duration: 110, delay: ms * 0.6 });
+    this.time.delayedCall(ms + 80, () => top.destroy());
   }
   telegraph(x, y, s, ms) {
     SFX.telegraph(x - this.cameras.main.scrollX);
@@ -955,6 +967,15 @@ class Game extends Phaser.Scene {
     this.tweens.add({ targets: img, scaleX: s * 0.55, scaleY: s * 0.22, alpha: 0.85, duration: ms * 0.8, ease: 'Cubic.out' });
     this.tweens.add({ targets: img, alpha: 0.4, yoyo: true, repeat: -1, duration: 120, delay: ms * 0.6 });
     this.time.delayedCall(ms + 60, () => img.destroy());
+    // 🆕 2026-11-24 떨어질 자리 테두리를 효과 위에 한 겹 더 (다 커진 크기로 그려 두고 깜빡인다)
+    const rx = img.width * s * 0.55 / 2 * 0.92, ry = img.height * s * 0.22 / 2 * 0.92;
+    const top = this.add.graphics().setDepth(4950);
+    top.lineStyle(4, 0xff5030, 0.95).strokeEllipse(x, y, rx * 2, ry * 2);
+    top.lineStyle(2, 0xffd0a0, 0.8).strokeEllipse(x, y, rx * 1.2, ry * 1.2);
+    top.setAlpha(0);
+    this.tweens.add({ targets: top, alpha: 0.85, duration: ms * 0.5 });
+    this.tweens.add({ targets: top, alpha: 0.3, yoyo: true, repeat: -1, duration: 120, delay: ms * 0.6 });
+    this.time.delayedCall(ms + 60, () => top.destroy());
   }
   spawnDebrisAt(x, y, n, type) {
     if (Settings.d.low) n = Math.ceil(n / 2.5);
@@ -2580,3 +2601,57 @@ window.step = async (n = 1, dt = 16.6) => { window._t = Math.max(window._t || 0,
   };
   arm(); setInterval(arm, 1000);
 })();
+
+// 🆕 2026-11-24 앱 기본 동작 — (1) 다른 앱으로 넘어가거나 화면이 꺼지면 소리를 멈추고 전투를 일시정지
+//   (2) 안드로이드 뒤로가기: 열린 창(설정·조작법 등) 닫기 → 일시정지 창이면 계속하기 / 전투면 일시정지 → 메뉴면 닫기 → 캠프·탑은 지도로 → 지도는 타이틀로 → 타이틀에서 두 번 누르면 종료
+//   웹에서도 탭을 바꾸면 (1)이 같다. 앱(Capacitor)에서는 App 플러그인이 있으면 appStateChange·backButton을 쓴다
+const AppLife = {
+  // 창을 열 때 등록하면 뒤로가기로 닫힌다 (창이 없어지면 저절로 빠진다)
+  modal(scene, c, close) {
+    const st = scene.backStack = scene.backStack || [];
+    const it = { c, close };
+    st.push(it);
+    c.once('destroy', () => { const i = st.indexOf(it); if (i >= 0) st.splice(i, 1); });
+  },
+  top() { try { return game.scene.getScenes(true)[0] || null; } catch (e) { return null; } },
+  hidden: false,
+  setHidden(h) {
+    if (h === this.hidden) return;
+    this.hidden = h;
+    if (typeof SFX !== 'undefined' && SFX.background) SFX.background(h);
+    if (h) {
+      const sc = game.scene.getScene('game');
+      if (sc && sc.sys.isActive() && !sc.paused && !sc.won && !sc.lost && sc.hero) { try { sc.togglePause(); } catch (e) { /* 무시 */ } }
+    }
+  },
+  back() {
+    const sc = this.top();
+    if (!sc) return;
+    const st = (sc.backStack || []).filter(it => it.c && it.c.scene);
+    if (st.length) { st[st.length - 1].close(); return; }
+    const key = sc.scene.key;
+    if (key === 'game') { if (!sc.won && !sc.lost) sc.togglePause(); return; }
+    if (typeof sc.close === 'function' && typeof MenuBase !== 'undefined' && sc instanceof MenuBase) { sc.close(); return; }
+    if (key === 'camp' || key === 'towergate') { sc.scene.start('map'); return; }
+    if (key === 'map') { sc.scene.start('title'); return; }
+    if (key === 'title' || key === 'credits') {
+      const now = Date.now();
+      if (now - (this.lastBack || 0) < 2000) { const A = this.app; if (A && A.exitApp) A.exitApp(); return; }
+      this.lastBack = now;
+      if (typeof UI !== 'undefined') UI.toast(sc, '한 번 더 누르면 게임을 끝내요', '#fff4d8', 640);
+    }
+  },
+  get app() { return window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App; },
+  init() {
+    document.addEventListener('visibilitychange', () => this.setHidden(document.hidden));
+    window.addEventListener('pagehide', () => this.setHidden(true));
+    const A = this.app;
+    if (A && A.addListener) {
+      try {
+        A.addListener('appStateChange', s => this.setHidden(!s.isActive));
+        A.addListener('backButton', () => this.back());
+      } catch (e) { /* 플러그인 없음 */ }
+    }
+  },
+};
+AppLife.init();
