@@ -95,7 +95,16 @@ class Boot extends Phaser.Scene {
 class Game extends Phaser.Scene {
   constructor() { super('game'); }
   init(d) { this.cfg = d && d.stage ? d : { stage: 'c1_s1', ch: 1, node: 's1' }; }
-  preload() { Assets.preloadFor(this, [...Assets.forStage(this.cfg.def || STAGES[this.cfg.stage] || STAGES.c1_s1, Save.data || Save.load()), ...(this.cfg.stage ? StageEvents.assetKeys(this.cfg.stage) : [])]); }
+  preload() {
+    const def = this.cfg.def || STAGES[this.cfg.stage] || STAGES.c1_s1, sv = Save.data || Save.load();
+    // 🆕 2026-11-24 컷인 전용 그림 (있을 때만): 영웅 cutin/<직업>, 이 스테이지 보스 bosscut/<id>
+    const cut = [];
+    if (sv && typeof MAN !== 'undefined') {
+      cut.push('cutin/' + sv.hero);
+      for (const id of (JSON.stringify(def.waves || []).match(/[a-z_0-9]+/g) || [])) if (MONDEF[id] && MONDEF[id].boss) cut.push('bosscut/' + id);
+    }
+    Assets.preloadFor(this, [...Assets.forStage(def, sv), ...(this.cfg.stage ? StageEvents.assetKeys(this.cfg.stage) : []), ...cut.filter(k => MAN[k])]);
+  }
   create() {
     const s = Save.data || Save.load() || Save.fresh('warrior');
     this.save = s;
@@ -126,7 +135,7 @@ class Game extends Phaser.Scene {
     this.buffs = {}; this.cds = [0, 0]; this.featherUsed = false; this.unyielding = false; this.reviveUsed = false; this.auras = []; this.summons = []; this.healOnce = {}; this.cachePassives();   // 🆕 전투 패시브
     this.cls = classOf(s.hero);
     this.boss = null; this.bossBar = null; this.bossName = null;
-    this.rushT = null; this.spawning = false; this.quake = false; this.slowmo = 0; this.hpShow = undefined; this.bossShow = undefined; this.pauseUi = null;
+    this.rushT = null; this.spawning = false; this.quake = false; this.slowmo = 0; this.cutin = null; this.cutinCount = 0; this.statCrit = 0; this.statUlt = 0; this.hpShow = undefined; this.bossShow = undefined; this.pauseUi = null;
     this.bounds = { l: 0, r: W };
     this.waves = this.makeWaves();
     this.cameras.main.setBounds(0, 0, STAGE_W, H);
@@ -1198,8 +1207,26 @@ class Game extends Phaser.Scene {
     dmg = GearFx.lethal(this, dmg);
     // 불굴: 스테이지당 1회, 치명상을 체력 1로 버틴다
     if (this.hasSkill('불굴') && !this.unyielding && h.hp - dmg <= 0 && h.hp > 1 && !this.god) { this.unyielding = true; dmg = h.hp - 1; this.time.delayedCall(10, () => { this.floatText(h.x, h.y - 280, '불굴!', '#ffd34d', 40); h.invuln = 1500; }); }
+    // 🆕 2026-11-24 보스 강공격·필살기 = 치명타 (js/boss-ult.js). 보통 가드는 깨지고(피해 60%), 저스트 가드(패리)는 그대로 막힌다
+    let crit = false;
+    if (type === 'crit') {
+      crit = true; type = 'heavy';
+      const pw = 170 * (1 + ((h.st8 && h.st8.parryWin) || 0) / 100);
+      const front = Math.sign(src.x - h.x) === h.face || src.x === h.x;
+      if (h.state === 'guard' && front && this.now - h.guardStart >= pw) {
+        h.sta = 0; h.state = 'idle'; dmg = Math.max(1, Math.round(dmg * 0.6));
+        this.floatText(h.x, h.y - h.z - 240, '가드 브레이크!', '#ffb070', 30);
+      }
+    }
     const before = h.hp;
     const r = h.takeHit(src, dmg, type, Math.sign(h.x - sx) || -h.face);
+    if (crit && r === 'hit') {
+      this.statCrit = (this.statCrit || 0) + 1;
+      this.floatText(h.x, h.y - h.z - 190, '치명타!', '#ff3a2a', 46);
+      this.hitstop = Math.max(this.hitstop || 0, 150);
+      this.tintFlash(0xff2010, 0.36, 220); this.cameras.main.shake(320, 0.016);
+      if (typeof vibrate === 'function') vibrate(90);
+    }
     this.dmgTaken += Math.max(0, before - h.hp);
     const px = h.x + h.face * 40, py = h.y - h.z - 130;
     if (r === 'parry') {
@@ -1229,11 +1256,16 @@ class Game extends Phaser.Scene {
     }
     return r !== 'miss';
   }
+  // 🆕 2026-11-24 화면 전체를 반투명 색으로 잠깐 덮는다 (카메라 flash는 첫 프레임이 꽉 찬 색이라 너무 강했다)
+  tintFlash(col, a = 0.35, ms = 220) {
+    const r = this.add.rectangle(0, 0, W, H, col, a).setOrigin(0).setScrollFactor(0).setDepth(4990);
+    this.tweens.add({ targets: r, fillAlpha: 0, duration: ms, onComplete: () => r.destroy() });
+  }
   areaHit(src, x, y, rx, ry, dmg, type) {
     const h = this.hero;
     if (Math.abs(h.x - x) < rx && Math.abs(h.y - y) < ry && h.z < 90) this.resolveHeroHit(src, dmg, type, src.x, src.y);
     const al = this.ally;
-    if (al && Math.abs(al.x - x) < rx && Math.abs(al.y - y) < ry) al.takeHit(src, dmg, type, Math.sign(al.x - x) || 1);
+    if (al && Math.abs(al.x - x) < rx && Math.abs(al.y - y) < ry) al.takeHit(src, dmg, type === 'crit' ? 'heavy' : type, Math.sign(al.x - x) || 1);
   }
   // 주인공 쪽 범위 공격 (스킬·아이템)
   heroArea(x, y, rx, ry, base, o = {}) {
@@ -2001,6 +2033,7 @@ class Game extends Phaser.Scene {
 
   // ---------------- 각성기: 태양의 성벽 ----------------
   awakenCutIn(h) {
+    if (typeof Cinema !== 'undefined' && Cinema.on()) return Cinema.hero(this, h);   // 🆕 2026-11-24 새 컷인 (설정에서 끄면 아래 예전 컷인)
     const key = (h && h.key) || 'warrior';
     const signature = HERO_SIGNATURE[key];
     const aw = DB.skills[key].list[15].name;
@@ -2069,6 +2102,11 @@ class Game extends Phaser.Scene {
   }
   bossIntro(kind) {
     const d = MONDEF[kind] || MONDEF.barkhaul;
+    // 🆕 2026-11-24 이야기 모드에서 처음 만나는 장 보스: 등장 연출 (js/cinematics.js). 그 밖은 아래 예전 이름 띠
+    if (typeof Cinema !== 'undefined' && Cinema.bossFirst(this, kind)) {
+      Cinema.boss(this, kind, () => { SFX.ambience('boss'); this.time.delayedCall(300, () => { if (!this.won && !this.lost) SFX.music(this.bossMusic(kind)); }); });
+      return;
+    }
     SFX.bossWarning();
     this.time.delayedCall(700, () => {
       const c = this.add.container(0, 0).setScrollFactor(0).setDepth(7500);
@@ -2470,6 +2508,7 @@ class Game extends Phaser.Scene {
   // ---------------- 갱신 ----------------
   update(time, rawDt) {
     if (this.paused) return;
+    if (this.cutin) { Cinema.update(this, rawDt); return; }   // 🆕 2026-11-24 각성기 컷인·보스 등장 연출 동안 전투를 멈춘다 (js/cinematics.js)
     let dt = Math.min(rawDt, 40);
     this.dtv = dt;
     if (this.slowmo > 0) { this.slowmo -= dt; dt *= 0.3; }

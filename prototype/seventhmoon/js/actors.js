@@ -919,6 +919,7 @@ class Monster extends Actor {
       if (this.poiseHitT > 1500 && st !== 'stagger') this.poise = Math.min(100, this.poise + 25 * s);
     }
     const rage = this.hp < this.maxHp * 0.5;
+    if (st === 'ult') return BossUlt.update(this, dt);   // 🆕 2026-11-24 필살기 진행 (js/boss-ult.js)
     if (this.gimmick && BossGimmicks.update(this, dt, rage)) return;
     if (rage && !this.raged) { this.raged = true; this.startRoar(true); return; }
     if (!this.summon60 && this.hp < this.maxHp * 0.65) { this.summon60 = true; return this.startRoar(false, 2); }
@@ -943,6 +944,7 @@ class Monster extends Actor {
     }
     if (st === 'idle' || st === 'move') {
       this.face = Math.sign(dx) || this.face;
+      if (typeof BossUlt !== 'undefined' && BossUlt.due(this) && h.state !== 'dead') return BossUlt.start(this);   // 🆕 체력 50%·20%(중간 보스 40%)에 필살기
       if (this.cool <= 0) {
         const mv = BOSS_MOVES[this.id] || BOSS_MOVES.barkhaul;
         if (adx < 260 && Math.abs(dy) < 60 && Math.random() < 0.5) return mv.near === 'smash' ? this.startSmash() : this.startSpecial(mv.near);
@@ -963,7 +965,8 @@ class Monster extends Actor {
       return;
     }
     if (st === 'smashup') {
-      if (this.st > (rage ? 650 : 900)) {
+      if (this.empower && this.st % 240 < dt) this.rig.setTintAll(this.st % 480 < 240 ? 0xff3a20 : 0xffa090);   // 강공격: 붉게 맥박
+      if (this.st > (rage ? 650 : 900) + (this.empower ? 320 : 0)) {
         this.state = 'smash'; this.st = 0; this.replay('b_smash', 30); this.hitDone = false;
       }
       return;
@@ -975,7 +978,10 @@ class Monster extends Actor {
         const px = this.x + this.face * 210;
         this.scene.fx('impact_ring', px, this.y, { s: 0.55, dur: 450, depth: this.y - 1, flat: true });
         this.scene.fx('dust_land', px, this.y, { s: 0.6, dur: 500, depth: this.y + 1 });
-        this.scene.areaHit(this, px, this.y, 150, 50, this.def.dmg, 'heavy');
+        // 🆕 2026-11-24 강공격이면 치명타 (피해 1.8배, 보통 가드는 깨진다)
+        if (this.empower) { this.scene.cameras.main.shake(380, 0.02); this.scene.fx('impact_ring', px, this.y, { s: 0.85, dur: 520, depth: this.y - 1, flat: true }); }
+        this.scene.areaHit(this, px, this.y, this.empower ? 175 : 150, this.empower ? 60 : 50, this.empower ? Math.round(this.def.dmg * 1.8) : this.def.dmg, this.empower ? 'crit' : 'heavy');
+        this.rig.setTintAll(null); this.empower = false;
         this.scene.spawnDebrisAt(px, this.y, 4, 'rock');
       }
       if (this.st > 1100) { this.cool = rage ? 900 : 1600; this.toIdle(); }
@@ -1169,8 +1175,11 @@ class Monster extends Actor {
   startSmash() {
     this.state = 'smashup'; this.st = 0; this.vx = this.vy = 0; this.play('b_smashup', 80); this.setHead('head_shout'); SFX.bossGrunt(this.px, this.id);
     const px = this.x + this.face * 210;
-    this.scene.telegraph(px, this.y, 1.0, this.raged ? 650 : 900);
-    this.rig.setTintAll(0xffb0a0);
+    // 🆕 2026-11-24 강공격: 붉게 달아오르며 더 오래 모은다 (js/boss-ult.js)
+    this.empower = typeof BossUlt !== 'undefined' && BossUlt.rollEmpower(this);
+    this.scene.telegraph(px, this.y, this.empower ? 1.25 : 1.0, (this.raged ? 650 : 900) + (this.empower ? 320 : 0));
+    this.rig.setTintAll(this.empower ? 0xff3a20 : 0xffb0a0);
+    if (this.empower) { this.scene.floatText(this.x, this.y - this.height - 30, '강공격!', '#ff5a3a', 34); this.showEmote('anger', 900); }
   }
   startStomp(rage) {
     this.state = 'stomp'; this.st = 0; this.vx = this.vy = 0; this.hitDone = false; this.stompAt = rage ? 520 : 700;
@@ -1212,13 +1221,14 @@ class Monster extends Actor {
     else this.poise -= a.type === 'light' ? 6 : 16;
     if (this.hp <= 0 && this.gimmick && BossGimmicks.lethal(this)) return true;
     if (this.hp <= 0) {
+      if (typeof BossUlt !== 'undefined') BossUlt.cleanup(this);
       if (this.gimmick) { BossGimmicks.cleanup(this); this.gimmick.flying = false; }
       this.state = 'air'; this.st = 0; this.vz = 350; this.z = Math.max(1, this.z); this.vx = dir * 120; this.play('m_air', 40); this.setHead('head_shout');
       this.scene.bossDefeated(this);
       return true;
     }
     SFX.gob('hurt',this.px,this.pitch,this.id);
-    if (this.poise <= 0 && this.state !== 'stagger') {
+    if (this.poise <= 0 && this.state !== 'stagger' && this.state !== 'ult') {   // ✏️ 필살기 중에는 그로기 없음
       this.state = 'stagger'; this.st = 0; this.vx = 0; this.play('m_down', 120); this.setHead('head_shout');
       this.showEmote('dizzy', 2300); this.scene.floatText(this.x, this.y - this.height, '그로기!', '#ffd34d', 34);
       SFX.bossWeak(this.px);

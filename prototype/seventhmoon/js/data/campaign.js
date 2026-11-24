@@ -216,12 +216,13 @@ const MOB_TUNE = {
 };
 // 🆕 보스 강화 (장별). hp·dmg 배율, cool = 공격 사이 쉬는 시간 배율(작을수록 자주), poiseK = 받은 피해 1%당 그로기 감소, stagger = 그로기 시간(ms)
 const BOSS_TUNE = {
-  1: { hp: 1.35, dmg: 1.6, cool: 0.7, poiseK: 2.2, stagger: 1700 },
-  2: { hp: 1.35, dmg: 1.55, cool: 0.7, poiseK: 2.2, stagger: 1700 },
-  3: { hp: 1.25, dmg: 1.4, cool: 0.75, poiseK: 2.4, stagger: 1800 },
-  4: { hp: 1.15, dmg: 1.25, cool: 0.8, poiseK: 2.6, stagger: 1900 },
-  5: { hp: 1, dmg: 1.05, cool: 0.9, poiseK: 3, stagger: 2000 },
-  6: { hp: 1, dmg: 1, cool: 0.95, poiseK: 3, stagger: 2100 },
+  // ✏️ 2026-11-24 사용자 '보스가 조금 약하다' → 체력·피해 각 +10% (강공격·필살기는 js/boss-ult.js)
+  1: { hp: 1.5, dmg: 1.75, cool: 0.7, poiseK: 2.2, stagger: 1700 },
+  2: { hp: 1.5, dmg: 1.7, cool: 0.7, poiseK: 2.2, stagger: 1700 },
+  3: { hp: 1.38, dmg: 1.54, cool: 0.75, poiseK: 2.4, stagger: 1800 },
+  4: { hp: 1.27, dmg: 1.38, cool: 0.8, poiseK: 2.6, stagger: 1900 },
+  5: { hp: 1.1, dmg: 1.16, cool: 0.9, poiseK: 3, stagger: 2000 },
+  6: { hp: 1.1, dmg: 1.1, cool: 0.95, poiseK: 3, stagger: 2100 },
 };
 function chapterScale(ch, diff = 1) {
   const hp = [1, 1, 1.15, 1.3, 1.5, 1.7, 1.95, 2.2, 2.45, 2.7, 2.95, 3.2, 3.5][ch] || 1;

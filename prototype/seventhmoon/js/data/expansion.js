@@ -176,7 +176,7 @@ Object.assign(MOB_TUNE, {
   9: { hp: 1.3, dmg: 1.1, elite: 0.17, extraWave: 2 }, 10: { hp: 1.3, dmg: 1.1, elite: 0.18, extraWave: 2 },
   11: { hp: 1.3, dmg: 1.1, elite: 0.19, extraWave: 2 }, 12: { hp: 1.3, dmg: 1.1, elite: 0.2, extraWave: 2 },
 });
-for (let c = 7; c <= 12; c++) BOSS_TUNE[c] = { hp: 1, dmg: 1, cool: 0.9, poiseK: 3, stagger: 2100 };
+for (let c = 7; c <= 12; c++) BOSS_TUNE[c] = { hp: 1.1, dmg: 1.1, cool: 0.9, poiseK: 3, stagger: 2100 };   // ✏️ 2026-11-24 +10%
 
 // ---------------- 갈림길 7~12 ----------------
 Object.assign(ROUTES, {
