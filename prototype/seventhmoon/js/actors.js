@@ -94,7 +94,8 @@ class Actor {
       if (this.stepPh !== undefined && ph !== this.stepPh && this.onStep) this.onStep();
       this.stepPh = ph;
     }
-    let pose = clip ? (this.motionPolish ? clip.at(this.animT, this.baseStand) : clip.at(this.animT)) : this.baseStand;
+    const feelT = typeof AttackFeel !== 'undefined' ? AttackFeel.warp(this, this.animT) : this.animT;   // 🆕 공격 손맛: 젖힌 자세에 머물다 확 휘두르기
+    let pose = clip ? (this.motionPolish ? clip.at(feelT, this.baseStand) : clip.at(feelT)) : this.baseStand;
     if (this.motionPolish) {
       if (this.shieldRecoveryT !== undefined && !frozen) this.shieldRecoveryT += dt;
       pose = harvanShieldPose(pose, this.anim, this.animT, this.shieldRecoveryT);
@@ -111,6 +112,7 @@ class Actor {
       pose = blendPose(this.blendFrom, pose, Math.min(1, this.blendT / this.blendDur));
     }
     if (this.enemyMotion) pose = enemyPose(this, pose);
+    if (typeof AttackFeel !== 'undefined') pose = AttackFeel.pose(this, pose);   // 🆕 공격 손맛: 큰 각도·웅크림·늘어남
     this.lastPose = pose;
     // 2차 움직임: 망토는 이동·낙하 반대로 날리고, 머리와 몸은 스프링으로 출렁인다
     const sec = this.sec || (this.sec = { head: { x: 0, v: 0 }, cape: { x: 0, v: 0 }, sq: { x: 0, v: 0 } });
@@ -156,16 +158,18 @@ class Actor {
     const physicalEnemy = this.enemyMotion && (['air','down','getup','dying'].includes(this.state) || this.dead);
     const hov = !physicalEnemy && this.rig.def.hover ? (this.rig.def.hover + Math.sin((this.procT || 0) * 0.004) * 8) * (this.state === 'down' || this.dead ? 0.2 : 1) : 0;
     this.groundHover = hov;
-    this.rig.c.setPosition(this.x + sx, this.y - this.z - hov - this.groundOff * sy);
+    const fo = typeof AttackFeel !== 'undefined' ? AttackFeel.offset(this) : null;   // 🆕 4차: 내딛기·막타 도약 (그림만)
+    this.rig.c.setPosition(this.x + sx + (fo ? fo.x : 0), this.y - this.z - hov - this.groundOff * sy + (fo ? fo.y : 0));
     this.rig.c.setScale(sxs * this.face, sy);
     this.rig.c.setDepth(1000 + this.y);
     // 손/무기 좌표를 현재 프레임으로 갱신한 뒤 발사한다. 히트스톱 중에는 큐도 정지.
     if (!frozen && this.state === 'skill') this.fireSkillCues();
     if (!frozen && this.state === 'awaken') this.fireAwakenCue();
     if (this.swingTrail) this.scene.updateSwingTrail(this, dt, frozen);
-    const h = Math.max(0.35, 1 - this.z / 500);
+    if (fo) AttackFeel.after(this, dt, frozen);   // 🆕 4차: 잔상·칼끝 반짝·출렁임·먼지
+    const h = Math.max(0.35, 1 - (this.z - (fo ? fo.y : 0)) / 500);
     const prone = this.z <= 0 ? Phaser.Math.Clamp(pose.prone || 0, 0, 1) : 0;
-    let shadowX = this.x, shadowSX = this.shadowW * h, shadowSY = shadowSX * 0.9;
+    let shadowX = this.x + (fo ? fo.x : 0), shadowSX = this.shadowW * h, shadowSY = shadowSX * 0.9;
     if (prone > 0) {
       const bounds = this.rig.bodyBounds();
       const center = this.rig.c.x + (bounds.left + bounds.right) * 0.5 * this.rig.c.scaleX;

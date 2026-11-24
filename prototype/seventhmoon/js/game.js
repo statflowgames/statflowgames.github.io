@@ -121,6 +121,7 @@ class Game extends Phaser.Scene {
     this.god = Q.has('god');
     this.gold = 0; this.expGain = 0; this.loot = []; this.dmgTaken = 0;
     this.comboN = 0; this.comboT = 0; this.maxCombo = 0;
+    this.feelFx = []; this.feelDots = []; this.feelG = null; this.feelGhosts = []; this.feelGhostPool = [];   // 🆕 2026-11-24 원거리 손맛 효과(attack-feel.js)
     this.monsters = []; this.props = []; this.projs = []; this.pickups = []; this.tokens = new Set(); this.zones = []; this.enemyZones = [];
     this.buffs = {}; this.cds = [0, 0]; this.featherUsed = false; this.unyielding = false; this.reviveUsed = false; this.auras = []; this.summons = []; this.healOnce = {}; this.cachePassives();   // 🆕 전투 패시브
     this.cls = classOf(s.hero);
@@ -898,6 +899,7 @@ class Game extends Phaser.Scene {
       h.swingTrail = { g: this.add.graphics().setDepth(h.y + 1002), attack: a, age: 0,
         duration: a.hit[1] - a.hit[0] + 95, points: [], tint: h.cls?.smearTint,
         weapon: h.key === 'rogue' && h.atkName === 'a2' ? 'fitem' : 'wpn' };
+      if (typeof AttackFeel !== 'undefined' && AttackFeel.on(h)) AttackFeel.trailStart(h.swingTrail, h);   // 🆕 굵은 초승달 궤적
       return;
     }
     const f = h.face, top = h.y - h.z;
@@ -917,6 +919,7 @@ class Game extends Phaser.Scene {
     if (!['atk', 'jatk', 'skill'].includes(h.state) || h.atk !== tr.attack) {
       tr.g.destroy(); h.swingTrail = null; return;
     }
+    if (tr.feel) return AttackFeel.trailUpdate(this, h, tr, dt, frozen);
     if (!frozen) {
       tr.age += dt;
       if (tr.age >= tr.duration) { tr.g.destroy(); h.swingTrail = null; return; }
@@ -1283,6 +1286,7 @@ class Game extends Phaser.Scene {
   }
   updateProjs(dt) {
     const s = dt / 1000, h = this.hero;
+    if (typeof AttackFeel !== 'undefined') AttackFeel.tick(this, dt);   // 🆕 2026-11-24 원거리 모으기·발사·투사체 꼬리 효과
     for (const p of this.projs) {
       p.life -= dt;
       if (p.home) p.vy = Phaser.Math.Clamp((h.y - p.y) * 1.2, -60, 60);
@@ -1299,7 +1303,7 @@ class Game extends Phaser.Scene {
         if (hit && p.key === 'orb') SFX.orbHit(p.x - this.cameras.main.scrollX);
         if (hit) { p.life = 0; if (p.key !== 'orb') this.spawnDebrisAt(p.x, p.y, 1, 'barrel'); }
       }
-      if (p.life <= 0) { p.img.destroy(); p.sh.destroy(); p.dead = true; }
+      if (p.life <= 0) { p.img.destroy(); p.sh.destroy(); p.dead = true; if (p.feel) AttackFeel.projEnd(this, p); }   // ✏️ 2026-11-24 꼬리 효과 정리
     }
     this.projs = this.projs.filter(p => !p.dead);
   }
@@ -1570,7 +1574,9 @@ class Game extends Phaser.Scene {
       if (key === 'fx/arrow_trail' || key === 'fx/slash_arc') img.setBlendMode(Phaser.BlendModes.ADD);
       const sh = this.add.image(x, y, 'shadow').setScale(0.3, 0.3).setAlpha(0.25).setDepth(999);
       this.projs.push({ src: h, img, sh, x, y, z, vx: h.face * (o.vx || 950), vy: dy * 0.3, vz: -(o.vy || 0), dmg: o.dmg * sc, life: o.life || 900, mine: true, pierce: !!o.pierce, elem: o.elem, boom: o.boom, chain: o.chain, home: o.home, spin: o.spin, rehit: o.rehit, hit: new Map(), key, poise: o.poise });
+      if (typeof AttackFeel !== 'undefined' && this.cls.ranged && AttackFeel.on(h)) AttackFeel.projStart(this, h, this.projs[this.projs.length - 1]);   // 🆕 2026-11-24 투사체 꼬리·빛
     }
+    if (typeof AttackFeel !== 'undefined' && this.cls.ranged && AttackFeel.on(h)) AttackFeel.shootFx(this, h, o, muzzle);   // 🆕 2026-11-24 쏘는 순간 터지는 빛
     if(h.key==='ranger')SFX.bow(h.px);else if(h.key==='mage')SFX.spell(o.elem,h.px);else SFX.throwS(h.px);
   }
   updateHeroProj(p, dt) {
@@ -1600,6 +1606,7 @@ class Game extends Phaser.Scene {
         this.awkGain(m, !p.awkDone); p.awkDone = true;   // ✏️ 2026-11-22 투사체마다 첫 적만 크게
         this.floatText(m.x, m.y - m.height * 0.7, String(dmg), crit ? '#ffd34d' : '#fff', crit ? 34 : 28);
         this.fx('hit_spark', p.x, p.y - p.z, { s: 0.25, dur: 200, depth: 4200, tint: { fire: 0xff9050, ice: 0x90d0ff, bolt: 0xffff80 }[p.elem] });
+        if (p.feel) AttackFeel.projHit(this, p);   // 🆕 2026-11-24 맞는 자리 터짐
         SFX.hit(false, m.px, 'blade');
         this.afterHeroHit(m, dmg, p.elem);
         if (p.poise && m.kind === 'barkhaul') m.poise -= p.poise;
