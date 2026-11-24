@@ -339,12 +339,20 @@ class MapScene extends Phaser.Scene {
       runTalk(this, 'pre_void', () => this.scene.start('game', { stage: 'x_void', ch: 6, node: 'void' }));
       return;
     }
+    // 🆕 2026-11-24 (검토 B1) 희생은 리세가 자기 뜻과 대가를 말하고 함께 고른다 → 받아들이면 희생, 함께 버티면 봉인
+    if (e === 'end_sacrifice') {
+      delete s.flags.sac_yes; delete s.flags.sac_hold;
+      runTalk(this, 'pre_sacrifice', () => this.ending(s.flags.sac_hold ? 'end_seal' : 'end_sacrifice'));
+      return;
+    }
+    delete s.flags.sac_hold;   // 신뢰가 낮아 바로 봉인 엔딩: '함께 버텼다' 대사가 남지 않게
     this.ending(e);
   }
   // 🆕 2부 엔딩
   part2Ending() {
     const s = Save.data, seeds = Object.keys(s.seeds || {}).length;
-    const e = s.flags.p2_accepted ? 'p2_dark' : (seeds >= 6 && s.lise >= 7) ? 'p2_true' : 'p2_dawn';
+    // ✏️ 2026-11-24 (검토 B1) 2부 진 엔딩 신뢰는 2부에서 쌓은 만큼 (예전: 1·2부 합계 7) — liseP2는 ui.js
+    const e = s.flags.p2_accepted ? 'p2_dark' : (seeds >= 6 && liseP2(s) >= 5) ? 'p2_true' : 'p2_dawn';
     this.ending(e);
   }
   ending(e) {
@@ -352,7 +360,7 @@ class MapScene extends Phaser.Scene {
     s.endings[e] = true;
     // ✏️ 어둠 엔딩은 완결 분기: 2부를 열지 않고, 2부 대사가 기준으로 삼는 lastEnding도 바꾸지 않는다
     if (e === 'end_dark') { /* 2부는 열지 않는다 — 크레딧 앞 할멈의 되감기 장면(dark_rewind)과 크레딧 문구로 안내 */ }
-    else if (!e.startsWith('p2_')) { s.lastEnding = e; if (s.ch < 7) { s.ch = 7; this.time.delayedCall(1200, () => { UI.toast(this, '2부 「부서진 하늘」이 열렸어요', '#c8d8ff', 260); SFX.jingle && SFX.jingle('jgl_part2'); }); } }
+    else if (!e.startsWith('p2_')) { s.lastEnding = e; if (s.ch < 7) { s.ch = 7; s.liseP2Base = s.lise; this.time.delayedCall(1200, () => { UI.toast(this, '2부 「부서진 하늘」이 열렸어요', '#c8d8ff', 260); SFX.jingle && SFX.jingle('jgl_part2'); }); } }   // ✏️ 2026-11-24 2부 신뢰 기준값
     const ne = Object.keys(s.endings).length;
     // 🆕 직업별 엔딩 기록: 처음 보는 (직업, 엔딩) 조합이면 보상
     const ck = `end_${s.hero}_${e}`;
@@ -364,7 +372,9 @@ class MapScene extends Phaser.Scene {
     const toCredits = () => this.scene.start('credits', { e });
     // 🆕 어둠 엔딩(2부가 아직 안 열렸을 때): 천막의 할멈이 실을 되감아 준다 → 6장으로 돌아가는 이유
     const afterEp = (e === 'end_dark' && s.ch < 7) ? () => runTalk(this, 'dark_rewind', toCredits, { dim: 0.85 }) : toCredits;
-    runTalk(this, e, () => (e === 'end_dark' ? afterEp() : runTalk(this, 'ep_' + s.hero, afterEp, { dim: 0.85 })), { dim: 0.85 });   // ✏️ 2026-11-23 어둠 엔딩은 후일담 없음
+    // ✏️ 2026-11-23 어둠 엔딩은 후일담 없음 / ✏️ 2026-11-24 (검토 A1) 직업 후일담은 1부 엔딩 뒤에만 (2부 엔딩 뒤에 1부 후일담이 다시 나오던 문제)
+    const withEp = e !== 'end_dark' && !e.startsWith('p2_');
+    runTalk(this, e, () => (withEp ? runTalk(this, 'ep_' + s.hero, afterEp, { dim: 0.85 }) : afterEp()), { dim: 0.85 });
   }
 }
 
@@ -1111,7 +1121,9 @@ class LiseMenu extends MenuBase {
       if (im) { im.setScale(96 / im.height); if (!has) im.setTint(0x202020).setAlpha(0.6); }
       UI.text(this, x, y + 66, has ? MOONS[k].ko : '???', 20, has ? '#fff' : '#6a5a48', { bold: true }).setOrigin(0.5, 0);
     });
-    UI.text(this, 520, 548, `리세와의 신뢰 ${'♥'.repeat(Math.min(4, s.lise))}${'♡'.repeat(Math.max(0, 4 - s.lise))}${s.lise > 4 ? ' +' + (s.lise - 4) : ''}`, 22, '#ff9ab0');
+    // ✏️ 2026-11-24 (검토 B1) 2부에서는 2부에 쌓은 신뢰를 따로 보여 준다 (2부 진 엔딩 기준 5)
+    if (s.ch >= 7 && typeof liseP2 === 'function') { const t = liseP2(s); UI.text(this, 520, 548, `2부 리세와의 신뢰 ${'♥'.repeat(Math.min(5, t))}${'♡'.repeat(Math.max(0, 5 - t))}${t > 5 ? ' +' + (t - 5) : ''}`, 22, '#ff9ab0'); }
+    else UI.text(this, 520, 548, `리세와의 신뢰 ${'♥'.repeat(Math.min(4, s.lise))}${'♡'.repeat(Math.max(0, 4 - s.lise))}${s.lise > 4 ? ' +' + (s.lise - 4) : ''}`, 22, '#ff9ab0');
     // 🆕 2부: 흑월 씨앗 줄
     if (s.ch >= 7 && typeof SEEDS !== 'undefined') {
       const got = Object.keys(s.seeds || {});
@@ -1123,7 +1135,8 @@ class LiseMenu extends MenuBase {
     if (s.flags.accepted) hint.push('오르벡스의 손을 잡았다. 흑월이 당신을 부른다…');
     else {
       hint.push(nm >= 6 ? '여섯 달이 모두 모였다. 흑월을 비출 수 있을지도.' : `월석 ${nm}/6 — 장마다 월석이 잠든 길이 다르다. 지난 장은 다른 길로 다시 갈 수 있다.`);
-      hint.push(s.lise >= 4 ? '리세는 당신을 깊이 믿는다.' : '리세의 마음을 얻으려면 — 갈림길의 선택, 갇힌 사람 구출.');
+      const deep = s.ch >= 7 && typeof liseP2 === 'function' ? liseP2(s) >= 5 : s.lise >= 4;
+      hint.push(deep ? '리세는 당신을 깊이 믿는다.' : '리세의 마음을 얻으려면 — 갈림길의 선택, 갇힌 사람 구출.');
     }
     UI.text(this, 520, 586, hint.join(String.fromCharCode(10)), 16, '#c8b8a0', { wrap: 380 });
     UI.button(this, 1040, 600, '이야기하기', () => runTalk(this, `camp_lise_${Math.min(12, s.ch)}`), { w: 240, h: 60, size: 24 });

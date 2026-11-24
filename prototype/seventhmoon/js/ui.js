@@ -379,6 +379,12 @@ function talkChapter(key) {
   if (m) return +m[1];
   return /^p2_(accept|refuse)$/.test(key || '') ? 11 : 0;
 }
+// 🆕 2026-11-24 (검토 B1) 2부에서 쌓은 리세 신뢰 = 지금 신뢰 − 2부가 열릴 때의 신뢰.
+//   예전 저장(기준값 없음)은 1부 진 엔딩 기준 4를 빼서 어림한다
+function liseP2(s) {
+  const base = s.liseP2Base !== undefined && s.liseP2Base !== null ? s.liseP2Base : 4;
+  return Math.max(0, (s.lise || 0) - base);
+}
 // 🆕 조건 줄 판정 (대화·말풍선 공용)
 function talkLineOk(L) {
   const s = Save.data || { flags: {}, lise: 0, hero: 'warrior' };
@@ -390,6 +396,12 @@ function talkLineOk(L) {
   if (L.ifEnd && s.lastEnding !== L.ifEnd) return false;   // 🆕 1부 마지막으로 본 엔딩
   if (L.ifNotEnd && s.lastEnding === L.ifNotEnd) return false;
   if (L.ifSeeds !== undefined && Object.keys(s.seeds || {}).length < L.ifSeeds) return false;
+  // 🆕 2026-11-24 (검토 A3·B1) 씨앗 개수·특정 씨앗, 2부에서 쌓은 신뢰
+  if (L.ifSeedsBelow !== undefined && Object.keys(s.seeds || {}).length >= L.ifSeedsBelow) return false;
+  if (L.ifSeed && !(s.seeds || {})[L.ifSeed]) return false;
+  if (L.ifNoSeed && (s.seeds || {})[L.ifNoSeed]) return false;
+  if (L.ifLiseP2 !== undefined && liseP2(s) < L.ifLiseP2) return false;
+  if (L.ifLiseP2Below !== undefined && liseP2(s) >= L.ifLiseP2Below) return false;
   if (L.ifMoons !== undefined && Object.keys(s.moons || {}).length < L.ifMoons) return false;   // 🆕 월석 n개 이상
   if (L.ifMoonsBelow !== undefined && Object.keys(s.moons || {}).length >= L.ifMoonsBelow) return false;
   return true;
