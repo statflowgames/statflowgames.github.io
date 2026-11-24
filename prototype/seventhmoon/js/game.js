@@ -166,6 +166,7 @@ class Game extends Phaser.Scene {
     this.cameras.main.fadeIn(400);
     if (this.mode === 'daily' || this.mode === 'rush') this.stageIntro(this.mode === 'rush' ? '주간 도전' : '매일 바뀌는 도전', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : '보스 6마리를 최대한 빨리!', { accent: 0xffc96a });
     else if (this.tower) this.stageIntro('심연의 탑', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : null, { accent: 0xb89cff });
+    else if (this.cfg.back) { /* 🆕 숨은 길에서 돌아옴: 제목 없이 이어 간다 */ }
     else if (this.def.hidden) this.stageIntro(`제${this.ch}장  ·  숨은 길`, this.def.name, '이 길을 아는 이는 많지 않다…', { accent: 0xb89cff });   // 🆕 2026-11-24
     else {
       const chap = typeof CHAPTERS !== 'undefined' && CHAPTERS[this.ch - 1];
@@ -173,6 +174,7 @@ class Game extends Phaser.Scene {
     }
     GearFx.start(this);   // 🆕 장비 효과
     StageEvents.start(this);   // 🆕 스테이지 안 이야기·목표
+    if (typeof HiddenRoute !== 'undefined') HiddenRoute.onCreate(this);   // 🆕 2026-11-25 숨은 길 들어갔다 돌아오기
     SFX.ambience(this.theme.amb);
     SFX.music(this.tower ? (this.def.boss ? 'bgm_tower_b' : 'bgm_tower_a') : this.theme.bgm);
     SFX.heartbeat(false);
@@ -1058,7 +1060,7 @@ class Game extends Phaser.Scene {
       this.afterHeroHit(m, dmg, this.buffs.poison > 0 ? 'poison' : this.cls.elem);
       GearFx.onMelee(this, h, m, a, dmg, crit, behind);
       h.hitSet.add(m); any = true;
-      this.addCombo();
+      if (h === this.hero) this.addCombo();   // ✏️ 2026-11-25 동료 명중은 콤보에 넣지 않는다 (등급·문양 문·콤보 옵션이 동료 덕에 쉬워지고, 축하 소리가 계속 울렸다)
       if (h === this.hero) this.awkGain(m, !h.awkHitMon); h.awkHitMon = true;   // ✏️ 2026-11-22 한 번 휘두를 때 첫 적만 +3
       const hx = m.x - f * 20, hy = m.y - m.z - m.height * (big ? 0.45 : 0.55);
       this.fx('hit_spark', hx, hy, { s: crit ? 0.42 : 0.3, rot: Phaser.Math.Between(0, 360), dur: 220, depth: 4200 });
@@ -1594,7 +1596,7 @@ class Game extends Phaser.Scene {
         this.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
         const d = this.heroDamage(p.dmg * 0.5, o, false, p.elem);
         o.invuln = 0;
-        if (o.takeHit(this.hero, { dmg: p.dmg * 0.5, kb: 80, type: 'light', stop: 20, proj: true, otg: true }, d)) { this.floatText(o.x, o.y - o.height * 0.7, String(d), '#d8e8ff', 24); this.addCombo(); }
+        if (o.takeHit(this.hero, { dmg: p.dmg * 0.5, kb: 80, type: 'light', stop: 20, proj: true, otg: true }, d)) { this.floatText(o.x, o.y - o.height * 0.7, String(d), '#d8e8ff', 24); if (!p.src || p.src === this.hero) this.addCombo(); }
       }
     }
   }
@@ -1679,7 +1681,7 @@ class Game extends Phaser.Scene {
       m.invuln = 0;
       // ✏️ 2026-11-22 원거리 보강: 쓰러진 적도 맞는다(otg), 각성 충전은 근접과 같이 +3·탑 규칙 배율 적용
       if (m.takeHit(h, { dmg: p.dmg, kb: p.kb ?? (p.pierce ? 120 : 200), type: p.ptype || 'light', stop: p.kb ? 70 : 35, proj: true, otg: true }, dmg)) {   // ✏️ 2026-11-24 kb·type: 관통 저격
-        this.addCombo();
+        if (!p.src || p.src === h) this.addCombo();   // ✏️ 2026-11-25 동료 투사체는 콤보 제외
         this.awkGain(m, !p.awkDone); p.awkDone = true;   // ✏️ 2026-11-22 투사체마다 첫 적만 크게
         this.floatText(m.x, m.y - m.height * 0.7, String(dmg), crit ? '#ffd34d' : '#fff', crit ? 34 : 28);
         this.fx('hit_spark', p.x, p.y - p.z, { s: 0.25, dur: 200, depth: 4200, tint: { fire: 0xff9050, ice: 0x90d0ff, bolt: 0xffff80 }[p.elem] });
@@ -2304,6 +2306,7 @@ class Game extends Phaser.Scene {
     }
     this.pickups = [];
     if (this.hintUi && this.hintUi.scene) { this.hintUi.destroy(); this.hintUi = null; }   // ✏️ 2026-11-24 결과 화면에 첫 안내 상자가 남지 않게
+    if (this.cfg.ret && typeof HiddenRoute !== 'undefined') return HiddenRoute.roomResult(this, win);   // 🆕 2026-11-25 중간에 들어온 숨은 방
     if (this.tower) return this.towerResult(win);
     if (this.mode === 'daily' || this.mode === 'rush') return this.challengeResult(win);
     const c = this.add.container(0, 0).setScrollFactor(0).setDepth(9000);
@@ -2581,6 +2584,7 @@ class Game extends Phaser.Scene {
     if (this.rushT > 0) this.rushT -= dt;   // 🆕 피의 기세
     this.cds = this.cds.map(c => Math.max(0, c - dt));
     const inp = this.readInput();
+    this.lastInp = inp;   // 🆕 2026-11-25 숨은 길 입구에서 위로 밀기
     // 🆕 멈춘 대사 장면: 주인공은 멈춰 서고(입력 무시), 몬스터·시간 제한도 멈춘다
     if (this.cine) {
       this.hero.update(dt, { x: 0, y: 0, guard: false, itemN: 0 });
@@ -2644,7 +2648,7 @@ class Game extends Phaser.Scene {
     this.updateAuras(dt);
     SFX.heartbeat(!this.won && !this.lost && this.hero.hp > 0 && this.hero.hp < this.hero.maxHp * 0.25);
     this.updatePickups(dt);
-    if (typeof GoldGob !== 'undefined') { GoldGob.update(this, dt); HiddenRoute.update(this); }   // 🆕 2026-11-24
+    if (typeof GoldGob !== 'undefined') { GoldGob.update(this, dt); HiddenRoute.update(this, dt); }   // 🆕 2026-11-24
     this.checkWave();
     // 카메라
     const cam = this.cameras.main;

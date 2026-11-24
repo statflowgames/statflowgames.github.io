@@ -137,12 +137,20 @@ const HiddenRoute = {
     }
   },
   // 매 프레임: 처음 가까이 가면 힌트 한 번
-  update(sc) {
-    const p = sc.hiddenProp; if (!p || p.open || p.hinted) return;
+  update(sc, dt = 16) {
+    const p = sc.hiddenProp; if (!p) return;
+    // ✏️ 2026-11-25 스테이지 중간에 들어갔다 나온다: 열린 입구 앞에서 위로 밀거나(0.2초) 「▲ 들어가기」를 누르면 들어간다
+    if (p.open && !sc.won && !sc.hiddenUsed && !sc.entering) {
+      const h = sc.hero, near = Math.abs(h.x - p.x) < 110 && h.y < p.y + 90, ok = near && this.canEnter(sc);
+      if (p.prompt) p.prompt.setVisible(ok);
+      if (near && !ok && (sc.now || 0) - (p.toldAt || -9999) > 3000) { p.toldAt = sc.now || 0; sc.floatText(p.x, p.y - 280, sc.sev && sc.sev.state === 'run' ? '지금 목표를 끝내면 들어갈 수 있어요' : '적을 모두 물리치면 들어갈 수 있어요', '#e8d8ff', 24); }
+      if (ok && sc.lastInp && sc.lastInp.y < 0) { p.upT = (p.upT || 0) + dt; if (p.upT > 200) this.enterMid(sc); } else p.upT = 0;
+    } else if (p.prompt) p.prompt.setVisible(false);
+    if (p.open || p.hinted) return;
     if (Math.abs(sc.hero.x - p.x) < 260) {
       p.hinted = true;
       sc.floatText(p.x, p.y - 260, HIDDEN_HINT[p.kind], '#e8dcff', 22);
-      if (sc.onceHint) sc.onceHint('hidden', '숨은 길이 있어요!\n열어 두고 스테이지를 깨면 들어갈 수 있어요');
+      if (sc.onceHint) sc.onceHint('hidden', '숨은 길이 있어요!\n열고 나서 입구 앞에서 위로 밀면 들어가요. 깨고 나오면 이어서 진행해요');
     }
   },
   // hitProp에서 부른다
@@ -161,29 +169,36 @@ const HiddenRoute = {
     p.open = true; sc.hiddenOpen = true;
     p.img.setTexture(p.key(true)).setScale(210 / p.img.height);
     if (p.mark) { p.mark.destroy(); p.mark = null; }
-    const sign = sc.add.text(p.x, p.y - 236, '▼ 숨은 길', { fontFamily: 'sans-serif', fontSize: 24, color: '#d8b8ff', stroke: '#1a0a2a', strokeThickness: 6, fontStyle: 'bold' }).setOrigin(0.5).setDepth(1001 + p.y);
+    const sign = sc.add.text(p.x, p.y - 236, '▼ 숨은 길', { fontFamily: 'sans-serif', fontSize: 22, color: '#d8b8ff', stroke: '#1a0a2a', strokeThickness: 6, fontStyle: 'bold', align: 'center' }).setOrigin(0.5, 1).setDepth(1001 + p.y);
     sc.tweens.add({ targets: sign, y: p.y - 248, duration: 600, yoyo: true, repeat: -1 });
+    p.sign = sign;
+    // ✏️ 2026-11-25 「▲ 들어가기」: 입구 앞에 서면 보인다 (눌러도 들어간다)
+    p.prompt = sc.add.text(p.x, p.y - 150, '▲ 들어가기', { fontFamily: 'sans-serif', fontSize: 30, color: '#fff4d8', backgroundColor: '#3a2a5acc', padding: { x: 16, y: 8 }, stroke: '#1a0a2a', strokeThickness: 5, fontStyle: 'bold' }).setOrigin(0.5).setDepth(4600).setVisible(false);
+    p.prompt.setInteractive({ useHandCursor: true }).on('pointerup', () => { if (this.canEnter(sc)) this.enterMid(sc); });
+    sc.tweens.add({ targets: p.prompt, scale: { from: 1, to: 1.08 }, duration: 500, yoyo: true, repeat: -1 });
+    if (sc.hiddenUsed) { sign.setText('◆ 숨은 길 정복'); return; }
     if (quiet) return;
     const s = sc.save; s.hiddenSeen = s.hiddenSeen || {}; s.hiddenSeen[sc.cfg.ch] = true;
     SFX.ui('chest_open'); sc.cameras.main.shake(220, 0.008); sc.cameras.main.flash(180, 200, 170, 255);
     sc.spawnDebrisAt(p.x, p.y - 40, 8, 'rock');
     sc.fx('levelup_burst', p.x, p.y - 100, { s: 0.6, dur: 800, tint: 0xb090ff, depth: p.y + 1001 });
     sc.floatText(p.x, p.y - 280, '숨은 길이 열렸다!', '#d8b8ff', 38);
-    sc.time.delayedCall(900, () => UI.toast(sc, '스테이지를 깨면 결과 화면에서 숨은 길로 들어갈 수 있어요', '#d8b8ff', 520));
+    sc.time.delayedCall(900, () => UI.toast(sc, '숨은 길 발견! 적을 모두 물리친 뒤 입구 앞에서 위로 밀면 들어가요', '#d8b8ff', 620));
   },
   // 결과 화면: 숨은 길 버튼
   resultButton(sc, c) {
-    if (!sc.hiddenOpen || sc.def.hidden) return;
+    if (!sc.hiddenOpen || sc.def.hidden || sc.hiddenUsed) return;
     const ch = sc.cfg.ch, b = UI.button(sc, W / 2, 572, '숨은 길로 들어가기 ▼', () => this.enter(sc, c), { w: 380, h: 58, size: 24, col: 0x3a2a5a });
     c.add(b);
     sc.tweens.add({ targets: b, scale: { from: 1, to: 1.05 }, duration: 600, yoyo: true, repeat: -1 });
   },
   // ✏️ 2026-11-24 걸어 들어가는 연출 (뒷모습 그림 없이): 결과 화면을 닫고 → 입구 앞까지 걸어가서
   //   → 안쪽(위)으로 조금 올라가며 작아지고 그림자처럼 어두워지다 사라진다 → 입구가 보랏빛으로 번쩍 → 화면이 어두워지며 숨은 방으로
-  enter(sc, c) {
+  enter(sc, c, cfg) {
     if (sc.entering) return; sc.entering = true;
     const ch = sc.cfg.ch, p = sc.hiddenProp, h = sc.hero;
-    const go = () => sc.scene.start('game', { stage: `c${ch}_h`, ch, node: 'hidden', from: sc.cfg.stage });
+    const go = () => sc.scene.start('game', cfg || { stage: `c${ch}_h`, ch, node: 'hidden', from: sc.cfg.stage });
+    if (p && p.prompt) p.prompt.setVisible(false);
     if (c && c.scene) c.destroy();
     if (!p || !h || (typeof Settings !== 'undefined' && Settings.d && Settings.d.cine === false) || (typeof Q !== 'undefined' && Q.has('nocine'))) { sc.cameras.main.fadeOut(250); sc.time.delayedCall(260, go); return; }
     if (typeof Cinema !== 'undefined') Cinema.hideUi(sc);
@@ -218,6 +233,116 @@ const HiddenRoute = {
       });
       sc.time.delayedCall(820, () => { sc.cameras.main.fadeOut(360, 10, 4, 20); sc.time.delayedCall(380, go); });
     } });
+  },
+  // ---------------- 🆕 2026-11-25 스테이지 중간에 들어갔다 나오기 ----------------
+  //   들어갈 때 스테이지 상태를 cfg.ret에 담아 숨은 방으로 → 숨은 방을 정복(또는 쓰러짐)하면 cfg.back으로 원래 스테이지를 다시 열어
+  //   입구 앞에서 이어 간다. 숨은 방에서 보낸 시간은 등급 시간에서 빠진다 (now를 되돌린다).
+  canEnter(sc) {
+    const h = sc.hero;
+    return !sc.lock && !sc.spawning && !sc.won && !sc.lost && !sc.paused && !sc.cutin && !sc.cine && !sc.entering
+      && !sc.monsters.some(m => !m.dead) && !(sc.sev && sc.sev.state === 'run')
+      && !(sc.goldGob && sc.goldGob.m && !sc.goldGob.done) && ['idle', 'move', 'land'].includes(h.state);
+  },
+  // 바닥에 남은 것 줍기 (결과 화면과 같은 값)
+  collect(sc, into) {
+    const s = sc.save;
+    for (const p of sc.pickups) {
+      if (p.dead) continue;
+      if (p.type === 'loot') into.loot.push(p.item);
+      else if (p.type === 'cons') s.belt[p.item] = Math.min(9, (s.belt[p.item] || 0) + 1);
+      else if (p.type === 'coin') into.gold += Math.round(3 * (1 + sc.stats.goldPct / 100) * (1 + (sc.ch - 1) * 0.35) * (sc.rule.goldMul || 1));
+      if (p.img) p.img.destroy();
+    }
+    sc.pickups = [];
+  },
+  enterMid(sc) {
+    if (!this.canEnter(sc)) return;
+    const h = sc.hero, p = sc.hiddenProp, ch = sc.cfg.ch;
+    const ret = { cfg: { ...sc.cfg }, waveIdx: sc.waveIdx, now: sc.now, gold: sc.gold, expGain: sc.expGain, loot: sc.loot,
+      dmgTaken: sc.dmgTaken, maxCombo: sc.maxCombo, featherUsed: sc.featherUsed, reviveUsed: sc.reviveUsed, adRevived: sc.adRevived,
+      hp: h.hp, awk: h.awk, sta: h.sta, allyHp: sc.ally ? sc.ally.hp : null,
+      sev: sc.sev ? { state: sc.sev.state, got: sc.sev.got } : null,
+      goldGob: sc.goldGob ? (sc.goldGob.done || sc.goldGob.m ? 'done' : sc.goldGob.wave) : null, px: p.x, py: p.y };
+    this.collect(sc, ret);
+    delete ret.cfg.back; delete ret.cfg.ret;
+    Save.write();
+    this.enter(sc, null, { stage: `c${ch}_h`, ch, node: 'hidden', from: sc.cfg.stage, ret, hp: Math.max(1, Math.round(h.hp)), awk: h.awk });
+  },
+  // Game.create 끝에서
+  onCreate(sc) {
+    const C = sc.cfg;
+    if (C.ret && C.awk !== undefined) sc.hero.awk = C.awk;
+    if (C.back) this.restore(sc, C.back);
+  },
+  restore(sc, b) {
+    const h = sc.hero, p = sc.hiddenProp;
+    sc.waveIdx = b.waveIdx; sc.now = b.now; sc.gold = b.gold; sc.expGain = b.expGain; sc.loot = b.loot || [];
+    sc.dmgTaken = b.dmgTaken; sc.maxCombo = b.maxCombo; sc.featherUsed = b.featherUsed; sc.reviveUsed = b.reviveUsed; sc.adRevived = b.adRevived;
+    sc.lock = null; sc.bounds = { l: 0, r: STAGE_W }; sc.hiddenUsed = true;
+    h.hp = Math.max(1, Math.min(h.maxHp, b.hp)); h.awk = b.awk || 0; if (b.sta !== undefined) h.sta = b.sta;
+    if (sc.sev && b.sev) { sc.sev.state = b.sev.state === 'run' ? 'fail' : b.sev.state; sc.sev.got = b.sev.got; }
+    if (b.goldGob === 'done' || b.goldGob === null || (typeof b.goldGob === 'number' && b.goldGob < b.waveIdx)) sc.goldGob = null;
+    else if (sc.goldGob) sc.goldGob.wave = b.goldGob; else sc.goldGob = { wave: b.goldGob, m: null, t: 0, done: false };
+    // 지나온 쪽의 통·상자는 치운다 (이미 부쉈거나 지나친 것)
+    for (const pr of sc.props) if (!pr.hidden && pr.x < b.px + 80 && pr.hp > 0) { pr.hp = 0; for (const o of [pr.img, pr.sh, pr.star]) if (o && o.scene) o.destroy(); }
+    sc.props = sc.props.filter(pr => pr.hidden || pr.hp > 0);
+    if (p && !p.open) this.open(sc, p, true);
+    if (p && p.sign) p.sign.setText('◆ 숨은 길 정복');
+    // 입구에서 걸어 나온다 (들어갈 때의 거꾸로: 그림자 → 밝아지며 앞으로)
+    h.x = b.px; h.y = b.py + 6; h.face = 1;
+    if (sc.ally) { sc.ally.x = b.px - 90; sc.ally.y = b.py + 40; if (b.allyHp != null) sc.ally.hp = b.allyHp; }
+    sc.cameras.main.scrollX = Phaser.Math.Clamp(h.x - W * 0.42, 0, STAGE_W - W);
+    const base = h.rig.def.scale, k = { f: 1 };
+    h.rig.def.scale = base * 0.84; h.state = 'enterHidden'; h.st = 0; h.play('walk', 0); h.vx = 140;
+    const dark = Phaser.Display.Color.ValueToColor(0x1a1028), white = Phaser.Display.Color.ValueToColor(0xffffff);
+    const paint = () => {
+      if (!h.rig || !h.rig.c || !h.rig.c.scene) return;
+      const cc = Phaser.Display.Color.Interpolate.ColorWithColor(white, dark, 100, Math.min(100, k.f * 100));
+      h.rig.setTintAll(k.f > 0.01 ? Phaser.Display.Color.GetColor(cc.r, cc.g, cc.b) : null);
+      h.rig.c.setAlpha(Math.min(1, (1 - k.f) * 2));
+      if (h.shadow) h.shadow.setAlpha(0.35 * (1 - k.f));
+    };
+    sc.events.on('postupdate', paint);
+    sc.events.once('shutdown', () => sc.events.off('postupdate', paint));
+    sc.tweens.add({ targets: k, f: 0, duration: 750, ease: 'Sine.out' });
+    sc.tweens.add({ targets: h, y: b.py + 26, duration: 750, ease: 'Sine.out' });
+    sc.tweens.add({ targets: h.rig.def, scale: base, duration: 750, ease: 'Sine.out', onComplete: () => {
+      sc.events.off('postupdate', paint); h.rig.setTintAll(null); h.rig.c.setAlpha(1); h.vx = 0; h.toIdle();
+    } });
+    sc.time.delayedCall(300, () => sc.banner('숨은 길에서 돌아왔다', '#d8b8ff', '남은 길을 이어 가자'));
+    sc.time.delayedCall(1200, () => { if (!sc.lock && !sc.won) sc.showGo(); });
+    delete sc.cfg.back;   // '다시 하기'·'처음부터 다시'는 스테이지 처음부터
+  },
+  // 숨은 방의 결과 (cfg.ret이 있을 때 result 대신)
+  roomResult(sc, win) {
+    const s = sc.save, ret = sc.cfg.ret, h = sc.hero;
+    const room = { gold: 0, loot: [] };
+    this.collect(sc, room);
+    const got = [...sc.loot, ...room.loot];
+    const back = { ...ret, gold: ret.gold + sc.gold + room.gold, expGain: ret.expGain + Math.round(sc.expGain * (win ? 1 : 0.5)), loot: [...ret.loot, ...got] };
+    let msg;
+    if (win) {
+      const reward = [];
+      msg = this.addReward(sc, s, reward);
+      back.loot.push(...reward); got.push(...reward);
+      back.hp = h.hp; back.awk = h.awk;
+    } else {
+      back.hp = Math.round(h.maxHp * 0.35); back.awk = 0;
+      msg = sc.ally ? '숨은 길에서 쓰러졌다… 동료가 입구 밖으로 끌어냈다' : '숨은 길에서 쓰러졌다… 정신을 차려 보니 입구 밖이었다';
+    }
+    Save.write();
+    const c = sc.add.container(0, 0).setScrollFactor(0).setDepth(9000);
+    c.add(sc.add.rectangle(0, 0, W, H, 0x0a0614, 0.72).setOrigin(0).setInteractive());
+    c.add(UI.text(sc, W / 2, 150, win ? '숨은 길 정복!' : '쓰러졌다…', 64, win ? '#d8b8ff' : '#ff9a8a', { serif: true, st: 10 }).setOrigin(0.5));
+    c.add(UI.text(sc, W / 2, 240, msg || '', 24, '#f0e4ff', { wrap: 900, align: 'center' }).setOrigin(0.5));
+    const show = got.slice(0, 8);
+    show.forEach((it, i) => { const sl = UI.itemSlot(sc, W / 2 - (show.length - 1) * 50 + i * 100, 340, it, 84); sl.setScrollFactor(0); c.add(sl); });
+    c.add(UI.text(sc, W / 2, 430, `금화 +${sc.gold + room.gold}   ·   얻은 것은 스테이지를 깨면 함께 받아요`, 20, '#e8dcc8').setOrigin(0.5));
+    c.add(UI.button(sc, W / 2, 540, '원래 길로 돌아가기 ▶', () => {
+      sc.cameras.main.fadeOut(300, 10, 4, 20);
+      sc.time.delayedCall(320, () => sc.scene.start('game', { ...ret.cfg, back }));
+    }, { w: 400, h: 64, size: 26, col: 0x3a2a5a }));
+    c.each(o => o.setScrollFactor && o.setScrollFactor(0));
   },
   // 결과 화면: 숨은 방을 처음 깼을 때 보상 (reward 배열에 장비를 넣는다)
   addReward(sc, s, reward) {

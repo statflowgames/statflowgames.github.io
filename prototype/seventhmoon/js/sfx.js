@@ -514,7 +514,15 @@ const SFX = (() => {
       noise({ type: 'lowpass', f0: 2000, f1: 80, q: 0.5, dur: 1.0, g: 0.7, wet: 0.5 });
       metal({ f: 440, dur: 1.6, g: 0.18, wet: 0.8, bend: 1 }); metal({ f: 660, dur: 1.3, g: 0.12, wet: 0.8, bend: 1, delay: 0.05 });
     }),
-    combo: on(n => { const f = 660 * Math.pow(2, Math.min(n, 50) / 60); tone({ type: 'square', f0: f, dur: 0.06, g: 0.05, lp: 3000 }); tone({ type: 'square', f0: f * 1.5, dur: 0.12, g: 0.05, lp: 3000, delay: 0.06, wet: 0.4 }); }),
+    // ✏️ 2026-11-25 콤보 축하: 종소리(아이템 줍는 소리 같았다) 대신 북 + 타격 강조음. 10·20·30…으로 갈수록 조금 크고 두껍게
+    combo: on(n => {
+      const k = Math.min(1, Math.max(0, (n - 10) / 40));
+      tone({ type: 'sine', f0: 150 + 40 * k, f1: 55, dur: 0.2, g: 0.8 + 0.2 * k, wet: 0.08 });          // 북 몸통
+      noise({ type: 'bandpass', f0: 1800, f1: 700, q: 1.1, dur: 0.08, g: 0.5 + 0.12 * k, wet: 0.1 });   // 북 가죽 '탁'
+      noise({ type: 'highpass', f0: 5000, q: 0.7, dur: 0.05, g: 0.12, delay: 0.015, wet: 0.2 });          // 끝의 '촥'
+      if (n >= 20) tone({ type: 'sine', f0: 110, f1: 50, dur: 0.18, g: 0.4, delay: 0.09 });             // 20 이상: 북 두 번
+      if (n >= 30) noise({ type: 'bandpass', f0: 1400, f1: 600, q: 1, dur: 0.07, g: 0.28, delay: 0.09 });
+    }),
     // ---------- 화면 ----------
     go: on(() => { tone({ type: 'square', f0: 880, dur: 0.08, g: 0.12, lp: 3000 }); tone({ type: 'square', f0: 1320, dur: 0.16, g: 0.12, lp: 3000, delay: 0.1, wet: 0.3 }); }),
     win: on(() => {
@@ -576,7 +584,7 @@ const SFX = (() => {
     sample(key,{x,vol:phase==='arrow'?.26:phase==='pulse'?.34:phase==='impact'?.94:.62,vary:0,wet:.025});
   };
   prefer('wall', x => sample('shield_wall', { x }));
-  prefer('combo', () => sample('combo_milestone'));
+  // ✏️ 2026-11-25 combo_milestone 음원(옛 종소리)은 쓰지 않는다 — 위의 합성 북소리
   prefer('go', () => sample('ui_tap'));
   prefer('win', () => { if (!musicList.includes('jgl_stage_clear')) return false; music(null, { fade: 0.3 }); music('jgl_stage_clear', { jingle: true }); return true; });
   prefer('lose', () => { if (!musicList.includes('jgl_game_over')) return false; music(null, { fade: 0.3 }); music('jgl_game_over', { jingle: true }); return true; });
