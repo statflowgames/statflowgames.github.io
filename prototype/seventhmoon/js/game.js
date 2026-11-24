@@ -151,7 +151,7 @@ class Game extends Phaser.Scene {
     if (typeof GoldGob !== 'undefined') GoldGob.roll(this);   // 🆕 2026-11-24 황금 고블린 (아주 가끔)
     // AI 동료
     this.ally = null; this.allyCmd = s.allyCmd || 'cover'; this.allyBonus = null;
-    if (s.ally && s.ally !== s.hero && s.unlocked[s.ally] && RIGS[s.ally]) {
+    if (s.ally && s.ally !== s.hero && s.unlocked[s.ally] && RIGS[s.ally] && !this.def.drill) {   // ✏️ 2026-11-25 훈련장은 혼자
       this.ally = new Ally(this, s.ally, 150, 650);
       this.allyBonus = allyCombo(s.hero, s.ally);
     }
@@ -167,6 +167,7 @@ class Game extends Phaser.Scene {
     if (this.mode === 'daily' || this.mode === 'rush') this.stageIntro(this.mode === 'rush' ? '주간 도전' : '매일 바뀌는 도전', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : '보스 6마리를 최대한 빨리!', { accent: 0xffc96a });
     else if (this.tower) this.stageIntro('심연의 탑', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : null, { accent: 0xb89cff });
     else if (this.cfg.back) { /* 🆕 숨은 길에서 돌아옴: 제목 없이 이어 간다 */ }
+    else if (this.def.drill) this.stageIntro('캠프 훈련장', '화살비 막기', '20초 동안 날아오는 화살을 가드로 막아라', { accent: 0xffc96a });   // 🆕 2026-11-25
     else if (this.def.hidden) this.stageIntro(`제${this.ch}장  ·  숨은 길`, this.def.name, '이 길을 아는 이는 많지 않다…', { accent: 0xb89cff });   // 🆕 2026-11-24
     else {
       const chap = typeof CHAPTERS !== 'undefined' && CHAPTERS[this.ch - 1];
@@ -175,6 +176,7 @@ class Game extends Phaser.Scene {
     GearFx.start(this);   // 🆕 장비 효과
     StageEvents.start(this);   // 🆕 스테이지 안 이야기·목표
     if (typeof HiddenRoute !== 'undefined') HiddenRoute.onCreate(this);   // 🆕 2026-11-25 숨은 길 들어갔다 돌아오기
+    if (typeof Drill !== 'undefined') Drill.setup(this);   // 🆕 2026-11-25 캠프 훈련장
     SFX.ambience(this.theme.amb);
     SFX.music(this.tower ? (this.def.boss ? 'bgm_tower_b' : 'bgm_tower_a') : this.theme.bgm);
     SFX.heartbeat(false);
@@ -2648,7 +2650,8 @@ class Game extends Phaser.Scene {
     this.updateAuras(dt);
     SFX.heartbeat(!this.won && !this.lost && this.hero.hp > 0 && this.hero.hp < this.hero.maxHp * 0.25);
     this.updatePickups(dt);
-    if (typeof GoldGob !== 'undefined') { GoldGob.update(this, dt); HiddenRoute.update(this, dt); }   // 🆕 2026-11-24
+    if (typeof GoldGob !== 'undefined') { GoldGob.update(this, dt); HiddenRoute.update(this, dt); }
+    if (this.drill && typeof Drill !== 'undefined') Drill.update(this, dt);   // 🆕 2026-11-25 훈련장   // 🆕 2026-11-24
     this.checkWave();
     // 카메라
     const cam = this.cameras.main;

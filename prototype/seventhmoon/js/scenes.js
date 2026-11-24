@@ -434,6 +434,11 @@ class Camp extends Phaser.Scene {
     UI.button(this, W - 530, 50, '직업', () => this.pickClass(), { w: 150, h: 56, size: 24, col: 0x2a3a5a });
     UI.button(this, W - 360, 50, '가방', () => openMenu(this, 'bag'), { w: 150, h: 56, size: 24, col: 0x4a2a14 });
     UI.button(this, W - 190, 50, '메뉴', () => this.sysMenu(), { w: 150, h: 56, size: 24, col: 0x3a2a1a });
+    // 🆕 2026-11-25 캠프 미니게임 (js/camp-games.js)
+    if (typeof LuckChest !== 'undefined') {
+      UI.button(this, W - 360, 150, '상자 노점', () => { SFX.go(); LuckChest.open(this); }, { w: 170, h: 50, size: 21, col: 0x6a4a1a });
+      UI.button(this, W - 190, 150, '훈련장', () => { SFX.go(); Drill.start(this); }, { w: 170, h: 50, size: 21, col: 0x2a4a5a });
+    }
     SFX.music('bgm_camp');
     SFX.ambience('camp');
     this.input.keyboard.on('keydown-ESC', () => this.scene.start('map'));
