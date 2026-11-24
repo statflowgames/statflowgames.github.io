@@ -12,7 +12,7 @@ var HarvanCuteParts=(()=>{
   function install(hero,ratio,atlas){
     if(atlas.version===5)return CuteHeroParts.install(hero,atlas);
     const group=atlas.rigProfile?.bodyGroup||(ratio===4?'body4':'body35'),texture=TEX(atlas)[group],headTex=TEX(atlas).heads,frames=atlas[group].frames;
-    const profile=atlas.rigProfile||{},armScale=profile.armScale??1;
+    const profile=atlas.rigProfile||{},armScale=profile.armScale??1,legScale=profile.legScale??1;   // ✏️ 2026-11-24 legScale: 허벅지·정강이 길이 배율 (하르반 다리가 짧아 보임)
     const torso=frames.torso,pelvis=frames.pelvis,ua=frames.upper_arm,fa=frames.forearm,thigh=frames.thigh,shin=frames.shin;
     const def=humanoid(texture,{
       scale:1,footY:400,height:800,
@@ -20,7 +20,7 @@ var HarvanCuteParts=(()=>{
       shoulderB:[torso.w*.13,-torso.h*.48],shoulderF:[-torso.w*.25,-torso.h*.46],
       uaA:[.5,.15],uaLen:ua.h*.70*armScale,faA:[.5,.13],faLen:fa.h*.72*armScale,handA:[.5,.12],handIr:0,
       hipB:[pelvis.w*.11,pelvis.h*.20],hipF:[-pelvis.w*.14,pelvis.h*.20],
-      thA:[.5,.15],thLen:thigh.h*.70,shA:[.5,.13],shLen:shin.h*.70,ftA:[.27,.12],
+      thA:[.5,.15],thLen:thigh.h*.70*legScale,shA:[.5,.13],shLen:shin.h*.70*legScale,ftA:[.27,.12],
       gripImg:'hand_grip',frontHand:'hand_grip',
       cape:{at:[-torso.w*.15,-torso.h*.74],a:[.5,.06],sc:2},
       weapon:{img:'weapon_0',at:[0,0],a:[.5,.86],sc:1,ir:90},shield:{img:'shield_0',at:[0,0],sc:1},
@@ -31,6 +31,7 @@ var HarvanCuteParts=(()=>{
       if(['uab','uaf','fab','faf'].includes(b.n))b.sc=armScale;
       if(['hf','hb'].includes(b.n))b.sc=profile.handScale??.65;
       if(['ftf','ftb'].includes(b.n))b.sc=profile.footScale??1;
+      if(['thf','thb','shf','shb'].includes(b.n))b.sc=legScale;
       if(b.n==='cape'){b.sc=profile.capeScale??2;if(profile.capeAnchor)[b.ax,b.ay]=profile.capeAnchor;}
       if(b.n==='uaf')b.z=58;
     }
@@ -67,7 +68,7 @@ var HarvanCuteParts=(()=>{
       const hand=rig.map[handName],s=hand.spr,b=rig.map[item];
       b.p=handName;b.x=(.68-s.originX)*s.width*hand.sc;b.y=(.74-s.originY)*s.height*hand.sc;
     }
-    const plant=rig.preparePose,motionScale=(thigh.h*.7+shin.h*.7)/(82+92);
+    const plant=rig.preparePose,motionScale=(thigh.h*.7+shin.h*.7)*legScale/(82+92);
     rig.preparePose=pose=>{
       const p={...pose};
       for(const key of ['hipX','hipY','stepF','stepB','liftF','liftB','bodyX','bodyY'])if(p[key])p[key]*=motionScale;

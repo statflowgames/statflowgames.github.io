@@ -102,6 +102,8 @@ class Game extends Phaser.Scene {
     if (sv && typeof MAN !== 'undefined') {
       cut.push('cutin/' + sv.hero);
       for (const id of (JSON.stringify(def.waves || []).match(/[a-z_0-9]+/g) || [])) if (MONDEF[id] && MONDEF[id].boss) cut.push('bosscut/' + id);
+      if (this.cfg.stage && /^c\d+_s2$/.test(this.cfg.stage)) cut.push(`hidden/c${this.cfg.ch}_closed`, `hidden/c${this.cfg.ch}_open`);
+      if (!def.boss && !def.tower && !def.mode) cut.push(...Assets.group('gold_goblin'));   // ✏️ 2026-11-25 황금 고블린 그림 (작다)   // 🆕 2026-11-24 숨은 길 입구 그림 (있을 때만)
     }
     Assets.preloadFor(this, [...Assets.forStage(def, sv), ...(this.cfg.stage ? StageEvents.assetKeys(this.cfg.stage) : []), ...cut.filter(k => MAN[k])]);
   }
@@ -126,7 +128,7 @@ class Game extends Phaser.Scene {
     if (!this.def.floorMul && (this.rule.hpMul || this.rule.dmgMul)) this.monScale = { hp: this.monScale.hp * (this.rule.hpMul || 1), dmg: this.monScale.dmg * (this.rule.dmgMul || 1) };
     this.speedMul = this.rule.speedMul || 1;
     this.abilityClock = 0; this.abilityCues = [];
-    this.now = 0; this.hitstop = 0; this.won = false; this.lost = false; this.paused = false; this.looting = false; this.lootDone = false;
+    this.now = 0; this.smokeUntil = 0; this.hiddenOpen = false; this.hiddenProp = null; this.entering = false; this.hitstop = 0; this.won = false; this.lost = false; this.paused = false; this.looting = false; this.lootDone = false;
     this.god = Q.has('god');
     this.gold = 0; this.expGain = 0; this.loot = []; this.dmgTaken = 0;
     this.comboN = 0; this.comboT = 0; this.maxCombo = 0;
@@ -146,6 +148,7 @@ class Game extends Phaser.Scene {
     else if (this.mode === 'story' && typeof s.hpPct === 'number' && s.hpPct < 1) this.hero.hp = Math.max(Math.round(this.hero.maxHp * HP_CARRY_MIN), Math.round(this.hero.maxHp * s.hpPct));
     this.tut = !s.seen.tutorial && this.cfg.stage === 'c1_s1' && !this.def.mode ? { i: 0, x0: 260, ui: null, wait: 1800 } : null;
     this.heroTip = this.mode === 'story' && typeof HERO_TIP !== 'undefined' && HERO_TIP[s.hero] && !s.seen['tip_' + s.hero] ? { wait: 6500 } : null;   // 🆕 2026-11-22 직업 대표 기술 안내 (한 번)
+    if (typeof GoldGob !== 'undefined') GoldGob.roll(this);   // 🆕 2026-11-24 황금 고블린 (아주 가끔)
     // AI 동료
     this.ally = null; this.allyCmd = s.allyCmd || 'cover'; this.allyBonus = null;
     if (s.ally && s.ally !== s.hero && s.unlocked[s.ally] && RIGS[s.ally]) {
@@ -163,6 +166,7 @@ class Game extends Phaser.Scene {
     this.cameras.main.fadeIn(400);
     if (this.mode === 'daily' || this.mode === 'rush') this.stageIntro(this.mode === 'rush' ? '주간 도전' : '매일 바뀌는 도전', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : '보스 6마리를 최대한 빨리!', { accent: 0xffc96a });
     else if (this.tower) this.stageIntro('심연의 탑', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : null, { accent: 0xb89cff });
+    else if (this.def.hidden) this.stageIntro(`제${this.ch}장  ·  숨은 길`, this.def.name, '이 길을 아는 이는 많지 않다…', { accent: 0xb89cff });   // 🆕 2026-11-24
     else {
       const chap = typeof CHAPTERS !== 'undefined' && CHAPTERS[this.ch - 1];
       this.stageIntro(`제${this.ch}장` + (chap ? `  ·  ${chap.name}` : ''), this.def.name, this.routeRule ? '길의 규칙  ·  ' + this.routeRule.ko : this.allyBonus ? `동료 조합 「${this.allyBonus}」  피해 +15%` : null);
@@ -235,6 +239,7 @@ class Game extends Phaser.Scene {
       const sx = Phaser.Math.Clamp(Math.round((w0.r + w1.at) / 2 + ((hsh >> 4) % 200) - 100), 400, STAGE_W - 400);
       this.addProp(sx, FLOOR_TOP + 4, 'crate', false, true);
     }
+    if (typeof HiddenRoute !== 'undefined') HiddenRoute.place(this);   // 🆕 2026-11-24 숨은 길 입구
   }
   // 🆕 숨은 보물을 찾았다
   secretFound(p) {
@@ -320,7 +325,7 @@ class Game extends Phaser.Scene {
       if (pending && alive <= 1 && !this.spawning) { this.spawning = true; this.time.delayedCall(500, () => { this.spawnGroup(); this.spawning = false; }); }
       if (!pending && alive === 0 && !this.spawning && !this.lock.boss) {
         this.lock = null; this.bounds = { l: 0, r: STAGE_W };
-        if (this.waveIdx >= this.waves.length) this.stageClear(); else this.showGo();
+        if (this.waveIdx >= this.waves.length) this.stageClear(); else if (!(typeof GoldGob !== 'undefined' && GoldGob.maybe(this))) this.showGo();   // 🆕 황금 고블린
       }
       return;
     }
@@ -1045,7 +1050,7 @@ class Game extends Phaser.Scene {
       if ((m.z || 0) > (a.zr || 170) + h.z) continue;
       if (m.state === 'down' && !a.otg) continue;
       const behind = this.cls.backstab && (h.x - m.x) * m.face < 0 && !m.def.boss;
-      const crit = behind || Math.random() * 100 < this.stats.crit + GearFx.critAdd(this, m) || (a.fin && this.comboN > 0 && this.comboN % 10 === 9);
+      const crit = behind || (h === this.hero && this.smokeUntil > this.now) || Math.random() * 100 < this.stats.crit + GearFx.critAdd(this, m) || (a.fin && this.comboN > 0 && this.comboN % 10 === 9);   // ✏️ 2026-11-24 키르 연막탄 동안은 모두 치명타
       let dmg = this.heroDamage(a.dmg * (0.9 + Math.random() * 0.2) * (m.state === 'down' ? 1.4 : 1), m, crit, this.cls.elem);
       if (behind) dmg = Math.round(dmg * (1.3 + this.stats.vsBack / 100));
       if (h.side === 'ally') dmg = Math.max(1, Math.round(dmg * 0.7));
@@ -1081,6 +1086,7 @@ class Game extends Phaser.Scene {
     }
   }
   hitProp(p, h) {
+    if (p.hidden) return HiddenRoute.hit(this, p, h);   // 🆕 2026-11-24 숨은 길 입구
     p.hp--;
     SFX.brk(p.x - this.cameras.main.scrollX, 'wood');
     this.hitstop = Math.max(this.hitstop, 40);
@@ -1635,7 +1641,7 @@ class Game extends Phaser.Scene {
     }
     if (h.motionSync && o.img === 'warrior/shield_0') muzzle = h.rig.imagePoint('shd', .5, .5);
     for (let i = 0; i < n; i++) {
-      const dy = n > 1 ? (i - (n - 1) / 2) * (o.spread || 60) : 0;
+      const dy = o.lane ?? (n > 1 ? (i - (n - 1) / 2) * (o.spread || 60) : 0);   // ✏️ 2026-11-24 lane: 한 발씩 줄을 정해 쏠 때
       const key = this.textures.exists(o.img) ? o.img : 'orb';
       const x = muzzle ? muzzle.x + h.face * 5 : h.x + h.face * 70, y = h.y + dy * 0.35,
         z = muzzle ? Math.max(20, h.y - muzzle.y) : o.z ?? 115;
@@ -1644,7 +1650,7 @@ class Game extends Phaser.Scene {
       if (o.tint) img.setTint(o.tint);
       if (key === 'fx/arrow_trail' || key === 'fx/slash_arc') img.setBlendMode(Phaser.BlendModes.ADD);
       const sh = this.add.image(x, y, 'shadow').setScale(0.3, 0.3).setAlpha(0.25).setDepth(999);
-      this.projs.push({ src: h, img, sh, x, y, z, vx: h.face * (o.vx || 950), vy: dy * 0.3, vz: -(o.vy || 0), dmg: o.dmg * sc, life: o.life || 900, mine: true, pierce: !!o.pierce, elem: o.elem, boom: o.boom, chain: o.chain, home: o.home, spin: o.spin, rehit: o.rehit, hit: new Map(), key, poise: o.poise });
+      this.projs.push({ src: h, img, sh, x, y, z, vx: h.face * (o.vx || 950), vy: dy * 0.3, vz: -(o.vy || 0), dmg: o.dmg * sc, life: o.life || 900, mine: true, pierce: !!o.pierce, elem: o.elem, boom: o.boom, chain: o.chain, home: o.home, spin: o.spin, rehit: o.rehit, hit: new Map(), key, poise: o.poise, kb: o.kb, ptype: o.type, px: muzzle || o.fromBody ? h.x : undefined });   // ✏️ 2026-11-24 몸 앞부터 판정: 지팡이·활 끝에서 생겨난 투사체가 바로 붙은 적을 지나치던 문제 (미라엘이 붙은 적을 못 맞혔다)
       if (typeof AttackFeel !== 'undefined' && this.cls.ranged && AttackFeel.on(h)) AttackFeel.projStart(this, h, this.projs[this.projs.length - 1]);   // 🆕 2026-11-24 투사체 꼬리·빛
     }
     if (typeof AttackFeel !== 'undefined' && this.cls.ranged && AttackFeel.on(h)) AttackFeel.shootFx(this, h, o, muzzle);   // 🆕 2026-11-24 쏘는 순간 터지는 빛
@@ -1672,7 +1678,7 @@ class Game extends Phaser.Scene {
       const dmg = this.heroDamage(p.dmg, m, crit, p.elem);
       m.invuln = 0;
       // ✏️ 2026-11-22 원거리 보강: 쓰러진 적도 맞는다(otg), 각성 충전은 근접과 같이 +3·탑 규칙 배율 적용
-      if (m.takeHit(h, { dmg: p.dmg, kb: p.pierce ? 120 : 200, type: 'light', stop: 35, proj: true, otg: true }, dmg)) {
+      if (m.takeHit(h, { dmg: p.dmg, kb: p.kb ?? (p.pierce ? 120 : 200), type: p.ptype || 'light', stop: p.kb ? 70 : 35, proj: true, otg: true }, dmg)) {   // ✏️ 2026-11-24 kb·type: 관통 저격
         this.addCombo();
         this.awkGain(m, !p.awkDone); p.awkDone = true;   // ✏️ 2026-11-22 투사체마다 첫 적만 크게
         this.floatText(m.x, m.y - m.height * 0.7, String(dmg), crit ? '#ffd34d' : '#fff', crit ? 34 : 28);
@@ -1846,6 +1852,42 @@ class Game extends Phaser.Scene {
       this.time.delayedCall(a.hit[0] > 200 ? 0 : 100, () => { h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.05); this.fx('holy_ring', h.x + f * 120, h.y, { s: 0.6, dur: 500, depth: h.y - 1, flat: true }); });
     } else if (sp === 'holyup') {
       this.fx('holy_pillar', h.x + f * 120, h.y - 80, { s: 0.45, dur: 450, depth: h.y + 1002 });
+    } else if (sp === 'shieldbash') {   // 🆕 2026-11-24 하르반 회피 반격: 방패 충격파
+      this.fx('guard_flash', h.x + f * 110, h.y - 100, { s: 0.5, dur: 320, depth: h.y + 1002 });
+      this.fx('impact_ring', h.x + f * 130, h.y, { s: 0.55, dur: 380, depth: h.y - 1, flat: true, tint: 0xffe0a0 });
+      SFX.bash(h.px);
+    } else if (sp === 'judgment') {   // 🆕 오델리아 회피 반격: 앞쪽 가까운 적 위로 빛기둥 → 띄우기 + 체력 4% 회복
+      let x = h.x + f * 200;
+      for (const m of this.monsters) if (!m.dead && (m.x - h.x) * f > 40 && (m.x - h.x) * f < 420 && Math.abs(m.y - h.y) < 70) { x = m.x; break; }
+      this.fx('holy_pillar', x, h.y - 90, { s: 0.6, dur: 520, depth: h.y + 1002 });
+      this.fx('holy_ring', x, h.y, { s: 0.55, dur: 500, depth: h.y - 1, flat: true });
+      this.heroArea(x, h.y, 110, 55, a.sdmg, { elem: 'holy', type: 'launch', kb: 80, poise: 16, col: '#fff0a0' });
+      const v = Math.round(h.maxHp * 0.04); h.hp = Math.min(h.maxHp, h.hp + v); this.floatText(h.x, h.y - 250, '+' + v, '#8f8', 26);
+      this.cameras.main.shake(140, 0.006); SFX.heal();
+    } else if (sp === 'prism') {   // 🆕 미라엘 회피 반격: 불·얼음·번개 구슬 3발 부채꼴
+      [['crystal_fire', 'fire', -100], ['crystal_ice', 'ice', 0], ['crystal_bolt', 'bolt', 100]].forEach(([img, elem, lane]) =>
+        this.heroShoot(h, { img: 'mage/' + img, vx: 1050, dmg: a.sdmg, elem, sc: 0.6, z: 120, life: 850, lane, pierce: elem === 'bolt', fromBody: true }));
+    } else if (sp === 'smoke') {   // 🆕 키르 회피 반격: 연막탄 — 주변 적 기절(보스 제외), 2.5초 동안 키르 공격은 모두 치명타
+      this.fx('shadow_smoke', h.x + f * 60, h.y - 80, { s: 0.75, dur: 700, depth: h.y + 1002 });
+      this.fx('shadow_smoke', h.x - f * 40, h.y - 60, { s: 0.55, dur: 650, depth: h.y + 1001 });
+      this.heroArea(h.x + f * 40, h.y, 200, 70, a.sdmg, { kb: 0, type: 'light', poise: 6, col: '#c8a0ff' });   // 피해 먼저, 기절은 그 뒤에 (피해 판정이 기절 시간을 덮어쓰지 않게)
+      for (const m of this.monsters) if (!m.dead && m.state !== 'enter' && Math.abs(m.x - h.x) < 230 && Math.abs(m.y - h.y) < 80) {
+        if (!m.def.boss) { m.state = 'hurt'; m.st = 0; m.stun = Math.max(m.stun || 0, 1300); m.vx = m.vy = 0; m.showEmote('dizzy', 1300); m.releaseTok && m.releaseTok(); }
+        else m.showEmote('dizzy', 500);
+      }
+      this.smokeUntil = this.now + 2500; h.invuln = Math.max(h.invuln, 500);
+      this.floatText(h.x, h.y - 260, '연막! 2.5초 치명타', '#d8b8ff', 24);
+      SFX.roll(h.px);
+    } else if (sp === 'snipe') {   // 🆕 세릴 회피 반격: 관통 저격 (화살은 공격 표 proj — 여기선 쏘는 순간 반동·빛)
+      h.vx = -f * 260;
+      this.fx('impact_ring', h.x + f * 80, h.y - 120, { s: 0.4, dur: 300, depth: h.y + 1002, tint: 0xfff0a0 });
+      this.cameras.main.shake(110, 0.005);
+    } else if (sp === 'voidspin') {   // 🆕 녹타 회피 반격: 흑월 회전베기 — 앞뒤 모두, 준 피해의 일부 회복
+      this.fx('slash_arc', h.x + f * 90, h.y - 100, { s: 0.6, dur: 320, depth: h.y + 1002, tint: 0xb070ff });
+      this.fx('slash_arc', h.x - f * 90, h.y - 100, { s: 0.6, dur: 320, depth: h.y + 1002, tint: 0xb070ff, flip: f > 0 });
+      this.fx('void_crack', h.x, h.y, { s: 0.55, dur: 600, depth: h.y - 1, flat: true });
+      this.heroArea(h.x, h.y, 200, 70, a.sdmg, { elem: 'dark', kb: 360, type: 'knock', poise: 18, leech: 0.12, col: '#d0a0ff' });
+      SFX.swing(true, h.px, 'blade');
     } else if (sp === 'voidslam') {
       this.time.delayedCall(Math.max(0, a.hit[0] - 60), () => { this.fx('void_crack', h.x + f * 140, h.y, { s: 0.5, dur: 600, depth: h.y - 1, flat: true }); this.heroArea(h.x + f * 140, h.y, 140, 50, 20, { kb: 200, type: 'knock' }); });
     }
@@ -2261,6 +2303,7 @@ class Game extends Phaser.Scene {
       p.img.destroy();
     }
     this.pickups = [];
+    if (this.hintUi && this.hintUi.scene) { this.hintUi.destroy(); this.hintUi = null; }   // ✏️ 2026-11-24 결과 화면에 첫 안내 상자가 남지 않게
     if (this.tower) return this.towerResult(win);
     if (this.mode === 'daily' || this.mode === 'rush') return this.challengeResult(win);
     const c = this.add.container(0, 0).setScrollFactor(0).setDepth(9000);
@@ -2289,6 +2332,7 @@ class Game extends Phaser.Scene {
     const reward = [];
     for (let i = 0; i < chests; i++) { const it = rollDrop(s, this.ch, g === 'S' ? 1 : 0); s.bag = s.bag.filter(b => b !== it); reward.push(it); }
     s.gold += clearGold;
+    const hiddenMsg = typeof HiddenRoute !== 'undefined' ? HiddenRoute.addReward(this, s, reward) : null;   // 🆕 2026-11-24 숨은 방 보상
     const all = [...this.loot, ...reward];
     all.forEach(it => s.bag.push(it));
     s.gold += this.gold;
@@ -2297,7 +2341,7 @@ class Game extends Phaser.Scene {
     this.achieve(all, { win: true, grade: g, chBoss: this.def.boss && this.cfg.node === 'boss' });
     // 마석: 스테이지마다 조금
     s.mats.low += 1 + bonus; if (this.ch >= 3) s.mats.mid += Math.floor(bonus / 2) + 1; if (this.ch >= 5) s.mats.high += 1;
-    if (this.cfg.node && this.cfg.node !== 'void' && !this.tower) clearNode(s, this.ch, this.cfg.node);
+    if (this.cfg.node && this.cfg.node !== 'void' && this.cfg.node !== 'hidden' && !this.tower) clearNode(s, this.ch, this.cfg.node);
     if (this.mode === 'story') s.hpPct = this.def.boss ? 1 : Math.max(0, Math.min(1, this.hero.hp / this.hero.maxHp));   // 🆕 체력 이어가기
     const gotBook = this.mode === 'story' && grantSkillBook(s, this.cfg.stage);   // 🆕 2026-11-22 스킬의 서
     Save.write();
@@ -2314,6 +2358,7 @@ class Game extends Phaser.Scene {
       `금화 +${this.gold}   경험치 +${this.expGain}`,
     ].join('\n'), 26, '#fff', { ls: 12 }));
     c.add(UI.text(this, 120, 352, `클리어 보상 (등급 ${g}) · 금화 +${clearGold}${chests ? ' · 장비 1개' : ''}  ·  주운 장비 ${this.loot.length}개`, 22, '#ffe7a8'));
+    if (hiddenMsg) c.add(UI.text(this, 120, 382, hiddenMsg, 22, '#d8b8ff', { bold: true }));
     all.slice(0, 10).forEach((it, i) => {
       const slot = UI.itemSlot(this, 160 + i * 96, 420, it, 84);
       slot.setScrollFactor(0).setAlpha(0).setScale(0.6);
@@ -2326,9 +2371,10 @@ class Game extends Phaser.Scene {
       c.add(t);
       this.time.delayedCall(1600, () => { SFX.jingle('jgl_level_up'); this.tweens.add({ targets: t, alpha: 1, y: 520, duration: 300 }); this.fx('levelup_burst', this.hero.x, this.hero.y - 120, { s: 0.7, dur: 900, depth: 9500 }); });
     }
-    const go = () => this.scene.start('map', { after: { ch: this.ch, node: this.cfg.node, win: true }, ch: this.ch });
+    const go = () => this.def.hidden ? this.scene.start('map', { ch: this.ch }) : this.scene.start('map', { after: { ch: this.ch, node: this.cfg.node, win: true }, ch: this.ch });
     c.add(UI.button(this, W / 2 + 160, 640, '계속 ▶', go, { w: 280 }));
     c.add(UI.button(this, W / 2 - 160, 640, '다시 하기', () => this.scene.restart(this.cfg), { w: 240, col: 0x3a2a1a }));
+    if (typeof HiddenRoute !== 'undefined') HiddenRoute.resultButton(this, c);   // 🆕 숨은 길로 들어가기
     // 🆕 광고 보고 금화·경험치 2배 (스테이지당 1번)
     if (typeof Monet !== 'undefined' && (this.gold > 0 || this.expGain > 0)) {
       const adB = UI.button(this, W - 210, 560, '▶ 광고 보고 보상 2배', () => Monet.rewardAd(this, 'double', () => {
@@ -2598,6 +2644,7 @@ class Game extends Phaser.Scene {
     this.updateAuras(dt);
     SFX.heartbeat(!this.won && !this.lost && this.hero.hp > 0 && this.hero.hp < this.hero.maxHp * 0.25);
     this.updatePickups(dt);
+    if (typeof GoldGob !== 'undefined') { GoldGob.update(this, dt); HiddenRoute.update(this); }   // 🆕 2026-11-24
     this.checkWave();
     // 카메라
     const cam = this.cameras.main;

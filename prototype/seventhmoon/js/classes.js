@@ -31,6 +31,7 @@ function makeClasses() {
       up: { clip: 'mg_big', dur: 460, hit: [300, 310], dmg: 0, special: 'icepillar', sdmg: 24 },
       down: { clip: 'mg_atk2', dur: 380, hit: [150, 160], dmg: 0, special: 'firefield', sdmg: 9 },
       jump: { clip: 'mg_atk1', dur: 360, hit: [150, 160], dmg: 0, proj: { ...bolt('crystal_fire', 'fire', 18), vy: 260 } },
+      evade: { clip: 'mg_atk3', dur: 400, hit: [170, 180], dmg: 0, special: 'prism', sdmg: 17 },   // 🆕 2026-11-24 회피 반격: 원소 산탄 (불·얼음·번개 3발 부채꼴)
     },
   };
   // ---- 성기사: 묵직한 망치와 신성 ----
@@ -38,6 +39,7 @@ function makeClasses() {
   pal.up.special = 'holyup'; pal.down.special = 'sanctuary';
   ['a1', 'a2', 'a3', 'a4'].forEach((k, i) => { pal[k].clip = 'pa_atk' + (i + 1); });
   pal.a3.swing = 's';
+  pal.evade = { clip: 'pa_atk4', finisherClip: true, dur: 529, hit: [232, 242], dmg: 0, special: 'judgment', sdmg: 30, fin: true, shake: 6 };   // 🆕 2026-11-24 회피 반격: 심판의 빛 (앞쪽 적 위로 빛기둥, 띄우고 체력 회복)
   C.paladin = { atk: pal, hp: 1.12, smear: 'smear_warrior', smearTint: 0xfff0b0, awaken: 'holyDescent', elem: 'holy', guardFx: 'guard_flash' };
   // ---- 그림자도적: 빠른 쌍단검, 등 뒤 치명타 ----
   const rog = cloneAtk(W, { dur: 0.74, dmg: 0.78 });
@@ -47,6 +49,7 @@ function makeClasses() {
   rog.dash = { clip: 'ro_dash', dur: 330, hit: [90, 150], dmg: 26, reach: [0, 160], dz: 40, kb: 200, type: 'knock', stop: 70, special: 'shadowstep' };
   rog.up = { ...rog.up, special: 'spin', type: 'launch' };
   rog.down = { clip: 'r_volley', dur: 420, hit: [200, 210], dmg: 0, special: 'daggerrain', sdmg: 12 };
+  rog.evade = { clip: 'r_volley', dur: 380, hit: [150, 160], dmg: 0, special: 'smoke', sdmg: 10 };   // 🆕 2026-11-24 회피 반격: 연막탄 (주변 적 기절, 2.5초 동안 공격이 모두 치명타)
   C.rogue = { atk: rog, hp: 0.86, smear: 'smear_warrior', smearTint: 0xc8a0ff, awaken: 'moonDance', critAdd: 8, backstab: true, guardFx: 'guard_flash' };
   // ---- 월광궁수: 화살 ----
   const arrow = (dmg, o = {}) => ({ img: 'fx/arrow_trail', vx: 1250, dmg, pierce: true, sc: 0.32, z: 125, life: 800, ...o });
@@ -61,11 +64,13 @@ function makeClasses() {
       up: { clip: 'r_volley', dur: 420, hit: [220, 230], dmg: 0, special: 'volley', sdmg: 14 },
       down: { clip: 'w_atk3', dur: 340, hit: [115, 200], dmg: 16, reach: [10, 150], dz: 34, kb: 300, type: 'knock', stop: 75, swing: 's', lunge: 200 },
       jump: { clip: 'r_shoot', dur: 360, hit: [150, 160], dmg: 0, proj: arrow(16, { vy: 300 }) },
+      evade: { clip: 'rg_atk4', dur: 480, hit: [220, 230], dmg: 0, fin: true, special: 'snipe', proj: arrow(36, { sc: 0.5, life: 1000, poise: 25, tint: 0xfff0a0, kb: 420, type: 'knock', fromBody: true }) },   // 🆕 2026-11-24 회피 반격: 관통 저격 (크고 센 화살, 맞은 적을 멀리 밀어냄)
     },
   };
   // ---- 흑월술사: 대검, 체력이 낮을수록 강해진다 ----
   const hex = cloneAtk(W, { dur: 1.18, dmg: 1.35 });
   hex.down.special = 'voidslam';
+  hex.evade = { clip: 'hx_atk4', finisherClip: true, dur: 578, hit: [254, 264], dmg: 0, special: 'voidspin', sdmg: 32, fin: true, shake: 7 };   // 🆕 2026-11-24 회피 반격: 흑월 회전베기 (앞뒤 모두 베고 준 피해의 일부 회복)
   ['a1', 'a2', 'a3', 'a4'].forEach((k, i) => { hex[k].clip = 'hx_atk' + (i + 1); });
   hex.a1.swing = 'h'; hex.a2.swing = 'u'; hex.a3.swing = 'v'; hex.a4.swing = 'h';
   C.hexblade = { atk: hex, hp: 1.0, smear: 'smear_warrior', smearTint: 0xb070ff, awaken: 'blackMoon', frenzy: true, guardFx: 'guard_flash' };

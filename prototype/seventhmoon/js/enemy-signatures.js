@@ -299,7 +299,7 @@ function enemySpecialPose(actor,p) {
   if(type==='charge') {
     const wind=rage?600:850;
     if(st<wind)return pose([[0,base],[wind*.7,profile.ready,'out'],[wind,profile.ready]]);
-    if(id==='toothcrusher')return {...p,head:12,torso:4,r_torso:30,r_head:-14,r_arm:-65,r_fore:30,r_wpn:-30};
+    if(id==='toothcrusher'||(typeof MONDEF!=='undefined'&&MONDEF[id]&&MONDEF[id].like==='toothcrusher'))return {...p,head:12,torso:4,r_torso:30,r_head:-14,r_arm:-65,r_fore:30,r_wpn:-30};
     if(profile.body==='wyrm')return {...p,neck:24,neck1:12,neck2:8,head:4,jaw:22,wf:22,wb:18,rr:3};
     return {...p,torso:profile.body==='human'?30:p.torso,head:-12,uab:profile.body==='human'?-35:p.uab,uaf:profile.body==='human'?-75:p.uaf};
   }

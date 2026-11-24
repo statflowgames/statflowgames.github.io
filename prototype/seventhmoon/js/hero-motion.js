@@ -88,7 +88,7 @@ for (const [key, profile] of Object.entries(HERO_MOTION_PROFILES)) {
     const source = CLIPS[attack.clip];
     if (!source) continue;
     const index = ['a1', 'a2', 'a3', 'a4'].indexOf(name);
-    const replacement = name === 'a4' && HERO_FINISHERS[key];
+    const replacement = (name === 'a4' || attack.finisherClip) && HERO_FINISHERS[key];   // ✏️ 2026-11-24 finisherClip: 회피 반격도 다듬은 마무리 동작을 쓴다
     CLIPS[prefix + name] = replacement || heroRetimedClip(source, attack.dur, attack.hit[0], index >= 0 ? profile.contact[index] : Math.min(attack.hit[0], source.dur - 20));
     profile.attacks[name] = prefix + name;
   }
@@ -178,7 +178,7 @@ function heroMotionPose(actor, p) {
   }
   if (actor.key === 'ranger') {
     const name = actor.anim.replace('flow_ranger_', ''), attack = classOf('ranger').atk[name];
-    if (attack && attack.proj && ['a1', 'a2', 'a3', 'a4', 'jump'].includes(name)) {
+    if (attack && attack.proj && ['a1', 'a2', 'a3', 'a4', 'jump', 'evade'].includes(name)) {
       const t = actor.animT, hit = attack.hit[0];
       const aim = Math.min(1, t / 100) * (1 - Math.max(0, Math.min(1, (t - hit - 60) / Math.max(1, attack.dur - hit - 60))));
       const uaf = lerp(p.uaf || 0, -96 - (p.torso || 0) - (p.rr || 0), aim);

@@ -204,7 +204,7 @@ function aliasStandins() {
     for (const T of tables) {
       if (!T || !T[d.like] || T[id]) continue;
       // 동작 서명은 같은 종류의 리그일 때만 빌린다 (뼈 이름이 다르면 어긋난다)
-      if (typeof ENEMY_SIGNATURES !== 'undefined' && T === ENEMY_SIGNATURES && RIGS[id] && ['ignar', 'rot_warden', 'moon_shade'].includes(id)) continue;
+      if (typeof ENEMY_SIGNATURES !== 'undefined' && T === ENEMY_SIGNATURES && RIGS[id] && ['ignar', 'rot_warden', 'moon_shade', 'hid_c7'].includes(id)) continue;
       T[id] = T[d.like];
     }
   }

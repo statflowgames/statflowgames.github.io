@@ -66,7 +66,7 @@ const Assets = {
     return [...belt, ...this.group('icon').filter(k => k.startsWith(`icon/skill_${h}_`)), 'icon/hammer'];
   },
   forTitle(s) { return [...this.heroKeys(s), 'story/opening', 'bg/far', ...HERO_KEYS.map(k => 'portrait/' + k)]; },
-  forMap(s, ch) { const C = typeof CHAPTERS !== 'undefined' && CHAPTERS[ch - 1]; return [...this.icons(), C ? C.map : `map/c${ch}`, 'map/c1', 'portrait/' + (s ? s.hero : 'warrior')]; },
+  forMap(s, ch) { const C = typeof CHAPTERS !== 'undefined' && CHAPTERS[ch - 1]; return [...this.icons(), C ? C.map : `map/c${ch}`, 'map/c1', 'portrait/' + (s ? s.hero : 'warrior'), 'hidden/icon_found', 'hidden/icon_done']; },   // ✏️ 2026-11-25 숨은 길 아이콘
   forCamp(s) { return [...this.heroKeys(s), ...this.icons(), 'bg/camp_far', 'bg/far', ...this.group('npc'), ...HERO_KEYS.map(k => 'portrait/' + k), ...this.portraits(['lise', 'tabel']), 'portrait/merchant', 'portrait/fortune']; },
   forStage(def, s) {
     const th = THEMES[def.theme] || THEMES.forest;

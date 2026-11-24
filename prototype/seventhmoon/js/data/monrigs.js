@@ -53,14 +53,14 @@ function orvexRig(tex, moons) {
   return autoHumanoid(tex, { h: tex === 'orvex' ? 265 : 280, weapon: { img: 'staff', a: [0.5, 0.6], sc: 1.0 }, extra, procs, shadow: 1.6 });
 }
 // 이빨부숴: 전투멧돼지(네발) 위에 그롤린 대장이 탄다. 체력이 반이 되면 떨어져 따로 싸운다.
-function toothRig() {
-  const def = quadRig('toothcrusher', { h: 150, prefix: 'boar_', legSc: 0.62 });
-  const g = n => SZ('toothcrusher', n) || [100, 100];
+function toothRig(id = 'toothcrusher') {   // ✏️ 2026-11-24 id: 숨은 길 미니보스(hid_c4·hid_c9)도 같은 멧돼지+대장 리그
+  const def = quadRig(id, { h: 150, prefix: 'boar_', legSc: 0.62 });
+  const g = n => SZ(id, n) || [100, 100];
   const [fw, fh] = g('boar_torso_front'), [, th] = g('torso');
   const R = 0xffffff;
   const add = b => def.bones.push(b);
-  if (HAS('toothcrusher', 'boar_saddle')) add({ n: 'saddle', p: 'torso', x: -fw * 0.1, y: -fh * 0.42, img: 'boar_saddle', ax: 0.5, ay: 0.6, z: 70 });
-  if (HAS('toothcrusher', 'pelvis')) {
+  if (HAS(id, 'boar_saddle')) add({ n: 'saddle', p: 'torso', x: -fw * 0.1, y: -fh * 0.42, img: 'boar_saddle', ax: 0.5, ay: 0.6, z: 70 });
+  if (HAS(id, 'pelvis')) {
     add({ n: 'r_root', p: 'torso', x: -fw * 0.1, y: -fh * 0.55, img: 'pelvis', ax: 0.5, ay: 0.6, z: 72 });
     add({ n: 'r_thigh', p: 'r_root', x: -6, y: 10, img: 'thigh', ax: 0.5, ay: 0.15, z: 74, r: -70 });
     add({ n: 'r_shin', p: 'r_thigh', x: 0, y: g('thigh')[1] * 0.72, img: 'shin', ax: 0.5, ay: 0.12, z: 75, r: 80 });

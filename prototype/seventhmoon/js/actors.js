@@ -227,7 +227,11 @@ const HERO_ATK = {
   up: { clip: 'w_up', dur: 400, hit: [130, 220], dmg: 18, reach: [0, 140], dz: 36, kb: 60, type: 'launch', stop: 80, swing: 's', lunge: 150 },
   down: { clip: 'w_slam', dur: 540, hit: [225, 300], dmg: 26, reach: [-40, 190], dz: 44, kb: 160, type: 'slam', stop: 110, shake: 8, otg: true, lunge: 200 },
   jump: { clip: 'w_jumpatk', dur: 400, hit: [130, 250], dmg: 20, reach: [0, 165], dz: 38, kb: 280, type: 'knock', stop: 80, swing: 'v', zr: 200 },
+  // 🆕 2026-11-24 회피 반격 (구르기 직후 공격): 방패로 크게 들이받아 오래 기절시킨다
+  evade: { clip: 'w_atk3', dur: 380, hit: [115, 215], dmg: 24, reach: [-20, 185], dz: 42, kb: 260, type: 'light', stop: 120, swing: 's', stun: 1300, lunge: 460, shake: 5, fin: true, special: 'shieldbash' },
 };
+// 🆕 2026-11-24 회피 반격: 구르는 중(0.08초 뒤부터) 공격을 누르면 구르기가 끝날 때 나간다. 쿨다운 1.2초 (그 사이엔 평범한 1타)
+const EVADE_CD = 1200;
 
 class Hero extends Actor {
   constructor(scene, x, y) {
@@ -240,6 +244,7 @@ class Hero extends Actor {
       harvanGripRig(this.rig);
       this.atkSet = { ...this.atkSet };
       for (const k in HARVAN_ATTACK_CLIPS) this.atkSet[k] = { ...this.atkSet[k], clip: HARVAN_ATTACK_CLIPS[k] };
+      if (this.atkSet.evade && !HARVAN_ATTACK_CLIPS.evade && HARVAN_ATTACK_CLIPS.a3) this.atkSet.evade = { ...this.atkSet.evade, clip: HARVAN_ATTACK_CLIPS.a3 };   // 🆕 회피 반격 = 방패 치기 동작
     }
     this.baseStand = key === 'warrior' ? HARVAN_STAND : STANCE[key] || P.stand; this.rig.measure(this.baseStand);
     if (key !== 'warrior' && typeof configureHeroMotion === 'function') configureHeroMotion(this);
@@ -364,7 +369,19 @@ class Hero extends Actor {
       if (this.motionSync) this.vx = activeDt > 0
         ? this.face * (harvanRollTravel(this.st) - harvanRollTravel(this.st - dt)) * 1000 / activeDt : 0;
       this.physics(activeDt);
-      if (this.st > 380) { this.vx = 0; this.vy = 0; this.toIdle(); }
+      // 🆕 회피 반격: 구르는 중 공격 → 구르기 끝(0.3초)에서 바로 이어서 나간다
+      if (inp.atkP && this.st > 80 && this.atkSet.evade && (this.scene.now || 0) >= (this.evadeReadyAt || 0)) this.evadeQ = true;
+      if (this.evadeQ && this.st >= 300) {
+        this.evadeQ = false; this.buffer = 0; this.vx = 0; this.vy = 0;
+        if (inp.x) this.face = inp.x;
+        this.evadeReadyAt = (this.scene.now || 0) + EVADE_CD;
+        this.invuln = Math.max(this.invuln, 220);   // 반격 첫 동작은 맞지 않는다
+        return this.startAttack('evade');
+      }
+      if (this.st > 380) {
+        this.vx = 0; this.vy = 0; this.toIdle();
+        if (this.scene.hero === this && this.scene.onceHint && this.atkSet.evade) this.scene.onceHint('evade', '구르고 나서 바로 공격하면 「회피 반격」!\n직업마다 다른 기술이 나가요 (1.2초에 한 번)');   // 🆕 2026-11-24
+      }
       return;
     }
     if (st === 'guard') {
@@ -404,7 +421,7 @@ class Hero extends Actor {
     this.swingFired = false; this.voicePower = null;
     this.chain = { a1: 'a2', a2: 'a3', a3: 'a4' }[k] || null;
     this.replay(a.clip, 40);
-    const power = { a3: 1, up: 1, dash: 1, a4: 2, down: 2 }[k] || 0;
+    const power = { a3: 1, up: 1, dash: 1, a4: 2, down: 2, evade: 2 }[k] || 0;
     if (power || Math.random() < 0.35) {
       if (this.motionSync) this.voicePower = power;
       else this.scene.time.delayedCall(Math.max(0, a.hit[0] - 60), () => this.state === 'atk' && SFX.heroAtk(power, this.px, this.key));
@@ -459,7 +476,7 @@ class Hero extends Actor {
   startRoll(inp) {
     this.sta -= this.rollCost;
     const d = inp.x || this.face; this.face = d;
-    this.state = 'roll'; this.st = 0; this.vx = d * 560; this.vy = inp.y * 120; this.invuln = 380;
+    this.state = 'roll'; this.st = 0; this.vx = d * 560; this.vy = inp.y * 120; this.invuln = 380; this.evadeQ = false;
     if (this.scene.hero === this && this.scene.afterImage) this.scene.afterImage(this.x, this.y, d);   // 🆕 2026-11-22 키르 '잔상'
     this.replay(this.motionSync ? this.motionClip('roll') : 'w_roll', 30); SFX.roll(this.px);
     this.scene.fx('dash_trail', this.x - d * 40, this.y - 60, { s: 0.35, flip: d < 0, dur: 320, depth: this.y - 1 });

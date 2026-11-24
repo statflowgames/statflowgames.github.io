@@ -9,6 +9,7 @@ const MOVE_INPUT = {
   jump: { touch: '점프 버튼 → 공중에서 ⚔', pc: 'K → 공중에서 J' },
   guard: { touch: '🛡 가드 버튼 누르고 있기', pc: 'I 누르고 있기' },
   roll: { touch: '회피 버튼', pc: 'L' },
+  evade: { touch: '회피 버튼 → 바로 ⚔', pc: 'L → 바로 J' },   // 🆕 2026-11-24 회피 반격
   skill: { touch: '스킬 1·2 버튼', pc: 'U · H' },
   awaken: { touch: '각성 버튼 (게이지 가득)', pc: 'O (게이지 가득)' },
 };
@@ -18,31 +19,37 @@ const MOVES = {
     trait: '방패 전사 · 막고 버티며 반격한다. 맞는 순간 가드하면 저스트 가드 반격',
     combo: ['검 4연타', '마지막 한 방은 크게 날려 보낸다'], up: ['올려베기', '적을 공중으로 띄운다'], down: ['내려찍기', '바닥을 내리쳐 주변을 흔든다'],
     dash: ['방패 돌진', '달려가며 들이받는다'], jump: ['공중 베기', '뛰어올라 아래로 벤다'],
+    evade: ['방패 반격', '구르고 나서 방패로 크게 들이받아 오래 기절시킨다'],
   },
   paladin: {
     trait: '성기사 · 체력이 많고 신성 공격. 언데드·악마에게 강하다',
     combo: ['망치 4연타', '묵직한 신성 망치질'], up: ['빛 올려치기', '빛과 함께 적을 띄운다'], down: ['성역', '발밑에 빛의 성역을 펼친다'],
     dash: ['돌진 내려치기', '달려가며 망치를 내리친다'], jump: ['공중 망치', '뛰어올라 내리친다'],
+    evade: ['심판의 빛', '구르고 나서 앞쪽 적 위로 빛기둥을 내려 띄우고, 체력을 조금 회복한다'],
   },
   mage: {
     trait: '원거리 마법사 · 거리를 두고 싸운다. 얼음을 3번 맞히면 빙결',
     combo: ['원소 구슬', '불·얼음·번개 구슬을 쏘고, 마지막은 폭발'], up: ['얼음 기둥', '앞에 얼음 기둥을 솟구치게 한다'], down: ['불바닥', '바닥에 불을 깔아 지진다'],
     dash: ['순간이동', '앞으로 순간이동한다'], jump: ['낙하 불구슬', '공중에서 아래로 불구슬을 쏜다'],
+    evade: ['원소 산탄', '구르고 나서 불·얼음·번개 구슬 3발을 부채꼴로 쏜다'],
   },
   rogue: {
     trait: '그림자 도적 · 빠른 쌍단검. 적의 등 뒤에서 치면 치명타',
     combo: ['쌍단검 연타', '빠르게 베어 들어간다'], up: ['회전 띄우기', '돌며 적을 띄운다'], down: ['단검 비', '앞쪽에 단검을 흩뿌린다'],
     dash: ['그림자 돌진', '그림자처럼 파고들며 벤다'], jump: ['공중 찌르기', '뛰어올라 찌른다'],
+    evade: ['연막탄', '구르고 나서 연막을 터뜨려 주변 적을 기절시키고, 2.5초 동안 모든 공격이 치명타'],
   },
   ranger: {
     trait: '달빛 궁수 · 원거리. 멀리 있는 적일수록 치명타가 잘 난다',
     combo: ['3연사', '화살 3발, 마지막은 세 갈래'], up: ['일제 사격', '하늘로 쏜 화살이 쏟아진다'], down: ['발차기', '가까운 적을 차서 밀어낸다'],
     dash: ['공중제비', '뒤로 넘으며 차고 거리를 벌린다'], jump: ['낙하 사격', '공중에서 아래로 쏜다'],
+    evade: ['관통 저격', '구르고 나서 크고 센 화살로 줄지어 선 적을 꿰뚫고 밀어낸다'],
   },
   hexblade: {
     trait: '흑월술사 · 느리지만 강한 대검. 체력이 낮을수록 더 강해진다',
     combo: ['대검 4연타', '크고 묵직하게 휘두른다'], up: ['올려베기', '대검으로 적을 띄운다'], down: ['공허 내려찍기', '흑월의 힘으로 바닥을 찢는다'],
     dash: ['돌진 베기', '달려가며 베어 넘긴다'], jump: ['공중 대검', '뛰어올라 내려벤다'],
+    evade: ['흑월 회전베기', '구르고 나서 앞뒤를 한 번에 베고, 준 피해의 일부를 회복한다'],
   },
 };
 // 🆕 그 직업으로 처음 들어간 스테이지에서 한 번 보여 주는 대표 기술 안내
@@ -92,27 +99,30 @@ const MoveList = {
       { id: 'dash', seq: ['dash'], run: true }, { id: 'jump', seq: ['jump'], air: true },
       { id: 'guard', clip: 'w_guard', name: ['가드', '버튼을 누르고 있으면 막는다. 맞는 순간 누르면 저스트 가드(반격 + 각성 게이지)'] },
       { id: 'roll', clip: 'w_roll', name: ['구르기', '구르는 동안은 맞지 않는다'], run: true },
+      { id: 'evade', seq: ['evade'], pre: 'w_roll' },   // 🆕 회피 반격: 구르기 → 반격
     ];
     const S = { cur: null, t: 0, i: 0, wait: 0, x: SX };
     const btns = [];
     const pick = (m) => {
-      S.cur = m; S.i = 0; S.t = 0; S.wait = 0; S.x = SX - (m.run ? 120 : 0);
+      S.cur = m; S.i = 0; S.t = 0; S.wait = 0; S.preDone = false; S.x = SX - (m.run ? 120 : 0);
       const nm = m.name || info[m.id];
       cap.setText(nm[0]); capIn.setText((pc ? MOVE_INPUT[m.id].pc : MOVE_INPUT[m.id].touch)); capD.setText(nm[1]);
-      btns.forEach(b => b.g.clear().fillStyle(b.m === m ? 0x5a3a14 : 0x1a1008, 1).fillRoundedRect(60, b.y - 24, 440, 48, 10).lineStyle(2, b.m === m ? 0xffd34d : 0x5a4030).strokeRoundedRect(60, b.y - 24, 440, 48, 10));
+      btns.forEach(b => b.g.clear().fillStyle(b.m === m ? 0x5a3a14 : 0x1a1008, 1).fillRoundedRect(60, b.y - 22, 440, 44, 10).lineStyle(2, b.m === m ? 0xffd34d : 0x5a4030).strokeRoundedRect(60, b.y - 22, 440, 44, 10));
       startStep();
     };
     const startStep = () => {
       const m = S.cur; if (!actor || !m) return;
       if (m.clip) { actor.replay(m.clip, 40); S.dur = m.id === 'guard' ? 900 : 520; return; }
+      if (m.pre && S.i === 0 && !S.preDone) { S.preDone = true; actor.replay(m.pre, 30); S.dur = 300; S.i = -1; return; }   // 🆕 구르기 먼저 보여 주고
+      if (S.i === 0) S.preDone = false;
       const a = cls.atk[m.seq[S.i]]; if (!a) { S.dur = 300; return; }
       actor.replay(a.clip, 40); S.dur = a.dur || 400;
     };
     list.forEach((m, i) => {
-      const y = 150 + i * 56, g = scene.add.graphics(), nm = m.name || info[m.id];
+      const y = 146 + i * 50, g = scene.add.graphics(), nm = m.name || info[m.id];   // ✏️ 8줄 (회피 반격 추가)
       const t1 = UI.text(scene, 80, y, nm[0], 21, '#fff4d8', { bold: true }).setOrigin(0, 0.5);
       const t2 = UI.text(scene, 488, y, '', 15, '#9ae0ff').setOrigin(1, 0.5);
-      const z = scene.add.zone(60, y - 24, 440, 48).setOrigin(0).setInteractive({ useHandCursor: true }).on('pointerup', () => { SFX.go && SFX.go(); pick(m); });
+      const z = scene.add.zone(60, y - 22, 440, 44).setOrigin(0).setInteractive({ useHandCursor: true }).on('pointerup', () => { SFX.go && SFX.go(); pick(m); });
       c.add([g, t1, t2, z]); btns.push({ g, y, m, t2 });
     });
     const relabel = () => btns.forEach(b => b.t2.setText(pc ? MOVE_INPUT[b.m.id].pc : MOVE_INPUT[b.m.id].touch.replace(' (0.6초 넘게 달리기)', '')));

@@ -54,7 +54,7 @@ const BossUlt = {
     if (sc.textures.exists(bk)) { const im = sc.add.image(W - 190, 250, bk).setOrigin(0.5, 1); im.setScale(Math.min(250 / im.height, 380 / im.width)); band.add(im); }
     sc.tweens.add({ targets: band, x: 0, duration: 220, ease: 'Cubic.out' });
     sc.tweens.add({ targets: band, alpha: 0, duration: 250, delay: 1150, onComplete: () => band.destroy() });
-    m.ult = { warn, sx, sy, RX, RY, g, top, dim, safeT };
+    m.ult = { warn, sx, sy, RX, RY, g, top, dim, safeT, band };
     sc.onceHint && sc.onceHint('ult', '보스 필살기! 초록색 「안전」 자리로 피하세요.\n폭발 순간에 구르면 무적으로도 피할 수 있어요.', 3200);
     m.rig.setTintAll(0xff6050);
     sc.statUlt = (sc.statUlt || 0) + 1;
@@ -97,7 +97,7 @@ const BossUlt = {
   },
   cleanup(m) {
     const u = m.ult; if (!u) return;
-    for (const o of [u.g, u.top, u.dim, u.safeT]) if (o && o.scene) o.destroy();
+    for (const o of [u.g, u.top, u.dim, u.safeT, u.band]) if (o && o.scene) o.destroy();   // ✏️ 2026-11-24 띠도 (필살기 직후 보스가 쓰러지면 결과 화면까지 남았다)
     m.ult = null;
   },
 };

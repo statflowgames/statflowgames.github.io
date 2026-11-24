@@ -80,13 +80,16 @@ const LV_CAP = 60;
 // 🆕 체력 이어가기: 다음 스테이지는 이 비율 아래로 시작하지 않는다 (막혀서 못 깨는 일을 막는다)
 const HP_CARRY_MIN = 0.3;   // ✏️ 2부: 30 → 60
 
+// ✏️ 2026-11-24 전체 해금 기록에는 직업 말고도 diff2·diff3·엔딩 기록이 섞여 있다 → 직업 목록에는 진짜 직업만 넣는다
+//   (섞여 들어가면 전리품의 '다른 직업 장비'가 diff2 같은 직업을 골라 오류가 났다 — 엔딩을 본 뒤 새로 시작한 저장)
+function heroUnlocks(u) { const o = {}; for (const k of Object.keys(u || {})) if (u[k] && DB.heroes[k]) o[k] = true; return o; }
 function newSave(hero = 'warrior') {
   const s = {
     v: 1, hero, lv: 1, exp: 0, gold: 0, mats: { low: 0, mid: 0, high: 0, abyss: 0 },
     bag: [], eq: {}, nextId: 1, belt: { potion: 2, dagger: 3, oil: 0, scroll: 0, feather: 0 },
     sp: 0, spV: 2, skills: {}, active: [null, null],
     ch: 1, at: 'camp', cleared: {}, route: {}, grades: {}, moons: {}, flags: {}, lise: 0,
-    endings: {}, unlocked: { warrior: true, mage: true, paladin: true, rogue: true, ...globalUnlocks() }, seen: {}, play: 0, runs: 1, eqBy: {}, skillsBy: {},
+    endings: {}, unlocked: { warrior: true, mage: true, paladin: true, rogue: true, ...heroUnlocks(globalUnlocks()) }, seen: {}, play: 0, runs: 1, eqBy: {}, skillsBy: {},
   };
   // 시작 장비: 견습 무기·보조·머리·몸 (일반)
   for (const slot of ['weapon', 'offhand', 'head', 'body']) {
@@ -117,6 +120,8 @@ const Save = {
     }
     // 🆕 2026-11-23 세릴 합류 깃발 (대사 조건 기준)
     if (d && d.moons && d.moons.yellow && d.flags && !d.flags.seril_joined) d.flags.seril_joined = true;
+    // ✏️ 2026-11-24 직업 목록에 섞여 들어간 diff2·엔딩 기록 따위를 걸러 낸다 (heroUnlocks 참고)
+    if (d && d.unlocked) d.unlocked = heroUnlocks(d.unlocked);
     return this.data;
   },
   write() { try { const t = JSON.stringify(this.data); localStorage.setItem(SAVE_KEY, t); NativeStore.mirror(SAVE_KEY, t); } catch (e) { /* 저장 실패는 조용히 */ } },
@@ -252,7 +257,8 @@ function rollDrop(s, ch, bonus = 0, boss = false, min = 0, special = false, o = 
   const slots = ['weapon', 'offhand', 'head', 'body', 'acc'];
   const slot = o.slot || slots[Math.floor(Math.random() * slots.length)];
   // 지금 직업 장비 70%, 나머지는 다른 직업(나중에 그 직업으로 할 때 쓴다)
-  const owned = Object.keys(s.unlocked).filter(k => s.unlocked[k]);
+  const owned = Object.keys(s.unlocked).filter(k => s.unlocked[k] && DB.gear[k]);   // ✏️ 2026-11-24 장비표에 있는 직업만
+  if (!owned.length) owned.push(s.hero);
   const cls = o.cls || (Math.random() < 0.7 ? s.hero : owned[Math.floor(Math.random() * owned.length)]);
   let rar = Math.max(min, rollRarity(ch, bonus, boss, special));
   if (rar < 4 && typeof GearFx !== 'undefined' && GearFx.codes(s).has('luck') && Math.random() < (boss ? 0.015 : 0.002)) rar = 4;   // 🆕 은방울 행운 목걸이 (✏️ 드롭표에 맞춰 낮춤)
