@@ -70,7 +70,7 @@ const UI = {
     c.add(g);
     if (it) {
       const key = UI.itemIcon(it);
-      const put = () => { const im = sc.add.image(0, 0, key); im.setScale((size - 12) / Math.max(im.width, im.height)); const tn = UI.iconTint && UI.iconTint(it, key); if (tn) im.setTint(tn); c.addAt(im, 1); };   // ✏️ 2026-11-25 달 무기 임시 아이콘 색
+      const put = () => { const tn = UI.iconTint && UI.iconTint(it, key); const im = sc.add.image(0, 0, tn && typeof MoonW !== 'undefined' ? MoonW.lum(sc, key) : key); im.setScale((size - 12) / Math.max(im.width, im.height)); if (tn) im.setTint(tn); c.addAt(im, 1); };   // ✏️ 2026-11-25 달 무기 임시 아이콘 색
       if (sc.textures.exists(key)) put();
       else {
         const ph = UI.text(sc, 0, 0, it.name.slice(0, 2), 22, RARITY[it.rar].col, { bold: true }).setOrigin(0.5); c.add(ph);

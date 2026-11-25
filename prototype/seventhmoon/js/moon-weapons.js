@@ -16,12 +16,12 @@ const MoonW = {
   CH: { 7: 'silver', 8: 'blue', 9: 'red', 10: 'green', 11: 'yellow', 12: 'white' },
   ORDER: ['red', 'yellow', 'white', 'blue', 'silver', 'green'],
   INFO: {
-    red: { ko: '적월', col: 0xff6a4a, css: '#ff8a6a', stat: { atkPct: 10 }, fx: '공격력 +10% · 공격 5번마다 적월의 불꽃이 터져 주변을 태운다' },
-    yellow: { ko: '황월', col: 0xffd84a, css: '#ffe27a', stat: { aspd: 10 }, fx: '공격 속도 +10% · 공격 5번마다 황월의 번개가 적 셋을 잇는다' },
-    white: { ko: '백월', col: 0xfff6e0, css: '#fff6e0', stat: { healPct: 20 }, fx: '받는 회복 +20% · 공격 5번마다 백월의 빛이 터지고 체력을 3% 회복' },
-    blue: { ko: '청월', col: 0x6ab8ff, css: '#8ac8ff', stat: { dmgRed: 8 }, fx: '받는 피해 -8% · 공격 5번마다 청월의 냉기가 터져 적을 얼린다' },
-    silver: { ko: '은월', col: 0xd8e0ff, css: '#dfe6ff', stat: { crit: 10, critDmg: 20 }, fx: '치명타 +10% · 치명타 피해 +20% · 공격 5번마다 은빛 초승달 검기를 날린다' },
-    green: { ko: '녹월', col: 0x7ae07a, css: '#9ae07a', stat: { hpPct: 12 }, fx: '최대 체력 +12% · 공격 5번마다 녹월의 독이 퍼지고 체력을 1.5% 회복' },
+    red: { ko: '적월', col: 0xff6a4a, css: '#ff8a6a', stat: { atkPct: 10 }, fx: '공격력 +10% · 공격 5번마다 불꽃 폭발' },
+    yellow: { ko: '황월', col: 0xffd84a, css: '#ffe27a', stat: { aspd: 10 }, fx: '공격 속도 +10% · 공격 5번마다 번개 (적 셋)' },
+    white: { ko: '백월', col: 0xfff6e0, css: '#fff6e0', stat: { healPct: 20 }, fx: '받는 회복 +20% · 공격 5번마다 빛, 체력 3% 회복' },
+    blue: { ko: '청월', col: 0x6ab8ff, css: '#8ac8ff', stat: { dmgRed: 8 }, fx: '받는 피해 -8% · 공격 5번마다 냉기 폭발' },
+    silver: { ko: '은월', col: 0xd8e0ff, css: '#dfe6ff', stat: { crit: 10, critDmg: 20 }, fx: '치명타 +10% · 치명타 피해 +20% · 공격 5번마다 검기' },
+    green: { ko: '녹월', col: 0x7ae07a, css: '#9ae07a', stat: { hpPct: 12 }, fx: '최대 체력 +12% · 공격 5번마다 독, 체력 1.5% 회복' },
   },
   NOUN: { warrior: '검', paladin: '망치', mage: '지팡이', rogue: '단검', ranger: '활', hexblade: '대검' },
   // 달의 무기: 주인공마다 다른 달의 모양
@@ -59,8 +59,7 @@ const MoonW = {
   make(s, cls, moon) {
     const it = makeItem(s, { cls, slot: 'weapon', tier: 3, rar: 4 });
     const M = this.INFO[moon];
-    it.moon = moon; it.name = `${M.ko}의 ${this.NOUN[cls]}`; it.fx = M.fx; delete it.legendOf;
-    it.desc = `여섯 자루를 모두 +10까지 키우면 「달의 무기」로 벼린다.`;
+    it.moon = moon; delete it.legendOf; this.text(it);
     it.base = Math.round(it.base * 1.1);
     return it;
   },
@@ -71,12 +70,23 @@ const MoonW = {
     for (const it of mats) { for (const k of Object.keys(s.eq)) if (s.eq[k] === it.id) s.eq[k] = null; }
     s.bag = s.bag.filter(x => !mats.includes(x));
     const it = makeItem(s, { cls, slot: 'weapon', tier: 3, rar: 4 });
-    it.rar = 6; it.mythic = true; it.plus = 10; it.name = this.MYTH[cls].name; delete it.legendOf;
-    it.fx = '여섯 달의 힘이 깃든다 — 여섯 달 무기 능력치 60% · 공격 4번마다 여섯 달이 차례로 터진다 · 일곱 번째 달에게 피해 +30%';
-    it.desc = '여섯 달의 빛을 하나로 묶은 무기. 쓰면 쓸수록 깨어난다.';
+    it.rar = 6; it.mythic = true; it.plus = 10; delete it.legendOf; this.text(it);
     it.base = Math.round(BASE_STAT.weapon[3] * 1.7);
     s.mythic = s.mythic || {}; s.mythic[cls] = { stage: 1, boss: 0, id: it.id };
     if (s.hero === cls) s.eq.weapon = it.id;
+    return it;
+  },
+  // ✏️ 2026-11-25 이름·설명 (가방 상세 창 폭에 맞게 짧게). 저장을 불러올 때도 다시 붙여 예전 문구를 바꾼다
+  text(it) {
+    if (it.moon) {
+      const M = this.INFO[it.moon];
+      it.name = `${M.ko}의 ${this.NOUN[it.cls]}`; it.fx = M.fx;
+      it.desc = '여섯 자루를 모두 +10까지 키우면 「달의 무기」로.';
+    } else if (it.mythic) {
+      it.name = this.MYTH[it.cls].name;
+      it.fx = '여섯 달 능력치 60% · 공격 4번마다 여섯 달이 터진다';
+      it.desc = '여섯 달을 하나로 묶은 무기. 쓸수록 깨어난다.';
+    }
     return it;
   },
   stageKo(st) { return ['', '1단계 · 깨어남', '2단계 · 달무리', '3단계 · 만월'][st] || ''; },
@@ -156,7 +166,7 @@ const MoonW = {
   },
   // 보스가 나올 때: 12장 마지막 보스·숨은 최종 보스의 대사
   onBossSpawn(sc, m) {
-    if (!this.FINAL_BOSSES.includes(m.id)) return;
+    if (!this.FINAL_BOSSES.includes(m.id) || sc.def.moonTrial) return;
     // 깨어난 일곱 번째 달: 은빛 후광 (그림이 오기 전까지 오르벡스 그림과 구별되게)
     if (m.id === 'true_moon' && m.rig.c.postFX) m.trueGlow = m.rig.c.postFX.addGlow(this.MYTH_COL, 3, 0, false, 0.1, 14);
     const it = this.wep(sc);
@@ -171,7 +181,7 @@ const MoonW = {
   empower(sc, m) {
     if (!sc.def.moonTrial || !m.def.boss) return;
     const M = this.INFO[sc.def.moonTrial];
-    m.maxHp = Math.round(m.maxHp * 1.3); m.hp = m.maxHp;
+    m.maxHp = Math.round(m.maxHp * 1.3 * (sc.def.trialHp || 1)); m.hp = m.maxHp;
     for (const b of m.rig.bones) b.baseTint = mulTint(b.baseTint, M.col);
     m.rig.setTintAll(null);
     sc.time.delayedCall(900, () => sc.banner(`${M.ko}의 빛을 두른 ${m.def.ko}`, M.css, '달빛으로 강해졌다 — 체력 +30%'));
@@ -186,6 +196,26 @@ const MoonW = {
     s.bag = s.bag.filter(b => b !== it); reward.push(it);
     sc.time.delayedCall(1800, () => UI.itemCard(sc, it, () => {}, '여섯 달 무기를 얻었다!'));
     return `★ ${it.name} 획득!  (여섯 달 무기 ${Object.keys(G).length}/6)`;
+  },
+  // ✏️ 2026-11-25 임시 그림: 전설 그림을 흑백(밝게)으로 바꾼 사본에 달 색을 입힌다 — 원래 색이 강한 무기(불꽃 칼 등)도 달 색이 또렷하게
+  lum(sc, key) {
+    const T = sc.textures, k = key + '__lum';
+    if (T.exists(k)) return k;
+    if (!T.exists(key)) return key;
+    try {
+      const src = T.get(key).getSourceImage(), cv = document.createElement('canvas');
+      cv.width = src.width; cv.height = src.height;
+      const x = cv.getContext('2d'); x.drawImage(src, 0, 0);
+      const im = x.getImageData(0, 0, cv.width, cv.height), d = im.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (!d[i + 3]) continue;
+        const l = (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11) / 255, v = Math.round(36 + 219 * Math.pow(l, 0.7));
+        d[i] = d[i + 1] = d[i + 2] = v;
+      }
+      x.putImageData(im, 0, 0);
+      T.addCanvas(k, cv);
+      return k;
+    } catch (e) { return key; }   // 그림을 읽을 수 없으면 (다른 곳에서 온 그림 등) 원래 그림에 색만
   },
   // ?moonw 시험용
   debugGive(s) {
@@ -291,15 +321,23 @@ const MoonW = {
   },
 };
 
+// 저장을 불러올 때 달 무기 문구를 지금 것으로
+(() => {
+  const ld = Save.load;
+  Save.load = function (...a) { const r = ld.apply(this, a); try { for (const it of (this.data && this.data.bag) || []) if (it.moon || it.mythic) MoonW.text(it); } catch (e) { /* 무시 */ } return r; };
+})();
+
 // ---------------- 등급 「신화」 ----------------
 RARITY[6] = { ko: '신화', col: '#dfe8ff', hex: 0xcfe0ff, aff: 3 };
 
 // ---------------- 스테이지: 달의 시련 7~12 · 숨은 최종 보스 ----------------
-for (const [c, pool, , tB, , , bossB] of P2_STAGES) {
+for (const [c, pool, , tB, , midB, bossB] of P2_STAGES) {
   const moon = MoonW.CH[c], M = MoonW.INFO[moon];
+  // ✏️ 12장은 마지막 보스(오르벡스) 대신 달그림자 아즈말 — 오르벡스는 본편 마지막·숨은 최종 보스에만 (체력은 장 보스만큼 올린다)
+  const tb = c === 12 ? midB : bossB;
   STAGES[`c${c}_moon`] = {
-    name: `달의 시련 · ${M.ko}`, theme: c === 12 ? 'moonside' : tB, boss: true, moonTrial: moon,
-    waves: [[`${pool[3]}*2,${pool[0]}*2`], [`${pool[1]}*2,${pool[2]}*2,${pool[3]}`], [bossB]],
+    name: `달의 시련 · ${M.ko}`, theme: c === 12 ? 'moonside' : tB, boss: true, moonTrial: moon, trialHp: c === 12 ? 1.35 : 1,
+    waves: [[`${pool[3]}*2,${pool[0]}*2`], [`${pool[1]}*2,${pool[2]}*2,${pool[3]}`], [tb]],
     rule: { eliteAdd: 0.45, hpMul: 1.25, dmgMul: 1.2, noHeart: true, ko: '달의 시련 — 정예 크게 증가 · 적 체력 +25% · 피해 +20% · 회복 하트 없음' },
   };
 }

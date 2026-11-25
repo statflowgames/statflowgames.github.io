@@ -610,20 +610,26 @@ class Bag extends MenuBase {
     }
     // 🆕 등급 색 안내 (낮음 → 높음, 세트는 따로)
     UI.text(this, 420, 612, '등급 색 · 왼쪽일수록 낮고 오른쪽일수록 좋아요', 15, '#a89880');
-    RARITY.forEach((r, i) => {
-      const x = 432 + i * 92 + (i === 5 ? 18 : 0), y = 652;
-      if (i === 5) this.add.rectangle(x - 26, y, 2, 26, 0x7a5a30);
+    // ✏️ 2026-11-25 신화(6)는 전설 다음 줄 끝에, 세트는 따로 (가방 오른쪽 안내창과 겹치지 않게 간격 80)
+    const order = RARITY.map((_, i) => i).filter(i => i !== 5).concat(RARITY[5] ? [5] : []), chainN = order.length - 1;
+    order.forEach((i, j) => {
+      const r = RARITY[i], x = 432 + j * 80 + (i === 5 ? 16 : 0), y = 652;
+      if (i === 5) this.add.rectangle(x - 24, y, 2, 26, 0x7a5a30);
       this.add.circle(x, y, 8, r.hex).setStrokeStyle(2, 0x1a110c);
       UI.text(this, x + 14, y, r.ko, 17, r.col, { bold: true }).setOrigin(0, 0.5);
-      if (i < 4) UI.text(this, x + 64, y, '›', 18, '#6a5a48').setOrigin(0.5);
+      if (j < chainN - 1) UI.text(this, x + 60, y, '›', 18, '#6a5a48').setOrigin(0.5);
     });
     // 고른 아이템
     UI.panel(this, 1000, 110, 230, 560, { alpha: 0.6, line: 0x7a5a30 });
     if (this.sel && s.bag.includes(this.sel)) {
       const it = this.sel;
-      const { y } = this.itemDetail(it, 1014, 124, 204);
+      let { y, objs } = this.itemDetail(it, 1014, 124, 204);
       const eqSlot = Object.keys(s.eq).find(k => s.eq[k] === it.id);
       const canEq = it.cls === 'acc' || it.cls === s.hero;
+      // ✏️ 2026-11-25 설명이 길어 아래 비교 줄·버튼에 닿으면 상세 글을 통째로 줄인다 (옵션이 두 줄씩 되는 전설·신화 무기 등)
+      const curIt0 = !eqSlot && canEq && s.eq[this.targetSlot(it)] && itemById(s, s.eq[this.targetSlot(it)]);
+      const lim = curIt0 ? 462 : eqSlot ? 506 : 482;
+      if (y > lim) { const k = (lim - 124) / (y - 124); for (const o of objs) { o.setScale(k); o.y = 124 + (o.y - 124) * k; } y = lim; }
       UI.button(this, 1115, 540, it.lock ? '잠금 해제' : '잠그기', () => { it.lock = !it.lock; Save.write(); UI.toast(this, it.lock ? '잠갔어요 · 분해·조합 재료로 쓰이지 않아요' : '잠금을 풀었어요'); this.draw(); }, { w: 190, h: 44, size: 18, col: 0x3a2a1a });   // 🆕
       if (eqSlot) UI.button(this, 1115, 600, '해제', () => { delete s.eq[eqSlot]; Save.write(); this.draw(); }, { w: 190, h: 54, size: 22, col: 0x3a2a1a });
       else if (canEq) {

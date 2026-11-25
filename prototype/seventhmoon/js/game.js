@@ -131,7 +131,8 @@ class Game extends Phaser.Scene {
     if (!this.def.floorMul && (this.rule.hpMul || this.rule.dmgMul)) this.monScale = { hp: this.monScale.hp * (this.rule.hpMul || 1), dmg: this.monScale.dmg * (this.rule.dmgMul || 1) };
     this.speedMul = this.rule.speedMul || 1;
     this.abilityClock = 0; this.abilityCues = [];
-    this.now = 0; this.smokeUntil = 0; this.hiddenOpen = false; this.hiddenProp = null; this.entering = false; this.hitstop = 0; this.won = false; this.lost = false; this.paused = false; this.looting = false; this.lootDone = false;
+    this.now = 0; this.mw = null; this.smokeUntil = 0;   // ✏️ 2026-11-25 mw: 달 무기 횟수·대기시간은 판마다 새로 (now가 0부터라 남아 있으면 한동안 안 터졌다)
+    this.hiddenOpen = false; this.hiddenProp = null; this.entering = false; this.hitstop = 0; this.won = false; this.lost = false; this.paused = false; this.looting = false; this.lootDone = false;
     this.god = Q.has('god');
     this.gold = 0; this.expGain = 0; this.loot = []; this.dmgTaken = 0;
     this.comboN = 0; this.comboT = 0; this.maxCombo = 0;

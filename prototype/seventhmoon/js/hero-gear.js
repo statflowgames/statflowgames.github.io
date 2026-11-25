@@ -25,7 +25,8 @@ const HeroGear = {
       // 🆕 2026-11-25 여섯 달 무기·달의 무기: 전용 그림이 없으면 전설 그림에 달 색을 입힌다
       const mk = it && it.moon ? `${hero.key}/${pre}_moon_${it.moon}` : it && it.mythic ? `${hero.key}/${pre}_mythic` : null;
       const special = mk && sc.textures.exists(mk);
-      const key = special ? mk : sk && sc.textures.exists(sk) ? sk : mk ? `${hero.key}/${pre}_4` : `${hero.key}/${pre}_${this.idx(it)}`;
+      let key = special ? mk : sk && sc.textures.exists(sk) ? sk : mk ? `${hero.key}/${pre}_4` : `${hero.key}/${pre}_${this.idx(it)}`;
+      if (mk && !special && typeof MoonW !== 'undefined') key = MoonW.lum(sc, key);   // ✏️ 흑백 사본 (달 색이 또렷하게)
       if (!sc.textures.exists(key) || b.spr.texture.key === key) continue;
       b.img = key; b.cur = undefined; b.spr.setTexture(key);   // 같은 배율 그대로 → 그림마다 원래 크기 비율 유지
       if (mk && !special && typeof MoonW !== 'undefined') { b.baseTint = it.moon ? MoonW.INFO[it.moon].col : MoonW.MYTH_COL; b.spr.setTint(b.baseTint); }
