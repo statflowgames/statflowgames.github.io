@@ -22,9 +22,13 @@ const HeroGear = {
       const it = s.eq[slot] && itemById(s, s.eq[slot]);
       // 이야기 고유 장비는 전용 그림 (<직업>/<부품>_story_<키>), 없으면 단계 그림
       const sk = it && it.story && `${hero.key}/${pre}_story_${it.story}`;
-      const key = sk && sc.textures.exists(sk) ? sk : `${hero.key}/${pre}_${this.idx(it)}`;
+      // 🆕 2026-11-25 여섯 달 무기·달의 무기: 전용 그림이 없으면 전설 그림에 달 색을 입힌다
+      const mk = it && it.moon ? `${hero.key}/${pre}_moon_${it.moon}` : it && it.mythic ? `${hero.key}/${pre}_mythic` : null;
+      const special = mk && sc.textures.exists(mk);
+      const key = special ? mk : sk && sc.textures.exists(sk) ? sk : mk ? `${hero.key}/${pre}_4` : `${hero.key}/${pre}_${this.idx(it)}`;
       if (!sc.textures.exists(key) || b.spr.texture.key === key) continue;
       b.img = key; b.cur = undefined; b.spr.setTexture(key);   // 같은 배율 그대로 → 그림마다 원래 크기 비율 유지
+      if (mk && !special && typeof MoonW !== 'undefined') { b.baseTint = it.moon ? MoonW.INFO[it.moon].col : MoonW.MYTH_COL; b.spr.setTint(b.baseTint); }
     }
     // 🆕 2026-11-25 몸 갑옷: 몸 부품 시트를 장착한 갑옷 시트로 통째로 바꾼다. 주소에 ?noarmor 를 붙이면 끈다.
     if (typeof Q === 'undefined' || !Q.has('noarmor')) this.armor(hero, s);
@@ -59,13 +63,16 @@ const HeroGear = {
   //   일반(0)은 빛 없음. 고급 초록 · 희귀 파랑 · 영웅 보라 · 전설 주황 · 세트 청록 (가방 테두리 색과 같다)
   //   무기: 칼(활·지팡이)이 늘 은은하게 숨 쉬듯 빛나고, 휘두를 때 궤적도 같은 색.
   //   방패·보조: 평소엔 꺼져 있다가 가드하면 약하게 켜지고, 막는 순간·패링 순간 반짝.
-  GLOW: [0, 2.4, 3.2, 4.0, 4.8, 4.4],   // 등급별 무기 빛 세기
+  GLOW: [0, 2.4, 3.2, 4.0, 4.8, 4.4, 5.6],   // 등급별 무기 빛 세기 (6 = 신화)
   rarOf(s, slot) { const it = s.eq[slot] && itemById(s, s.eq[slot]); return it ? (it.rar || 0) : 0; },
   colOf(rar) { return RARITY[rar] ? RARITY[rar].hex : 0xffffff; },
+  // 🆕 무기 빛 색: 달 무기는 그 달 색
+  wpnCol(s) { const it = s.eq.weapon && itemById(s, s.eq.weapon); return it && it.moon && typeof MoonW !== 'undefined' ? MoonW.INFO[it.moon].col : this.colOf(this.rarOf(s, 'weapon')); },
   // 휘두를 때 궤적 색 (일반이면 직업 기본색)
   trailTint(h, bone) {
     const G = h.gearGlow; if (!G) return null;
     const r = bone === 'fitem' && G.offBone === 'fitem' ? G.offRar : G.wpnRar;
+    if (r > 0 && G.wpnCol && !(bone === 'fitem' && G.offBone === 'fitem')) return G.wpnCol;
     return r > 0 ? this.colOf(r) : null;
   },
   glow(hero, s) {
@@ -73,13 +80,13 @@ const HeroGear = {
     if (!sc.renderer || sc.renderer.type !== Phaser.WEBGL) return;
     const M = this.MAP[hero.key] || [];
     const wb = M.find(m => m[1] === 'weapon'), ob = M.find(m => m[1] === 'offhand');
-    const G = hero.gearGlow = { wpnRar: this.rarOf(s, 'weapon'), offRar: this.rarOf(s, 'offhand'), offBone: ob && ob[0], k: { w: 0, o: 0 }, kick: 0 };
-    const add = (bone, rar) => {
+    const G = hero.gearGlow = { wpnRar: this.rarOf(s, 'weapon'), wpnCol: this.wpnCol(s), offRar: this.rarOf(s, 'offhand'), offBone: ob && ob[0], k: { w: 0, o: 0 }, kick: 0 };
+    const add = (bone, rar, col) => {
       const b = rig.map[bone]; if (!b || !b.spr.preFX || rar <= 0) return null;
       b.spr.preFX.setPadding(14);
-      return b.spr.preFX.addGlow(this.colOf(rar), 0, 0, false, 0.1, 16);
+      return b.spr.preFX.addGlow(col ?? this.colOf(rar), 0, 0, false, 0.1, 16);
     };
-    G.wfx = wb && add(wb[0], G.wpnRar);
+    G.wfx = wb && add(wb[0], G.wpnRar, G.wpnCol);
     G.ofx = ob && add(ob[0], G.offRar);
     if (!G.wfx && !G.ofx) return;
     const base = this.GLOW[G.wpnRar] || 0;

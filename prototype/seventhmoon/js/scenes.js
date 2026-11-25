@@ -210,7 +210,7 @@ class MapScene extends Phaser.Scene {
       const r = big ? 34 : 24;
       const col = done ? 0xe0b45a : isOpen ? 0xfff2c0 : 0x6a5a48;
       const keyA = keyRoute(ch) === 'A';
-      const nodeImg = 'uiset/' + (closed ? 'node_locked' : { stage: 'node_battle', midboss: keyA ? 'node_moonstone' : 'node_elite', event: 'node_event', treasure: keyRoute(ch) === 'B' ? 'node_moonstone' : 'node_treasure', boss: 'node_boss', side: 'node_event' }[n.type]);
+      const nodeImg = 'uiset/' + (closed ? 'node_locked' : { stage: 'node_battle', midboss: keyA ? 'node_moonstone' : 'node_elite', event: 'node_event', treasure: keyRoute(ch) === 'B' ? 'node_moonstone' : 'node_treasure', boss: 'node_boss', side: 'node_event', trial: 'node_moonstone', final: 'node_boss' }[n.type]);   // ✏️ 2026-11-25 달의 시련·달 너머
       let circ;
       if (this.textures.exists(nodeImg)) {
         circ = this.add.image(x, y, nodeImg); circ.setScale(r * 2.3 / circ.height);
@@ -243,6 +243,7 @@ class MapScene extends Phaser.Scene {
     // 🆕 숨은 보물을 찾은 스테이지에 별
     for (const [id, n] of Object.entries(nodes)) if (n.stage && s.secrets && s.secrets[n.stage]) { const [x, y] = this.pos(id); L.add(UI.text(this, x - 22, y - 30, '★', 18, '#ffe27a', { st: 4 }).setOrigin(0.5)); }
     if (typeof HiddenRoute !== 'undefined') HiddenRoute.mapMark(this, L, nodes, ch);   // 🆕 2026-11-24 숨은 길 ◇·◆
+    if (typeof MoonW !== 'undefined') MoonW.mapMark(this, L, nodes, ch);   // 🆕 2026-11-25 달의 시련·달 너머
     this.nodeLayer = L;
     // 처음 열린 노드를 고른다
     const first = open.find(id => !nodeCleared(s, ch, id));
@@ -256,14 +257,14 @@ class MapScene extends Phaser.Scene {
     c.add(UI.panel(this, W / 2 - 400, H - 150, 800, 140, { alpha: 0.94 }));
     const st = n.stage && STAGES[n.stage];
     const keyKo = CHAPTERS[ch - 1].part === 2 ? '흑월 씨앗' : '월석', keyA = keyRoute(ch) === 'A';
-    const typeKo = { stage: '전투', midboss: keyA ? '중간 보스 · ' + keyKo : '중간 보스', event: '이벤트', treasure: keyA ? '보물 · 장비 상자' : keyRoute(ch) === 'none' ? '보물 · 길드 금고' : '보물 · ' + keyKo, boss: '챕터 보스', side: '곁가지 의뢰 (선택)' }[n.type];
+    const typeKo = { trial: '달의 시련', final: '숨은 최종 보스', stage: '전투', midboss: keyA ? '중간 보스 · ' + keyKo : '중간 보스', event: '이벤트', treasure: keyA ? '보물 · 장비 상자' : keyRoute(ch) === 'none' ? '보물 · 길드 금고' : '보물 · ' + keyKo, boss: '챕터 보스', side: '곁가지 의뢰 (선택)' }[n.type];
     const title = st ? st.name : n.type === 'event' ? (CHAPTERS[ch - 1].routeB + ' 이벤트') : '';
     c.add(UI.text(this, W / 2 - 370, H - 138, `[${typeKo}]  ${title}`, 26, '#ffe7a8', { bold: true }));
     let desc = '';
     if (st) {
       const kinds = [...new Set(st.waves.flat().join(',').split(',').map(x => x.split('*')[0]))];
       desc = '등장: ' + kinds.map(k => MONDEF[k]?.ko || k).join(', ');
-      desc += `\n권장 Lv.${CHAPTERS[ch - 1].lv + (id.startsWith('s') ? 0 : id === 'boss' ? 4 : 2)}`;
+      desc += `\n권장 Lv.${CHAPTERS[ch - 1].lv + (id.startsWith('s') ? 0 : id === 'boss' ? 4 : id === 'moon' ? 6 : id === 'beyond' ? 10 : 2)}`;   // ✏️ 2026-11-25 달의 시련·달 너머
       if (s.grades[n.stage]) desc += `   최고 등급 ${s.grades[n.stage]}`;
     } else desc = '이야기와 선택이 기다린다.';
     // 🆕 갈림길은 얻는 것과 감수할 것을 먼저 보여 준다
@@ -272,10 +273,12 @@ class MapScene extends Phaser.Scene {
     else if (RT && st) desc += `\n길의 규칙 · ${RT.rule.ko}`;
     if (st && !STAGES[n.stage].boss && !(n.route && !s.route['c' + ch] && ch === s.ch)) desc += (s.secrets && s.secrets[n.stage]) ? '   ★ 숨은 보물 찾음' : '   숨은 보물 ?';
     if (st && typeof HiddenRoute !== 'undefined') desc += HiddenRoute.mapDesc(ch, n.stage);   // 🆕 숨은 길
+    if (typeof MoonW !== 'undefined') desc += MoonW.mapDesc(ch, id);   // 🆕 2026-11-25 달의 시련·달 너머
     if (n.route && !s.route['c' + ch] && ch === s.ch) desc += '\n※ 고르면 이번 회차엔 다른 길이 막혀요';
     c.add(UI.text(this, W / 2 - 370, H - 98, desc, 19, '#e8dcc8', { wrap: 560, ls: 4 }));
     const replay = ch < s.ch;
-    const can = replay ? true : openNodes(s, ch).includes(id) && !nodeCleared(s, ch, id);
+    const again = n.type === 'trial' || n.type === 'final';   // 🆕 달의 시련·달 너머는 다른 주인공으로 다시 할 수 있다
+    const can = replay ? true : openNodes(s, ch).includes(id) && (!nodeCleared(s, ch, id) || again);
     if (can || (replay && n.type !== 'event')) c.add(UI.button(this, W / 2 + 300, H - 80, replay || nodeCleared(s, ch, id) ? '다시 하기' : '출발', () => this.startNode(id), { w: 170, h: 64, size: 28 }));
     this.info = c;
     if (!quiet) SFX.go();
@@ -291,6 +294,7 @@ class MapScene extends Phaser.Scene {
     const go = () => { SFX.music(null, { fade: 0.4 }); this.scene.start('game', { stage: node.stage, ch, node: id }); };
     if (node.type === 'boss') runTalk(this, `c${ch}_preboss`, go, { once: true });
     else if (node.type === 'side') runTalk(this, `c${ch}_side`, go, { once: true });   // 🆕 곁가지 의뢰
+    else if (node.type === 'final') runTalk(this, 'pre_moonx', go);   // 🆕 2026-11-25 달 너머
     else go();
   }
   chapterIntro() {
@@ -305,6 +309,7 @@ class MapScene extends Phaser.Scene {
     const node = chapterNodes(ch)[a.node];
     const chain = [];
     if (a.node === 'void') { s.flags.void_done = true; Save.write(); return this.ending('end_true'); }
+    if (a.node === 'beyond' && typeof MoonW !== 'undefined') return MoonW.afterBeyond(this);   // 🆕 2026-11-25 숨은 최종 보스
     // ✏️ 핵심 아이템은 장마다 A(중간 보스) 또는 B(보물)에 있다
     if (node && node.type === 'treasure') chain.push(keyRoute(ch) === 'A' ? `c${ch}_cache` : `c${ch}_moon`);   // 'none'(2장)은 보물 장면(c2_moon = 길드 장부)
     if (node && node.type === 'midboss' && keyRoute(ch) === 'A') chain.push(`c${ch}_moon`);
@@ -657,6 +662,8 @@ class Smithy extends MenuBase {
     UI.button(this, 430, 66, '장비 손질', () => { this.tab = 'gear'; this.draw(); }, { w: 150, h: 46, size: 19, col: tab === 'gear' ? 0x8a3a1a : 0x3a2a1a });
     UI.button(this, 595, 66, '보스 전리품', () => { this.tab = 'trophy'; this.sel = null; this.draw(); }, { w: 160, h: 46, size: 19, col: tab === 'trophy' ? 0x8a3a1a : 0x3a2a1a });
     UI.button(this, 745, 66, '조합', () => { this.tab = 'fuse'; this.sel = null; this.draw(); }, { w: 120, h: 46, size: 19, col: tab === 'fuse' ? 0x8a3a1a : 0x3a2a1a });
+    UI.button(this, 880, 66, '달의 무기', () => { this.tab = 'moon'; this.sel = null; this.draw(); }, { w: 140, h: 46, size: 19, col: tab === 'moon' ? 0x4a4a8a : 0x2a2a4a });   // 🆕 2026-11-25
+    if (tab === 'moon' && typeof MoonW !== 'undefined') return MoonW.drawForge(this);
     if (tab === 'trophy') return this.drawTrophy();
     if (tab === 'fuse') return this.drawFuse();
     const mats = Object.entries(MATS).map(([k, n]) => `${n} ${s.mats[k] || 0}`).join('   ');

@@ -113,6 +113,7 @@ class Game extends Phaser.Scene {
     const s = Save.data || Save.load() || Save.fresh('warrior');
     this.save = s;
     if (typeof aliasStandins === 'function') aliasStandins();   // 🆕 2부 대역 몬스터 패턴
+    if (Q.has('moonw') && typeof MoonW !== 'undefined' && !MoonW.owned(s, s.hero).length && !MoonW.myth(s, s.hero)) MoonW.debugGive(s);   // 시험용
     this.stats = heroStats(s);
     this.def = this.cfg.def || STAGES[this.cfg.stage] || STAGES.c1_s1;
     this.tower = this.def.tower || 0;
@@ -321,7 +322,7 @@ class Game extends Phaser.Scene {
   }
   spawnGroup() {
     const g = this.lock.groups[this.groupIdx++];
-    g.forEach(([k, s], i) => this.time.delayedCall(i * 350, () => { const m = this.spawn(k, s); if (m.def.boss) { this.boss = m; m.cool = 3200; } }));
+    g.forEach(([k, s], i) => this.time.delayedCall(i * 350, () => { const m = this.spawn(k, s); if (m.def.boss) { this.boss = m; m.cool = 3200; if (typeof MoonW !== 'undefined') { MoonW.empower(this, m); MoonW.onBossSpawn(this, m); } } }));   // 🆕 2026-11-25 달의 시련·일곱 번째 달
   }
   checkWave() {
     if (this.won || this.lost) return;
@@ -2342,6 +2343,7 @@ class Game extends Phaser.Scene {
     for (let i = 0; i < chests; i++) { const it = rollDrop(s, this.ch, g === 'S' ? 1 : 0); s.bag = s.bag.filter(b => b !== it); reward.push(it); }
     s.gold += clearGold;
     const hiddenMsg = typeof HiddenRoute !== 'undefined' ? HiddenRoute.addReward(this, s, reward) : null;   // 🆕 2026-11-24 숨은 방 보상
+    const moonMsg = typeof MoonW !== 'undefined' ? MoonW.trialReward(this, s, reward) : null;   // 🆕 2026-11-25 달의 시련 첫 클리어 → 여섯 달 무기
     const all = [...this.loot, ...reward];
     all.forEach(it => s.bag.push(it));
     s.gold += this.gold;
@@ -2368,6 +2370,7 @@ class Game extends Phaser.Scene {
     ].join('\n'), 26, '#fff', { ls: 12 }));
     c.add(UI.text(this, 120, 352, `클리어 보상 (등급 ${g}) · 금화 +${clearGold}${chests ? ' · 장비 1개' : ''}  ·  주운 장비 ${this.loot.length}개`, 22, '#ffe7a8'));
     if (hiddenMsg) c.add(UI.text(this, 120, 382, hiddenMsg, 22, '#d8b8ff', { bold: true }));
+    if (moonMsg) c.add(UI.text(this, 660, 300, moonMsg, 24, '#dfe8ff', { bold: true, st: 6 }));
     all.slice(0, 10).forEach((it, i) => {
       const slot = UI.itemSlot(this, 160 + i * 96, 420, it, 84);
       slot.setScrollFactor(0).setAlpha(0).setScale(0.6);
