@@ -1,6 +1,8 @@
 // 일곱 번째 달 — 스테이지 전투 (데이터: js/data/campaign.js 의 STAGES)
 const W = 1280, H = 720;
 const Q = new URLSearchParams(location.search);
+// 🆕 2026-11-25 배포 버전(스크립트 꼬리표 ?v=) — 그림 목록(manifest)도 같은 꼬리표로 불러 옛 목록이 캐시에 남지 않게
+const BUILD_V = ((document.currentScript && document.currentScript.src.match(/[?&]v=(\d+)/)) || [])[1] || '';
 let STAGE_W = 6600;
 
 // 1280×720 기준. 그림 크기와 누르는 범위를 분리해 엄지는 편하고 중앙 시야는 비운다.
@@ -60,7 +62,7 @@ class Boot extends Phaser.Scene {
   preload() {
     const t = this.add.text(W / 2, H / 2, '불러오는 중… 0%', { fontFamily: 'sans-serif', fontSize: 28, color: '#f4e4c0' }).setOrigin(0.5);
     this.load.on('progress', p => t.setText('불러오는 중… ' + Math.round(p * 100) + '%'));
-    this.load.json('man', 'assets/manifest.json');
+    this.load.json('man', 'assets/manifest.json' + (BUILD_V ? '?v=' + BUILD_V : ''));
     this.load.image('coin', 'assets/ui/coin.png');
     { const lg = gameTitle('ko').logo; this.load.image(lg, 'assets/ui/' + lg + '.png'); }   // 🆕 2026-11-22 제목 로고 (없으면 글자로)   // 🆕 2026-11-22 달 문양 금화 (못 불러오면 아래에서 동그라미로 대신)
     this.load.once('filecomplete-json-man', (k, ty, data) => {
