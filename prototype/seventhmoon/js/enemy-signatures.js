@@ -190,7 +190,7 @@ function enemySignatureGait(p, run) {
   const base=enemySignatureBase(p),g=p.gait, dur=(g?.dur||p.dur)*(run ? .76 : 1);
   const amp=(g?.amp??p.amp??0)*(run?1.22:1);
   return {loop:true,dur, ...(amp?{amp}:{}), at(t){
-    const ph=t/dur*Math.PI*2,s=Math.sin(ph),c=Math.cos(ph),sw=v=>Math.max(0,v);
+    const ph=t/dur*Math.PI*2,s=Math.sin(ph),c=Math.cos(ph),sw=sPos;
     if(p.body==='human') {
       if(g.fly)return add(base,{torso:s*g.sway,head:-s*2,uab:c*g.arms,uaf:-c*g.arms,thf:s*5,shf:-s*8,thb:-s*4,shb:s*6});
       // 장갑병은 각진 디딤, 미라는 한 다리를 끌며 팔은 뻣뻣하게 유지한다.
@@ -198,7 +198,7 @@ function enemySignatureGait(p, run) {
       return add(base,{thf:-wave*amp,thb:back*amp,
         shf:sw(c)*amp*g.lift,shb:sw(-Math.cos(ph+(g.drag||0)))*amp*g.lift,
         uab:s*g.arms,uaf:-s*g.arms,torso:c*g.sway,head:-c*g.sway*.6,
-        rr:Math.sin(ph+(g.stagger||0))*g.sway*.35,bodyTwist:s*(g.sway*.2),sq:-Math.abs(c)*(g.rigid?.012:.018)});
+        rr:Math.sin(ph+(g.stagger||0))*g.sway*.35,bodyTwist:s*(g.sway*.2),sq:-sAbs(c)*(g.rigid?.012:.018)});
     }
     if(p.body==='quad')return add(CLIPS[run?'q_run':'q_walk'].at(t*(run?460:640)/dur),{...p.bias,head:(p.bias.head||0)+c*(p===ENEMY_SIGNATURES.hound?5:2)});
     if(p.body==='scorp')return {...base,...scLegs(ph,amp),t0:(base.t0||0)+s*3,uaf:-8+c*5,st:(base.st||0)+c*4,st1:(base.st1||0)-c*4};

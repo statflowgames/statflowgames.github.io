@@ -31,23 +31,23 @@ function locoClips(key, o) {
   const base = STANCE[key];
   const walkUp = o.walkUp || base, runUp = o.runUp || base;
   CLIPS[key + '_walk'] = { loop: true, dur: o.walkDur, amp: o.walkAmp, at(t) {
-    const ph = t / o.walkDur * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = o.walkAmp, sw = v => Math.max(0, v);
+    const ph = t / o.walkDur * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = o.walkAmp, sw = sPos;   // ✏️ 2026-11-25 매끈한 꺾임
     return add(upper(walkUp), {
       thf: -s * a - 4 + (o.knee || 0) * -0.4, shf: 8 + sw(c) * a * 1.6 + (o.knee || 0), ftf: -sw(c) * 10,
       thb: s * a - 4 + (o.knee || 0) * -0.4, shb: 8 + sw(-c) * a * 1.6 + (o.knee || 0), ftb: -sw(-c) * 10,
       uab: s * a * (o.armSwing ?? 0.3), uaf: -s * a * (o.armSwingF ?? 0.2),
-      torso: (o.lean || 0) - Math.abs(c) * (o.bob || 2), head: Math.abs(c) * 2, cape: 10 + c * 6, rr: o.rr || 2,
-      sq: Math.abs(c) * (o.sq || 0.015),
+      torso: (o.lean || 0) - sAbs(c) * (o.bob || 2), head: sAbs(c) * 2, cape: 10 + c * 6, rr: o.rr || 2,
+      sq: sAbs(c) * (o.sq || 0.015),
     });
   } };
   CLIPS[key + '_run'] = { loop: true, dur: o.runDur, amp: o.runAmp, at(t) {
-    const ph = t / o.runDur * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = o.runAmp, sw = v => Math.max(0, v);
+    const ph = t / o.runDur * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = o.runAmp, sw = sPos;
     return add(upper(runUp), {
       thf: -s * a - 14, shf: 14 + sw(c) * a * 2.0, ftf: -sw(c) * 18,
       thb: s * a - 14, shb: 14 + sw(-c) * a * 2.0, ftb: -sw(-c) * 18,
       uab: s * a * (o.runSwing ?? 0.3), uaf: -s * a * (o.runSwingF ?? 0.2),
-      torso: (o.runLean || 12) + Math.abs(c) * 3, head: o.runHead || -8, cape: 34 + c * 10, rr: o.runRr || 5,
-      sq: Math.abs(s) * (o.runSq || 0.03),
+      torso: (o.runLean || 12) + sAbs(c) * 3, head: o.runHead || -8, cape: 34 + c * 10, rr: o.runRr || 5,
+      sq: sAbs(s) * (o.runSq || 0.03),
     });
   } };
 }

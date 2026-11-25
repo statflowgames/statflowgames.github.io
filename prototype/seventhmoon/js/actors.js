@@ -51,6 +51,7 @@ class Actor {
     const gaitPhase = (this.motionSync || this.enemyMotion) && oldClip && oldClip.amp && nextClip && nextClip.amp
       ? (this.animT % oldClip.dur) / oldClip.dur : 0;
     this.blendFrom = this.lastPose; this.blendDur = blend; this.blendT = 0;
+    this.blendVel = this.poseVel ? { ...this.poseVel } : null;   // 🆕 2026-11-25 이전 동작의 기세 (아래 draw에서 잠깐 이어 간다)
     if (leaveSwitch) {
       // IK로 발을 바꿔 세운 실제 다리 각도에서 다음 동작으로 보간한다.
       // 보정 전 원본 각도로 시작하면 첫 프레임에 다리가 원래 배치로 튄다.
@@ -109,10 +110,31 @@ class Actor {
     if (this.blendFrom && this.blendT < this.blendDur) {
       if (!frozen) this.blendT += dt;
       const blendPose = this.motionPolish ? motionMix : this.motionSync || this.enemySignature ? heroMotionMix : mix;
-      pose = blendPose(this.blendFrom, pose, Math.min(1, this.blendT / this.blendDur));
+      // ✏️ 2026-11-25 동작이 바뀔 때 일정한 속도로 넘어가지 않고 살짝 가속·감속하며 이어진다
+      const bw = Math.min(1, this.blendT / this.blendDur);
+      // 🆕 2026-11-25 이전 동작이 움직이던 방향으로 잠깐 더 흘러가다 멈춘다 (얼어붙은 자세에서 출발하면 관절이 순간 멈칫)
+      let from = this.blendFrom;
+      const soft = this.blendDur >= MOTION_CFG.minDur;
+      if (this.blendVel && MOTION_CFG.carry && soft) {
+        const tau = Math.min(50, this.blendDur * 0.4), carry = tau * (1 - Math.exp(-this.blendT / tau));
+        from = { ...from };
+        for (const k in this.blendVel) if (k in from) from[k] += Phaser.Math.Clamp(this.blendVel[k] * carry, -MOTION_CFG.carryMax, MOTION_CFG.carryMax);
+      }
+      pose = blendPose(from, pose, MOTION_CFG.smooth && soft ? bw * bw * (3 - 2 * bw) : bw);
     }
     if (this.enemyMotion) pose = enemyPose(this, pose);
     if (typeof AttackFeel !== 'undefined') pose = AttackFeel.pose(this, pose);   // 🆕 공격 손맛: 큰 각도·웅크림·늘어남
+    // 🆕 2026-11-25 관절마다 지금 움직이는 속도(도/ms) — 동작이 바뀔 때 기세를 이어 가는 데 쓴다
+    if (!frozen && dt > 0 && this.lastPose) {
+      const pv = this.poseVel || (this.poseVel = {}), prev = this.lastPose;
+      for (const k in pose) {
+        // 손목(hb·hf)은 무기 방향 보정이 덧씌워져 실제 속도가 아니라서 뺀다
+        if (typeof pose[k] !== 'number' || k === 'power' || k === 'prone' || k === 'hb' || k === 'hf') continue;
+        let d = pose[k] - (prev[k] ?? pose[k]);
+        if (k === 'rr') d = ((d + 540) % 360 + 360) % 360 - 180;
+        pv[k] = Phaser.Math.Clamp(d / dt, -0.9, 0.9);
+      }
+    }
     this.lastPose = pose;
     // 2차 움직임: 망토는 이동·낙하 반대로 날리고, 머리와 몸은 스프링으로 출렁인다
     const sec = this.sec || (this.sec = { head: { x: 0, v: 0 }, cape: { x: 0, v: 0 }, sq: { x: 0, v: 0 } });
@@ -160,7 +182,15 @@ class Actor {
     this.groundHover = hov;
     const fo = typeof AttackFeel !== 'undefined' ? AttackFeel.offset(this) : null;   // 🆕 4차: 내딛기·막타 도약 (그림만)
     this.rig.c.setPosition(this.x + sx + (fo ? fo.x : 0), this.y - this.z - hov - this.groundOff * sy + (fo ? fo.y : 0));
-    this.rig.c.setScale(sxs * this.face, sy);
+    // 🆕 2026-11-25 돌아서기: 주인공·동료는 좌우가 한 프레임에 확 뒤집히지 않고 0.06초에 걸쳐 몸을 돌린다 (서 있거나 걸을 때만)
+    //   가장 좁을 때도 폭의 절반은 남긴다 (종잇장처럼 얇아지면 어색하다)
+    let fv = this.face;
+    if (this.side === 'hero' && !MOTION_OLD) {
+      if (this.faceVis === undefined || !['idle', 'move', 'land'].includes(this.state)) this.faceVis = this.face;
+      else if (!frozen) this.faceVis = motionApproach(this.faceVis, this.face, 2 * dt / 60);
+      fv = Math.sign(this.faceVis || this.face) * (0.5 + 0.5 * Math.abs(this.faceVis));
+    }
+    this.rig.c.setScale(sxs * fv, sy);
     this.rig.c.setDepth(1000 + this.y);
     // 손/무기 좌표를 현재 프레임으로 갱신한 뒤 발사한다. 히트스톱 중에는 큐도 정지.
     if (!frozen && this.state === 'skill') this.fireSkillCues();
@@ -308,7 +338,7 @@ class Hero extends Actor {
         this.state = 'move'; this.play(run ? 'run' : 'walk', 120);
         this.running = run;
       } else if (this.motionSync && (Math.hypot(this.vx, this.vy) > 1 || (this.anim === this.motionClip('brake') && !this.animDone()))) {
-        this.state = 'move'; this.running = false; this.play(this.motionClip('brake'), 40);
+        this.state = 'move'; this.running = false; this.play(this.motionClip('brake'), 80);   // ✏️ 2026-11-25 40→80: 멈출 때 툭 끊기지 않게
       } else {
         this.running = false;
         // 가만히 있으면 가끔 직업별 버릇

@@ -53,6 +53,9 @@ const Assets = {
     if (s && s.ally && s.ally !== s.hero) g.push(s.ally);
     // 🆕 주인공 머리 장비 착용 그림 (지금 직업 것만)
     const helms = s ? this.group('head_gear').filter(k => k.startsWith('head_gear/' + s.hero + '_')) : [];
+    // 🆕 2026-11-25 장착한 몸 갑옷 시트 하나만 (지금 직업)
+    const armor = s && typeof HeroGear !== 'undefined' ? HeroGear.bodyKey(s.hero, s) : null;
+    if (armor && MAN[armor]) helms.push(armor);
     // 🆕 2026-11-22 소환체 그림 (그 직업일 때만)
     const sum = !s ? [] : s.hero === 'ranger' ? this.group('spirit_wolf').filter(k => !k.endsWith('/ref')) : s.hero === 'mage' ? ['summon/thundercloud_0', 'summon/thundercloud_1'] : s.hero === 'warrior' ? ['summon/war_banner'] : [];
     return [...this.groups(g), ...(typeof CuteHeroes !== 'undefined' ? CuteHeroes.keys(g) : []), ...helms, ...sum];

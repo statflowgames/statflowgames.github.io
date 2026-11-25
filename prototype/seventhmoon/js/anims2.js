@@ -7,15 +7,15 @@ const QD = d => ({ ...QS, ...d });
 Object.assign(CLIPS, {
   q_idle: { loop: true, dur: 1200, at(t) { const s = Math.sin(t / 1200 * Math.PI * 2); return QD({ torso: s * 1.5, head: -s * 3, sq: s * 0.015 }); } },
   q_walk: { loop: true, dur: 640, amp: 22, at(t) {
-    const ph = t / 640 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = 22, sw = v => Math.max(0, v);
-    return QD({ thf: -s * a, shf: sw(c) * a * 1.2, uaf: s * a, faf: sw(-c) * a * 1.2, thb: s * a, shb: -sw(-c) * a * 0.6, uab: -s * a, fab: -sw(c) * a * 0.6, head: c * 3, torso: s * 2, sq: Math.abs(c) * 0.02 });
+    const ph = t / 640 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = 22, sw = sPos;
+    return QD({ thf: -s * a, shf: sw(c) * a * 1.2, uaf: s * a, faf: sw(-c) * a * 1.2, thb: s * a, shb: -sw(-c) * a * 0.6, uab: -s * a, fab: -sw(c) * a * 0.6, head: c * 3, torso: s * 2, sq: sAbs(c) * 0.02 });
   } },
   q_run: { loop: true, dur: 460, amp: 34, at(t) {
     const ph = t / 460 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = 34;
     return QD({
-      thf: -s * a - 6, shf: Math.max(0, c) * a, uaf: -Math.sin(ph - 0.5) * a - 6, faf: Math.max(0, Math.cos(ph - 0.5)) * a,
-      thb: c * a, shb: -Math.max(0, s) * a * 0.5, uab: Math.cos(ph - 0.5) * a, fab: -Math.max(0, Math.sin(ph - 0.5)) * a * 0.5,
-      rr: s * 5, torso: c * 4, head: -c * 5, sq: Math.abs(s) * 0.04,
+      thf: -s * a - 6, shf: sPos(c) * a, uaf: -Math.sin(ph - 0.5) * a - 6, faf: sPos(Math.cos(ph - 0.5)) * a,
+      thb: c * a, shb: -sPos(s) * a * 0.5, uab: Math.cos(ph - 0.5) * a, fab: -sPos(Math.sin(ph - 0.5)) * a * 0.5,
+      rr: s * 5, torso: c * 4, head: -c * 5, sq: sAbs(s) * 0.04,
     });
   } },
   q_windup: keyClip([[0, QS], [220, QD({ rr: 4, head: 14, torso: 4, thf: 24, shf: -34, uaf: 20, faf: -30, thb: -24, shb: 44, uab: -20, fab: 40, sq: -0.08 }), 'out'], [420, QD({ rr: 5, head: 16, torso: 4, thf: 26, shf: -36, uaf: 22, faf: -32, thb: -26, shb: 46, uab: -22, fab: 42, sq: -0.1 })]]),

@@ -27,14 +27,50 @@ const ease = {
   back: t => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2),
 };
 
+// 🆕 2026-11-25 매끈한 꺾임: max(0,v)·|v|는 0을 지나는 순간 각이 져서 무릎·몸이 '툭' 꺾인다.
+//   0 근처(±SOFT)만 곡선으로 이어 붙인다 (값이 음수로 내려가지 않고, 1에서는 그대로 1).
+//   주소에 ?oldmotion 을 붙이면 예전 움직임(비교용)
+const MOTION_OLD = typeof location !== 'undefined' && /[?&]oldmotion/.test(location.search);
+const SOFT = MOTION_OLD ? 0 : 0.45;
+// 동작 전환 설정 (시험용으로 바꿔 볼 수 있게 한곳에): smooth = 가속·감속 전환, carry = 이전 동작 기세 잇기
+//   minDur: 이 길이(ms) 이상인 전환에만 (걷기·달리기·대기). 공격·점프처럼 짧고 빠른 전환은 예전대로 — 재어 보니 그쪽이 더 매끈했다
+const MOTION_CFG = { smooth: !MOTION_OLD, carry: !MOTION_OLD, carryMax: 25, minDur: 100 };
+const sPos = v => v >= SOFT ? v : v <= -SOFT ? 0 : (v + SOFT) * (v + SOFT) / (4 * SOFT);
+const sAbs = v => Math.abs(v) >= SOFT ? Math.abs(v) : (v * v + SOFT * SOFT) / (2 * SOFT);
+
 // 부위별 시간차(ms): 몸통이 먼저 움직이고 팔·손·머리·망토가 한 박자씩 늦게 따라온다
 const LAG = { head: 30, uab: 12, fab: 24, hb: 36, wpn: 36, uaf: 10, faf: 20, hf: 30, cape: 60, shd: 30, neck: 40 };
 
+// ✏️ 2026-11-25 더 부드럽게: 예전엔 키마다 속도가 0이 됐다(io) → 같은 방향으로 계속 가는 키에서 '멈칫'.
+//   기본(io) 구간끼리 이어지는 키는 단조 3차 곡선(넘치지 않음)으로 속도를 이어 간다.
+//   방향이 바뀌는 키·멈춤(같은 값)·'out'/'in'/'lin'/'back'을 지정한 구간은 예전과 똑같다 (때리는 타이밍 그대로).
+const KEY_SLOPE = new WeakMap();
+function keySlopes(keys, k) {
+  let m = KEY_SLOPE.get(keys); if (!m) KEY_SLOPE.set(keys, m = {});
+  if (m[k]) return m[k];
+  if (MOTION_OLD) return (m[k] = new Array(keys.length).fill(0));
+  const n = keys.length, v = keys.map(q => q[1][k] ?? 0), sl = new Array(n).fill(0);
+  for (let i = 1; i < n - 1; i++) {
+    const eIn = keys[i][2] || 'io', eOut = keys[i + 1][2] || 'io';
+    if (eIn !== 'io' || eOut !== 'io') continue;
+    const d0 = (v[i] - v[i - 1]) / Math.max(1, keys[i][0] - keys[i - 1][0]), d1 = (v[i + 1] - v[i]) / Math.max(1, keys[i + 1][0] - keys[i][0]);
+    if (d0 * d1 <= 0) continue;                          // 방향이 바뀌거나 멈추는 키: 속도 0 (예전과 같음)
+    sl[i] = 2 / (1 / d0 + 1 / d1);                        // 조화 평균: 넘치지 않는다
+  }
+  return (m[k] = sl);
+}
 function sampleKeys(keys, t, k) {
   if (t <= keys[0][0]) return keys[0][1][k] ?? 0;
   for (let i = 0; i < keys.length - 1; i++) {
     const [t0, p0] = keys[i], [t1, p1, e] = keys[i + 1];
-    if (t <= t1) return lerp(p0[k] ?? 0, p1[k] ?? 0, (ease[e || 'io'])((t - t0) / Math.max(1, t1 - t0)));
+    if (t <= t1) {
+      const a = p0[k] ?? 0, b = p1[k] ?? 0, u = (t - t0) / Math.max(1, t1 - t0);
+      if ((e || 'io') !== 'io') return lerp(a, b, ease[e](u));
+      const sl = keySlopes(keys, k), h = Math.max(1, t1 - t0), m0 = sl[i] * h, m1 = sl[i + 1] * h;
+      if (!m0 && !m1) return lerp(a, b, ease.io(u));
+      const u2 = u * u, u3 = u2 * u;                      // 에르미트 3차 곡선
+      return (2 * u3 - 3 * u2 + 1) * a + (u3 - 2 * u2 + u) * m0 + (-2 * u3 + 3 * u2) * b + (u3 - u2) * m1;
+    }
   }
   return keys[keys.length - 1][1][k] ?? 0;
 }
@@ -66,25 +102,25 @@ const CLIPS = {
   } },
   walk: { loop: true, dur: 680, amp: 24, at(t, base = P.stand, amp = 24) {
     const ph = t / 680 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
-    const sw = v => Math.max(0, v);                 // 앞으로 옮기는 다리만 무릎을 접는다
+    const sw = sPos;                                // 앞으로 옮기는 다리만 무릎을 접는다 (✏️ 매끈하게)
     return add(upper(base), {
       thf: -s * amp - 4, shf: 8 + sw(c) * amp * 1.6, ftf: -sw(c) * 10 + sw(-c) * sw(s) * 8,
       thb: s * amp - 4, shb: 8 + sw(-c) * amp * 1.6, ftb: -sw(-c) * 10 + sw(c) * sw(-s) * 8,
       uab: s * amp * 0.35, fab: -s * 6, uaf: -s * amp * 0.2,
-      torso: 6 - Math.abs(c) * 2, head: Math.abs(c) * 2, cape: 10 + c * 6, rr: 2,
-      sq: Math.abs(c) * 0.015,
+      torso: 6 - sAbs(c) * 2, head: sAbs(c) * 2, cape: 10 + c * 6, rr: 2,
+      sq: sAbs(c) * 0.015,
     });
   } },
   run: { loop: true, dur: 540, amp: 36, at(t, base = P.stand, amp = 36) {
     const ph = t / 540 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
-    const sw = v => Math.max(0, v);
+    const sw = sPos;
     return add(upper(base), {
       thf: -s * amp - 14, shf: 14 + sw(c) * amp * 2.0, ftf: -sw(c) * 18,
       thb: s * amp - 14, shb: 14 + sw(-c) * amp * 2.0, ftb: -sw(-c) * 18,
       // 달릴 때는 칼을 뒤로 늘어뜨리고 방패를 앞으로 (레퍼런스 달리기 포즈)
       uab: 26 + s * amp * 0.5, fab: -20 - s * 10, hb: 76, uaf: -36 - s * 8, faf: 10,
-      torso: 16 + Math.abs(c) * 3, head: -10, cape: 34 + c * 10, rr: 5,
-      sq: Math.abs(s) * 0.03,
+      torso: 16 + sAbs(c) * 3, head: -10, cape: 34 + c * 10, rr: 5,
+      sq: sAbs(s) * 0.03,
     });
   } },
 };

@@ -92,13 +92,16 @@ var HarvanCuteParts=(()=>{
           const goal=gait?-90:90;
           if(hero.carryBladeAngle===undefined)hero.carryBladeAngle=goal;
           if(hero.carryBladeClock!==hero.scene.now){
-            const delta=((goal-hero.carryBladeAngle+540)%360)-180;
-            hero.carryBladeAngle+=delta*Math.min(1,(hero.scene.dtv||16.67)/100);
+            // ✏️ 2026-11-25 멈추거나 출발할 때 칼이 첫 프레임에 확 돌던 것 → 0.26초 동안 천천히 출발해 부드럽게 멈춘다
+            if(hero.carryGoal!==goal){hero.carryGoal=goal;hero.carryFrom=hero.carryBladeAngle;hero.carryT=0;}
+            hero.carryT=Math.min(260,(hero.carryT||0)+Math.min(50,hero.scene.dtv||16.67));
+            const u=hero.carryT/260,span=((goal-hero.carryFrom+540)%360)-180;
+            hero.carryBladeAngle=hero.carryFrom+span*u*u*(3-2*u);
             hero.carryBladeClock=hero.scene.now;
           }
           p.hb=(p.hb||0)+(((hero.carryBladeAngle-current+540)%360)-180);
           if(hero.lastPose)hero.lastPose.hb=p.hb;
-        }else{hero.carryBladeAngle=current;hero.carryBladeClock=hero.scene.now;}
+        }else{hero.carryBladeAngle=current;hero.carryGoal=undefined;hero.carryBladeClock=hero.scene.now;}
       }else if(['idle','move','guard','land'].includes(hero.state))p.hb=(p.hb||0)-55;
       return plant(p);
     };

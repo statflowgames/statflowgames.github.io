@@ -26,8 +26,82 @@ const HeroGear = {
       if (!sc.textures.exists(key) || b.spr.texture.key === key) continue;
       b.img = key; b.cur = undefined; b.spr.setTexture(key);   // 같은 배율 그대로 → 그림마다 원래 크기 비율 유지
     }
+    // 🆕 2026-11-25 몸 갑옷: 몸 부품 시트를 장착한 갑옷 시트로 통째로 바꾼다. 주소에 ?noarmor 를 붙이면 끈다.
+    if (typeof Q === 'undefined' || !Q.has('noarmor')) this.armor(hero, s);
+    // 🆕 2026-11-25 등급 빛: 무기는 늘 은은하게, 방패·보조는 가드할 때만. 주소에 ?noglow 를 붙이면 끈다.
+    if (typeof Q === 'undefined' || !Q.has('noglow')) this.glow(hero, s);
     // ✏️ 2026-11-22 머리 장비 착용 그림(54장) 적용. 주소에 ?nohelm 을 붙이면 끈다.
     if (typeof Q === 'undefined' || !Q.has('nohelm')) this.helm(hero, s);
+  },
+  // ---------------- 🆕 2026-11-25 몸 갑옷 (art_raw/body_armor → tools/import_body_armor.py) ----------------
+  //   그림 번호: 단계 1~4 = t1~t4, 전설 = legend, 세트 = set. 등급(일반~영웅)으로는 안 바뀐다 (무기·머리와 같은 규칙).
+  //   몸 장비가 없으면 직업 기본 옷.
+  bodyKey(cls, s) {
+    const it = s && s.eq && s.eq.body && itemById(s, s.eq.body); if (!it) return null;
+    const n = it.rar === 4 ? 'legend' : it.rar === 5 ? 'set' : 't' + (Math.min(3, it.tier || 0) + 1);
+    return `cute/${cls}_body_${n}`;
+  },
+  armor(hero, s) {
+    const sc = hero.scene, key = this.bodyKey(hero.key, s);
+    const atlas = typeof CuteHeroes !== 'undefined' && CuteHeroes.atlas(hero.key);
+    if (!key || !atlas || !sc.textures.exists(key) || !hero.rig) return;
+    const base = atlas.tex.body4, tex = sc.textures.get(key);
+    for (const [frame, b] of Object.entries(atlas.body4.frames)) if (!tex.has(frame)) tex.add(frame, 0, b.x, b.y, b.w, b.h);
+    for (const b of hero.rig.bones) {
+      const spr = b.spr;
+      if (spr.texture.key !== base || !tex.has(spr.frame.name)) continue;
+      spr.setTexture(key, spr.frame.name);
+      if (b.img === base) b.img = key;
+    }
+    hero.armorKey = key;
+  },
+  // ---------------- 🆕 2026-11-25 등급 빛 ----------------
+  //   일반(0)은 빛 없음. 고급 초록 · 희귀 파랑 · 영웅 보라 · 전설 주황 · 세트 청록 (가방 테두리 색과 같다)
+  //   무기: 칼(활·지팡이)이 늘 은은하게 숨 쉬듯 빛나고, 휘두를 때 궤적도 같은 색.
+  //   방패·보조: 평소엔 꺼져 있다가 가드하면 약하게 켜지고, 막는 순간·패링 순간 반짝.
+  GLOW: [0, 2.4, 3.2, 4.0, 4.8, 4.4],   // 등급별 무기 빛 세기
+  rarOf(s, slot) { const it = s.eq[slot] && itemById(s, s.eq[slot]); return it ? (it.rar || 0) : 0; },
+  colOf(rar) { return RARITY[rar] ? RARITY[rar].hex : 0xffffff; },
+  // 휘두를 때 궤적 색 (일반이면 직업 기본색)
+  trailTint(h, bone) {
+    const G = h.gearGlow; if (!G) return null;
+    const r = bone === 'fitem' && G.offBone === 'fitem' ? G.offRar : G.wpnRar;
+    return r > 0 ? this.colOf(r) : null;
+  },
+  glow(hero, s) {
+    const sc = hero.scene, rig = hero.rig;
+    if (!sc.renderer || sc.renderer.type !== Phaser.WEBGL) return;
+    const M = this.MAP[hero.key] || [];
+    const wb = M.find(m => m[1] === 'weapon'), ob = M.find(m => m[1] === 'offhand');
+    const G = hero.gearGlow = { wpnRar: this.rarOf(s, 'weapon'), offRar: this.rarOf(s, 'offhand'), offBone: ob && ob[0], k: { w: 0, o: 0 }, kick: 0 };
+    const add = (bone, rar) => {
+      const b = rig.map[bone]; if (!b || !b.spr.preFX || rar <= 0) return null;
+      b.spr.preFX.setPadding(14);
+      return b.spr.preFX.addGlow(this.colOf(rar), 0, 0, false, 0.1, 16);
+    };
+    G.wfx = wb && add(wb[0], G.wpnRar);
+    G.ofx = ob && add(ob[0], G.offRar);
+    if (!G.wfx && !G.ofx) return;
+    const base = this.GLOW[G.wpnRar] || 0;
+    let t = Math.random() * 3000;
+    const tick = (time, delta) => {
+      if (!hero.rig || !hero.rig.c || !hero.rig.c.scene) return off();
+      const dt = Math.min(50, delta || 16); t += dt;
+      if (G.wfx) G.wfx.outerStrength = base * (0.75 + 0.25 * Math.sin(t / 420)) * (hero.state === 'dead' ? 0 : 1);
+      if (G.ofx) {
+        const st = hero.state;
+        if (st === 'parry' && G.last !== 'parry') G.kick = 1;               // 패링 순간 크게
+        if (st === 'guard' && hero.sta < (G.sta ?? hero.sta) - 1) G.kick = Math.max(G.kick, 0.6);   // 막아서 기력이 줄었다 = 막은 순간
+        G.last = st; G.sta = hero.sta;
+        const want = st === 'guard' || st === 'parry' ? 0.8 : 0;
+        G.k.o += (want - G.k.o) * Math.min(1, dt / 90);
+        G.kick = Math.max(0, G.kick - dt / 260);
+        G.ofx.outerStrength = (this.GLOW[G.offRar] || 0) * (G.k.o + G.kick * 1.8);
+      }
+    };
+    const off = () => sc.events.off('postupdate', tick);
+    sc.events.on('postupdate', tick);
+    sc.events.once('shutdown', off);
   },
   // 머리 장비 그림 이름: head_gear/<직업>_<t1~t4|legend|set|story_<키>>
   helmKey(hero, it) {

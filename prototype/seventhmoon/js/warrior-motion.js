@@ -267,7 +267,7 @@ Object.assign(CLIPS, {
   harvan_brake: keyClip([
     [0, S(0, { ...LUNGE_S, torso: -6, head: 4, uaf: -36, rr: -3, cape: 28 })],
     [65, S(0, { ...CROUCH, torso: -4, head: 2, rr: -2, cape: 18 }), 'out'],
-    [150, HARVAN_STAND, 'out'],
+    [150, HARVAN_STAND, 'io'],   // ✏️ 2026-11-25 'out'→'io': 웅크렸다 일어설 때 툭 튀지 않게
   ], false, false),
   harvan_roll: keyClip([
     [0, S(0, { ...CROUCH, torso: 18, uab: -40, uaf: -52 })],

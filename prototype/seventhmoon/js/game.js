@@ -917,6 +917,8 @@ class Game extends Phaser.Scene {
       h.swingTrail = { g: this.add.graphics().setDepth(h.y + 1002), attack: a, age: 0,
         duration: a.hit[1] - a.hit[0] + 95, points: [], tint: h.cls?.smearTint,
         weapon: h.key === 'rogue' && h.atkName === 'a2' ? 'fitem' : 'wpn' };
+      // 🆕 2026-11-25 궤적은 장비 등급 색 (일반이면 직업 기본색)
+      { const gt = typeof HeroGear !== 'undefined' && HeroGear.trailTint(h, h.swingTrail.weapon); if (gt) h.swingTrail.tint = gt; }
       if (typeof AttackFeel !== 'undefined' && AttackFeel.on(h)) AttackFeel.trailStart(h.swingTrail, h);   // 🆕 굵은 초승달 궤적
       return;
     }
@@ -2008,7 +2010,7 @@ class Game extends Phaser.Scene {
     if (['cleave','hammer','thrust','flurry','ambush'].includes(motion.family)) {
       h.atk = { swing: index % 2 ? 'u' : 'h', fin: motion.family === 'cleave', hit: [h.st, h.st + 85] };
       this.swingFx(h, h.atk);
-      if (h.swingTrail && h.key === 'rogue' && index % 2) h.swingTrail.weapon = 'fitem';
+      if (h.swingTrail && h.key === 'rogue' && index % 2) { h.swingTrail.weapon = 'fitem'; const gt = typeof HeroGear !== 'undefined' && HeroGear.trailTint(h, 'fitem'); if (gt) h.swingTrail.tint = gt; }
       SFX.swing(true, h.px, 'blade');
     } else {
       const hand = h.key === 'ranger' && motion.family === 'draw' ? 'fitem' : h.key === 'mage' ? motion.rangedHand : 'hf';

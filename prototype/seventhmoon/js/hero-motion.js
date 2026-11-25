@@ -97,7 +97,7 @@ for (const [key, profile] of Object.entries(HERO_MOTION_PROFILES)) {
   CLIPS[prefix + 'apex'] = { loop: true, dur: 300, at() { return { ...jump, ...profile.apex }; } };
   CLIPS[prefix + 'fall'] = { loop: true, dur: 300, at() { return { ...jump, ...profile.fall }; } };
   CLIPS[prefix + 'land'] = keyClip([[0, CLIPS[prefix + 'fall'].at(0)], [35, HP(key, { ...CROUCH, ...profile.land }), 'out'], [140, base, 'out']], false, false);
-  CLIPS[prefix + 'brake'] = keyClip([[0, HP(key, { ...LUNGE_S, torso: profile.lean - 5, rr: -2 })], [65, HP(key, { ...CROUCH, torso: profile.lean - 3 }), 'out'], [150, base, 'out']], false, false);
+  CLIPS[prefix + 'brake'] = keyClip([[0, HP(key, { ...LUNGE_S, torso: profile.lean - 5, rr: -2 })], [65, HP(key, { ...CROUCH, torso: profile.lean - 3 }), 'out'], [150, base, 'io']], false, false);   // ✏️ 2026-11-25 'out'→'io'
   const guard = key === 'paladin' ? { uaf: -35, faf: -82, hf: 0 } : key === 'ranger' ? { uaf: -50, faf: -85, hf: -15, uab: -60, fab: -75 } : key === 'mage' ? { uaf: -64, faf: -70, uab: -30, fab: -70 } : key === 'rogue' ? RW(HP(key, { uaf: -65, faf: -75, uab: -55, fab: -80 }), -130, -110) : { uab: -70, fab: -45, hb: 100 };
   CLIPS[prefix + 'guard'] = keyClip([[0, base], [60, HP(key, { ...CROUCH, torso: profile.lean, ...guard }), 'out']], false, false);
   CLIPS[prefix + 'parry'] = keyClip([[0, CLIPS[prefix + 'guard'].at(60)], [80, HP(key, { torso: profile.lean + 6, uab: -90, fab: -20, uaf: -80, faf: -20, rx: 8 }), 'out'], [320, base, 'out']], false, false);
