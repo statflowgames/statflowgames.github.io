@@ -1,0 +1,807 @@
+{
+"bg/bg_market_nanhai": {
+"h": 720,
+"url": "assets/bg/bg_market_nanhai.jpg",
+"w": 1280
+},
+"bg/bg_port_palembang": {
+"h": 720,
+"url": "assets/bg/bg_port_palembang.jpg",
+"w": 1280
+},
+"bg/cg_1_borobudur": {
+"h": 720,
+"url": "assets/bg/cg_1_borobudur.jpg",
+"w": 1280
+},
+"bg/cg_1_dive": {
+"h": 720,
+"url": "assets/bg/cg_1_dive.jpg",
+"w": 1280
+},
+"bg/cg_1_palembang": {
+"h": 720,
+"url": "assets/bg/cg_1_palembang.jpg",
+"w": 1280
+},
+"bg/cg_e_museum": {
+"h": 720,
+"url": "assets/bg/cg_e_museum.jpg",
+"w": 1280
+},
+"bg/cg_open_bowl": {
+"h": 720,
+"url": "assets/bg/cg_open_bowl.jpg",
+"w": 1280
+},
+"bg/cg_open_dive": {
+"h": 720,
+"url": "assets/bg/cg_open_dive.jpg",
+"w": 1280
+},
+"bg/cg_p_departure": {
+"h": 720,
+"url": "assets/bg/cg_p_departure.jpg",
+"w": 1280
+},
+"bg/cg_p_rescue": {
+"h": 720,
+"url": "assets/bg/cg_p_rescue.jpg",
+"w": 1280
+},
+"bg/cg_p_stars": {
+"h": 720,
+"url": "assets/bg/cg_p_stars.jpg",
+"w": 1280
+},
+"bg/cg_p_wreck": {
+"h": 720,
+"url": "assets/bg/cg_p_wreck.jpg",
+"w": 1280
+},
+"bg/ruin_borobudur": {
+"h": 720,
+"url": "assets/bg/ruin_borobudur.jpg",
+"w": 1280
+},
+"bg/ruin_borobudur_in": {
+"h": 720,
+"url": "assets/bg/ruin_borobudur_in.jpg",
+"w": 1280
+},
+"bg/ruin_bujang_valley": {
+"h": 720,
+"url": "assets/bg/ruin_bujang_valley.jpg",
+"w": 1280
+},
+"bg/ruin_bukit_seguntang": {
+"h": 720,
+"url": "assets/bg/ruin_bukit_seguntang.jpg",
+"w": 1280
+},
+"bg/ruin_dieng": {
+"h": 720,
+"url": "assets/bg/ruin_dieng.jpg",
+"w": 1280
+},
+"bg/ruin_kedukan_bukit": {
+"h": 720,
+"url": "assets/bg/ruin_kedukan_bukit.jpg",
+"w": 1280
+},
+"bg/ruin_muara_jambi": {
+"h": 720,
+"url": "assets/bg/ruin_muara_jambi.jpg",
+"w": 1280
+},
+"bg/ruin_shabdiz_wreck": {
+"h": 720,
+"url": "assets/bg/ruin_shabdiz_wreck.jpg",
+"w": 1280
+},
+"bg/ruin_shabdiz_wreck_in": {
+"h": 720,
+"url": "assets/bg/ruin_shabdiz_wreck_in.jpg",
+"w": 1280
+},
+"bg/sky_day": {
+"h": 720,
+"url": "assets/bg/sky_day.jpg",
+"w": 1280
+},
+"bg/sky_dusk": {
+"h": 720,
+"url": "assets/bg/sky_dusk.jpg",
+"w": 1280
+},
+"bg/sky_night": {
+"h": 720,
+"url": "assets/bg/sky_night.jpg",
+"w": 1280
+},
+"bg/title_keyart": {
+"h": 720,
+"url": "assets/bg/title_keyart.jpg",
+"w": 1280
+},
+"ch/dayang": {
+"h": 900,
+"url": "assets/ch/dayang.webp",
+"w": 485
+},
+"ch/dayang_aim": {
+"h": 900,
+"url": "assets/ch/dayang_aim.webp",
+"w": 551
+},
+"ch/dayang_hug": {
+"h": 900,
+"url": "assets/ch/dayang_hug.webp",
+"w": 608
+},
+"ch/dayang_jump": {
+"h": 900,
+"url": "assets/ch/dayang_jump.webp",
+"w": 532
+},
+"ch/dayang_look": {
+"h": 900,
+"url": "assets/ch/dayang_look.webp",
+"w": 572
+},
+"ch/dayang_lost": {
+"h": 900,
+"url": "assets/ch/dayang_lost.webp",
+"w": 349
+},
+"ch/dayang_mango": {
+"h": 900,
+"url": "assets/ch/dayang_mango.webp",
+"w": 672
+},
+"ch/dayang_pout": {
+"h": 900,
+"url": "assets/ch/dayang_pout.webp",
+"w": 313
+},
+"ch/dayang_sad": {
+"h": 900,
+"url": "assets/ch/dayang_sad.webp",
+"w": 600
+},
+"ch/dayang_shake": {
+"h": 900,
+"url": "assets/ch/dayang_shake.webp",
+"w": 468
+},
+"ch/dayang_wave": {
+"h": 900,
+"url": "assets/ch/dayang_wave.webp",
+"w": 483
+},
+"ch/marzuban": {
+"h": 900,
+"url": "assets/ch/marzuban.webp",
+"w": 550
+},
+"ch/weishao": {
+"h": 900,
+"url": "assets/ch/weishao.webp",
+"w": 343
+},
+"ch/weishao_count": {
+"h": 900,
+"url": "assets/ch/weishao_count.webp",
+"w": 459
+},
+"ch/weishao_faint": {
+"h": 900,
+"url": "assets/ch/weishao_faint.webp",
+"w": 536
+},
+"ch/weishao_hide": {
+"h": 900,
+"url": "assets/ch/weishao_hide.webp",
+"w": 670
+},
+"ch/weishao_hooray": {
+"h": 900,
+"url": "assets/ch/weishao_hooray.webp",
+"w": 279
+},
+"ch/weishao_inspect": {
+"h": 900,
+"url": "assets/ch/weishao_inspect.webp",
+"w": 364
+},
+"ch/weishao_panic": {
+"h": 900,
+"url": "assets/ch/weishao_panic.webp",
+"w": 534
+},
+"ch/weishao_proud": {
+"h": 900,
+"url": "assets/ch/weishao_proud.webp",
+"w": 316
+},
+"ch/weishao_salute": {
+"h": 900,
+"url": "assets/ch/weishao_salute.webp",
+"w": 328
+},
+"ch/weishao_scold": {
+"h": 900,
+"url": "assets/ch/weishao_scold.webp",
+"w": 395
+},
+"ch/weishao_weep": {
+"h": 900,
+"url": "assets/ch/weishao_weep.webp",
+"w": 321
+},
+"face/dayang_angry": {
+"h": 300,
+"url": "assets/face/dayang_angry.webp",
+"w": 307
+},
+"face/dayang_blush": {
+"h": 300,
+"url": "assets/face/dayang_blush.webp",
+"w": 289
+},
+"face/dayang_determined": {
+"h": 300,
+"url": "assets/face/dayang_determined.webp",
+"w": 321
+},
+"face/dayang_laugh": {
+"h": 300,
+"url": "assets/face/dayang_laugh.webp",
+"w": 307
+},
+"face/dayang_neutral": {
+"h": 300,
+"url": "assets/face/dayang_neutral.webp",
+"w": 296
+},
+"face/dayang_proud": {
+"h": 300,
+"url": "assets/face/dayang_proud.webp",
+"w": 311
+},
+"face/dayang_sad": {
+"h": 300,
+"url": "assets/face/dayang_sad.webp",
+"w": 300
+},
+"face/dayang_scared": {
+"h": 300,
+"url": "assets/face/dayang_scared.webp",
+"w": 296
+},
+"face/dayang_smile": {
+"h": 300,
+"url": "assets/face/dayang_smile.webp",
+"w": 285
+},
+"face/dayang_special": {
+"h": 300,
+"url": "assets/face/dayang_special.webp",
+"w": 304
+},
+"face/dayang_surprised": {
+"h": 300,
+"url": "assets/face/dayang_surprised.webp",
+"w": 289
+},
+"face/dayang_thinking": {
+"h": 300,
+"url": "assets/face/dayang_thinking.webp",
+"w": 317
+},
+"face/marzuban_angry": {
+"h": 300,
+"url": "assets/face/marzuban_angry.webp",
+"w": 228
+},
+"face/marzuban_determined": {
+"h": 300,
+"url": "assets/face/marzuban_determined.webp",
+"w": 228
+},
+"face/marzuban_laugh": {
+"h": 300,
+"url": "assets/face/marzuban_laugh.webp",
+"w": 229
+},
+"face/marzuban_neutral": {
+"h": 300,
+"url": "assets/face/marzuban_neutral.webp",
+"w": 231
+},
+"face/marzuban_sad": {
+"h": 300,
+"url": "assets/face/marzuban_sad.webp",
+"w": 228
+},
+"face/marzuban_smile": {
+"h": 300,
+"url": "assets/face/marzuban_smile.webp",
+"w": 231
+},
+"face/marzuban_surprised": {
+"h": 300,
+"url": "assets/face/marzuban_surprised.webp",
+"w": 229
+},
+"face/marzuban_thinking": {
+"h": 300,
+"url": "assets/face/marzuban_thinking.webp",
+"w": 225
+},
+"face/weishao_angry": {
+"h": 300,
+"url": "assets/face/weishao_angry.webp",
+"w": 320
+},
+"face/weishao_blush": {
+"h": 300,
+"url": "assets/face/weishao_blush.webp",
+"w": 344
+},
+"face/weishao_determined": {
+"h": 300,
+"url": "assets/face/weishao_determined.webp",
+"w": 316
+},
+"face/weishao_laugh": {
+"h": 300,
+"url": "assets/face/weishao_laugh.webp",
+"w": 325
+},
+"face/weishao_neutral": {
+"h": 300,
+"url": "assets/face/weishao_neutral.webp",
+"w": 289
+},
+"face/weishao_proud": {
+"h": 300,
+"url": "assets/face/weishao_proud.webp",
+"w": 328
+},
+"face/weishao_sad": {
+"h": 300,
+"url": "assets/face/weishao_sad.webp",
+"w": 304
+},
+"face/weishao_scared": {
+"h": 300,
+"url": "assets/face/weishao_scared.webp",
+"w": 347
+},
+"face/weishao_smile": {
+"h": 300,
+"url": "assets/face/weishao_smile.webp",
+"w": 302
+},
+"face/weishao_special": {
+"h": 300,
+"url": "assets/face/weishao_special.webp",
+"w": 340
+},
+"face/weishao_surprised": {
+"h": 300,
+"url": "assets/face/weishao_surprised.webp",
+"w": 312
+},
+"face/weishao_thinking": {
+"h": 300,
+"url": "assets/face/weishao_thinking.webp",
+"w": 307
+},
+"fx/bubbles": {
+"h": 440,
+"url": "assets/fx/bubbles.webp",
+"w": 192
+},
+"fx/coins": {
+"h": 248,
+"url": "assets/fx/coins.webp",
+"w": 240
+},
+"fx/gulls": {
+"h": 316,
+"url": "assets/fx/gulls.webp",
+"w": 300
+},
+"fx/light": {
+"h": 240,
+"url": "assets/fx/light.webp",
+"w": 240
+},
+"fx/pages": {
+"h": 218,
+"url": "assets/fx/pages.webp",
+"w": 240
+},
+"fx/sparkle": {
+"h": 294,
+"url": "assets/fx/sparkle.webp",
+"w": 240
+},
+"fx/splash": {
+"h": 286,
+"url": "assets/fx/splash.webp",
+"w": 300
+},
+"icon/calendar": {
+"h": 109,
+"url": "assets/icon/calendar.webp",
+"w": 112
+},
+"icon/codex": {
+"h": 87,
+"url": "assets/icon/codex.webp",
+"w": 112
+},
+"icon/crew": {
+"h": 115,
+"url": "assets/icon/crew.webp",
+"w": 112
+},
+"icon/dinar": {
+"h": 118,
+"url": "assets/icon/dinar.webp",
+"w": 112
+},
+"icon/food": {
+"h": 101,
+"url": "assets/icon/food.webp",
+"w": 112
+},
+"icon/inn": {
+"h": 134,
+"url": "assets/icon/inn.webp",
+"w": 112
+},
+"icon/ledger": {
+"h": 115,
+"url": "assets/icon/ledger.webp",
+"w": 112
+},
+"icon/map": {
+"h": 100,
+"url": "assets/icon/map.webp",
+"w": 112
+},
+"icon/morale": {
+"h": 109,
+"url": "assets/icon/morale.webp",
+"w": 112
+},
+"icon/sail": {
+"h": 113,
+"url": "assets/icon/sail.webp",
+"w": 112
+},
+"icon/settings": {
+"h": 128,
+"url": "assets/icon/settings.webp",
+"w": 112
+},
+"icon/ship": {
+"h": 99,
+"url": "assets/icon/ship.webp",
+"w": 112
+},
+"icon/shipyard": {
+"h": 103,
+"url": "assets/icon/shipyard.webp",
+"w": 112
+},
+"icon/trade": {
+"h": 111,
+"url": "assets/icon/trade.webp",
+"w": 112
+},
+"icon/water": {
+"h": 133,
+"url": "assets/icon/water.webp",
+"w": 112
+},
+"icon/wind": {
+"h": 96,
+"url": "assets/icon/wind.webp",
+"w": 112
+},
+"item/trade_agarwood": {
+"h": 126,
+"url": "assets/item/trade_agarwood.webp",
+"w": 128
+},
+"item/trade_black_pepper": {
+"h": 132,
+"url": "assets/item/trade_black_pepper.webp",
+"w": 128
+},
+"item/trade_camphor": {
+"h": 119,
+"url": "assets/item/trade_camphor.webp",
+"w": 128
+},
+"item/trade_changsha_bowl": {
+"h": 133,
+"url": "assets/item/trade_changsha_bowl.webp",
+"w": 128
+},
+"item/trade_cinnamon": {
+"h": 127,
+"url": "assets/item/trade_cinnamon.webp",
+"w": 128
+},
+"item/trade_clove": {
+"h": 125,
+"url": "assets/item/trade_clove.webp",
+"w": 128
+},
+"item/trade_coconut": {
+"h": 126,
+"url": "assets/item/trade_coconut.webp",
+"w": 128
+},
+"item/trade_cotton_cloth": {
+"h": 116,
+"url": "assets/item/trade_cotton_cloth.webp",
+"w": 128
+},
+"item/trade_nutmeg": {
+"h": 132,
+"url": "assets/item/trade_nutmeg.webp",
+"w": 128
+},
+"item/trade_sandalwood": {
+"h": 129,
+"url": "assets/item/trade_sandalwood.webp",
+"w": 128
+},
+"item/trade_star_anise": {
+"h": 134,
+"url": "assets/item/trade_star_anise.webp",
+"w": 128
+},
+"item/trade_sumatra_gold": {
+"h": 121,
+"url": "assets/item/trade_sumatra_gold.webp",
+"w": 128
+},
+"item/trade_tang_silk": {
+"h": 108,
+"url": "assets/item/trade_tang_silk.webp",
+"w": 128
+},
+"item/trade_tin": {
+"h": 114,
+"url": "assets/item/trade_tin.webp",
+"w": 128
+},
+"item/trade_tortoiseshell": {
+"h": 105,
+"url": "assets/item/trade_tortoiseshell.webp",
+"w": 128
+},
+"item/trade_yue_celadon": {
+"h": 115,
+"url": "assets/item/trade_yue_celadon.webp",
+"w": 128
+},
+"map/paper": {
+"h": 1024,
+"url": "assets/map/paper.jpg",
+"w": 1024
+},
+"mapicon/nanhai": {
+"h": 120,
+"url": "assets/mapicon/nanhai.webp",
+"w": 94
+},
+"relic/borobudur_ship_relief_sketch": {
+"h": 195,
+"url": "assets/relic/borobudur_ship_relief_sketch.webp",
+"w": 220
+},
+"relic/buddhagupta_rubbing": {
+"h": 233,
+"url": "assets/relic/buddhagupta_rubbing.webp",
+"w": 220
+},
+"relic/bujang_votive_tablet": {
+"h": 260,
+"url": "assets/relic/bujang_votive_tablet.webp",
+"w": 208
+},
+"relic/changsha_bird_bowl": {
+"h": 173,
+"url": "assets/relic/changsha_bird_bowl.webp",
+"w": 220
+},
+"relic/changsha_bird_bowl_hero": {
+"h": 509,
+"url": "assets/relic/changsha_bird_bowl_hero.webp",
+"w": 640
+},
+"relic/dieng_arjuna_sketch": {
+"h": 192,
+"url": "assets/relic/dieng_arjuna_sketch.webp",
+"w": 220
+},
+"relic/indo_pacific_beads": {
+"h": 193,
+"url": "assets/relic/indo_pacific_beads.webp",
+"w": 220
+},
+"relic/java_gold_mas": {
+"h": 173,
+"url": "assets/relic/java_gold_mas.webp",
+"w": 212
+},
+"relic/kalah_tin_ingot": {
+"h": 174,
+"url": "assets/relic/kalah_tin_ingot.webp",
+"w": 220
+},
+"relic/kawi_copperplate_copy": {
+"h": 169,
+"url": "assets/relic/kawi_copperplate_copy.webp",
+"w": 220
+},
+"relic/kedukan_bukit_rubbing": {
+"h": 214,
+"url": "assets/relic/kedukan_bukit_rubbing.webp",
+"w": 220
+},
+"relic/octagonal_gold_cup": {
+"h": 178,
+"url": "assets/relic/octagonal_gold_cup.webp",
+"w": 220
+},
+"relic/octagonal_gold_cup_hero": {
+"h": 485,
+"url": "assets/relic/octagonal_gold_cup_hero.webp",
+"w": 640
+},
+"relic/palm_leaf_sutra_copy": {
+"h": 153,
+"url": "assets/relic/palm_leaf_sutra_copy.webp",
+"w": 220
+},
+"relic/seguntang_buddha_sketch": {
+"h": 237,
+"url": "assets/relic/seguntang_buddha_sketch.webp",
+"w": 220
+},
+"relic/talang_tuwo_rubbing": {
+"h": 199,
+"url": "assets/relic/talang_tuwo_rubbing.webp",
+"w": 220
+},
+"relic/tang_blue_white_dish": {
+"h": 180,
+"url": "assets/relic/tang_blue_white_dish.webp",
+"w": 220
+},
+"relic/yue_celadon_shard": {
+"h": 187,
+"url": "assets/relic/yue_celadon_shard.webp",
+"w": 220
+},
+"sd/dayang": {
+"h": 420,
+"url": "assets/sd/dayang.webp",
+"w": 764
+},
+"sd/marzuban": {
+"h": 420,
+"url": "assets/sd/marzuban.webp",
+"w": 712
+},
+"shipicon/perahu": {
+"h": 150,
+"url": "assets/shipicon/perahu.webp",
+"w": 160
+},
+"shipicon/rowboat": {
+"h": 72,
+"url": "assets/shipicon/rowboat.webp",
+"w": 160
+},
+"ui/btn_paper": {
+"h": 221,
+"url": "assets/ui/btn_paper.webp",
+"w": 360
+},
+"ui/btn_paper_down": {
+"h": 223,
+"url": "assets/ui/btn_paper_down.webp",
+"w": 360
+},
+"ui/btn_paper_off": {
+"h": 223,
+"url": "assets/ui/btn_paper_off.webp",
+"w": 360
+},
+"ui/btn_teal": {
+"h": 225,
+"url": "assets/ui/btn_teal.webp",
+"w": 360
+},
+"ui/btn_teal_down": {
+"h": 225,
+"url": "assets/ui/btn_teal_down.webp",
+"w": 360
+},
+"ui/btn_teal_off": {
+"h": 223,
+"url": "assets/ui/btn_teal_off.webp",
+"w": 360
+},
+"ui/codex_page": {
+"h": 645,
+"url": "assets/ui/codex_page.webp",
+"w": 1000
+},
+"ui/dialog_box": {
+"h": 432,
+"url": "assets/ui/dialog_box.webp",
+"w": 1400
+},
+"ui/frame_brass": {
+"h": 325,
+"url": "assets/ui/frame_brass.webp",
+"w": 300
+},
+"ui/frame_iron": {
+"h": 315,
+"url": "assets/ui/frame_iron.webp",
+"w": 300
+},
+"ui/frame_rope": {
+"h": 287,
+"url": "assets/ui/frame_rope.webp",
+"w": 300
+},
+"ui/frame_wood": {
+"h": 303,
+"url": "assets/ui/frame_wood.webp",
+"w": 300
+},
+"ui/panel_parchment": {
+"h": 895,
+"url": "assets/ui/panel_parchment.webp",
+"w": 900
+},
+"ui/tex_sketch_paper": {
+"h": 800,
+"url": "assets/ui/tex_sketch_paper.webp",
+"w": 800
+},
+"ui/title_emblem": {
+"h": 743,
+"url": "assets/ui/title_emblem.webp",
+"w": 600
+},
+"ui/trade_board": {
+"h": 661,
+"url": "assets/ui/trade_board.webp",
+"w": 1000
+},
+"ui/wind_needle": {
+"h": 329,
+"url": "assets/ui/wind_needle.webp",
+"w": 146
+},
+"ui/wind_rose": {
+"h": 624,
+"url": "assets/ui/wind_rose.webp",
+"w": 520
+}
+}
