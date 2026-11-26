@@ -107,11 +107,13 @@ const MG = {
   desalt: { name: '소금기 빼기', who: '켄지', wait: 50 },
 };
 
-// 사람 (대화). 현대 인물은 아직 그림이 없어 임시 동그라미 얼굴
+// 사람 (대화). me = 관장 (남/여는 G.dir)
 const PEOPLE = {
-  aisha: { name: '아이샤', role: '수석 큐레이터', color: '#1e7f86', mark: '아' },
-  kenji: { name: '켄지', role: '보존과학자', color: '#5b6b8a', mark: '켄' },
-  maya: { name: '마야', role: '잠수 팀장', color: '#c2603f', mark: '마' },
+  aisha: { name: '아이샤', role: '수석 큐레이터', face: 'aisha', stand: 'aisha' },
+  kenji: { name: '켄지', role: '보존과학자', face: 'kenji', stand: 'kenji' },
+  maya: { name: '마야', role: '잠수 팀장', face: 'maya', stand: 'maya' },
+  director_m: { name: '관장', face: 'director_m', stand: 'director_m' },
+  director_f: { name: '관장', face: 'director_f', stand: 'director_f' },
   dayang: { name: '다양', face: 'dayang', stand: 'dayang' },
   marzuban: { name: '마르주반 선장', face: 'marzuban', stand: 'marzuban' },
   weishao: { name: '위소', face: 'weishao', stand: 'weishao' },

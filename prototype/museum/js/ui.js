@@ -10,6 +10,8 @@ const irand = (a, b) => Math.floor(rand(a, b + 1));
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const fmt = n => Math.round(n).toLocaleString('ko-KR');
 const relicImg = id => A('relic/' + id);
+// 원정 종류 아이콘 (새 그림)
+const kindIcon = k => `<img class="ki" src="${A('icon/x_' + { record: 'archive', dig: 'survey', dive: 'dive' }[k])}">`;
 
 function el(tag, cls, html, parent) {
   const e = document.createElement(tag);
@@ -23,8 +25,13 @@ function btn(label, cls, onClick, parent) {
   b.addEventListener('click', e => { e.stopPropagation(); if (b.disabled) return; SFX.play('click'); onClick && onClick(e); });
   return b;
 }
+// me = 관장 (G.dir: m/f)
+const person = id => id === 'me' ? PEOPLE['director_' + ((typeof G !== 'undefined' && G && G.dir) || 'm')] : PEOPLE[id];
+// 원작 표정 이름 → 현대 인물 표정 8종
+const FACE_ALIAS = { laugh: 'smile', sad: 'worried', determined: 'proud', angry: 'worried', scared: 'surprised', special: 'moved' };
+const faceSrc = (p, f) => A(`face/${p.face}_${f || 'neutral'}`) || A(`face/${p.face}_${FACE_ALIAS[f]}`) || A(`face/${p.face}_neutral`);
 function avatar(id, size = 120) {
-  const p = PEOPLE[id];
+  const p = person(id);
   if (p && p.face) return `<img class="ava" style="width:${size}px;height:${size}px" src="${A('face/' + p.face + '_smile')}">`;
   return `<div class="ava temp" style="width:${size}px;height:${size}px;background:${p ? p.color : '#888'};font-size:${size * 0.42}px">${p ? p.mark : '?'}</div>`;
 }
@@ -123,7 +130,7 @@ const Talk = (() => {
     open();
     standBox.innerHTML = '';
     for (const [id, pos, pose] of list || []) {
-      const p = PEOPLE[id];
+      const p = person(id);
       if (!p || !p.stand) continue;
       const img = el('img', 'stand', null, standBox);
       img.src = (pose && A(`ch/${p.stand}_${pose}`)) || A('ch/' + p.stand);
@@ -146,12 +153,12 @@ const Talk = (() => {
   async function say(id, face, text, pose) {
     open();
     text = sub(text);
-    const p = PEOPLE[id];
+    const p = person(id);
     if (pose && p && p.stand) { const img = standBox.querySelector(`[data-who="${id}"]`); if (img) img.src = A(`ch/${p.stand}_${pose}`) || img.src; }
     for (const img of standBox.querySelectorAll('.stand')) img.classList.toggle('dark', img.dataset.who !== id);
     if (dlg) dlg.remove();
     let faceHtml = '';
-    if (p && p.face) faceHtml = `<img class="face" src="${A(`face/${p.face}_${face || 'neutral'}`) || A(`face/${p.face}_neutral`)}">`;
+    if (p && p.face) faceHtml = `<img class="face" src="${faceSrc(p, face)}">`;
     else if (p) faceHtml = `<div class="face temp" style="background:${p.color}">${p.mark}</div>`;
     const nm = id === 'me' ? sub('{name}') : (p ? p.name + (p.role ? ` <small>${p.role}</small>` : '') : '');
     dlg = el('div', 'dlg' + (faceHtml ? '' : ' noface') + (id === 'me' ? ' me' : ''), `${faceHtml}<div class="name">${nm}</div><div class="txt"></div><div class="more">▼</div>`, box);

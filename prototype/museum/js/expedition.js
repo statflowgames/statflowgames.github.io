@@ -28,10 +28,11 @@ const Expedition = (() => {
     panel = UI.panel('exp-panel', '🗺 원정 지도', () => { clearInterval(timer); panel = null; });
     el('div', 'teams', '', panel);
     const mapBox = el('div', 'mapbox', mapSvg(), panel);
+    mapBox.style.setProperty('--ship', `url(${new URL(A('item/ship_research'), location.href).href})`);
     el('div', 'ruincard', null, panel);
     for (const id of RUIN_ORDER) {
       const R = RUINS[id];
-      const m = el('div', 'rmark', `<i>${KIND[R.kind].icon}</i><span>${R.name}</span>`, mapBox);
+      const m = el('div', 'rmark', `<i>${kindIcon(R.kind)}</i><span>${R.name}</span>`, mapBox);
       const [ox, oy] = R.mo || [0, 0];
       m.style.left = (mx(R.lon) + ox) + 'px'; m.style.top = (my(R.lat) + oy) + 'px';
       m.dataset.ruin = id;
@@ -63,7 +64,7 @@ const Expedition = (() => {
     card.dataset.sel = sel; card.dataset.state = e ? (State.now() >= e.end ? 'back' : 'away') : 'idle';
     const chance = found >= R.relics.length ? 0 : (G.pity[sel] || 0) >= 2 ? 100 : 60;
     card.innerHTML = `<div class="thumb" style="background-image:url(${A('bg/ruin_' + sel)})"></div>
-      <div class="info"><b>${R.name}</b> <span class="kind k-${R.kind}">${KIND[R.kind].icon} ${KIND[R.kind].name}</span>
+      <div class="info"><b>${R.name}</b> <span class="kind k-${R.kind}">${kindIcon(R.kind)} ${KIND[R.kind].name}</span>
       <p>${R.text}</p>
       <div class="rel">${R.relics.map(r => G.relics[r] ? `<img src="${relicImg(r)}" title="${RELICS[r].name}">` : `<img class="unk" src="${relicImg(r)}">`).join('')}
       <span>${found}/${R.relics.length}</span></div>

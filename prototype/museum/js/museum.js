@@ -2,106 +2,62 @@
 'use strict';
 
 // 층 배치 (월드 좌표, 위 → 아래)
+// 방 그림(1536×1024)을 가로 720 으로 줄이면 높이 480 → 위 64px 를 잘라 380px 한 층 (천장 ~45 · 벽 · 바닥 300~376)
 const FLOORS = {
   roof: { y: 0, h: 170 },
-  next: { y: 170, h: 320 },
-  nanhaiB: { y: 490, h: 320 },
-  nanhaiA: { y: 810, h: 320 },
-  lobby: { y: 1130, h: 320 },
-  base: { y: 1450, h: 300 },
-  soil: { y: 1750, h: 80 },
+  next: { y: 170, h: 380 },
+  nanhaiB: { y: 550, h: 380 },
+  nanhaiA: { y: 930, h: 380 },
+  lobby: { y: 1310, h: 380 },
+  base: { y: 1690, h: 380 },
+  soil: { y: 2070, h: 80 },
 };
-const WORLD_H = 1830, TOP_PAD = 104, BOT_PAD = 138;
-const floorLine = f => FLOORS[f].y + FLOORS[f].h - 30;
+const WORLD_H = 2150, TOP_PAD = 104, BOT_PAD = 138;
+const floorLine = f => FLOORS[f].y + FLOORS[f].h - 40;
+const roomBg = (key, x = 0) => `background-image:url(${A('room/' + key)});background-position:${-x}px -64px`;
 
-// ---------- 관람객 그림 (임시 SVG SD) ----------
+// ---------- 관람객 그림: 2.5등신 관절 인형 (부위 그림 · assets/art.js 의 RIG) ----------
 const Look = (() => {
-  const SK = ['#f3d2b3', '#e8b98f', '#d19a6c', '#a86f48', '#7a4b2e', '#5a3620'];
-  const HAIR = ['#1d1612', '#3a2618', '#6b4426', '#a8743c', '#d8c3a0', '#8a8a8a'];
-  // 그룹별 4종
-  const TYPES = {
-    seasia: [
-      { skin: [2, 3], hair: [0], top: ['#b5532d', '#2b6e8a', '#7d5a2a'], pants: '#3a3a48', batik: true },
-      { skin: [2, 3], hijab: ['#e8a3b6', '#9dbfa4', '#e8c27a', '#7fa7d8'], top: ['#f1e6d0', '#d9c6e8'], dress: true },
-      { skin: [3, 4], hair: [5], songkok: true, top: ['#6b3a2a', '#2d5a4a'], batik: true, pants: '#2a2a2a', elder: true },
-      { skin: [2, 3], hair: [0], top: ['#f2c94c', '#f28d8d', '#8fd1c9'], dress: true, child: true },
-    ],
-    china: [
-      { skin: [0, 1], hair: [0, 1], top: ['#e6e1d6', '#f0b7a4', '#a7c4e0'], pants: '#4a4a5a', tote: true, long: true },
-      { skin: [0, 1], hair: [0], top: ['#3d6e9e', '#7a8a3a', '#c0392b'], pants: '#2b2b33', windbreaker: true },
-      { skin: [1], hair: [5], sunhat: true, top: ['#b8a9d9', '#e0a96d'], pants: '#5a4a4a', elder: true },
-      { skin: [0, 1], hair: [0], cap: ['#d64541', '#3a7bd5'], top: ['#ffd166', '#06d6a0'], pants: '#3a3a6a', child: true },
-    ],
-    world: [
-      { skin: [0, 2, 4], hair: [2, 3], sunhat: true, backpack: true, top: ['#7a9a5a', '#c97b3a'], pants: '#5a5040' },
-      { skin: [1, 4, 5], hair: [0, 1], curly: true, top: ['#d65db1', '#ff9671', '#4ecdc4'], pants: '#2f3e46', long: true },
-      { skin: [0, 3], hair: [5], glasses: true, top: ['#9d8189', '#6d8299'], pants: '#3d405b', elder: true },
-      { skin: [2, 4, 5], hair: [0], cap: ['#ef476f', '#118ab2'], top: ['#ffd166', '#ffffff'], pants: '#264653', child: true },
-    ],
-  };
-  const c = a => pick(a);
-  function make(group, typeIdx) {
-    const T = TYPES[group][typeIdx == null ? irand(0, 3) : typeIdx];
-    const o = {
-      skin: SK[c(T.skin)], hair: T.hair ? HAIR[c(T.hair)] : '#222', top: c(T.top), pants: T.pants || '#3a3a48',
-      T, child: !!T.child, elder: !!T.elder,
-      hijab: T.hijab ? c(T.hijab) : null, cap: T.cap ? c(T.cap) : null,
-    };
-    return { side: svg(o, false), back: svg(o, true), child: o.child, elder: o.elder };
+  // 손 소품 붙는 방식: up = 손 위로 (양산·깃발·풍선) · down = 손 아래로 (지팡이·가방) · 나머지 = 손에 쥠
+  const UP = [11, 20, 23], DOWN = [4, 7, 8, 9, 10, 19, 21];
+  const BOX_W = 72, BOX_H = 125;
+  function part(cls, src, x, y, w, h, ox, oy, extra) {
+    return `<div class="${cls}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;width:${w}px;height:${h}px;transform-origin:${ox.toFixed(1)}px ${oy.toFixed(1)}px"><img src="${src}">${extra || ''}</div>`;
   }
-  // 2.5등신 관절 인형: 머리(hd) · 눈(eyes) · 몸통(torso) · 앞팔(arF) · 뒷팔(arB) · 두 다리(lg1, lg2)
-  // 각 부위가 따로 움직여요 (CSS: 걷기 · 숨쉬기 · 깜빡임 · 감상 · 사진 · 박수 · 가리키기 · 생각 · 계단 · 울기 · 손 흔들기)
-  function svg(o, back) {
-    const T = o.T;
-    const leg = (cls, x) => {
-      if (T.dress && !o.child) return `<g class="lg ${cls}"><rect x="${x + 1}" y="78" width="7" height="14" rx="3" fill="${o.skin}"/><rect x="${x - 1}" y="89" width="11" height="6" rx="3" fill="#2a2420"/></g>`;
-      const c = T.dress ? o.skin : o.pants;
-      return `<g class="lg ${cls}"><rect x="${x}" y="68" width="8.5" height="23" rx="4" fill="${c}"/><rect x="${x - 2}" y="88" width="13" height="7" rx="3.5" fill="#2a2420"/></g>`;
-    };
-    const arm = (cls, x, shade) => `<g class="ar ${cls}"><rect x="${x}" y="45" width="8.5" height="23" rx="4.2" fill="${o.top}" ${shade ? 'filter="brightness(.8)" opacity=".92"' : ''}/>
-      <circle cx="${x + 4.2}" cy="68" r="4.3" fill="${o.skin}"/>
-      ${cls === 'arF' && !back ? `<g class="cam"><rect x="${x - 4}" y="64" width="15" height="10" rx="2" fill="#2d2d33"/><circle cx="${x + 9}" cy="69" r="3" fill="#8ab4d8"/></g>` : ''}
-      ${cls === 'arF' && o.elder && !o.child && !back ? `<path class="cane" d="M${x + 5} 67 L${x + 11} 95" stroke="#6b4a2a" stroke-width="3" stroke-linecap="round"/>` : ''}</g>`;
+  function build(who, back) {
+    const R = RIG[who], d = R.d;
+    const H = d[back ? 'hb' : 'hs'], T = d[back ? 'tb' : 'ts'], Ar = d.arm, L = d.leg;
+    const src = k => A(`vis/${who}_${k}`);
+    const ty = H.h * 0.9, tx = BOX_W / 2 - T.top;
+    const legY = ty + T.h - L.h * 0.14, armY = ty + T.h * 0.1 - Ar.h * 0.04;
+    const total = legY + L.h, top = BOX_H - 4 - total;
+    const hx = tx + T.top - H.bot, legX = tx + T.bot - L.top, armX = tx + T.sh - Ar.top;
+    // 손 소품 · 카메라
+    let prop = '', cam = '';
+    if (R.prop && !back) {
+      const pm = MAN['vis/prop' + R.prop], pw = pm.w / 2, ph = pm.h / 2;
+      const py = UP.includes(R.prop) ? Ar.h - ph + 4 : DOWN.includes(R.prop) ? Ar.h - 8 : Ar.h - ph * 0.6;
+      prop = `<img class="prop" src="${A('vis/prop' + R.prop)}" style="left:${(Ar.bot - pw / 2).toFixed(1)}px;top:${py.toFixed(1)}px;width:${pw}px;height:${ph}px">`;
+    }
+    if (!back) { const cm = MAN['vis/prop1']; cam = `<img class="cam" src="${A('vis/prop1')}" style="left:${(Ar.bot - cm.w / 4).toFixed(1)}px;top:${(Ar.h - cm.h / 4).toFixed(1)}px;width:${cm.w / 2}px;height:${cm.h / 2}px">`; }
     let s = '';
-    // 뒤쪽 부위
-    if (T.backpack) s += `<rect class="pack" x="${back ? 17 : 5}" y="43" width="${back ? 26 : 14}" height="27" rx="5" fill="#8a5a2a"/>`;
-    s += back ? arm('arB', 8, false) : arm('arB', 25, true);
-    s += leg('lg2', back ? 31 : 31) + leg('lg1', back ? 21 : 22);
-    // 몸통
-    let tor = '';
-    if (T.dress) tor += `<path d="M17 44 Q30 38 43 44 L48 ${o.child ? 78 : 82} Q30 ${o.child ? 84 : 88} 12 ${o.child ? 78 : 82} Z" fill="${o.top}"/>`;
-    else tor += `<rect x="15" y="42" width="30" height="${T.windbreaker ? 32 : 30}" rx="10" fill="${o.top}"/>`;
-    if (T.batik) tor += `<path d="M18 50 h24 M18 58 h24 M18 66 h24" stroke="rgba(255,240,200,.55)" stroke-width="2.5" stroke-dasharray="3 3"/>`;
-    if (T.windbreaker) tor += `<path d="M30 44 v28" stroke="rgba(255,255,255,.6)" stroke-width="2"/>`;
-    if (T.tote && !back) tor += `<path d="M8 56 h11 v13 h-11 Z" fill="#e8d9b8" stroke="#a08a60"/><path d="M10 56 q3.5 -8 7 0" stroke="#a08a60" fill="none"/>`;
-    s += `<g class="torso">${tor}</g>`;
-    // 머리
-    let hd = '';
-    if (T.long && !o.hijab) hd += `<path d="M10 24 Q7 50 18 54 L30 46 Z" fill="${o.hair}"/>`;
-    if (o.hijab) {
-      hd += `<ellipse cx="30" cy="28" rx="21" ry="23" fill="${o.hijab}"/><path d="M12 36 Q30 56 48 36 L46 48 Q30 56 14 48 Z" fill="${o.hijab}"/>`;
-      if (!back) hd += `<ellipse cx="34" cy="28" rx="13" ry="14" fill="${o.skin}"/>`;
-    } else {
-      hd += `<circle cx="29" cy="25" r="20" fill="${o.hair}"/>`;
-      if (T.curly) hd += `<circle cx="14" cy="18" r="8" fill="${o.hair}"/><circle cx="20" cy="8" r="8" fill="${o.hair}"/><circle cx="32" cy="6" r="8" fill="${o.hair}"/><circle cx="12" cy="30" r="7" fill="${o.hair}"/>`;
-      if (!back) {
-        hd += `<circle cx="32" cy="28" r="17" fill="${o.skin}"/>`;
-        hd += `<path d="M14 24 Q20 6 40 10 Q48 14 49 22 Q40 16 30 18 Q22 19 18 28 Z" fill="${o.hair}"/>`;
-      }
+    s += part('ar arB', src('arm'), armX + (back ? -3 : 3), armY, Ar.w, Ar.h, Ar.top, Ar.h * 0.05);
+    s += part('lg lg2', src('leg'), legX + 3, legY, L.w, L.h, L.top, 2);
+    s += part('lg lg1', src('leg'), legX - 3, legY, L.w, L.h, L.top, 2);
+    s += part('torso', src(back ? 'tb' : 'ts'), tx, ty, T.w, T.h, T.bot, T.h);
+    s += part('hd', src(back ? 'hb' : 'hs'), hx, 0, H.w, H.h, H.bot, H.h * 0.95, back ? '' : `<i class="tear" style="left:${(H.w * 0.72).toFixed(0)}px;top:${(H.h * 0.55).toFixed(0)}px"></i>`);
+    s += part('ar arF', src('arm'), armX + (back ? 3 : -3), armY, Ar.w, Ar.h, Ar.top, Ar.h * 0.05, prop + cam);
+    return `<div class="rig" style="top:${top.toFixed(1)}px;height:${total.toFixed(1)}px;transform-origin:${BOX_W / 2}px ${total.toFixed(1)}px">${s}</div>`;
+  }
+  // group: seasia · china · world · special / type: 0 어른 · 1 어른 · 2 어르신 · 3 아이 / who: 특정 인물 (예 special_1_3)
+  function make(group, type, who) {
+    if (!who) {
+      let pool = RIG[group] || RIG.world;
+      if (type != null) pool = pool.filter(w => w.endsWith('_' + type));
+      who = pick(pool);
     }
-    if (!back) {
-      hd += `<g class="eyes"><circle cx="36" cy="29" r="2.4" fill="#2a1a10"/><circle cx="44" cy="29" r="2.4" fill="#2a1a10"/></g>`;
-      hd += `<ellipse cx="46" cy="35" rx="3.2" ry="2" fill="#f08a7a" opacity=".55"/><path class="mouth" d="M38 36 q3 3 6 0" stroke="#7a3a2a" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
-      hd += `<g class="tear"><path d="M45 32 q-2 5 0 7 q2 -2 0 -7" fill="#7cc4f0"/></g>`;
-      if (T.glasses) hd += `<circle cx="36" cy="29" r="4.5" fill="none" stroke="#333" stroke-width="1.4"/><circle cx="45" cy="29" r="4.5" fill="none" stroke="#333" stroke-width="1.4"/>`;
-    }
-    if (T.songkok) hd += `<rect x="14" y="2" width="30" height="12" rx="2" fill="#1a1a1a"/>`;
-    if (T.sunhat) hd += `<ellipse cx="30" cy="11" rx="27" ry="6" fill="#e8d29a"/><ellipse cx="30" cy="7" rx="14" ry="9" fill="#e8d29a"/><rect x="16" y="8" width="28" height="3" fill="#c0392b"/>`;
-    if (o.cap) hd += `<path d="M11 16 Q30 -4 47 16 Z" fill="${o.cap}"/>${back ? '' : `<path d="M44 15 h12 q2 3 -2 4 h-12 Z" fill="${o.cap}"/>`}`;
-    s += `<g class="hd">${hd}</g>`;
-    s += back ? arm('arF', 43, false) : arm('arF', 36, false);
-    const sc = o.child ? 0.72 : (o.elder ? 0.95 : 1);
-    return `<svg viewBox="0 -6 60 104" width="72" height="125"><g transform="translate(${30 - 30 * sc} ${98 - 98 * sc}) scale(${sc})"><g class="rig">${s}</g></g></svg>`;
+    const R = RIG[who];
+    return { who, side: build(who, false), back: build(who, true), child: R.kid, elder: R.elder, cane: R.prop === 4 };
   }
   return { make };
 })();
@@ -134,9 +90,9 @@ const Visitors = (() => {
   function spawn(opts = {}) {
     if (list.length >= 22 && !opts.force) return null;
     const group = opts.group || pick(['seasia', 'seasia', 'china', 'world']);
-    const look = Look.make(group, opts.type);
+    const look = Look.make(group, opts.type, opts.who);
     const v = { id: ++seq, group, look, f: 'lobby', x: -30, y: floorLine('lobby') + rand(2, 12), dir: 1, act: null, t: 0, opts };
-    v.el = el('div', 'vis p-walk' + (look.child ? ' kid' : '') + (look.elder ? ' elder' : ''), `<div class="body">${look.side}</div>`, layer);
+    v.el = el('div', 'vis p-walk' + (look.child ? ' kid' : '') + (look.elder ? ' elder' : '') + (look.cane ? ' cane' : ''), `<div class="body">${look.side}</div>`, layer);
     v.pose = 'walk';
     v.el.style.zIndex = Math.round(v.y);
     if (opts.wish) { v.wish = opts.wish; v.mark = el('div', 'vmark wish', '!', v.el); }
@@ -174,8 +130,11 @@ const Visitors = (() => {
     v.back = back;
     v.el.firstChild.innerHTML = back ? v.look.back : v.look.side;
   }
+  // 말풍선: 아는 이모지는 새 말풍선 아이콘 그림으로
+  const BUB = { '❤️': 'heart', '✨': 'sparkle', '📷': 'camera', '💭': 'book', '💧': 'tear', '😊': 'thumb', '🙂': 'thumb', '👋': 'thumb', '😆': 'thumb', '🥰': 'heart', '❓': 'question', '🪙': 'coin' };
   function bubble(v, emo, cls) {
-    const b = el('div', 'vbub ' + (cls || ''), emo, v.el);
+    const ic = BUB[emo];
+    const b = el('div', 'vbub ' + (cls || '') + (ic ? ' icon' : ''), ic ? `<img src="${A('icon/bub_' + ic)}">` : emo, v.el);
     setTimeout(() => b.remove(), 1700);
   }
 
@@ -283,26 +242,32 @@ const Museum = (() => {
     M.scrollTo('lobby', true);
   }
 
+  // 직원 SD 2프레임 (A ↔ B)
+  function staffSd(who, col, cls) {
+    return `<div class="sdwork ${cls}"><img class="fa" src="${A(`sd/${who}_w${col}A`)}"><img class="fb" src="${A(`sd/${who}_w${col}B`)}"></div>`;
+  }
   function drawStatic() {
     // 지붕
     floorsEl.roof.innerHTML = `<div class="sky" style="background-image:url(${A('bg/sky_day')})"></div>
       <div class="gulls" style="background-image:url(${A('fx/gulls')})"></div>
+      <img class="roofpart" src="${A('frame/roof_flat')}">
       <div class="roofline"></div><div class="sign"><small>MONSOON MARITIME MUSEUM</small>몬순 해양 박물관<div class="stars"></div></div>`;
-    floorsEl.next.innerHTML = `<div class="wall locked"><div class="lockmsg">🚧 <b>실론·벵골만관</b><br>다음 업데이트에서 열려요</div></div><div class="slab"></div>`;
-    floorsEl.soil.innerHTML = '<div class="soilband"></div>';
-    // 지하
+    floorsEl.next.innerHTML = `<div class="wall roomwall locked" style="${roomBg('hall_ceylon')}"><img class="scaffold" src="${A('frame/scaffold')}"><div class="lockmsg">🚧 <b>실론·벵골만관</b><br>다음 업데이트에서 열려요</div></div><div class="slab"></div>`;
+    floorsEl.soil.innerHTML = `<div class="soilband" style="background-image:url(${A('frame/soil')})"></div>`;
+    // 지하: 수장고 + 보존처리실
     floorsEl.base.innerHTML = `<div class="wall basewall">
-        <div class="room storage" data-go="storage"><div class="shelves"></div><div class="rname">🗄 수장고</div><div class="badge" id="bStore"></div></div>
-        <div class="room lab" data-go="lab"><div class="labtable"></div><div class="kenji">${avatar('kenji', 70)}</div><div class="rname">🔬 보존처리실</div><div class="badge" id="bLab"></div><div class="labq" id="labq"></div></div>
+        <div class="room storage" data-go="storage" style="${roomBg('room_storage', 0)}"><div class="rname">🗄 수장고</div><div class="badge" id="bStore"></div></div>
+        <div class="room lab" data-go="lab" style="${roomBg('room_conservation', 250)}">${staffSd('kenji', 2, 'kenji')}<div class="rname">🔬 보존처리실</div><div class="badge" id="bLab"></div><div class="labq" id="labq"></div></div>
       </div><div class="slab"></div>`;
     floorsEl.base.querySelector('.storage').onclick = () => { if (!M.dragged) Store.open(); };
     floorsEl.base.querySelector('.lab').onclick = () => { if (!M.dragged) Store.open('raw'); };
   }
 
   function hallWall(f) {
-    if (f === 'lobby') return `<div class="wall lobbywall"><div class="waveband"></div><div class="door"></div><div class="counter"><div class="cman">${avatar('aisha', 46)}</div></div><div class="spotcone"></div><div class="stairs r"></div></div>`;
-    if (f === 'nanhaiA') return `<div class="wall hallwall"><div class="mural" style="background-image:url(${A('bg/bg_port_palembang')})"></div><div class="hallname">남해관 <small>남해·말라카</small></div><div class="stairs r"></div><div class="stairs l"></div></div>`;
-    if (f === 'nanhaiB') return `<div class="wall hallwall b"><div class="mural" style="background-image:url(${A('bg/bg_market_nanhai')})"></div><div class="hallname">남해관 2 <small>바다 시장</small></div><div class="stairs l"></div></div>`;
+    if (f === 'lobby') return `<div class="wall roomwall" style="${roomBg('room_lobby')}"><div class="lbanner">몬순 해양 박물관<small>MONSOON MARITIME MUSEUM</small></div>
+      ${staffSd('aisha', 2, 'aisha')}<div class="counterfront" style="${roomBg('room_lobby')}"></div><div class="spotcone"></div><img class="stairimg r" src="${A('frame/stair')}"></div>`;
+    if (f === 'nanhaiA') return `<div class="wall roomwall" style="${roomBg('hall_nanhai')}"><div class="hallname">남해관 <small>남해·말라카</small></div><img class="stairimg l" src="${A('frame/stair')}"></div>`;
+    if (f === 'nanhaiB') return `<div class="wall roomwall" style="${roomBg('hall_daily_life')}"><div class="hallname">남해관 2 <small>바다 시장</small></div></div>`;
   }
 
   function render() {
@@ -310,7 +275,7 @@ const Museum = (() => {
       const fe = floorsEl[f];
       const locked = (f === 'nanhaiA' && G.story < 1) || (f === 'nanhaiB' && !G.hallB);
       if (locked) {
-        fe.innerHTML = `<div class="wall locked"><div class="lockmsg">${f === 'nanhaiA' ? '🚧 <b>남해관</b><br>개관식 뒤에 열려요' : `🚧 <b>남해관 2</b> 확장 공사<br><button class="btn small" id="buyB">💰 ${HALLS.nanhaiB.cost} 으로 열기</button>`}</div></div><div class="slab"></div>`;
+        fe.innerHTML = `<div class="wall roomwall locked" style="${roomBg(f === 'nanhaiA' ? 'hall_nanhai' : 'hall_daily_life')}"><img class="scaffold" src="${A('frame/scaffold')}"><div class="lockmsg">${f === 'nanhaiA' ? '🚧 <b>남해관</b><br>개관식 뒤에 열려요' : `🚧 <b>남해관 2</b> 확장 공사<br><button class="btn small" id="buyB">💰 ${HALLS.nanhaiB.cost} 으로 열기</button>`}</div></div><div class="slab"></div>`;
         const b = fe.querySelector('#buyB');
         if (b) b.onclick = e => { e.stopPropagation(); buyHallB(); };
         continue;
@@ -325,10 +290,9 @@ const Museum = (() => {
         const d = el('div', `slot ${s.t} t${tier} ${r ? 'full ' + RAR[r.rar].cls : 'empty'}`, null, box);
         d.style.left = s.x + 'px';
         d.dataset.slot = s.id;
-        const img = r ? `<img src="${relicImg(st.relic)}">` : '<span class="plus">+</span>';
-        if (s.t === 'wall') d.innerHTML = `<div class="frame">${img}</div>`;
-        else if (s.t === 'spot') d.innerHTML = `<div class="spotlabel">오늘의 보물</div><div class="glass">${img}</div><div class="plinth"></div>`;
-        else d.innerHTML = `<div class="glass">${img}</div><div class="plinth"></div>`;
+        const img = r ? `<img class="relic" src="${relicImg(st.relic)}">` : '<span class="plus">+</span>';
+        const kind = { case: 1, wall: 2, spot: 3 }[s.t];
+        d.innerHTML = (s.t === 'spot' ? '<div class="spotlabel">오늘의 보물</div>' : '') + `<img class="cimg" src="${A(`furn/case${kind}_t${tier}`)}"><div class="rbox">${img}</div>`;
         if (r && G.sets[r.ruin]) el('div', 'medal', '🏅', d);
         if (r && Wishes.wanted(st.relic)) el('div', 'wishflag', '💌', d);
         d.onclick = e => { if (M.dragged) return; e.stopPropagation(); Store.slotTap(s.id, f); };
@@ -337,7 +301,7 @@ const Museum = (() => {
         if (r && nx && G.slots[nx.id] && G.slots[nx.id].relic && RELICS[G.slots[nx.id].relic].ruin === r.ruin) {
           const ln = el('div', 'link', '<span>이야기 잇기 ✨</span>', box);
           ln.style.left = s.x + 'px'; ln.style.width = (nx.x - s.x) + 'px';
-          ln.style.top = (s.t === 'wall' || nx.t === 'wall' ? 92 : 112) + 'px';
+          ln.style.top = '322px';
         }
       });
     }
@@ -381,7 +345,7 @@ const Museum = (() => {
 
   function dropCoin(f, x, n) {
     const y = floorLine(f) + rand(4, 14);
-    const c = el('div', 'coindrop', `<img src="${A('icon/dinar')}">`, M.inner);
+    const c = el('div', 'coindrop', `<img src="${A('icon/m_coin')}">`, M.inner);
     c.style.left = (x - 20) + 'px'; c.style.top = (y - 40) + 'px'; c.style.zIndex = 5000;
     let got = false;
     const take = (tapped) => {
@@ -435,11 +399,11 @@ const HUD = (() => {
   function build() {
     const L = UI.L.hud; L.innerHTML = '';
     h = el('div', 'hud', `
-      <div class="money"><img src="${A('icon/dinar')}"><b id="hCoins">0</b></div>
+      <div class="money"><img src="${A('icon/m_coin')}"><b id="hCoins">0</b></div>
       <div class="fame"><div class="rk" id="hRank"></div><div class="bar"><i id="hFame"></i></div><div class="ft" id="hFameT"></div></div>
-      <div class="vis">👥 <b id="hVis">0</b></div>
+      <div class="vis"><img src="${A('icon/m_visitor')}"><b id="hVis">0</b></div>
       <button class="ib goal" id="hGoal">🎯<span class="dot" id="hGoalDot"></span></button>
-      <button class="ib" id="hMenu">⚙</button>`, L);
+      <button class="ib" id="hMenu"><img src="${A('icon/m_settings')}"></button>`, L);
     h.querySelector('#hGoal').onclick = () => { SFX.play('click'); Goals.open(); };
     h.querySelector('#hMenu').onclick = () => { SFX.play('click'); Menu.open(); };
     tabs = el('div', 'tabs', null, L);
@@ -447,10 +411,10 @@ const HUD = (() => {
       const b = el('button', 'tab', `<img src="${A('icon/' + icon)}"><span>${label}</span><i class="tdot" id="t_${id}"></i>`, tabs);
       b.onclick = () => { SFX.play('click'); fn(); };
     };
-    tab('exp', 'map', '원정', () => Expedition.open());
-    tab('store', 'ledger', '수장고', () => Store.open());
-    tab('codex', 'codex', '도감', () => Codex.open());
-    tab('wish', 'inn', '소원 수첩', () => Wishes.openBook());
+    tab('exp', 'm_map', '원정', () => Expedition.open());
+    tab('store', 'm_storage', '수장고', () => Store.open());
+    tab('codex', 'm_codex', '도감', () => Codex.open());
+    tab('wish', 'm_gift', '소원 수첩', () => Wishes.openBook());
     update(true); goalBadge();
   }
   function update(force) {

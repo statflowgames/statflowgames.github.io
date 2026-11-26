@@ -8,11 +8,11 @@ const Game = (() => {
     const sc = document.getElementById('scene'); sc.innerHTML = '';
     UI.L.hud.innerHTML = '';
     const t = el('div', 'titlescr', `
-      <div class="tbg" style="background-image:url(${A('bg/cg_e_museum')})"></div>
+      <div class="tbg" style="background-image:url(${A('bg/title_museum')})"></div>
       <div class="tshade"></div>
       <div class="tlogo"><img src="${A('ui/title_emblem')}"><div class="t1">몬순 박물관</div><div class="t2">바다의 비단길 보물전</div><div class="t3">MONSOON Museum · Treasures of the Sea Silk Road</div></div>
       <div class="tbtns"></div>
-      <div class="tnote">체험판 M0 · 남해관 · 현대 인물과 박물관 그림은 임시예요</div>`, sc);
+      <div class="tnote">체험판 M0 · 서장 + 남해관</div>`, sc);
     const b = t.querySelector('.tbtns');
     if (State.hasSave()) btn('이어하기', '', () => { SFX.unlock(); State.load(); start(); }, b);
     btn(State.hasSave() ? '처음부터' : '시작하기', State.hasSave() ? 'paper' : '', () => { SFX.unlock(); State.wipe(); State.newGame(); start(); }, b);

@@ -169,7 +169,7 @@ const Codex = {
     const body = el('div', 'codexbody', null, p);
     for (const ruin of RUIN_ORDER) {
       const R = RUINS[ruin];
-      const sec = el('div', 'csec', `<h3>${G.sets[ruin] ? '🏅 ' : ''}${R.name} <small>${KIND[R.kind].icon} ${KIND[R.kind].name}</small></h3>`, body);
+      const sec = el('div', 'csec', `<h3>${G.sets[ruin] ? '🏅 ' : ''}${R.name} <small>${kindIcon(R.kind)} ${KIND[R.kind].name}</small></h3>`, body);
       const row = el('div', 'crow', null, sec);
       for (const r of R.relics) {
         const own = G.relics[r];
@@ -207,6 +207,7 @@ const Conserve = (() => {
   function puzzle(r) {
     return new Promise(res => {
       const { p, area } = frame('🧩 조각 맞추기', '깨진 조각을 끌어서 제자리에 맞추세요');
+      area.classList.add('bench'); area.style.backgroundImage = `url(${A('bg/mg_conservation_bench')})`;
       const W = 380, H = 300, ox = (area.clientWidth || 600) / 2 - W / 2, oy = 70;
       const ghost = el('img', 'pzghost', null, area);
       ghost.src = relicImg(r); Object.assign(ghost.style, { left: ox + 'px', top: oy + 'px', width: W + 'px', height: H + 'px' });
@@ -262,6 +263,8 @@ const Conserve = (() => {
       const { p, area } = frame('🖐 ' + o.title, o.help);
       const S = 400;
       const box = el('div', 'scbox ' + type, `<img src="${relicImg(r)}">`, area);
+      const tools = { clean: [4, 5], rub: [2, 3], sketch: [4, 1] }[type] || [4, 5];
+      el('div', 'mgtools', tools.map(n => `<img src="${A('mg/tool' + n)}">`).join(''), area);
       const cv = el('canvas', 'sccv', null, box); cv.width = S; cv.height = S;
       paintCover(cv, type === 'clean' ? 'dirt' : type === 'rub' ? 'paper' : 'sketch');
       let fin = false;
@@ -276,7 +279,7 @@ const Conserve = (() => {
   function desalt(r) {
     return new Promise(res => {
       const { p, area } = frame('💧 소금기 빼기', '소금 눈금이 초록 칸에 오면 「물 갈기」! 세 번 성공하면 끝나요');
-      el('div', 'tank', `<div class="water"></div><img src="${relicImg(r)}"><div class="bub"></div>`, area);
+      el('div', 'tank', `<div class="water"></div><img src="${relicImg(r)}"><div class="bub"></div>`, area).style.backgroundImage = `url(${A('bg/mg_desalination_tank')})`;
       const meter = el('div', 'meter', '<div class="zone"></div><div class="lvl"></div>', area);
       const info = el('div', 'mginfo', '성공 0 / 3', area);
       const lvl = meter.querySelector('.lvl');

@@ -20,11 +20,17 @@ const Story = (() => {
       Talk.bg('bg/cg_open_bowl', true);
       await Talk.n('그중 한 그릇 바닥에는 날짜가 적혀 있었다. 보력 2년 — 서기 826년.');
       await Talk.title('그리고 지금', '몬순 해양 박물관');
-      Talk.bg(null);
-      await Talk.say('aisha', null, '어서 오세요. 새 관장님이시죠? 저는 수석 큐레이터 아이샤예요.');
+      Talk.bg('bg/ext_museum_1', true);
+      await Talk.n('항구 끝, 칠이 벗겨진 작은 건물. 할머니가 평생 지킨 박물관이다.');
+      Talk.bg('room/room_lobby');
+      Talk.stand([['aisha', 'c']]);
+      await Talk.say('aisha', 'smile', '어서 오세요. 새 관장님이시죠? 저는 수석 큐레이터 아이샤예요.');
+      await Talk.say('aisha', null, '어떤 분이 오실지 몰라서요. 관장님은…');
+      G.dir = (await Talk.choice(['🙋‍♂️ 남자 관장이에요', '🙋‍♀️ 여자 관장이에요'])) ? 'f' : 'm';
+      Talk.stand([['me', 'l'], ['aisha', 'r']]);
       G.name = await Talk.input('관장님 이름을 알려 주세요', '관장');
-      await Talk.say('aisha', null, '{name} 관장님. 솔직히 말할게요. 이번 달 안에 관람객이 오지 않으면, 이 박물관은 문을 닫아요.');
-      await Talk.say('me', null, '…할머니가 평생 지키신 곳인데.');
+      await Talk.say('aisha', 'worried', '{name} 관장님. 솔직히 말할게요. 이번 달 안에 관람객이 오지 않으면, 이 박물관은 문을 닫아요.');
+      await Talk.say('me', 'worried', '…할머니가 평생 지키신 곳인데.');
       await Talk.say('aisha', null, '그래서 보여 드릴 게 있어요. 지하 수장고에 1998년 바다에서 건진 상자가 있어요. 돈이 없어 한 번도 제대로 열지 못했죠.');
       Talk.end();
       G.crate = true;
@@ -35,11 +41,13 @@ const Story = (() => {
       pointAt('.room.storage', '수장고를 눌러 보세요');
       await S.waitFor('crateDone');
       UI.unpoint();
-      Talk.bg(null);
-      await Talk.say('aisha', null, '새 그림 장사요 그릇이에요! 당나라 후난에서 구워 바다 건너로 팔던 그릇이죠.');
-      await Talk.say('aisha', null, '그런데 관장님, 바닥을 보세요. …작은 표식이 새겨져 있어요. 다른 그릇엔 없는 거예요.');
-      await Talk.say('me', null, '누가, 왜 이걸 새겼을까?');
-      await Talk.say('kenji', null, '안녕하세요, 보존과학자 켄지예요. 소금기는 1998년에 이미 뺐어요. 깨진 조각만 맞추면 돼요.');
+      Talk.bg('bg/cg_m_storage', true);
+      await Talk.say('aisha', 'surprised', '새 그림 장사요 그릇이에요! 당나라 후난에서 구워 바다 건너로 팔던 그릇이죠.');
+      await Talk.say('aisha', 'thinking', '그런데 관장님, 바닥을 보세요. …작은 표식이 새겨져 있어요. 다른 그릇엔 없는 거예요.');
+      await Talk.say('me', 'thinking', '누가, 왜 이걸 새겼을까?');
+      Talk.bg('room/room_conservation');
+      Talk.stand([['kenji', 'c']]);
+      await Talk.say('kenji', 'smile', '안녕하세요, 보존과학자 켄지예요. 소금기는 1998년에 이미 뺐어요. 깨진 조각만 맞추면 돼요.');
       Talk.end();
     },
     async function restore() {
@@ -60,17 +68,25 @@ const Story = (() => {
       await S.flash('prologue');
     },
     async function firstVisitors() {
-      Talk.bg(null);
-      await Talk.say('aisha', null, '…이 그릇이 그 배에 실려 있었다니. 관장님, 문을 열어요. 오늘부터 다시!');
+      Talk.bg('room/room_lobby');
+      Talk.stand([['aisha', 'c']]);
+      await Talk.say('aisha', 'moved', '…이 그릇이 그 배에 실려 있었다니. 관장님, 문을 열어요. 오늘부터 다시!');
       Talk.end();
       Museum.scrollTo('lobby');
       for (let i = 0; i < 3; i++) setTimeout(() => Visitors.spawn({ group: 'seasia', type: [0, 1, 3][i] }), i * 900);
       await S.waitFor('heart');
       await wait(1200);
-      Talk.bg(null);
-      await Talk.say('aisha', null, '봤어요? 하트! 첫 관람객이에요. 관람객이 감동하면 명성이 오르고, 가끔 후원 동전을 떨어뜨려요. 동전은 눌러서 주워요!');
-      await Talk.say('maya', null, '안녕하세요, 잠수 팀장 마야예요. 남해 바다라면 제가 제일 잘 알아요. 저희 할아버지가 1998년에 그 배를 처음 본 어부였거든요.');
-      await Talk.say('maya', null, '유물이 그릇 하나뿐이면 심심하잖아요. 원정대를 꾸려서 다른 유적도 조사해 봐요!');
+      Talk.bg('room/room_lobby');
+      Talk.stand([['aisha', 'c']]);
+      await Talk.say('aisha', 'smile', '봤어요? 하트! 첫 관람객이에요. 관람객이 감동하면 명성이 오르고, 가끔 후원 동전을 떨어뜨려요. 동전은 눌러서 주워요!');
+      Talk.stand([['aisha', 'l'], ['maya', 'r']]);
+      await Talk.say('maya', 'smile', '안녕하세요, 잠수 팀장 마야예요. 남해 바다라면 제가 제일 잘 알아요.');
+      Talk.stand([]);
+      Talk.bg('bg/cg_m_photo', true);
+      await Talk.say('maya', 'moved', '이 사진 보세요. 저희 할아버지예요. 1998년에 그 배를 처음 본 어부였거든요.');
+      Talk.bg('room/room_lobby');
+      Talk.stand([['maya', 'c']]);
+      await Talk.say('maya', 'proud', '유물이 그릇 하나뿐이면 심심하잖아요. 원정대를 꾸려서 다른 유적도 조사해 봐요!');
       Talk.end();
     },
     async function firstExp() {
@@ -80,8 +96,9 @@ const Story = (() => {
       UI.closePanel();
     },
     async function opening() {
-      Talk.bg('bg/cg_e_museum', true);
-      await Talk.say('aisha', null, '원정대가 돌아오는 동안 개관식을 해요. 관장님, 한 말씀!');
+      Talk.bg('bg/cg_m_opening', true);
+      await Talk.say('aisha', 'smile', '원정대가 돌아오는 동안 개관식을 해요. 관장님, 한 말씀!');
+      await Talk.say('me', 'proud', '할머니, 보고 계세요? 몬순 해양 박물관, 오늘 다시 문을 엽니다!');
       await Talk.title('★ 1성', '몬순 해양 박물관, 다시 문을 엽니다');
       Talk.end();
       G.story = 1; G.rank = 1;
@@ -91,8 +108,9 @@ const Story = (() => {
       await wait(1500);
       Museum.scrollTo('nanhaiA');
       await wait(900);
-      Talk.bg(null);
-      await Talk.say('aisha', null, '이제부터가 진짜예요. 원정으로 유물을 찾고, 보존처리하고, 남해관을 채워요. 같은 유적 유물을 나란히 놓으면 「이야기 잇기」 보너스!');
+      Talk.bg('room/hall_nanhai');
+      Talk.stand([['aisha', 'c']]);
+      await Talk.say('aisha', 'proud', '이제부터가 진짜예요. 원정으로 유물을 찾고, 보존처리하고, 남해관을 채워요. 같은 유적 유물을 나란히 놓으면 「이야기 잇기」 보너스!');
       await Talk.say('aisha', null, '머리 위에 「!」가 뜬 관람객은 소원이 있어요. 들어주면 큰 보상이 있고요. 오른쪽 위 🎯에는 오늘의 목표가 있어요.');
       await Talk.say('aisha', null, '목표는 ★★ 2성 — 「동네의 자랑」! 명성 150, 유물 10점 전시, 유적 세트 2개예요.');
       Talk.end();
@@ -205,10 +223,11 @@ const Story = (() => {
         G.rank = 2; G.story = 2;
         SFX.play('fanfare'); UI.confetti(120);
         await Talk.title('명성 등급 상승', '★★ 동네의 자랑');
-        Talk.bg('bg/cg_e_museum', true);
-        await Talk.say('aisha', null, '관장님, 해냈어요! 이제 문 닫을 걱정은 없어요. 입장료도 올렸어요.');
-        await Talk.say('maya', null, '할아버지가 보셨으면 좋아하셨을 거예요. 다음엔 더 먼 바다로 가요!');
-        await Talk.say('aisha', null, '다음은 실론·벵골만관이에요. — 체험판(M0)은 여기까지예요. 계속 놀면서 도감 16점을 다 채워 보세요!');
+        Talk.bg('bg/ext_museum_2', true);
+        Talk.stand([['aisha', 'l'], ['maya', 'r']]);
+        await Talk.say('aisha', 'proud', '관장님, 해냈어요! 이제 문 닫을 걱정은 없어요. 입장료도 올렸어요.');
+        await Talk.say('maya', 'moved', '할아버지가 보셨으면 좋아하셨을 거예요. 다음엔 더 먼 바다로 가요!');
+        await Talk.say('aisha', 'smile', '다음은 실론·벵골만관이에요. — 체험판(M0)은 여기까지예요. 계속 놀면서 도감 16점을 다 채워 보세요!');
         Talk.end();
         Museum.render(); HUD.update(true); State.save();
       });
