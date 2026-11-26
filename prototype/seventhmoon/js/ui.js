@@ -20,7 +20,9 @@ const UI = {
     const skin = this.oldUi() ? null : this.panelSkin(w, h, o), key = skin && 'uiset/' + skin;
     if (key && sc.textures.exists(key)) {
       const S = skin === 'frame' ? 42 : 34, c = sc.add.container(0, 0);
-      const ns = sc.add.nineslice(x + w / 2, y + h / 2, key, undefined, Math.max(w, S * 2 + 2), Math.max(h, S * 2 + 2), S, S, S, S).setDisplaySize(w, h);
+      // ✏️ 2026-11-26 낮은 줄(목록 한 줄 등)은 테두리를 반쯤 얇게 — 두꺼운 테두리가 아래 글줄을 가로질렀다
+      const tk = skin === 'inner' && Math.min(w, h) < 100 ? 0.55 : 1;
+      const ns = sc.add.nineslice(x + w / 2, y + h / 2, key, undefined, Math.max(w / tk, S * 2 + 2), Math.max(h / tk, S * 2 + 2), S, S, S, S).setDisplaySize(w, h);
       if (skin === 'inner' && (o.alpha ?? 0.9) < 0.8) ns.setAlpha(0.92);
       const line = o.line;
       if (line === 0x5a4a38 || line === 0x4a3a30 || line === 0x4a3a2a) ns.setTint(0x8a8080);   // 잠김·못 고름
@@ -31,12 +33,14 @@ const UI = {
         c.add(g);
       }
       if (o.crest && sc.textures.exists('uiset/crest')) { const cr = sc.add.image(x + w / 2, y + 6, 'uiset/crest'); cr.setScale(Math.min(260, w * 0.45) / cr.width); c.add(cr); }
+      c.panelRect = { x, y, w, h, pad: skin === 'frame' ? 22 : Math.round(14 * tk) };   // 🆕 2026-11-26 글자 넘침 검사(tools/ui_audit.js)용
       return c;
     }
     const g = sc.add.graphics();
     g.fillStyle(o.fill ?? 0x1a0f08, o.alpha ?? 0.9).fillRoundedRect(x, y, w, h, o.r ?? 14);
     g.lineStyle(o.lw ?? 3, o.line ?? 0xc99a3c, 1).strokeRoundedRect(x, y, w, h, o.r ?? 14);
     if (o.inner !== false) g.lineStyle(1, 0x5a3a18, 1).strokeRoundedRect(x + 5, y + 5, w - 10, h - 10, Math.max(4, (o.r ?? 14) - 4));
+    g.panelRect = { x, y, w, h, pad: 4 };
     return g;
   },
   // 버튼: 컨테이너(배경+글자). o.w/h/size/col/disabled
@@ -131,6 +135,32 @@ const UI = {
     if (o.badge) { const b = sc.add.circle(size * 0.36, -size * 0.36, 9, 0xff4a3a).setStrokeStyle(2, 0xffffff); c.add(b); }
     return c;
   },
+  // 🆕 2026-11-26 자동 저장 표시: 맨 위 장면 오른쪽 아래에 「✓ 저장됨」 1.4초 (20초에 한 번만, 전투 중에는 안 띄움)
+  savedMark(force) {
+    const now = Date.now();
+    if (!force && now - (this._savedAt || 0) < 20000) return;
+    try {
+      if (typeof game === 'undefined' || !game.scene) return;
+      const scs = game.scene.getScenes(true).filter(s => s.sys.isActive() && s.add && s.scene.key !== 'boot');
+      const sc = scs[scs.length - 1];
+      if (!sc || (!force && sc.scene.key === 'game' && !sc.won)) return;
+      this._savedAt = now;
+      const t = UI.text(sc, W - 22, H - 18, '✓ 저장됨', 18, '#a8f0a0', { bold: true, st: 4 }).setOrigin(1, 1).setScrollFactor(0).setDepth(99990).setAlpha(0);
+      sc.tweens.add({ targets: t, alpha: 1, duration: 200, hold: 1100, yoyo: true, onComplete: () => t.destroy() });
+    } catch (e) { /* 표시는 못 해도 저장은 됐다 */ }
+  },
+  // 🆕 2026-11-26 「저장하기」 버튼: 바로 저장하고 결과·시각을 알려 준다
+  saveNow(sc) {
+    const ok = Save.write();
+    const d = new Date(), hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    UI.toast(sc, ok ? `저장했어요 · ${hm}` : '저장하지 못했어요 — 백업 코드를 복사해 두세요', ok ? '#a8f0a0' : '#ff9a8a');
+    return ok;
+  },
+  savedAgo(s) {
+    if (!s || !s.savedAt) return '';
+    const m = Math.floor((Date.now() - s.savedAt) / 60000);
+    return m < 1 ? '방금 저장' : m < 60 ? `${m}분 전 저장` : m < 1440 ? `${Math.floor(m / 60)}시간 전 저장` : `${Math.floor(m / 1440)}일 전 저장`;
+  },
   toast(sc, msg, color = '#fff4d8', y = 120) {
     const t = UI.text(sc, W / 2, y, msg, 28, color, { bold: true, align: 'center', st: 6 }).setOrigin(0.5).setDepth(9900).setScrollFactor(0).setAlpha(0);
     sc.tweens.add({ targets: t, alpha: 1, y: y - 20, duration: 250, hold: 1500, yoyo: true, onComplete: () => t.destroy() });
@@ -180,14 +210,14 @@ const UI = {
   itemDetail(sc, it, x, y, w) {
     const out = [];
     const r = RARITY[it.rar];
-    const nameT = UI.text(sc, x, y, itemLabel(it), 26, r.col, { bold: true, wrap: w });
+    const nameT = UI.text(sc, x, y, itemLabel(it), w < 230 ? 23 : 26, r.col, { bold: true, wrap: w });   // ✏️ 2026-11-26 좁은 칸은 조금 작게
     out.push(nameT);
     const dy = Math.max(0, Math.round(nameT.height) - 36);   // ✏️ 긴 이름이 두 줄이 되면 아래를 민다
     const slotKo = it.cls === 'acc' ? (it.kind === 'ring' ? '반지' : '목걸이') : SLOT_KO[it.slot];
     const owner = it.boss ? '보스 장비' : it.cls === 'acc' ? '공용' : DB.heroes[it.cls].name;
-    out.push(UI.text(sc, x, y + 38 + dy, `${r.ko} ${slotKo} · ${owner} · T${it.tier + 1}`, 18, '#c8b8a0'));
+    out.push(UI.text(sc, x, y + 38 + dy, `${r.ko} ${slotKo} · ${owner} · T${it.tier + 1}`, w < 230 ? 16 : 18, '#c8b8a0', { wrap: w }));
     let yy = y + 68 + dy;
-    if (it.base) { out.push(UI.text(sc, x, yy, `${it.slot === 'weapon' ? '공격력' : '방어력'} +${itemPower(it)}${it.slot === 'body' ? `  · 체력 +${itemPower(it) * 3}` : ''}`, 21, '#fff')); yy += 32; }
+    if (it.base) { out.push(UI.text(sc, x, yy, `${it.slot === 'weapon' ? '공격력' : '방어력'} +${itemPower(it)}${it.slot === 'body' ? `  · 체력 +${itemPower(it) * 3}` : ''}`, w < 230 ? 19 : 21, '#fff', { wrap: w })); yy += out[out.length - 1].height > 34 ? Math.round(out[out.length - 1].height) + 6 : 32; }   // ✏️ 2026-11-26 좁으면 줄바꿈
     for (const a of it.aff) { const t = UI.text(sc, x, yy, '· ' + affText(a), 19, '#9ae0ff', { wrap: w }); out.push(t); yy += Math.max(27, Math.round(t.height) + 4); }   // ✏️ 긴 옵션은 줄바꿈
     if (it.desc) { const t = UI.text(sc, x, yy, it.desc, 16, '#d8c8a8', { wrap: w }).setFontStyle('italic'); out.push(t); yy += Math.round(t.height) + 10; }   // 🆕 이야기 장비
     if (it.fx) { const t = UI.text(sc, x, yy, '★ ' + GearFx.desc(it), 19, it.boss ? '#ff9ad8' : '#ffb060', { wrap: w }); out.push(t); yy += Math.max(50, Math.round(t.height) + 10); }

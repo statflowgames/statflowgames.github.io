@@ -119,8 +119,16 @@ class CodexMenu extends MenuBase {
     const list = [...MON_IDS, ...BOSS_IDS];
     const seen = list.filter(id => s.codex.mon[id]).length;
     UI.text(this, 70, 100, `만난 몬스터 ${seen}/${list.length}`, 20, '#d8c8ff');
-    list.forEach((id, i) => {
-      const x = 105 + (i % 10) * 116, y = 190 + Math.floor(i / 10) * 132;
+    // ✏️ 2026-11-26 2부 몬스터가 늘어 8줄이 화면 아래로 넘쳤다 → 한 쪽에 4줄(40마리)씩 넘겨 보기
+    const per = 40, pages = Math.ceil(list.length / per);
+    this.page = Math.min(this.page || 0, pages - 1);
+    if (pages > 1) {
+      UI.button(this, 1010, 104, '◀', () => { this.page = (this.page + pages - 1) % pages; this.draw(); }, { w: 64, h: 42, size: 20, col: 0x3a2a1a });
+      UI.text(this, 1080, 104, `${this.page + 1}/${pages}`, 19, '#fff').setOrigin(0.5);
+      UI.button(this, 1150, 104, '▶', () => { this.page = (this.page + 1) % pages; this.draw(); }, { w: 64, h: 42, size: 20, col: 0x3a2a1a });
+    }
+    list.slice(this.page * per, this.page * per + per).forEach((id, i) => {
+      const x = 105 + (i % 10) * 116, y = 196 + Math.floor(i / 10) * 132;
       const n = s.codex.mon[id] || 0, boss = BOSS_IDS.includes(id);
       const g = this.add.graphics();
       g.fillStyle(0x0e0805, 0.9).fillRoundedRect(x - 52, y - 52, 104, 104, 10).lineStyle(2, boss ? 0xc070ff : 0x7a5a30).strokeRoundedRect(x - 52, y - 52, 104, 104, 10);

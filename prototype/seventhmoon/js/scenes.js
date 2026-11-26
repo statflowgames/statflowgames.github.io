@@ -12,6 +12,9 @@ class Title extends Phaser.Scene {
   constructor() { super('title'); }
   preload() { Assets.preloadFor(this, Assets.forTitle(Save.has() ? Save.load() : null)); }
   create() {
+    this.t = 0; this.rig = null; this.layers = null;
+    // 🆕 2026-11-26 타이틀 전용 겹 그림 (tools/import_title_v2.py). 없으면(또는 ?oldtitle) 예전 화면
+    if (this.textures.exists('title/sky') && !Q.has('oldtitle')) return this.createArt();
     const bg = UI.img(this, W / 2, H / 2, 'story/opening') || this.add.image(W / 2, 0, 'bg/far').setOrigin(0.5, 0);
     bg.setDisplaySize(W, W * bg.height / bg.width);
     this.add.rectangle(0, 0, W, H, 0x120a20, 0.5).setOrigin(0);
@@ -37,7 +40,7 @@ class Title extends Phaser.Scene {
     if (has) {
       const s = Save.data;
       UI.button(this, W / 2 + 120, y, '이어하기', () => this.cont(), { w: 360, h: 70, size: 30 });
-      UI.text(this, W / 2 + 120, y + 48, `${DB.heroes[s.hero].name} Lv.${s.lv} · ${s.ch}장 ${CHAPTERS[s.ch - 1].name}`, 18, '#e8dcc8').setOrigin(0.5);
+      UI.text(this, W / 2 + 120, y + 48, `${DB.heroes[s.hero].name} Lv.${s.lv} · ${s.ch}장 ${CHAPTERS[s.ch - 1].name}` + (s.savedAt ? `  ·  ${UI.savedAgo(s)}` : ''), 18, '#e8dcc8').setOrigin(0.5);   // ✏️ 2026-11-26 마지막 저장
       y += 110;
     }
     UI.button(this, W / 2 + 120, y, '새로 시작', () => this.newGame(has), { w: 360, h: 66, size: 28, col: has ? 0x4a2a14 : 0x7a3a10 });
@@ -47,13 +50,95 @@ class Title extends Phaser.Scene {
     SFX.music('bgm_title');
     this.input.keyboard.once('keydown-ENTER', () => (has ? this.cont() : this.newGame(false)));
   }
+  // 🆕 2026-11-26 새 타이틀: 하늘 · 구름 · 먼 산 · 중간 · 안개 · 앞 절벽 · 주인공 6인 (겹마다 다른 속도로 아주 느리게 흔들림)
+  //   흑월 광환이 숨 쉬고, 여섯 달이 차례로 반짝이고, 반딧불이 난다. 로고는 흑월 위, 버튼은 오른쪽 명판 위
+  createArt() {
+    const S = W / 1440 * 1.03, X = x => W / 2 + (x - 720) * S, Y = y => H / 2 + (y - 405) * S;
+    const world = this.add.container(W / 2, H / 2);   // 처음 켤 때 다가오는 연출용
+    const L = [];
+    const layer = (key, f, o = {}) => { const im = this.add.image(0, 0, key).setScale(S); world.add(im); L.push({ o: im, f, x0: 0 }); return im; };
+    layer('title/sky', 0.2);
+    // 흑월 광환 (하늘 흑월 중심 1440 기준 (721, 309), 지름 약 305 — 광환 고리 지름 410)
+    const gx = X(721) - W / 2, gy = Y(309) - H / 2;
+    const glow = this.add.image(gx, gy, 'title/moonglow').setScale(S * 0.78).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.6);
+    world.add(glow); L.push({ o: glow, f: 0.2, x0: gx });
+    this.tweens.add({ targets: glow, alpha: 0.95, scale: S * 0.81, duration: 2600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    // 여섯 달이 차례로 반짝 (적·황·백·청·은·녹)
+    [[349, 169, 0xff6a4a], [478, 109, 0xffd84a], [632, 70, 0xfff6e0], [808, 71, 0x6ab8ff], [960, 109, 0xd8e0ff], [1091, 166, 0x7ae07a]].forEach(([x, y, col], i) => {
+      const c = this.add.circle(X(x) - W / 2, Y(y) - H / 2, 58 * S, col, 1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+      world.add(c); L.push({ o: c, f: 0.2, x0: c.x });
+      this.tweens.add({ targets: c, alpha: 0.4, scale: 1.15, duration: 700, yoyo: true, delay: 1800 + i * 420, repeat: -1, repeatDelay: 3600, ease: 'Sine.inOut' });
+    });
+    // 구름 (좌우로 흐름)
+    if (this.textures.exists('title/clouds')) {
+      const ck = this.textures.get('title/clouds').getSourceImage();
+      this.clouds = this.add.tileSprite(0, Y(330) - H / 2, W * 1.1 / S, ck.height, 'title/clouds').setScale(S).setAlpha(0.42);
+      world.add(this.clouds); L.push({ o: this.clouds, f: 0.3, x0: 0 });
+    }
+    layer('title/far', 0.4); layer('title/mid', 0.7);
+    if (this.textures.exists('title/fog')) {
+      const fk = this.textures.get('title/fog').getSourceImage();
+      this.fog = this.add.tileSprite(0, Y(700) - H / 2, W * 1.1 / S, fk.height, 'title/fog').setScale(S).setAlpha(0.75);
+      world.add(this.fog); L.push({ o: this.fog, f: 0.8, x0: 0 });
+    }
+    layer('title/front', 1);
+    // 주인공 6인: 왼쪽 절벽 위
+    if (this.textures.exists('title/heroes')) {
+      const h = this.add.image(255 - W / 2, 606 - H / 2, 'title/heroes').setOrigin(0.5, 1);
+      h.setScale(390 / h.height); world.add(h); L.push({ o: h, f: 1.1, x0: h.x });
+    }
+    // 반딧불
+    for (let i = 0; i < 26; i++) {
+      const fx = Phaser.Math.Between(-W / 2, W / 2), fy = Phaser.Math.Between(40, H / 2 - 10);
+      const d = this.add.circle(fx, fy, Phaser.Math.FloatBetween(1.6, 3.2), Phaser.Math.RND.pick([0xffe08a, 0xffc8f0, 0xbfe8ff]), 1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+      world.add(d);
+      this.tweens.add({ targets: d, alpha: { from: 0, to: 0.9 }, x: fx + Phaser.Math.Between(-60, 60), y: fy - Phaser.Math.Between(30, 110), duration: Phaser.Math.Between(2600, 5200), yoyo: true, repeat: -1, delay: Phaser.Math.Between(0, 4000), ease: 'Sine.inOut' });
+    }
+    this.layers = L;
+    // 처음 켤 때: 어둠이 걷히며 천천히 다가온다
+    world.setScale(1.07);
+    this.tweens.add({ targets: world, scale: 1, duration: 2200, ease: 'Sine.out' });
+    const fade = this.add.rectangle(0, 0, W, H, 0x05030a, 1).setOrigin(0).setDepth(50);
+    this.tweens.add({ targets: fade, alpha: 0, duration: 1100, ease: 'Sine.out', onComplete: () => fade.destroy() });
+    // 로고: 흑월 위
+    const GT = gameTitle('ko');
+    if (this.textures.exists(GT.logo)) {
+      const lg = this.add.image(W / 2 + 50, 240, GT.logo).setDepth(10).setAlpha(0);
+      const ls = Math.min(500 / lg.width, 250 / lg.height); lg.setScale(ls * 0.92);
+      this.tweens.add({ targets: lg, alpha: 1, scale: ls, duration: 900, delay: 700, ease: 'Back.out' });
+      this.tweens.add({ targets: lg, scale: ls * 1.02, duration: 2600, yoyo: true, repeat: -1, delay: 1700, ease: 'Sine.inOut' });
+      try { if (lg.preFX) lg.preFX.addShine(0.45, 0.22, 3.2); } catch (e) { /* 캔버스 렌더러 */ }
+    } else {
+      UI.text(this, W / 2, 230, GT.main, 110, '#ffe7a8', { serif: true, stroke: '#3a1606', st: 14 }).setOrigin(0.5).setDepth(10);
+      UI.text(this, W / 2, 318, '— ' + GT.sub + ' —', 30, '#f0d9b0', { serif: true, stroke: '#2a1206', st: 6 }).setOrigin(0.5).setDepth(10);
+    }
+    // 버튼: 오른쪽 명판 위
+    const mx = 1082, menu = this.add.container(0, 0).setDepth(20).setAlpha(0);
+    const pl = UI.img(this, mx, 712, 'title/plaque');
+    if (pl) { pl.setOrigin(0.5, 1).setScale(388 / pl.height); menu.add(pl); }
+    const has = Save.has() && Save.load();
+    let y = pl ? 452 : 420;
+    if (has) {
+      const s = Save.data;
+      menu.add(UI.button(this, mx, y, '이어하기', () => this.cont(), { w: 268, h: 62, size: 28 }));
+      menu.add(UI.text(this, mx, y + 50, `${DB.heroes[s.hero].name} Lv.${s.lv} · ${s.ch}장 ${CHAPTERS[s.ch - 1].name}` + (s.savedAt ? `\n${UI.savedAgo(s)}` : ''), 15, '#f0e4cc', { align: 'center', st: 4, ls: 2 }).setOrigin(0.5));
+      y += 112;
+    } else y += 20;
+    menu.add(UI.button(this, mx, y, '새로 시작', () => this.newGame(has), { w: 268, h: 56, size: 25, col: has ? 0x4a2a14 : 0x7a3a10 }));
+    y += 66;
+    menu.add(UI.button(this, mx - 68, y, '조작법', () => this.help(), { w: 128, h: 46, size: 19, col: 0x3a2a1a }));
+    menu.add(UI.button(this, mx + 68, y, '설정', () => openSettings(this), { w: 128, h: 46, size: 19, col: 0x2a3a5a }));
+    this.tweens.add({ targets: menu, alpha: 1, duration: 600, delay: 1200 });
+    SFX.music('bgm_title');
+    this.input.keyboard.once('keydown-ENTER', () => (has ? this.cont() : this.newGame(false)));
+  }
   cont() { SFX.resume(); this.scene.start('map'); }
   newGame(confirm) {
     SFX.resume();
     if (confirm) {
       const c = this.add.container(0, 0).setDepth(100);
       c.add(UI.blocker(this, 0.7));
-      c.add(UI.panel(this, W / 2 - 330, 230, 660, 250));
+      c.add(UI.panel(this, W / 2 - 330, 214, 660, 276));   // ✏️ 2026-11-26 그림 창 테두리만큼 넓힘
       c.add(UI.text(this, W / 2, 290, '저장된 모험이 지워져요.\n새로 시작할까요?', 30, '#fff', { align: 'center' }).setOrigin(0.5));
       c.add(UI.button(this, W / 2 - 130, 410, '새로 시작', () => { c.destroy(); this.pickHero(); }, { w: 220, col: 0x8a2a10 }));
       c.add(UI.button(this, W / 2 + 130, 410, '취소', () => c.destroy(), { w: 220, col: 0x3a2a1a }));
@@ -127,7 +212,14 @@ class Title extends Phaser.Scene {
     c.add(UI.text(this, W / 2, 668, '패드를 앞으로 밀며 공격 = 돌진  ·  패드 위 + 공격 = 올려치기  ·  패드 아래 + 공격 = 내려찍기', 19, '#ffd34d', { bold: true }).setOrigin(0.5));
     c.add(UI.button(this, W - 130, 40, '닫기', () => c.destroy(), { w: 160, h: 50, size: 22 }));
   }
-  update(t, dt) { this.t += dt; this.rig.apply(CLIPS.idle.at(this.t)); }
+  update(t, dt) {
+    this.t += dt;
+    if (this.rig) this.rig.apply(CLIPS.idle.at(this.t));
+    // 🆕 2026-11-26 겹 흔들림 (앞일수록 크게) · 구름·안개 흐름
+    if (this.layers) { const sw = Math.sin(this.t / 4200) * 12, sv = Math.sin(this.t / 5600) * 3; for (const l of this.layers) { l.o.x = l.x0 + sw * l.f; l.o.y = (l.y0 ?? (l.y0 = l.o.y)) + sv * l.f; } }
+    if (this.clouds) this.clouds.tilePositionX += dt * 0.012;
+    if (this.fog) this.fog.tilePositionX -= dt * 0.02;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -168,7 +260,7 @@ class MapScene extends Phaser.Scene {
     const s = Save.data;
     if (this.hud) this.hud.destroy();
     const c = this.add.container(0, 0).setDepth(50);
-    c.add(UI.panel(this, 12, 90, 300, 112, { alpha: 0.88 }));
+    c.add(UI.panel(this, 12, 88, 300, 122, { alpha: 0.88 }));   // ✏️ 2026-11-26 체력 줄이 테두리에 걸려 늘림
     const p = UI.img(this, 62, 138, 'portrait/' + s.hero);
     if (p) { p.setScale(80 / p.height); c.add(p); }
     c.add(UI.text(this, 112, 102, `${DB.heroes[s.hero].name}  Lv.${s.lv}`, 22, '#ffe7a8', { bold: true }));
@@ -185,6 +277,7 @@ class MapScene extends Phaser.Scene {
     c.add(UI.text(this, W - 110, 232, (this.ch || s.ch) >= 7 ? `흑월 씨앗 ${Object.keys(s.seeds || {}).length}/6` : `월석 ${moons}/6`, 20, '#d8c8ff').setOrigin(0.5, 0));
     if (towerOpen(s)) c.add(UI.button(this, W - 110, 300, '탑 · 도전', () => this.scene.start('towergate'), { w: 180, h: 56, size: 22, col: 0x4a2a7a }));
     else c.add(UI.text(this, W - 110, 286, '심연의 탑\n1장을 깨면 열려요', 15, '#8a7a98', { align: 'center' }).setOrigin(0.5, 0));
+    c.add(UI.button(this, W - 110, 370, '💾 저장하기', () => UI.saveNow(this), { w: 180, h: 46, size: 20, col: 0x2a6a3a }));   // 🆕 2026-11-26
     this.hud = c;
   }
   pos(id) { const [x, y] = (MAP_NODES[this.ch] || MAP_POS)[id]; return [this.mx + x * this.mk, this.my + y * this.mk]; }
@@ -585,31 +678,36 @@ class Camp extends Phaser.Scene {
     const c = this.add.container(0, 0).setDepth(200);
     // ✏️ 2026-11-26 정리: 게임(설정·난이도) / 저장(백업 복사·불러오기) / 아래 줄(타이틀로·닫기). 같은 폭 두 칸씩, 겹침 없음
     c.add(UI.blocker(this, 0.72));
-    const PW = 600, px = W / 2 - PW / 2, py = 120, BW = 262, L = W / 2 - BW / 2 - 8, R = W / 2 + BW / 2 + 8;
-    c.add(UI.panel(this, px, py, PW, 470, { alpha: 0.96 }));
+    // ✏️ 2026-11-26 「저장하기」 한 줄 추가 (마지막 저장 시각도)
+    const PW = 600, px = W / 2 - PW / 2, py = 92, BW = 262, L = W / 2 - BW / 2 - 8, R = W / 2 + BW / 2 + 8;
+    c.add(UI.panel(this, px, py, PW, 544, { alpha: 0.96 }));
     this.ribbon(c, W / 2, py + 6, '메뉴', 340);
     this.closeX(c, px + PW - 22, py + 22, () => c.destroy());
     const head = (y, t) => {
       c.add(UI.text(this, px + 40, y, t, 18, '#c9a46a', { bold: true, st: 3 }).setOrigin(0, 0.5));
       const g = this.add.graphics(); g.fillStyle(0xc99a3c, 0.35).fillRect(px + 40 + t.length * 19 + 12, y, PW - 92 - t.length * 19, 2); c.add(g);
     };
-    head(py + 86, '게임');
-    c.add(UI.button(this, L, py + 136, '설정', () => openSettings(this), { w: BW, h: 56, size: 22, col: 0x2a3a5a, icon: 'uiset/icon_menu' }));
-    c.add(UI.button(this, R, py + 136, `난이도 · ${DIFFS[s.diff ?? 1].ko}`, () => { c.destroy(); this.pickDiff(); }, { w: BW, h: 56, size: 22, col: 0x8a2a10, icon: 'uiset/diff_' + (s.diff ?? 1) }));
-    head(py + 206, '저장');
-    c.add(UI.button(this, L, py + 256, '백업 코드 복사', () => {
+    head(py + 80, '게임');
+    c.add(UI.button(this, L, py + 128, '설정', () => openSettings(this), { w: BW, h: 56, size: 22, col: 0x2a3a5a, icon: 'uiset/icon_menu' }));
+    c.add(UI.button(this, R, py + 128, `난이도 · ${DIFFS[s.diff ?? 1].ko}`, () => { c.destroy(); this.pickDiff(); }, { w: BW, h: 56, size: 22, col: 0x8a2a10, icon: 'uiset/diff_' + (s.diff ?? 1) }));
+    head(py + 194, '저장');
+    const ago = UI.text(this, W / 2, py + 288, '', 16, '#bfe8b0').setOrigin(0.5);
+    const showAgo = () => ago.setText('싸움을 끝낼 때마다 자동으로도 저장돼요' + (s.savedAt ? '  ·  ' + UI.savedAgo(s) : ''));
+    c.add(UI.button(this, W / 2, py + 244, '💾  저장하기', () => { UI.saveNow(this); showAgo(); }, { w: BW * 2 + 16, h: 56, size: 23, col: 0x2a6a3a }));
+    showAgo(); c.add(ago);
+    c.add(UI.button(this, L, py + 340, '백업 코드 복사', () => {
       const code = Save.exportCode();
       try { navigator.clipboard.writeText(code); UI.toast(this, '백업 코드를 복사했어요'); } catch (e) { UI.toast(this, '복사하지 못했어요'); }
     }, { w: BW, h: 56, size: 21, col: 0x3a2a1a }));
-    c.add(UI.button(this, R, py + 256, '백업 코드로 불러오기', () => {
+    c.add(UI.button(this, R, py + 340, '백업 코드로 불러오기', () => {
       const code = window.prompt('백업 코드를 붙여 넣으세요');
       if (!code) return;
       try { Save.importCode(code); this.scene.restart(); } catch (e) { UI.toast(this, '코드가 올바르지 않아요', '#ff9a8a'); }
     }, { w: BW, h: 56, size: 20, col: 0x3a2a1a }));
-    c.add(UI.text(this, W / 2, py + 306, '기기를 바꿀 때 백업 코드로 진행을 옮길 수 있어요', 16, '#a8987e').setOrigin(0.5));
-    const g = this.add.graphics(); g.fillStyle(0xc99a3c, 0.3).fillRect(px + 40, py + 346, PW - 80, 2); c.add(g);
-    c.add(UI.button(this, L, py + 404, '타이틀로', () => this.scene.start('title'), { w: BW, h: 56, size: 22, col: 0x3a2a1a }));
-    c.add(UI.button(this, R, py + 404, '닫기', () => c.destroy(), { w: BW, h: 56, size: 22 }));
+    c.add(UI.text(this, W / 2, py + 386, '기기를 바꿀 때 백업 코드로 진행을 옮길 수 있어요', 16, '#a8987e').setOrigin(0.5));
+    const g = this.add.graphics(); g.fillStyle(0xc99a3c, 0.3).fillRect(px + 40, py + 418, PW - 80, 2); c.add(g);
+    c.add(UI.button(this, L, py + 474, '타이틀로', () => { Save.write(); this.scene.start('title'); }, { w: BW, h: 56, size: 22, col: 0x3a2a1a }));
+    c.add(UI.button(this, R, py + 474, '닫기', () => c.destroy(), { w: BW, h: 56, size: 22 }));
   }
   update(t, dt) { this.t += dt; if (this.rig) this.rig.apply(CLIPS.idle.at(this.t)); if (this.ar) this.ar.apply(CLIPS.idle.at(this.t + 700)); }
 }
@@ -667,15 +765,10 @@ class Bag extends MenuBase {
   draw() {
     const s = Save.data;
     this.frame('가방 · 장비');
-    // 장착 칸
-    SLOTS.forEach((slot, i) => {
-      const x = 110 + (i % 3) * 104, y = 170 + Math.floor(i / 3) * 124;
-      const it = s.eq[slot] && itemById(s, s.eq[slot]);
-      UI.itemSlot(this, x, y, it, 88, () => { if (it) { this.sel = it; this.draw(); } });
-      UI.text(this, x, y + 50, SLOT_KO[slot], 16, '#c8b8a0').setOrigin(0.5, 0);
-    });
-    const st = heroStats(s);
-    UI.text(this, 64, 420, this.statsText(st), 19, '#f4e4c0', { ls: 7 });
+    // ✏️ 2026-11-26 장착 칸을 주인공 몸 둘레에 (머리는 머리 옆, 무기는 손 옆…) + 고른 장비를 입혀 보는 미리보기
+    const pv = this.previewSave(s);
+    this.drawDoll(s, pv);
+    this.drawStats(s, pv);
     // 가방 칸
     const items = this.list(), per = 24, pages = Math.max(1, Math.ceil(items.length / per));
     this.page = Math.min(this.page, pages - 1);
@@ -707,22 +800,87 @@ class Bag extends MenuBase {
     UI.panel(this, 1000, 110, 230, 560, { alpha: 0.6, line: 0x7a5a30 });
     if (this.sel && s.bag.includes(this.sel)) {
       const it = this.sel;
-      let { y, objs } = this.itemDetail(it, 1014, 124, 204);
+      let { y, objs } = this.itemDetail(it, 1026, 130, 178);   // ✏️ 2026-11-26 그림 칸 테두리 안쪽으로
       const eqSlot = Object.keys(s.eq).find(k => s.eq[k] === it.id);
       const canEq = it.cls === 'acc' || it.cls === s.hero;
       // ✏️ 2026-11-25 설명이 길어 아래 비교 줄·버튼에 닿으면 상세 글을 통째로 줄인다 (옵션이 두 줄씩 되는 전설·신화 무기 등)
       const curIt0 = !eqSlot && canEq && s.eq[this.targetSlot(it)] && itemById(s, s.eq[this.targetSlot(it)]);
       const lim = curIt0 ? 462 : eqSlot ? 506 : 482;
-      if (y > lim) { const k = (lim - 124) / (y - 124); for (const o of objs) { o.setScale(k); o.y = 124 + (o.y - 124) * k; } y = lim; }
+      if (y > lim) { const k = (lim - 130) / (y - 130); for (const o of objs) { o.setScale(k); o.y = 130 + (o.y - 130) * k; } y = lim; }
       UI.button(this, 1115, 540, it.lock ? '잠금 해제' : '잠그기', () => { it.lock = !it.lock; Save.write(); UI.toast(this, it.lock ? '잠갔어요 · 분해·조합 재료로 쓰이지 않아요' : '잠금을 풀었어요'); this.draw(); }, { w: 190, h: 44, size: 18, col: 0x3a2a1a });   // 🆕
       if (eqSlot) UI.button(this, 1115, 600, '해제', () => { delete s.eq[eqSlot]; Save.write(); this.draw(); }, { w: 190, h: 54, size: 22, col: 0x3a2a1a });
       else if (canEq) {
         const cur = this.targetSlot(it), curIt = s.eq[cur] && itemById(s, s.eq[cur]);
-        if (curIt) UI.text(this, 1014, Math.min(y + 6, 470), `지금: ${itemLabel(curIt)}\n전투력 ${this.powerDiff(it, cur)}`, 16, '#c8b8a0', { wrap: 204 });
+        if (curIt) UI.text(this, 1026, Math.min(y + 6, 470), `지금: ${itemLabel(curIt)}\n전투력 ${this.powerDiff(it, cur)}`, 16, '#c8b8a0', { wrap: 178 });
         UI.button(this, 1115, 600, '장착', () => { s.eq[cur] = it.id; Save.write(); SFX.ui('ui_equip'); this.draw(); }, { w: 190, h: 54, size: 22 });
-      } else UI.text(this, 1014, 492, `${DB.heroes[it.cls].name} 전용`, 18, '#ff9a8a');
+      } else UI.text(this, 1026, 492, `${DB.heroes[it.cls].name} 전용`, 18, '#ff9a8a');
     } else UI.text(this, 1115, 380, '아이템을\n누르면\n자세히 보여요', 20, '#8a7a68', { align: 'center' }).setOrigin(0.5);
   }
+  // 🆕 2026-11-26 미리보기: 가방에서 고른(장착 안 한) 이 직업 장비를 끼운 가짜 저장본
+  previewSave(s) {
+    const it = this.sel;
+    if (!it || !s.bag.includes(it) || Object.values(s.eq).includes(it.id) || !(it.cls === 'acc' || it.cls === s.hero)) return null;
+    return { ...s, eq: { ...s.eq, [this.targetSlot(it)]: it.id } };
+  }
+  // 몸 위치별 장착 칸: 왼쪽 = 머리·몸·보조, 오른쪽 = 장신구 둘·무기. 칸에서 그 부위까지 금빛 선
+  drawDoll(s, pv) {
+    const sv = pv || s, X0 = 44, Y0 = 96, PW = 352, PH = 356, cx = X0 + PW / 2 - 6, foot = Y0 + PH - 30;
+    UI.panel(this, X0, Y0, PW, PH, { alpha: 0.6, line: pv ? 0x7ae0ff : 0x7a5a30 });
+    const g0 = this.add.graphics(); g0.fillStyle(0xffd27a, 0.08).fillEllipse(cx, foot, 230, 46); g0.fillStyle(0xffd27a, 0.06).fillCircle(cx, foot - 140, 120);
+    // 이 직업 그림이 아직 안 불러와졌으면(지도에서 연 경우·처음 보는 갑옷) 불러온 뒤 다시 그린다
+    const need = [...Assets.heroKeys(sv)].filter(k => MAN[k] && !this.textures.exists(k));
+    if (need.length) {
+      UI.text(this, cx, foot - 140, '불러오는 중…', 20, '#c8b8a0').setOrigin(0.5);
+      if (!this.loadingDoll) { this.loadingDoll = true; Assets.ensure(this, need, () => { this.loadingDoll = false; if (this.sys.isActive()) this.draw(); }); }
+    } else {
+      this.save = sv;
+      try {
+        const h = new Hero(this, cx, foot);
+        h.rig.def.scale *= 1.32; h.face = 1; h.draw(0, false);
+        this.doll = h;
+      } catch (e) { this.doll = null; console.warn('bag doll', e); }
+      delete this.save;
+    }
+    if (pv) {
+      UI.text(this, X0 + PW / 2, Y0 + 20, '👁 미리보기', 17, '#7ae0ff', { bold: true, st: 4 }).setOrigin(0.5).setDepth(1600);
+    }
+    const M = HeroGear.MAP[s.hero] || [], wb = (M.find(m => m[1] === 'weapon') || [])[0], ob = (M.find(m => m[1] === 'offhand') || [])[0];
+    const POS = { head: [0, 0, 'head'], body: [0, 1, 'torso'], offhand: [0, 2, ob || 'torso'], acc1: [1, 0, 'torso'], acc2: [1, 1, 'torso'], weapon: [1, 2, wb || 'torso'] };
+    const lines = this.add.graphics().setDepth(900);
+    const changed = pv && Object.keys(pv.eq).find(k => pv.eq[k] !== s.eq[k]);
+    for (const slot of SLOTS) {
+      const [side, row] = POS[slot], x = side ? X0 + PW - 44 : X0 + 44, y = Y0 + 62 + row * 104;
+      const it = sv.eq[slot] && itemById(s, sv.eq[slot]);
+      const c = UI.itemSlot(this, x, y, it, 66, () => { if (s.eq[slot]) { this.sel = itemById(s, s.eq[slot]); this.draw(); } }).setDepth(1500);
+      if (slot === changed) { const r = this.add.rectangle(0, 0, 74, 74).setStrokeStyle(3, 0x7ae0ff); c.add(r); this.tweens.add({ targets: r, alpha: 0.3, yoyo: true, repeat: -1, duration: 500 }); }
+      UI.text(this, x, y + 38, SLOT_KO[slot], 14, slot === changed ? '#7ae0ff' : '#c8b8a0', { st: 3 }).setOrigin(0.5, 0).setDepth(1500);
+      // 그 부위 쪽으로 선
+      const b = this.doll && this.doll.rig.map && this.doll.rig.map[POS[slot][2]];
+      if (b && b.spr && b.spr.visible) {
+        const r = b.spr.getBounds(), tx = slot.startsWith('acc') ? r.centerX : r.centerX, ty = slot === 'acc1' ? r.top + r.height * 0.22 : slot === 'acc2' ? r.top + r.height * 0.6 : r.centerY;
+        const sx = side ? x - 36 : x + 36;
+        lines.lineStyle(2, slot === changed ? 0x7ae0ff : 0xe0b45a, slot === changed ? 0.9 : 0.55).beginPath().moveTo(sx, y).lineTo(sx + (side ? -14 : 14), y).lineTo(tx, ty).strokePath();
+        lines.fillStyle(slot === changed ? 0x7ae0ff : 0xffd27a, 0.95).fillCircle(tx, ty, 3.5);
+      }
+    }
+  }
+  // 능력치: 미리보기 중이면 지금 → 바뀐 값 (오르면 초록 ▲, 내리면 빨강 ▼)
+  drawStats(s, pv) {
+    const st = heroStats(s);
+    if (!pv) { UI.text(this, 58, 466, this.statsText(st), 17, '#f4e4c0', { ls: 5 }); return; }
+    const nt = heroStats(pv);
+    const rows = [['전투력', 'power'], ['공격력', 'atk'], ['방어력', 'def'], ['최대 체력', 'hp'], ['치명타 %', 'crit'], ['치명타 피해 %', 'critDmg']];
+    UI.text(this, 58, 466, '장착하면', 16, '#7ae0ff', { bold: true, st: 3 });
+    rows.forEach(([ko, k], i) => {
+      const y = 496 + i * 28, a = st[k] || 0, b = nt[k] || 0, d = Math.round((b - a) * 10) / 10;
+      UI.text(this, 58, y, ko, 17, '#d8c8b0', { st: 3 }).setOrigin(0, 0.5);
+      UI.text(this, 210, y, `${a}`, 17, '#f4e4c0', { st: 3 }).setOrigin(1, 0.5);
+      UI.text(this, 222, y, '→', 16, '#a89880', { st: 3 }).setOrigin(0, 0.5);
+      UI.text(this, 300, y, `${b}`, 17, d > 0 ? '#9af07a' : d < 0 ? '#ff9a8a' : '#f4e4c0', { bold: true, st: 3 }).setOrigin(1, 0.5);
+      if (d) UI.text(this, 310, y, `${d > 0 ? '▲' : '▼'}${Math.abs(d)}`, 15, d > 0 ? '#9af07a' : '#ff9a8a', { bold: true, st: 3 }).setOrigin(0, 0.5);
+    });
+  }
+  update(t, dt) { if (this.doll && this.doll.rig && this.doll.rig.c && this.doll.rig.c.active) this.doll.draw(dt, false); }
   targetSlot(it) {
     const s = Save.data;
     if (it.cls !== 'acc') return it.slot;
@@ -782,10 +940,13 @@ class Smithy extends MenuBase {
     UI.panel(this, 700, 110, 520, 520, { alpha: 0.6, line: 0x7a5a30 });
     const it = this.sel && s.bag.includes(this.sel) ? this.sel : null;
     if (!it) { UI.text(this, 960, 360, '손볼 장비를 고르게.\n강화는 실패해도 부서지지 않아.', 22, '#c8b8a0', { align: 'center' }).setOrigin(0.5); return; }
-    const { y } = this.itemDetail(it, 720, 124, 480);
+    let { y, objs } = this.itemDetail(it, 728, 130, 462);   // ✏️ 2026-11-26 그림 칸 테두리 안쪽으로
+    // ✏️ 2026-11-26 옵션 3개짜리(신화 등)는 재설정 줄이 칸 아래로 나갔다 → 아래 줄 자리를 먼저 잡고, 모자라면 위 설명을 줄인다
+    const rowsH = it.aff.length ? 96 + (it.aff.length - 1) * 42 + 24 : 70, lim = 612 - rowsH - 10;
+    if (y > lim) { const k = (lim - 130) / (y - 130); for (const o of objs) { o.setScale(k); o.y = 130 + (o.y - 130) * k; } y = lim; }
     // 강화
     const c = enhanceCost(it, Save.data), rate = enhanceRate(it);
-    const yy = Math.max(y + 10, 380);
+    const yy = Math.min(Math.max(y + 10, 380), lim + 10);
     if (it.plus < 10) {
       UI.text(this, 720, yy, `강화 +${it.plus} → +${it.plus + 1}   성공 ${rate}%\n비용: 금화 ${c.gold}, ${MATS[c.mat]} ${c.cnt}`, 19, '#fff');
       UI.button(this, 1110, yy + 26, '강화', () => {
@@ -799,11 +960,11 @@ class Smithy extends MenuBase {
     // 옵션 재설정
     const rc = rerollCost(it, Save.data);
     it.aff.forEach((a, k) => {
-      UI.button(this, 790, yy + 106 + k * 44, '재설정', () => {
+      UI.button(this, 790, yy + 106 + k * 42, '재설정', () => {
         if (reroll(s, it, k)) { UI.toast(this, '새 옵션: ' + affText(it.aff[k]), '#9ae0ff'); SFX.coin(); } else UI.toast(this, '재료가 모자라요', '#ff9a8a');
         Save.write(); this.draw();
       }, { w: 120, h: 40, size: 17, col: 0x2a3a5a });
-      UI.text(this, 860, yy + 106 + k * 44, affText(a), 17, '#9ae0ff', { wrap: 170 }).setOrigin(0, 0.5);   // ✏️ 2026-11-22 안내 줄과 겹치지 않게 아래로
+      UI.text(this, 860, yy + 106 + k * 42, affText(a), 16, '#9ae0ff', { wrap: 170, ls: 2 }).setOrigin(0, 0.5);   // ✏️ 2026-11-22 안내 줄과 겹치지 않게 아래로
     });
     if (it.aff.length) UI.text(this, 720, yy + 62, `옵션 하나 재설정: 금화 ${rc.gold}, ${MATS[rc.mat]} ${rc.cnt}`, 16, '#c8b8a0');
     // 분해
@@ -884,9 +1045,9 @@ class Smithy extends MenuBase {
       }, { w: 150, h: 56, size: 24 });
     } else UI.text(this, 960, 400, '왼쪽에서 장비를 골라 주게.\n같은 등급 두 개면 한 단계 위를 노려 보지.', 19, '#c8b8a0', { align: 'center' }).setOrigin(0.5);
     // 확률표 (늘 공개)
-    UI.text(this, 724, 580, '조합 확률', 16, '#ffe7a8', { bold: true });
-    UI.text(this, 724, 604, FUSE_RULE.map((R, i) => `${RARITY[i].ko}→${RARITY[i + 1].ko} ${R.rate}%`).join('  ·  '), 15, '#c8b8a0');
-    UI.text(this, 724, 628, '실패할 때마다 다음 확률이 조금씩 오르고, 성공하면 처음으로 돌아가요.', 14, '#8f8070');
+    UI.text(this, 728, 578, '조합 확률', 16, '#ffe7a8', { bold: true });
+    UI.text(this, 728, 602, FUSE_RULE.map((R, i) => `${RARITY[i].ko}→${RARITY[i + 1].ko} ${R.rate}%`).join(' · '), 14, '#c8b8a0', { wrap: 462 });   // ✏️ 2026-11-26 칸 안쪽으로
+    UI.text(this, 728, 622, '실패할 때마다 다음 확률이 조금씩 오르고, 성공하면 처음으로 돌아가요.', 13, '#8f8070', { wrap: 462 });
     if (this.fuseRes) this.drawFuseResult(this.fuseRes);
   }
   // 🆕 2026-11-22 조합 결과 카드: 성공이면 새 장비 전체 정보, 실패면 무엇을 잃고 무엇이 남았는지
@@ -934,8 +1095,9 @@ class Smithy extends MenuBase {
     const showP2 = s.ch >= 7 || p2.some(id => id in s.trophies);
     const page = showP2 ? (this.tpage || 0) : 0;
     if (showP2) {
-      UI.tab(this, 790, 66, '1부', page === 0, () => { this.tpage = 0; this.draw(); }, { w: 90 });
-      UI.tab(this, 890, 66, '2부', page === 1, () => { this.tpage = 1; this.draw(); }, { w: 90 });
+      // ✏️ 2026-11-26 위 탭 줄(조합·달의 무기)과 겹쳐서 둘째 줄로
+      UI.tab(this, 650, 104, '1부', page === 0, () => { this.tpage = 0; this.draw(); }, { w: 86, h: 38, size: 17 });
+      UI.tab(this, 742, 104, '2부', page === 1, () => { this.tpage = 1; this.draw(); }, { w: 86, h: 38, size: 17 });
     }
     (page ? p2 : p1).forEach((id, i) => {
       const g = BOSS_GEAR[id], gd = BOSS_GIMMICK_DEF[id] || {}, c = bossGearCost(id);
@@ -1077,8 +1239,8 @@ class Shop extends MenuBase {
           SFX.ui && SFX.ui('ui_equip'); Save.write(); UI.toast(this, `벨트 ${n + 1}번 칸에 「${b.ko}」`); this.draw();
         });
       }
-      UI.text(this, x0 + 64, y - 25, `${b.ko} ×${s.belt[k] || 0}`, 17, '#fff', { bold: true });
-      UI.text(this, x0 + 64, y - 2, b.fx, 13, '#c8b8a0', { wrap: 140 });
+      UI.text(this, x0 + 64, y - 22, `${b.ko} ×${s.belt[k] || 0}`, 17, '#fff', { bold: true });   // ✏️ 2026-11-26 그림 줄 테두리 안쪽으로 3px
+      UI.text(this, x0 + 64, y, b.fx, 13, '#c8b8a0', { wrap: 140 });
       const bp = beltPrice(k, s);   // ✏️ 2026-11-22 장에 따라 오른다
       UI.button(this, x0 + 236, y + 1, `${bp}`, () => {
         if (s.gold < bp) return UI.toast(this, '금화가 모자라요', '#ff9a8a');

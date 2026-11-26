@@ -56,13 +56,13 @@ const LuckChest = {
     if (typeof AppLife !== 'undefined') AppLife.modal(scene, c, close);
     c.add(UI.blocker(scene, 0.88));
     c.add(UI.panel(scene, W / 2 - 520, 40, 1040, 640));
-    c.add(UI.text(scene, W / 2, 78, '떠돌이 상인의 상자 셋', 40, '#ffe7a8', { serif: true, st: 7 }).setOrigin(0.5));
+    c.add(UI.text(scene, W / 2, 84, '떠돌이 상인의 상자 셋', 40, '#ffe7a8', { serif: true, st: 7 }).setOrigin(0.5));
     const sub = UI.text(scene, W / 2, 124, '', 20, '#e8dcc8').setOrigin(0.5); c.add(sub);
     // 확률표 (늘 보인다)
-    c.add(UI.text(scene, 110, 170, '확률 (상자마다 같아요)', 20, '#ffd38a', { bold: true }));
-    LUCK_TABLE.forEach((e, i) => c.add(UI.text(scene, 110, 202 + i * 29, `${e.p}%  ·  ${e.ko}`, 17, e.rar >= 4 ? '#ffb060' : e.rar >= 3 ? '#ff80c0' : e.rar >= 2 ? '#c8a0ff' : e.rar ? '#8ad0ff' : '#e8dcc8')));
-    c.add(UI.text(scene, 110, 478, `운 쌓임: 희귀 미만이면 ★ +1 · ★${LUCK_PITY}개면 다음은 희귀 장비 확정`, 16, '#d8c8ff', { wrap: 420 }));
-    const stars = UI.text(scene, 110, 508, '', 22, '#ffd34d'); c.add(stars);
+    c.add(UI.text(scene, 150, 170, '확률 (상자마다 같아요)', 20, '#ffd38a', { bold: true }));
+    LUCK_TABLE.forEach((e, i) => c.add(UI.text(scene, 150, 202 + i * 29, `${e.p}%  ·  ${e.ko}`, 17, e.rar >= 4 ? '#ffb060' : e.rar >= 3 ? '#ff80c0' : e.rar >= 2 ? '#c8a0ff' : e.rar ? '#8ad0ff' : '#e8dcc8')));
+    c.add(UI.text(scene, 150, 478, `운 쌓임: 희귀 미만이면 ★ +1 · ★${LUCK_PITY}개면 다음은 희귀 장비 확정`, 16, '#d8c8ff', { wrap: 400 }));
+    const stars = UI.text(scene, 150, 530, '', 22, '#ffd34d'); c.add(stars);   // ✏️ 2026-11-26 두 줄 안내와 겹쳐서 아래로
     // 상자 셋
     const X = [620, 800, 980], Y = 360, chests = X.map((x, i) => {
       const im = scene.add.image(x, Y, 'chest/iron_closed').setScale(150 / 256).setInteractive({ useHandCursor: true });

@@ -68,7 +68,7 @@ const HeroGear = {
   rarOf(s, slot) { const it = s.eq[slot] && itemById(s, s.eq[slot]); return it ? (it.rar || 0) : 0; },
   colOf(rar) { return RARITY[rar] ? RARITY[rar].hex : 0xffffff; },
   // 🆕 무기 빛 색: 달 무기는 그 달 색
-  wpnCol(s) { const it = s.eq.weapon && itemById(s, s.eq.weapon); return it && it.moon && typeof MoonW !== 'undefined' ? MoonW.INFO[it.moon].col : this.colOf(this.rarOf(s, 'weapon')); },
+  wpnCol(s) { const it = s.eq.weapon && itemById(s, s.eq.weapon); return it && it.moon && typeof MoonW !== 'undefined' ? MoonW.INFO[it.moon].col : it && it.mythic && typeof MoonW !== 'undefined' ? MoonW.MYTH_COL : this.colOf(this.rarOf(s, 'weapon')); },   // ✏️ 2026-11-26 달의 무기 빛은 은빛 유지
   // 휘두를 때 궤적 색 (일반이면 직업 기본색)
   trailTint(h, bone) {
     const G = h.gearGlow; if (!G) return null;

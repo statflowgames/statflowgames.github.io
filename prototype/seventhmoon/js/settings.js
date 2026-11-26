@@ -55,23 +55,24 @@ function openSettings(scene, onClose) {
       c.add(UI.button(scene, W / 2 + 240, y, '＋', plus, { w: 64, h: 52, size: 28, col: 0x3a2a1a }));
     };
     const step = (k, v) => { d[k] = Math.round(Phaser.Math.Clamp(d[k] + v, 0, 1) * 10) / 10; Settings.save(); draw(); if (k === 'sfx') SFX.go(); };
-    row(140, '음악', Math.round(d.music * 100) + '%', () => step('music', -0.1), () => step('music', 0.1));
-    row(205, '효과음', Math.round(d.sfx * 100) + '%', () => step('sfx', -0.1), () => step('sfx', 0.1));
-    row(270, '기합·괴성', Math.round(d.voice * 100) + '%', () => step('voice', -0.1), () => step('voice', 0.1));
+    row(132, '음악', Math.round(d.music * 100) + '%', () => step('music', -0.1), () => step('music', 0.1));
+    row(192, '효과음', Math.round(d.sfx * 100) + '%', () => step('sfx', -0.1), () => step('sfx', 0.1));
+    row(252, '기합·괴성', Math.round(d.voice * 100) + '%', () => step('voice', -0.1), () => step('voice', 0.1));
     const tog = (y, label, k, desc) => {
       c.add(UI.text(scene, W / 2 - 260, y, label, 26, '#f4e4c0').setOrigin(0, 0.5));
       c.add(UI.button(scene, W / 2 + 150, y, d[k] ? '켜짐' : '꺼짐', () => { d[k] = !d[k]; Settings.save(); if (k === 'vib' && d.vib) vibrate(40); draw(); }, { w: 190, h: 52, size: 22, col: d[k] ? 0x2a5a3a : 0x3a2a1a }));
       if (desc) c.add(UI.text(scene, W / 2 - 260, y + 30, desc, 15, '#b8a890'));
     };
-    tog(335, '진동', 'vib');
-    tog(400, '절전 모드', 'low', '30프레임, 파편과 이펙트를 줄여 배터리와 발열을 아껴요');
+    // ✏️ 2026-11-26 줄 간격 정리: 설명 줄이 다음 줄 이름과 겹치던 것
+    tog(312, '진동', 'vib');
+    tog(372, '절전 모드', 'low', '30프레임, 파편과 이펙트를 줄여 배터리와 발열을 아껴요');
     // 전투 버튼
     const cyc = (y, label, k, names) => row(y, label, names[d[k] ?? 1],
       () => { d[k] = Math.max(0, (d[k] ?? 1) - 1); Settings.save(); draw(); },
       () => { d[k] = Math.min(names.length - 1, (d[k] ?? 1) + 1); Settings.save(); draw(); });
-    cyc(480, '버튼 진하기', 'btnAlpha', ['옅게', '보통', '진하게']);
-    tog(550, '자동 투명', 'autoFade', '버튼 뒤에 캐릭터나 몬스터가 오면 버튼이 투명해져요');
-    tog(612, '필살기·보스 연출', 'cine');   // 🆕 2026-11-24 각성기 컷인·보스 등장 연출
+    cyc(452, '버튼 진하기', 'btnAlpha', ['옅게', '보통', '진하게']);
+    tog(512, '자동 투명', 'autoFade', '버튼 뒤에 캐릭터나 몬스터가 오면 버튼이 투명해져요');
+    tog(596, '필살기·보스 연출', 'cine');   // 🆕 2026-11-24 각성기 컷인·보스 등장 연출
     c.add(UI.button(scene, W / 2, 670, '닫기', () => { c.destroy(); if (onClose) onClose(); }, { w: 200, h: 52, size: 22 }));
     c.each(o => o.setScrollFactor && o.setScrollFactor(0));
   };

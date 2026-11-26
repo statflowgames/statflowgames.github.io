@@ -68,7 +68,8 @@ const Assets = {
     const belt = typeof BELT !== 'undefined' ? Object.values(BELT).map(b => 'icon/' + b.icon) : [];
     return [...belt, ...this.group('icon').filter(k => k.startsWith(`icon/skill_${h}_`)), 'icon/hammer'];
   },
-  forTitle(s) { return [...this.heroKeys(s), 'story/opening', 'bg/far', ...HERO_KEYS.map(k => 'portrait/' + k)]; },
+  // ✏️ 2026-11-26 새 타이틀 겹 그림(title/*)이 있으면 그것만, 없으면 예전 배경
+  forTitle(s) { const art = MAN['title/sky'] && !(typeof Q !== 'undefined' && Q.has('oldtitle')); return [...this.heroKeys(s), ...(art ? this.group('title') : ['story/opening', 'bg/far']), ...HERO_KEYS.map(k => 'portrait/' + k)]; },
   forMap(s, ch) { const C = typeof CHAPTERS !== 'undefined' && CHAPTERS[ch - 1]; return [...this.icons(), C ? C.map : `map/c${ch}`, 'map/c1', 'portrait/' + (s ? s.hero : 'warrior'), 'hidden/icon_found', 'hidden/icon_done']; },   // ✏️ 2026-11-25 숨은 길 아이콘
   forCamp(s) { return [...this.heroKeys(s), ...this.icons(), 'bg/camp_far', 'bg/far', ...this.group('npc'), ...HERO_KEYS.map(k => 'portrait/' + k), ...this.portraits(['lise', 'tabel']), 'portrait/merchant', 'portrait/fortune']; },
   forStage(def, s) {

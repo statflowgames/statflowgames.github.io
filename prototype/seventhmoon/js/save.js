@@ -129,7 +129,15 @@ const Save = {
     if (d && d.unlocked) d.unlocked = heroUnlocks(d.unlocked);
     return this.data;
   },
-  write() { try { const t = JSON.stringify(this.data); localStorage.setItem(SAVE_KEY, t); NativeStore.mirror(SAVE_KEY, t); } catch (e) { /* 저장 실패는 조용히 */ } },
+  // ✏️ 2026-11-26 저장 시각(savedAt)을 남기고, 화면에 「✓ 저장됨」을 잠깐 띄운다 (UI.savedMark). 성공하면 true
+  write() {
+    try {
+      if (this.data) this.data.savedAt = Date.now();
+      const t = JSON.stringify(this.data); localStorage.setItem(SAVE_KEY, t); NativeStore.mirror(SAVE_KEY, t);
+      if (typeof UI !== 'undefined' && UI.savedMark) UI.savedMark();
+      return localStorage.getItem(SAVE_KEY) === t;
+    } catch (e) { return false; /* 저장 실패는 조용히 */ }
+  },
   fresh(hero) { this.data = newSave(hero); this.write(); return this.data; },
   wipe() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 무시 */ } this.data = null; },
   // 백업 코드 (내보내기·불러오기)

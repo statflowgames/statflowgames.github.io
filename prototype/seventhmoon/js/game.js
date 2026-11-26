@@ -689,6 +689,7 @@ class Game extends Phaser.Scene {
     if (this.won || this.lost) return;
     this.paused = !this.paused;
     if(this.paused)this.resetTouchControls();
+    if (this.introItems) for (const o of this.introItems) if (o.active) o.setVisible(!this.paused);   // 🆕 2026-11-26
     if (this.paused) {
       const c = this.add.container(0, 0).setScrollFactor(0).setDepth(9000);
       c.add(this.add.rectangle(0, 0, W, H, 0, 0.6).setOrigin(0).setInteractive());
@@ -697,7 +698,8 @@ class Game extends Phaser.Scene {
       c.add(UI.button(this, W / 2, 410, '처음부터 다시', () => this.scene.restart(this.cfg), { w: 320, col: 0x4a2a14 }));
       c.add(UI.button(this, W / 2, 490, '지도로 나가기', () => { SFX.heartbeat(false); this.scene.start(this.tower ? 'towergate' : 'map'); }, { w: 320, col: 0x3a2a1a }));
       c.add(UI.button(this, W - 120, 60, '설정', () => openSettings(this), { w: 160, h: 50, size: 20, col: 0x2a3a5a }));
-      c.add(UI.text(this, W / 2, 560, '스테이지 도중에 나가면 그 스테이지를 처음부터 다시 해요', 18, '#c8b8a0').setOrigin(0.5));
+      // ✏️ 2026-11-26 저장 안내: 스테이지 도중 진행은 저장되지 않는다
+      c.add(UI.text(this, W / 2, 566, '💾 스테이지 도중의 진행은 저장되지 않아요\n나가면 이 스테이지를 처음부터 다시 해요 · 레벨·장비·금화는 깬 스테이지까지 저장돼 있어요', 17, '#c8b8a0', { align: 'center' }).setOrigin(0.5));
       c.add(UI.button(this, 150, 60, `${DB.heroes[this.hero.key].name} 조작법`, () => MoveList.open(this, this.hero.key, { depth: 9600 }), { w: 220, h: 50, size: 20, col: 0x2a3a5a }));   // 🆕 직업별 기술표
       c.each(o => o.setScrollFactor && o.setScrollFactor(0));
       this.pauseUi = c;
@@ -885,6 +887,7 @@ class Game extends Phaser.Scene {
     // 나가기
     // 승리 문구는 금빛으로 한 번 반짝
     if (o.clear) { name.setColor('#ffe9a8'); this.tweens.add({ targets: name, scale: 1.04, duration: 160, delay: 720, yoyo: true, ease: 'Quad.out' }); }
+    this.introItems = items;   // 🆕 2026-11-26 일시정지 창이 뜨면 숨긴다 (「일시 정지」 글자와 겹쳐서)
     this.time.delayedCall(o.hold ?? 2300, () => {
       this.tweens.add({ targets: items, alpha: 0, duration: 420, ease: 'Cubic.in', onComplete: () => items.forEach(o => o.destroy()) });
       this.tweens.add({ targets: [label, name, subT].filter(Boolean), y: '-=10', duration: 420, ease: 'Cubic.in' });

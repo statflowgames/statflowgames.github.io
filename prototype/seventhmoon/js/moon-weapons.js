@@ -296,7 +296,7 @@ const MoonW = {
     }
     // 오른쪽 안내
     UI.panel(scn, 640, 110, 580, 560, { alpha: 0.6, line: 0x6a5a90 });
-    UI.text(scn, 668, 132, this.MYTH[cls].name, 28, '#dfe8ff', { bold: true, serif: true, st: 5 });
+    UI.text(scn, 668, 132, this.MYTH[cls].name, 28, RARITY[6].col, { bold: true, serif: true, st: 5 });   // ✏️ 2026-11-26 신화 색
     UI.text(scn, 668, 172, '신화 · 무기 · 여섯 달 무기 능력치 60%를 모두 갖는다', 16, '#b8c0e0');
     if (M) {
       UI.text(scn, 668, 210, this.stageKo(M.stage), 24, '#ffe27a', { bold: true });
@@ -328,7 +328,7 @@ const MoonW = {
 })();
 
 // ---------------- 등급 「신화」 ----------------
-RARITY[6] = { ko: '신화', col: '#dfe8ff', hex: 0xcfe0ff, aff: 3 };
+RARITY[6] = { ko: '신화', col: '#ff5a74', hex: 0xff4a66, aff: 3 };   // ✏️ 2026-11-26 은백 → 진홍 (일반 흰색과 헷갈려서). 달의 무기 빛은 MYTH_COL(은빛) 그대로
 
 // ---------------- 스테이지: 달의 시련 7~12 · 숨은 최종 보스 ----------------
 for (const [c, pool, , tB, , midB, bossB] of P2_STAGES) {
