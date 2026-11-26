@@ -77,6 +77,36 @@ class Actor {
     const sp = Math.hypot(this.vx, this.vy * 1.3);
     return Phaser.Math.Clamp(sp / nominal, 0.35, 1.8);
   }
+  // 🆕 2026-11-26 걷기·달리기 몸 높이 매끈하게: 앞으로 옮기는 발이 땅을 스치듯 지나가서, 낮은 발을 따라가면
+  //   한 걸음마다 몸 높이가 어깨처럼 꺾였다(턱·되튐 → 절뚝). 한 바퀴 동안의 땅 높이를 기록해 낮은 주파수(한 바퀴 6번까지)만 남긴
+  //   곡선으로 몸을 올린다. 자세는 위상에만 따르므로 다음 바퀴부터 그대로 쓸 수 있다. 섞는 중·멈칫(히트스톱)은 기록하지 않는다.
+  gaitGround(dt, frozen) {
+    const clip = CLIPS[this.anim], raw = this.groundOff;
+    const on = clip && clip.loop && clip.amp && MOTION_CFG.gaitSmooth;
+    const blending = this.blendFrom && this.blendT < this.blendDur;
+    this.gaitW = this.gaitW || 0;
+    if (!on) { this.gaitW = 0; this.gaitS = null; return; }
+    const H = MOTION_CFG.gaitH, ph = ((this.animT % clip.dur) + clip.dur) % clip.dur / clip.dur * Math.PI * 2;
+    let S = this.gaitS;
+    if (!S || S.anim !== this.anim) S = this.gaitS = { anim: this.anim, s: new Float64Array(2 * H + 1), n: 0, last: ph, bad: true };
+    // 위상이 지나간 만큼 무게를 준다 (가속·감속 중에는 프레임이 바퀴의 한쪽에 몰려 곡선이 틀어진다)
+    let dph = ph - S.last; if (dph < -Math.PI) dph += Math.PI * 2;
+    if (ph < S.last - Math.PI) {   // 한 바퀴 끝: 깨끗하게 모인 바퀴만 쓴다
+      // 평균(약 180)을 미리 빼 두고 모은다 — 바퀴 끝이 위상과 딱 맞지 않아 평균이 다른 성분으로 새면 곡선이 크게 틀어진다
+      if (!S.bad && S.n >= 12 && S.w > 5.5) { const C = Array.from(S.s, v => v / S.w); C[0] += S.ref; (this.gaitC || (this.gaitC = {}))[this.anim] = C; }
+      S.s.fill(0); S.n = 0; S.w = 0; S.bad = false; S.ref = raw;
+    }
+    S.last = ph;
+    if (S.ref === undefined) S.ref = raw;
+    if (blending || dph < 0 || dph > 1) S.bad = true;
+    else if (!frozen && dph > 0) { const x = raw - S.ref; S.s[0] += x * dph; for (let k = 1; k <= H; k++) { S.s[2 * k - 1] += x * Math.cos(k * ph) * dph; S.s[2 * k] += x * Math.sin(k * ph) * dph; } S.n++; S.w = (S.w || 0) + dph; }
+    const C = this.gaitC && this.gaitC[this.anim];
+    this.gaitW = motionApproach(this.gaitW, C && !blending ? 1 : 0, (frozen ? 0 : dt) / 160);
+    if (!C || !this.gaitW) return;
+    let f = C[0];
+    for (let k = 1; k <= H; k++) f += 2 * (C[2 * k - 1] * Math.cos(k * ph) + C[2 * k] * Math.sin(k * ph));
+    this.groundOff = raw + (f - raw) * this.gaitW;
+  }
   spring(o, target, k, damp, f) {
     o.v += (target - o.x) * k * f;
     o.v *= Math.pow(damp, f);
@@ -172,7 +202,14 @@ class Actor {
     if (!frozen || this.groundOff === undefined) {
       const airborne = (this.motionSync && (this.state === 'jump' || this.state === 'jatk')) || (this.enemyMotion && this.state === 'air');
       const feet = (this.motionSync || (this.enemyMotion && this.enemyHumanoid)) && !['roll', 'air', 'down', 'getup', 'dead', 'dying'].includes(this.state);
-      this.groundOff = airborne ? (this.airGroundOff ?? this.rig.foot) : this.rig.lowest(feet ? ['ftf', 'ftb'] : undefined);
+      // ✏️ 2026-11-26 두 발 중 낮은 쪽으로 땅에 붙이면 딛는 발이 바뀌는 순간 몸 높이가 각지게 꺾여(프레임마다 다르게 걸려) 절뚝거려 보였다
+      //   → 두 발 높이를 부드럽게 섞은 최댓값 (차이가 K보다 크면 그냥 낮은 발, 같을 때도 오차 ±K/8 px)
+      if (airborne) this.groundOff = this.airGroundOff ?? this.rig.foot;
+      else if (feet && !RUN_OLD) {
+        const K = MOTION_CFG.footK, a = this.rig.bodyBounds(['ftf']).bottom, b = this.rig.bodyBounds(['ftb']).bottom, h = Math.max(0, K - Math.abs(a - b)) / K;
+        this.groundOff = Math.max(a, b) + h * h * K / 4 - K / 8 - 3;
+        this.gaitGround(dt, frozen);
+      } else this.groundOff = this.rig.lowest(feet ? ['ftf', 'ftb'] : undefined);
     }
     const sq = Phaser.Math.Clamp((pose.sq || 0) + sec.sq.x, -0.18, 0.18);
     const sy = this.sc * (1 + sq), sxs = this.sc * (1 - sq * 0.6);

@@ -31,10 +31,16 @@ const ease = {
 //   0 근처(±SOFT)만 곡선으로 이어 붙인다 (값이 음수로 내려가지 않고, 1에서는 그대로 1).
 //   주소에 ?oldmotion 을 붙이면 예전 움직임(비교용)
 const MOTION_OLD = typeof location !== 'undefined' && /[?&]oldmotion/.test(location.search);
+// 🆕 2026-11-26 ?oldrun: 이번 달리기 절뚝거림 고침(무릎·보폭·엉덩이 수평·발 땅 붙이기)만 예전으로 — 비교용
+const RUN_OLD = MOTION_OLD || (typeof location !== 'undefined' && /[?&]oldrun/.test(location.search));
 const SOFT = MOTION_OLD ? 0 : 0.45;
 // 동작 전환 설정 (시험용으로 바꿔 볼 수 있게 한곳에): smooth = 가속·감속 전환, carry = 이전 동작 기세 잇기
 //   minDur: 이 길이(ms) 이상인 전환에만 (걷기·달리기·대기). 공격·점프처럼 짧고 빠른 전환은 예전대로 — 재어 보니 그쪽이 더 매끈했다
-const MOTION_CFG = { smooth: !MOTION_OLD, carry: !MOTION_OLD, carryMax: 25, minDur: 100 };
+const MOTION_CFG = { smooth: !MOTION_OLD, carry: !MOTION_OLD, carryMax: 25, minDur: 100, footK: 10, gaitSmooth: !RUN_OLD, gaitH: 4 };   // footK: 두 발 높이를 섞는 폭 · gaitH: 걷기·달리기 몸 높이 곡선에 남길 주파수 수 (한 바퀴 4번 = 한 걸음 2번) (actors.js 땅 붙이기)
+const RUN_FLEX = RUN_OLD ? 0 : 18;   // 🆕 2026-11-26 달릴 때 디딘 다리 무릎 굽힘(도)
+// 🆕 2026-11-26 엉덩이 수평: 두 엉덩이 관절이 앞뒤로 떨어져 있어(약 35px) 몸 전체(rr)를 기울이면 한쪽 엉덩이가 낮아진다
+//   → 걸을 때·달릴 때 한쪽 다리만 짧은 것처럼 걸음 높이가 번갈아 달라져 절뚝거렸다. 기울기는 몸통에 주고, 다리는 같은 방향 그대로.
+const levelHips = p => { const r = p.rr || 0; return RUN_OLD || !r ? p : { ...p, rr: 0, torso: (p.torso || 0) + r, thf: (p.thf || 0) + r, thb: (p.thb || 0) + r }; };
 const sPos = v => v >= SOFT ? v : v <= -SOFT ? 0 : (v + SOFT) * (v + SOFT) / (4 * SOFT);
 const sAbs = v => Math.abs(v) >= SOFT ? Math.abs(v) : (v * v + SOFT * SOFT) / (2 * SOFT);
 
@@ -103,25 +109,27 @@ const CLIPS = {
   walk: { loop: true, dur: 680, amp: 24, at(t, base = P.stand, amp = 24) {
     const ph = t / 680 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
     const sw = sPos;                                // 앞으로 옮기는 다리만 무릎을 접는다 (✏️ 매끈하게)
-    return add(upper(base), {
+    return levelHips(add(upper(base), {
       thf: -s * amp - 4, shf: 8 + sw(c) * amp * 1.6, ftf: -sw(c) * 10 + sw(-c) * sw(s) * 8,
       thb: s * amp - 4, shb: 8 + sw(-c) * amp * 1.6, ftb: -sw(-c) * 10 + sw(c) * sw(-s) * 8,
       uab: s * amp * 0.35, fab: -s * 6, uaf: -s * amp * 0.2,
       torso: 6 - sAbs(c) * 2, head: sAbs(c) * 2, cape: 10 + c * 6, rr: 2,
       sq: sAbs(c) * 0.015,
-    });
+    }));
   } },
-  run: { loop: true, dur: 540, amp: 36, at(t, base = P.stand, amp = 36) {
+  // ✏️ 2026-11-26 절뚝거림 줄이기: 보폭 36→27 (발이 땅을 밀 때 속도와 맞아 재생이 0.7배로 늘어지지 않게),
+  //   디딘 다리 무릎을 살짝 굽혀(RUN_FLEX) 다리가 막대처럼 넘어가며 몸이 크게 꺼졌다 솟는 것을 줄인다. ?oldmotion·?oldrun 이면 예전 그대로
+  run: { loop: true, dur: 540, amp: RUN_OLD ? 36 : 27, at(t, base = P.stand, amp = RUN_OLD ? 36 : 27) {
     const ph = t / 540 * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph);
-    const sw = sPos;
-    return add(upper(base), {
-      thf: -s * amp - 14, shf: 14 + sw(c) * amp * 2.0, ftf: -sw(c) * 18,
-      thb: s * amp - 14, shb: 14 + sw(-c) * amp * 2.0, ftb: -sw(-c) * 18,
+    const sw = sPos, fx = RUN_FLEX;
+    return levelHips(add(upper(base), {
+      thf: -s * amp - 14, shf: 14 + sw(c) * amp * 2.0 + sw(-c) * fx, ftf: -sw(c) * 18,
+      thb: s * amp - 14, shb: 14 + sw(-c) * amp * 2.0 + sw(c) * fx, ftb: -sw(-c) * 18,
       // 달릴 때는 칼을 뒤로 늘어뜨리고 방패를 앞으로 (레퍼런스 달리기 포즈)
       uab: 26 + s * amp * 0.5, fab: -20 - s * 10, hb: 76, uaf: -36 - s * 8, faf: 10,
       torso: 16 + sAbs(c) * 3, head: -10, cape: 34 + c * 10, rr: 5,
       sq: sAbs(s) * 0.03,
-    });
+    }));
   } },
 };
 

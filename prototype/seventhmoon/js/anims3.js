@@ -32,23 +32,23 @@ function locoClips(key, o) {
   const walkUp = o.walkUp || base, runUp = o.runUp || base;
   CLIPS[key + '_walk'] = { loop: true, dur: o.walkDur, amp: o.walkAmp, at(t) {
     const ph = t / o.walkDur * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = o.walkAmp, sw = sPos;   // ✏️ 2026-11-25 매끈한 꺾임
-    return add(upper(walkUp), {
+    return levelHips(add(upper(walkUp), {
       thf: -s * a - 4 + (o.knee || 0) * -0.4, shf: 8 + sw(c) * a * 1.6 + (o.knee || 0), ftf: -sw(c) * 10,
       thb: s * a - 4 + (o.knee || 0) * -0.4, shb: 8 + sw(-c) * a * 1.6 + (o.knee || 0), ftb: -sw(-c) * 10,
       uab: s * a * (o.armSwing ?? 0.3), uaf: -s * a * (o.armSwingF ?? 0.2),
       torso: (o.lean || 0) - sAbs(c) * (o.bob || 2), head: sAbs(c) * 2, cape: 10 + c * 6, rr: o.rr || 2,
       sq: sAbs(c) * (o.sq || 0.015),
-    });
+    }));
   } };
   CLIPS[key + '_run'] = { loop: true, dur: o.runDur, amp: o.runAmp, at(t) {
-    const ph = t / o.runDur * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = o.runAmp, sw = sPos;
-    return add(upper(runUp), {
-      thf: -s * a - 14, shf: 14 + sw(c) * a * 2.0, ftf: -sw(c) * 18,
-      thb: s * a - 14, shb: 14 + sw(-c) * a * 2.0, ftb: -sw(-c) * 18,
+    const ph = t / o.runDur * Math.PI * 2, s = Math.sin(ph), c = Math.cos(ph), a = o.runAmp, sw = sPos, fx = o.runFlex ?? RUN_FLEX;   // ✏️ 2026-11-26 디딘 다리 무릎
+    return levelHips(add(upper(runUp), {
+      thf: -s * a - 14, shf: 14 + sw(c) * a * 2.0 + sw(-c) * fx, ftf: -sw(c) * 18,
+      thb: s * a - 14, shb: 14 + sw(-c) * a * 2.0 + sw(c) * fx, ftb: -sw(-c) * 18,
       uab: s * a * (o.runSwing ?? 0.3), uaf: -s * a * (o.runSwingF ?? 0.2),
       torso: (o.runLean || 12) + sAbs(c) * 3, head: o.runHead || -8, cape: 34 + c * 10, rr: o.runRr || 5,
       sq: sAbs(s) * (o.runSq || 0.03),
-    });
+    }));
   } };
 }
 // 오델리아: 묵직한 행진, 망치는 어깨에
@@ -56,13 +56,13 @@ locoClips('paladin', { walkDur: 820, walkAmp: 18, armSwing: 0.05, armSwingF: 0.1
   runDur: 640, runAmp: 28, runUp: WA(X(STANCE.paladin, { uab: -20, fab: -120, uaf: -60, faf: -40 }), 140), runSwing: 0.05, runSwingF: 0.1, runLean: 10, runSq: 0.04 });
 // 키르: 낮고 빠른 잰걸음, 달릴 때는 팔을 뒤로 젖힌 그림자 달리기
 locoClips('rogue', { walkDur: 520, walkAmp: 20, knee: 18, armSwing: 0.15, armSwingF: 0.15, lean: 20, rr: 3,
-  runDur: 420, runAmp: 40, runUp: RW(X(STANCE.rogue, { uab: 60, fab: -10, uaf: 55, faf: -10, head: -22 }), 60, 70), runSwing: 0.05, runSwingF: 0.05, runLean: 34, runHead: -24, runRr: 8, runSq: 0.02 });
+  runDur: 420, runAmp: RUN_OLD ? 40 : 30, runUp: RW(X(STANCE.rogue, { uab: 60, fab: -10, uaf: 55, faf: -10, head: -22 }), 60, 70), runSwing: 0.05, runSwingF: 0.05, runLean: 34, runHead: -24, runRr: 8, runSq: 0.02 });
 // 미라엘: 사뿐한 걸음, 달릴 때 망토가 날린다
 locoClips('mage', { walkDur: 700, walkAmp: 16, armSwing: 0.1, armSwingF: 0.3, bob: 1, lean: -2,
   runDur: 560, runAmp: 30, runUp: MWA(X(STANCE.mage, { uab: 20, fab: -40, uaf: -20, faf: -60 }), -140), runSwing: 0.2, runSwingF: 0.4, runLean: 10 });
 // 세릴: 가볍게 튀는 사냥꾼 걸음
 locoClips('ranger', { walkDur: 620, walkAmp: 24, armSwing: 0.35, armSwingF: 0.15, bob: 3, sq: 0.03,
-  runDur: 480, runAmp: 40, runUp: WF(WA(X(STANCE.ranger, { uaf: -10, faf: -20, uab: 30 }), 70), -150), runSwing: 0.4, runSwingF: 0.3, runLean: 16, runSq: 0.045 });
+  runDur: 480, runAmp: RUN_OLD ? 40 : 30, runUp: WF(WA(X(STANCE.ranger, { uaf: -10, faf: -20, uab: 30 }), 70), -150), runSwing: 0.4, runSwingF: 0.3, runLean: 16, runSq: 0.045 });
 // 녹타: 대검을 땅에 끌며 무겁게
 const HEX_DRAG = TWO(WA({ ...STANCE.hexblade, uab: 30, fab: -6, torso: 14, head: 10 }, 112), -10, 0);
 locoClips('hexblade', { walkDur: 900, walkAmp: 16, armSwing: 0.02, armSwingF: 0.02, bob: 3, lean: 12, sq: 0.02, walkUp: HEX_DRAG,
