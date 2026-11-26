@@ -110,7 +110,7 @@ class CodexMenu extends MenuBase {
     const s = Save.data;
     this.frame('도감 · 업적');
     const tabs = [['mon', '몬스터'], ['item', '장비'], ['ach', `업적 ${Codex.progress(s)}/${ACHIEVEMENTS.length}`]];
-    tabs.forEach(([k, ko], i) => UI.button(this, 460 + i * 190, 66, ko, () => { this.tab = k; this.page = 0; this.draw(); }, { w: 180, h: 46, size: 19, col: this.tab === k ? 0x7a3a10 : 0x3a2a1a }));
+    tabs.forEach(([k, ko], i) => UI.tab(this, 460 + i * 190, 66, ko, this.tab === k, () => { this.tab = k; this.page = 0; this.draw(); }, { w: 180 }));
     if (this.tab === 'mon') this.drawMon(s);
     else if (this.tab === 'item') this.drawItems(s);
     else this.drawAch(s);

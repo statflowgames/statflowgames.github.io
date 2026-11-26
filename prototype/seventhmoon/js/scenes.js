@@ -254,7 +254,7 @@ class MapScene extends Phaser.Scene {
     this.sel = id;
     if (this.info) this.info.destroy();
     const c = this.add.container(0, 0).setDepth(60);
-    c.add(UI.panel(this, W / 2 - 400, H - 150, 800, 140, { alpha: 0.94 }));
+    c.add(UI.panel(this, W / 2 - 410, H - 172, 820, 166, { alpha: 0.94 }));   // ✏️ 2026-11-26 그림 창 테두리가 두꺼워 위·옆으로 넓힘
     const st = n.stage && STAGES[n.stage];
     const keyKo = CHAPTERS[ch - 1].part === 2 ? '흑월 씨앗' : '월석', keyA = keyRoute(ch) === 'A';
     const typeKo = { trial: '달의 시련', final: '숨은 최종 보스', stage: '전투', midboss: keyA ? '중간 보스 · ' + keyKo : '중간 보스', event: '이벤트', treasure: keyA ? '보물 · 장비 상자' : keyRoute(ch) === 'none' ? '보물 · 길드 금고' : '보물 · ' + keyKo, boss: '챕터 보스', side: '곁가지 의뢰 (선택)' }[n.type];
@@ -402,6 +402,22 @@ class Camp extends Phaser.Scene {
     // 모닥불 빛
     const glow = this.add.circle(535, 400, 130, 0xff9a3a, 0.12).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: glow, alpha: 0.2, scale: 1.08, yoyo: true, repeat: -1, duration: 700 });
+    // 🆕 2026-11-26 캠프 놀이 장소를 캠프 안에 세운다 (그림: npc/chest_stall · npc/training). 그림이 없으면 위 줄 버튼으로
+    this.spots = 0;
+    if (typeof LuckChest !== 'undefined') {
+      for (const [key, x, y, hgt, label, f] of [['npc/chest_stall', 300, 470, 168, '상자 노점', () => LuckChest.open(this)], ['npc/training', 790, 468, 160, '훈련장', () => Drill.start(this)]]) {
+        const im = UI.img(this, x, y, key);
+        if (!im) continue;
+        this.spots++;
+        const s0 = hgt / im.height;
+        im.setOrigin(0.5, 1).setScale(s0).setTint(0xd8cce0).setInteractive({ useHandCursor: true });
+        im.on('pointerover', () => { im.clearTint(); im.setScale(s0 * 1.04); });
+        im.on('pointerout', () => { im.setTint(0xd8cce0); im.setScale(s0); });
+        im.on('pointerup', () => { SFX.resume(); SFX.go(); f(); });
+        const tag = UI.text(this, x, y - hgt - 14, label, 20, '#ffe7a8', { bold: true, st: 5 }).setOrigin(0.5);
+        this.tweens.add({ targets: tag, y: tag.y - 6, yoyo: true, repeat: -1, duration: 1000 });
+      }
+    }
     // NPC
     const npcs = [
       ['tabel', 200, '대장간', 'smithy'], ['merchant', 430, '상점', 'shop'],
@@ -431,41 +447,98 @@ class Camp extends Phaser.Scene {
       a.c.setPosition(760, 690 - a.foot * a.def.scale).setScale(a.def.scale);
       this.ar = a;
     }
-    // 위 HUD와 아래 버튼
+    // ✏️ 2026-11-26 위 줄: 왼쪽 = 지도 메달 · 상태 띠, 오른쪽 = 메뉴 메달 5개 (uiset/icon_*). 그림이 없으면 같은 크기 버튼
+    const top = this.add.graphics();
+    top.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.66, 0.66, 0, 0).fillRect(0, 0, W, 170);
+    const medals = !UI.oldUi() && this.textures.exists('uiset/icon_bag');
+    if (medals) UI.medal(this, 62, 50, 'uiset/icon_map', '지도로', () => this.scene.start('map'));
+    else UI.button(this, 20 + 95, 44, '◀ 지도로', () => this.scene.start('map'), { w: 190, h: 56, size: 24 });
+    const nav = [['icon_codex', '도감', () => openMenu(this, 'codex')], ['icon_ally', '동료', () => this.pickAlly()], ['icon_class', '직업', () => this.pickClass()], ['icon_bag', '가방', () => openMenu(this, 'bag')], ['icon_menu', '메뉴', () => this.sysMenu()]];
+    const NW = medals ? 92 : 124, NG = medals ? 0 : 8;
+    nav.forEach(([ic, t, f], i) => {
+      const x = W - 20 - NW / 2 - (nav.length - 1 - i) * (NW + NG);
+      if (medals) UI.medal(this, x, 50, 'uiset/' + ic, t, f);
+      else UI.button(this, x, 44, t, f, { w: NW, h: 56, size: 23, col: 0x3a2a1a });
+    });
+    this.hudX = medals ? 118 : 20; this.hudY = medals ? 28 : 90;
     this.drawHud();
-    UI.button(this, 160, 50, '◀ 지도로', () => this.scene.start('map'), { w: 220, h: 60, size: 26 });
-    UI.button(this, W - 870, 50, '도감', () => openMenu(this, 'codex'), { w: 150, h: 56, size: 24, col: 0x4a3a1a });
-    UI.button(this, W - 700, 50, '동료', () => this.pickAlly(), { w: 150, h: 56, size: 24, col: 0x2a4a3a });
-    UI.button(this, W - 530, 50, '직업', () => this.pickClass(), { w: 150, h: 56, size: 24, col: 0x2a3a5a });
-    UI.button(this, W - 360, 50, '가방', () => openMenu(this, 'bag'), { w: 150, h: 56, size: 24, col: 0x4a2a14 });
-    UI.button(this, W - 190, 50, '메뉴', () => this.sysMenu(), { w: 150, h: 56, size: 24, col: 0x3a2a1a });
-    // 🆕 2026-11-25 캠프 미니게임 (js/camp-games.js)
-    if (typeof LuckChest !== 'undefined') {
-      UI.button(this, W - 360, 150, '상자 노점', () => { SFX.go(); LuckChest.open(this); }, { w: 170, h: 50, size: 21, col: 0x6a4a1a });
-      UI.button(this, W - 190, 150, '훈련장', () => { SFX.go(); Drill.start(this); }, { w: 170, h: 50, size: 21, col: 0x2a4a5a });
+    // 🆕 2026-11-25 캠프 미니게임 (js/camp-games.js) — 캠프에 세운 그림이 없을 때만 버튼
+    if (typeof LuckChest !== 'undefined' && !this.spots) {
+      UI.button(this, W - 20 - 75 - 158, 112, '상자 노점', () => { SFX.go(); LuckChest.open(this); }, { w: 150, h: 46, size: 20, col: 0x8a5a1a });
+      UI.button(this, W - 20 - 75, 112, '훈련장', () => { SFX.go(); Drill.start(this); }, { w: 150, h: 46, size: 20, col: 0x2a4a5a });
     }
     SFX.music('bgm_camp');
     SFX.ambience('camp');
     this.input.keyboard.on('keydown-ESC', () => this.scene.start('map'));
     runTalk(this, 'camp_tabel', null, { once: true });
   }
+  // ✏️ 2026-11-26 상태 띠: 어두운 판 위에 이름·레벨·난이도 | 금화 | SP | 월석 을 칸으로 나눠
   drawHud() {
     const s = Save.data;
-    if (this.hudT) this.hudT.destroy();
-    this.hudT = UI.text(this, W / 2 - 100, 110, `${DB.heroes[s.hero].name} Lv.${s.lv} · ${DIFFS[s.diff ?? 1].ko}   금화 ${s.gold}   SP ${s.sp}   월석 ${Object.keys(s.moons).length}/6`, 22, '#ffe7a8', { bold: true, st: 5 }).setOrigin(0.5, 0.5);
+    if (this.hud) this.hud.destroy();
+    const c = this.hud = this.add.container(this.hudX ?? 20, this.hudY ?? 90);
+    const art = !UI.oldUi() && this.textures.exists('uiset/statusbar');
+    const items = [[`${DB.heroes[s.hero].name} Lv.${s.lv}`, '#ffe7a8'], [DIFFS[s.diff ?? 1].ko, '#ffb08a'], ['금화 ' + s.gold.toLocaleString(), '#ffd84a'], ['SP ' + s.sp, s.sp ? '#7ae0ff' : '#d8c8b0'], [`월석 ${Object.keys(s.moons).length}/6`, '#dfe8ff']];
+    let x = art ? 36 : 18;
+    const extra = [];
+    const parts = items.map(([t, col], i) => {
+      // 🆕 난이도 글자 앞에 작은 난이도 문장
+      if (i === 1 && art && this.textures.exists('uiset/diff_' + (s.diff ?? 1))) { const em = this.add.image(x + 14, 23, 'uiset/diff_' + (s.diff ?? 1)); em.setScale(32 / em.height); extra.push(em); x += 32; }
+      const tx = UI.text(this, x, 23, t, 20, col, { bold: true, st: 4 }).setOrigin(0, 0.5);
+      x += tx.width + (i < items.length - 1 ? 30 : art ? 36 : 18);
+      return tx;
+    });
+    const g = this.add.graphics();
+    let bg = null;
+    if (art) bg = this.add.nineslice(0, 0, 'uiset/statusbar', undefined, Math.max(x, 80), 46, 34, 34, 0, 0).setOrigin(0, 0);
+    else { g.fillStyle(0x120a06, 0.78).fillRoundedRect(0, 0, x, 44, 12); g.lineStyle(2, 0xc99a3c, 0.9).strokeRoundedRect(0, 0, x, 44, 12); }
+    for (let i = 1; i < parts.length; i++) g.fillStyle(0xc99a3c, 0.45).fillRect(parts[i].x - 15 - (i === 1 && extra.length ? 32 : 0), 12, 2, 22);
+    c.add([bg, g, ...extra, ...parts].filter(Boolean));
   }
+  // 창 제목 리본 (그림 없으면 글자만)
+  ribbon(c, x, y, title, w = 380) {
+    const r = UI.img(this, x, y, 'uiset/ribbon');
+    if (r) { r.setScale(w / r.width); c.add(r); }
+    c.add(UI.text(this, x, y - (r ? 6 : 0), title, 30, '#fff6e0', { serif: true, bold: true, st: 6 }).setOrigin(0.5));
+  }
+  closeX(c, x, y, f) {
+    const b = UI.img(this, x, y, 'uiset/close');
+    if (!b) { c.add(UI.button(this, x, y, '✕', f, { w: 52, h: 46, size: 22, col: 0x3a2a1a })); return; }
+    b.setScale(56 / b.width).setInteractive({ useHandCursor: true });
+    b.on('pointerover', () => b.setScale(60 / b.width)); b.on('pointerout', () => b.setScale(56 / b.width));
+    b.on('pointerup', () => { SFX.go(); f(); });
+    c.add(b);
+  }
+  // ✏️ 2026-11-26 난이도: 네 칸을 나란히 두고 무엇이 다른지 줄마다 보여 준다
   pickDiff() {
     const s = Save.data;
     const c = this.add.container(0, 0).setDepth(200);
-    c.add(UI.blocker(this, 0.8));
-    c.add(UI.panel(this, W / 2 - 360, 110, 720, 500));
-    c.add(UI.text(this, W / 2, 150, '난이도', 38, '#ffe7a8', { serif: true }).setOrigin(0.5));
+    c.add(UI.blocker(this, 0.82));
+    c.add(UI.panel(this, 40, 70, W - 80, 610, { alpha: 0.96 }));
+    this.ribbon(c, W / 2, 76, '난이도');
+    this.closeX(c, W - 62, 92, () => c.destroy());
+    c.add(UI.text(this, W / 2, 140, '언제든 캠프에서 바꿀 수 있어요. 적이 강할수록 보상이 좋아요.', 17, '#d8c8b0').setOrigin(0.5));
+    const CW = 284, G = 12, x0 = W / 2 - (CW * 4 + G * 3) / 2;
     DIFFS.forEach((d, i) => {
-      const y = 230 + i * 90, open = diffOpen(s, i), cur = (s.diff ?? 1) === i;
-      c.add(UI.button(this, W / 2 - 200, y, d.ko, () => { if (!open) return; s.diff = i; Save.write(); c.destroy(); this.drawHud(); UI.toast(this, `난이도: ${d.ko}`); }, { w: 180, h: 60, size: 26, disabled: !open, col: cur ? 0x8a3a1a : 0x4a2a14 }));
-      c.add(UI.text(this, W / 2 - 90, y, open ? d.desc : (i === 2 ? '엔딩을 하나 보면 열려요' : '엔딩을 두 개 보면 열려요'), 19, open ? '#f4e4c0' : '#8a7a68', { wrap: 430 }).setOrigin(0, 0.5));
+      const x = x0 + i * (CW + G), open = diffOpen(s, i), cur = (s.diff ?? 1) === i;
+      const lc = cur ? 0xffd27a : open ? 0x8a6a3a : 0x4a3a30;
+      c.add(UI.panel(this, x, 168, CW, 430, { fill: cur ? 0x2a160c : 0x160d08, alpha: 0.95, line: lc, lw: cur ? 4 : 2 }));
+      // 🆕 2026-11-26 난이도 문장 (uiset/diff_0~3)이 있으면 이름 위에
+      const em = !UI.oldUi() && UI.img(this, x + CW / 2, 214, 'uiset/diff_' + i);
+      if (em) { em.setScale(76 / em.height); if (!open) em.setTint(0x404040); c.add(em); }
+      const ty = em ? 274 : 204, ry = em ? 330 : 278, rs = em ? 31 : 34;
+      c.add(UI.text(this, x + CW / 2, ty, d.ko, 28, open ? (cur ? '#ffe27a' : '#ffe7a8') : '#8a7a68', { serif: true, bold: true, st: 5 }).setOrigin(0.5));
+      c.add(UI.text(this, x + CW / 2, ty + 30, d.desc, 16, open ? '#e8d8c0' : '#8a7a68', { align: 'center', wrap: CW - 24 }).setOrigin(0.5));
+      d.rows.forEach((t, j) => {
+        const y = ry + j * rs, up = /×(1\.[1-9]|2)|\+|최소|2개|3개|업적/.test(t), down = /×0|절반|덜/.test(t);
+        if (j % 2 === 0) { const g = this.add.graphics(); g.fillStyle(0xffffff, 0.04).fillRect(x + 10, y - 15, CW - 20, 30); c.add(g); }
+        c.add(UI.text(this, x + 18, y, t, 16, !open ? '#7a6a58' : up ? '#ffc890' : down ? '#9ad8ff' : '#f4e4c0', { st: 3, wrap: CW - 30 }).setOrigin(0, 0.5));
+      });
+      if (cur) c.add(UI.text(this, x + CW / 2, 560, '✔ 지금 난이도', 21, '#ffe27a', { bold: true, st: 4 }).setOrigin(0.5));
+      else if (open) c.add(UI.button(this, x + CW / 2, 560, '이걸로 하기', () => { s.diff = i; Save.write(); c.destroy(); this.drawHud(); UI.toast(this, `난이도: ${d.ko}`); }, { w: 200, h: 50, size: 21, col: i >= 2 ? 0x8a2a10 : 0x3a2a1a }));
+      else c.add(UI.text(this, x + CW / 2, 560, '🔒 ' + (i === 2 ? '엔딩을 하나 보면 열려요' : '엔딩을 두 개 보면 열려요'), 16, '#8a7a68', { align: 'center' }).setOrigin(0.5));
     });
-    c.add(UI.button(this, W / 2, 575, '닫기', () => c.destroy(), { w: 200, h: 50, size: 22, col: 0x3a2a1a }));
+    c.add(UI.text(this, W / 2, 630, '정예 = 체력 1.8배에 특수 능력(분열·화염·방패막·흡혈·순간이동)이 붙은 적  ·  좋은 등급 = 장비가 한 등급 높게 나올 확률', 15, '#bfae98', { align: 'center', wrap: W - 140 }).setOrigin(0.5));
   }
   pickAlly() {
     const s = Save.data;
@@ -510,22 +583,33 @@ class Camp extends Phaser.Scene {
   sysMenu() {
     const s = Save.data;
     const c = this.add.container(0, 0).setDepth(200);
-    c.add(UI.blocker(this, 0.7));
-    c.add(UI.panel(this, W / 2 - 280, 160, 560, 400));
-    c.add(UI.text(this, W / 2, 205, '메뉴', 34, '#ffe7a8', { serif: true }).setOrigin(0.5));
-    c.add(UI.button(this, W / 2, 280, '백업 코드 복사', () => {
+    // ✏️ 2026-11-26 정리: 게임(설정·난이도) / 저장(백업 복사·불러오기) / 아래 줄(타이틀로·닫기). 같은 폭 두 칸씩, 겹침 없음
+    c.add(UI.blocker(this, 0.72));
+    const PW = 600, px = W / 2 - PW / 2, py = 120, BW = 262, L = W / 2 - BW / 2 - 8, R = W / 2 + BW / 2 + 8;
+    c.add(UI.panel(this, px, py, PW, 470, { alpha: 0.96 }));
+    this.ribbon(c, W / 2, py + 6, '메뉴', 340);
+    this.closeX(c, px + PW - 22, py + 22, () => c.destroy());
+    const head = (y, t) => {
+      c.add(UI.text(this, px + 40, y, t, 18, '#c9a46a', { bold: true, st: 3 }).setOrigin(0, 0.5));
+      const g = this.add.graphics(); g.fillStyle(0xc99a3c, 0.35).fillRect(px + 40 + t.length * 19 + 12, y, PW - 92 - t.length * 19, 2); c.add(g);
+    };
+    head(py + 86, '게임');
+    c.add(UI.button(this, L, py + 136, '설정', () => openSettings(this), { w: BW, h: 56, size: 22, col: 0x2a3a5a, icon: 'uiset/icon_menu' }));
+    c.add(UI.button(this, R, py + 136, `난이도 · ${DIFFS[s.diff ?? 1].ko}`, () => { c.destroy(); this.pickDiff(); }, { w: BW, h: 56, size: 22, col: 0x8a2a10, icon: 'uiset/diff_' + (s.diff ?? 1) }));
+    head(py + 206, '저장');
+    c.add(UI.button(this, L, py + 256, '백업 코드 복사', () => {
       const code = Save.exportCode();
       try { navigator.clipboard.writeText(code); UI.toast(this, '백업 코드를 복사했어요'); } catch (e) { UI.toast(this, '복사하지 못했어요'); }
-    }, { w: 380, h: 56, size: 22, col: 0x3a2a1a }));
-    c.add(UI.button(this, W / 2, 350, '백업 코드로 불러오기', () => {
+    }, { w: BW, h: 56, size: 21, col: 0x3a2a1a }));
+    c.add(UI.button(this, R, py + 256, '백업 코드로 불러오기', () => {
       const code = window.prompt('백업 코드를 붙여 넣으세요');
       if (!code) return;
       try { Save.importCode(code); this.scene.restart(); } catch (e) { UI.toast(this, '코드가 올바르지 않아요', '#ff9a8a'); }
-    }, { w: 380, h: 56, size: 22, col: 0x3a2a1a }));
-    c.add(UI.button(this, W / 2, 420, '설정', () => openSettings(this), { w: 185, h: 56, size: 22, col: 0x2a3a5a }));
-    c.add(UI.button(this, W / 2 + 195, 420, `난이도: ${DIFFS[s.diff ?? 1].ko}`, () => { c.destroy(); this.pickDiff(); }, { w: 185, h: 56, size: 20, col: 0x5a2a2a }));
-    c.add(UI.button(this, W / 2, 470, '타이틀로', () => this.scene.start('title'), { w: 380, h: 44, size: 20, col: 0x4a2a14 }));
-    c.add(UI.button(this, W / 2, 500, '닫기', () => c.destroy(), { w: 200, h: 52, size: 22 }));
+    }, { w: BW, h: 56, size: 20, col: 0x3a2a1a }));
+    c.add(UI.text(this, W / 2, py + 306, '기기를 바꿀 때 백업 코드로 진행을 옮길 수 있어요', 16, '#a8987e').setOrigin(0.5));
+    const g = this.add.graphics(); g.fillStyle(0xc99a3c, 0.3).fillRect(px + 40, py + 346, PW - 80, 2); c.add(g);
+    c.add(UI.button(this, L, py + 404, '타이틀로', () => this.scene.start('title'), { w: BW, h: 56, size: 22, col: 0x3a2a1a }));
+    c.add(UI.button(this, R, py + 404, '닫기', () => c.destroy(), { w: BW, h: 56, size: 22 }));
   }
   update(t, dt) { this.t += dt; if (this.rig) this.rig.apply(CLIPS.idle.at(this.t)); if (this.ar) this.ar.apply(CLIPS.idle.at(this.t + 700)); }
 }
@@ -665,10 +749,11 @@ class Smithy extends MenuBase {
     this.frame('대장간 · 타벨');
     // 🆕 탭: 장비 손질 / 보스 전리품
     const tab = this.tab || 'gear';
-    UI.button(this, 430, 66, '장비 손질', () => { this.tab = 'gear'; this.draw(); }, { w: 150, h: 46, size: 19, col: tab === 'gear' ? 0x8a3a1a : 0x3a2a1a });
-    UI.button(this, 595, 66, '보스 전리품', () => { this.tab = 'trophy'; this.sel = null; this.draw(); }, { w: 160, h: 46, size: 19, col: tab === 'trophy' ? 0x8a3a1a : 0x3a2a1a });
-    UI.button(this, 745, 66, '조합', () => { this.tab = 'fuse'; this.sel = null; this.draw(); }, { w: 120, h: 46, size: 19, col: tab === 'fuse' ? 0x8a3a1a : 0x3a2a1a });
-    UI.button(this, 880, 66, '달의 무기', () => { this.tab = 'moon'; this.sel = null; this.draw(); }, { w: 140, h: 46, size: 19, col: tab === 'moon' ? 0x4a4a8a : 0x2a2a4a });   // 🆕 2026-11-25
+    // ✏️ 2026-11-26 탭 그림 (UI.tab)
+    UI.tab(this, 430, 66, '장비 손질', tab === 'gear', () => { this.tab = 'gear'; this.draw(); }, { w: 150 });
+    UI.tab(this, 590, 66, '보스 전리품', tab === 'trophy', () => { this.tab = 'trophy'; this.sel = null; this.draw(); }, { w: 160 });
+    UI.tab(this, 735, 66, '조합', tab === 'fuse', () => { this.tab = 'fuse'; this.sel = null; this.draw(); }, { w: 120 });
+    UI.tab(this, 870, 66, '달의 무기', tab === 'moon', () => { this.tab = 'moon'; this.sel = null; this.draw(); }, { w: 140 });   // 🆕 2026-11-25
     if (tab === 'moon' && typeof MoonW !== 'undefined') return MoonW.drawForge(this);
     if (tab === 'trophy') return this.drawTrophy();
     if (tab === 'fuse') return this.drawFuse();
@@ -849,8 +934,8 @@ class Smithy extends MenuBase {
     const showP2 = s.ch >= 7 || p2.some(id => id in s.trophies);
     const page = showP2 ? (this.tpage || 0) : 0;
     if (showP2) {
-      UI.button(this, 790, 66, '1부', () => { this.tpage = 0; this.draw(); }, { w: 90, h: 46, size: 19, col: page === 0 ? 0x5a3a7a : 0x3a2a1a });
-      UI.button(this, 890, 66, '2부', () => { this.tpage = 1; this.draw(); }, { w: 90, h: 46, size: 19, col: page === 1 ? 0x5a3a7a : 0x3a2a1a });
+      UI.tab(this, 790, 66, '1부', page === 0, () => { this.tpage = 0; this.draw(); }, { w: 90 });
+      UI.tab(this, 890, 66, '2부', page === 1, () => { this.tpage = 1; this.draw(); }, { w: 90 });
     }
     (page ? p2 : p1).forEach((id, i) => {
       const g = BOSS_GEAR[id], gd = BOSS_GIMMICK_DEF[id] || {}, c = bossGearCost(id);
@@ -963,9 +1048,9 @@ class Shop extends MenuBase {
     this.frame('포포 상회');
     // 🆕 탭: 물건 / 특별 상품
     const tab = this.tab || 'goods';
-    UI.button(this, 380, 66, '소모품', () => { this.tab = 'goods'; this.draw(); }, { w: 120, h: 46, size: 19, col: tab === 'goods' ? 0x8a3a1a : 0x3a2a1a });
-    UI.button(this, 510, 66, '장비', () => { this.tab = 'gear'; this.draw(); }, { w: 120, h: 46, size: 19, col: tab === 'gear' ? 0x8a3a1a : 0x3a2a1a });
-    UI.button(this, 655, 66, '특별 상품', () => { this.tab = 'special'; this.draw(); }, { w: 150, h: 46, size: 19, col: tab === 'special' ? 0x8a3a1a : 0x3a2a1a });
+    UI.tab(this, 380, 66, '소모품', tab === 'goods', () => { this.tab = 'goods'; this.draw(); }, { w: 120 });
+    UI.tab(this, 510, 66, '장비', tab === 'gear', () => { this.tab = 'gear'; this.draw(); }, { w: 120 });
+    UI.tab(this, 655, 66, '특별 상품', tab === 'special', () => { this.tab = 'special'; this.draw(); }, { w: 150 });
     if (tab === 'special') return this.drawSpecial();
     if (tab === 'gear') return this.drawGear();
     // ✏️ 소모품 14종을 2열로. 아이콘을 누르면 벨트 4칸 중 하나로 넣는다 (부활 깃털은 벨트 없이 자동)

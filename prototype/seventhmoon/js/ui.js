@@ -8,7 +8,31 @@ const UI = {
       wordWrap: o.wrap ? { width: o.wrap, useAdvancedWrap: true } : undefined,
     });
   },
+  oldUi() { return typeof Q !== 'undefined' && (Q.has('oldbtn') || Q.has('oldui')); },
+  // ✏️ 2026-11-26 그림 창 (tools/import_ui_v2.py): 큰 창 = uiset/frame(나무판·금 모서리), 칸·카드·목록 줄 = uiset/inner(어두운 판)
+  //   o.line이 강조 색(선택·등급 등)이면 안쪽에 그 색 테를 한 줄 더 그린다. 어두운 잠김 색이면 판을 어둡게. 아주 작은 칸은 예전 그리기
+  panelSkin(w, h, o) {
+    if (o.inner === false) return h >= 56 && w >= 120 ? 'inner' : null;
+    if ((o.alpha ?? 0.9) >= 0.85 && w >= 360 && h >= 240) return 'frame';
+    return w >= 80 && h >= 72 ? 'inner' : null;
+  },
   panel(sc, x, y, w, h, o = {}) {
+    const skin = this.oldUi() ? null : this.panelSkin(w, h, o), key = skin && 'uiset/' + skin;
+    if (key && sc.textures.exists(key)) {
+      const S = skin === 'frame' ? 42 : 34, c = sc.add.container(0, 0);
+      const ns = sc.add.nineslice(x + w / 2, y + h / 2, key, undefined, Math.max(w, S * 2 + 2), Math.max(h, S * 2 + 2), S, S, S, S).setDisplaySize(w, h);
+      if (skin === 'inner' && (o.alpha ?? 0.9) < 0.8) ns.setAlpha(0.92);
+      const line = o.line;
+      if (line === 0x5a4a38 || line === 0x4a3a30 || line === 0x4a3a2a) ns.setTint(0x8a8080);   // 잠김·못 고름
+      c.add(ns);
+      if (line != null && ![0xc99a3c, 0x7a5a30, 0xe0b45a, 0x5a4a38, 0x4a3a30, 0x4a3a2a].includes(line)) {
+        const g = sc.add.graphics(), k = skin === 'frame' ? 12 : 7;
+        g.lineStyle(o.lw ?? 3, line, 1).strokeRoundedRect(x + k, y + k, w - k * 2, h - k * 2, 8);
+        c.add(g);
+      }
+      if (o.crest && sc.textures.exists('uiset/crest')) { const cr = sc.add.image(x + w / 2, y + 6, 'uiset/crest'); cr.setScale(Math.min(260, w * 0.45) / cr.width); c.add(cr); }
+      return c;
+    }
     const g = sc.add.graphics();
     g.fillStyle(o.fill ?? 0x1a0f08, o.alpha ?? 0.9).fillRoundedRect(x, y, w, h, o.r ?? 14);
     g.lineStyle(o.lw ?? 3, o.line ?? 0xc99a3c, 1).strokeRoundedRect(x, y, w, h, o.r ?? 14);
@@ -16,8 +40,46 @@ const UI = {
     return g;
   },
   // 버튼: 컨테이너(배경+글자). o.w/h/size/col/disabled
+  // ✏️ 2026-11-26 그림 버튼: uiset/btn_<색> (금테, tools/build_ui_buttons.py)을 9칸 늘이기로. col은 가장 가까운 색으로 바꾼다. ?oldbtn 이면 예전 그리기
+  btnSkin(o) {
+    if (o.disabled) return 'gray';
+    if (o.col == null) return 'red';
+    const r = (o.col >> 16 & 255) / 255, g = (o.col >> 8 & 255) / 255, b = (o.col & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, s = mx ? d / mx : 0;
+    let h = !d ? 0 : mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60;
+    if (s < 0.2) return mx > 0.6 ? 'silver' : 'brown';
+    if (h < 15 || h >= 335) return 'red';
+    if (h < 48) return mx >= 0.5 && h < 30 ? 'red' : mx >= 0.6 ? 'gold' : 'brown';
+    if (h < 70) return 'gold';
+    if (h < 170) return 'green';
+    if (h < 250) return 'blue';
+    return 'purple';
+  },
   button(sc, x, y, label, cb, o = {}) {
     const w = o.w || 220, h = o.h || 60, c = sc.add.container(x, y);
+    const small = h < 52, base = `uiset/btn_${this.btnSkin(o)}${small ? '_s' : ''}`;
+    const old = this.oldUi() || !sc.textures.exists(base);
+    if (!old) {
+      const [L, T] = small ? [16, 15] : [24, 22];
+      const ns = k => sc.add.nineslice(0, 0, k, undefined, Math.max(w, L * 2 + 2), Math.max(h, T * 2 + 2), L, L, T, T).setDisplaySize(w, h);
+      const shadow = ns(base).setTint(0x000000).setAlpha(0.45).setPosition(2, 4);
+      const bg = ns(base), hl = ns(base).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+      const pk = small ? base.replace('_s', '_sp') : base + '_p', pr = sc.textures.exists(pk) ? ns(pk).setVisible(false) : null;
+      // 🆕 o.icon: 왼쪽에 둥근 아이콘 (uiset/icon_*), 글자는 남은 자리 가운데
+      const ic = o.icon && sc.textures.exists(o.icon) ? sc.add.image(-w / 2 + h * 0.55, 0, o.icon) : null;
+      if (ic) ic.setScale(h * 0.92 / ic.height);
+      const t = UI.text(sc, ic ? h * 0.42 : 0, -1, label, o.size || 26, o.disabled ? '#a8a096' : (o.tcol || '#fff6e0'), { bold: true, align: 'center', st: Math.max(3, Math.round((o.size || 26) / 6)) }).setOrigin(0.5);
+      c.add([shadow, bg, pr, hl, ic, t].filter(Boolean));
+      c.setSize(w, h).setInteractive({ useHandCursor: !o.disabled });
+      const draw = hov => { hl.setAlpha(hov && !o.disabled ? 0.22 : 0); };
+      const up = () => { if (pr) { pr.setVisible(false); bg.setVisible(true); } t.y = -1; if (ic) ic.y = 0; };
+      c.on('pointerover', () => draw(true));
+      c.on('pointerout', () => { draw(false); up(); c.setScale(1); });
+      c.on('pointerdown', () => { if (o.disabled) return; if (pr) { pr.setVisible(true); bg.setVisible(false); } t.y = 2; if (ic) ic.y = 3; c.setScale(0.97); });
+      c.on('pointerup', () => { if (o.disabled) return; up(); c.setScale(1); SFX.resume(); SFX.go(); cb(); });
+      c.label = t; c.redraw = draw; c.bg = bg;
+      return c;
+    }
     const g = sc.add.graphics();
     const draw = hov => {
       g.clear();
@@ -36,6 +98,37 @@ const UI = {
     c.on('pointerdown', () => { if (o.disabled) return; c.setScale(0.95); });
     c.on('pointerup', () => { if (o.disabled) return; c.setScale(1); SFX.resume(); SFX.go(); cb(); });
     c.label = t; c.redraw = draw;
+    return c;
+  },
+  // 🆕 2026-11-26 탭: 고른 것 = uiset/tab_on(붉은 면), 아닌 것 = tab_off(갈색). 그림이 없으면 버튼으로
+  tab(sc, x, y, label, on, cb, o = {}) {
+    const w = o.w || 150, h = o.h || 46, key = on ? 'uiset/tab_on' : 'uiset/tab_off';
+    if (this.oldUi() || !sc.textures.exists(key)) return this.button(sc, x, y, label, cb, { w, h, size: o.size || 19, col: on ? 0x8a3a1a : 0x3a2a1a });
+    const c = sc.add.container(x, y), k = h / 56;
+    const bg = sc.add.nineslice(0, 0, key, undefined, w / k, 56, 26, 26, 22, 22).setScale(k);
+    const hl = sc.add.nineslice(0, 0, key, undefined, w / k, 56, 26, 26, 22, 22).setScale(k).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+    const t = UI.text(sc, 0, on ? -1 : 1, label, o.size || 19, on ? '#fff6e0' : '#d8c0a0', { bold: true, align: 'center', st: 4 }).setOrigin(0.5);
+    c.add([bg, hl, t]).setSize(w, h).setInteractive({ useHandCursor: !on });
+    c.on('pointerover', () => { if (!on) hl.setAlpha(0.18); });
+    c.on('pointerout', () => hl.setAlpha(0));
+    c.on('pointerup', () => { if (on) return; SFX.resume(); SFX.go(); cb(); });
+    c.label = t;
+    return c;
+  },
+  // 🆕 2026-11-26 둥근 메달 버튼 (uiset/icon_*) + 아래 이름. 그림이 없으면 보통 버튼
+  medal(sc, x, y, icon, label, cb, o = {}) {
+    const size = o.size || 72;
+    if (this.oldUi() || !sc.textures.exists(icon)) return this.button(sc, x, y, label, cb, { w: o.w || 124, h: 56, size: 23, col: o.col ?? 0x3a2a1a });
+    const c = sc.add.container(x, y);
+    const sh = sc.add.ellipse(2, size * 0.46, size * 0.9, size * 0.2, 0x000000, 0.35);
+    const im = sc.add.image(0, 0, icon); const s0 = size / im.height; im.setScale(s0);
+    const t = UI.text(sc, 0, size / 2 + 12, label, o.font || 18, '#ffe7a8', { bold: true, st: 4 }).setOrigin(0.5);
+    c.add([sh, im, t]).setSize(size, size).setInteractive({ useHandCursor: true });
+    c.on('pointerover', () => { im.setScale(s0 * 1.08); t.setColor('#ffffff'); });
+    c.on('pointerout', () => { im.setScale(s0); t.setColor('#ffe7a8'); });
+    c.on('pointerdown', () => im.setScale(s0 * 0.94));
+    c.on('pointerup', () => { im.setScale(s0 * 1.08); SFX.resume(); SFX.go(); cb(); });
+    if (o.badge) { const b = sc.add.circle(size * 0.36, -size * 0.36, 9, 0xff4a3a).setStrokeStyle(2, 0xffffff); c.add(b); }
     return c;
   },
   toast(sc, msg, color = '#fff4d8', y = 120) {
