@@ -145,7 +145,7 @@ const UI = {
       const sc = scs[scs.length - 1];
       if (!sc || (!force && sc.scene.key === 'game' && !sc.won)) return;
       this._savedAt = now;
-      const t = UI.text(sc, W - 22, H - 18, '✓ 저장됨', 18, '#a8f0a0', { bold: true, st: 4 }).setOrigin(1, 1).setScrollFactor(0).setDepth(99990).setAlpha(0);
+      const t = UI.text(sc, W - 22, H - 1, '✓ 저장됨', 16, '#a8f0a0', { bold: true, st: 4 }).setOrigin(1, 1).setScrollFactor(0).setDepth(99990).setAlpha(0);
       sc.tweens.add({ targets: t, alpha: 1, duration: 200, hold: 1100, yoyo: true, onComplete: () => t.destroy() });
     } catch (e) { /* 표시는 못 해도 저장은 됐다 */ }
   },

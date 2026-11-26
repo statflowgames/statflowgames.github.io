@@ -1121,7 +1121,31 @@ class Smithy extends MenuBase {
         this.draw();
       }, { w: 92, h: 46, size: 19, col: ready ? 0x8a3a1a : 0x4a2a14 });
     });
-    UI.text(this, W - 70, 104, '보스 전리품 2개 → 그 보스만의 장신구', 16, '#c8b8a0').setOrigin(1, 0.5);
+    // ✏️ 2026-11-26 무엇을 하는 곳인지 설명: 한 줄 안내 + 「? 도움말」 (처음 들어오면 한 번 저절로 열림)
+    UI.text(this, W - 238, 104, '전리품 2개 → 그 보스만의 장신구', 15, '#c8b8a0').setOrigin(1, 0.5);
+    UI.button(this, W - 152, 104, '? 도움말', () => this.trophyHelp(), { w: 150, h: 38, size: 17, col: 0x2a3a5a });
+    if (!(s.seen && s.seen.trophyHelp)) { s.seen = s.seen || {}; s.seen.trophyHelp = true; Save.write(); this.trophyHelp(); }
+  }
+  // 🆕 2026-11-26 보스 전리품 도움말 창
+  trophyHelp() {
+    const c = this.add.container(0, 0).setDepth(500);
+    c.add(UI.blocker(this, 0.7));
+    const PW = 640, PH = 460, px = W / 2 - PW / 2, py = H / 2 - PH / 2;
+    c.add(UI.panel(this, px, py, PW, PH, { alpha: 0.97 }));
+    c.add(UI.text(this, W / 2, py + 50, '보스 전리품 · 보스 장신구', 28, '#ffe7a8', { serif: true, bold: true, st: 6 }).setOrigin(0.5));
+    const rows = [
+      ['⚔', '보스를 쓰러뜨리면 그 보스의 전리품이 여기에 쌓여요', '한 번에 1개 · 영웅 난이도 2개 · 전설 난이도 3개'],
+      ['🔨', '전리품 2개 + 금화 + 마석으로 「제작」', '그 보스만의 전설 반지·목걸이가 가방에 들어와요'],
+      ['✦', '일반 장비에는 없는 특수 능력이 붙어요', '같은 장신구를 여러 개 만들 수도 있어요 (조합 재료로는 못 써요)'],
+      ['▣', '재료가 다 모인 줄은 금색 테두리로 빛나요', '필요한 재료는 줄 오른쪽에 적혀 있어요 · 1부 13명 · 2부 12명'],
+    ];
+    rows.forEach(([ic, a, b], i) => {
+      const y = py + 118 + i * 72;
+      c.add(UI.text(this, px + 56, y + 6, ic, 26, '#ffd27a', { st: 4 }).setOrigin(0.5));
+      c.add(UI.text(this, px + 88, y - 6, a, 19, '#fff4d8', { bold: true, st: 4, wrap: PW - 120 }).setOrigin(0, 0.5));
+      c.add(UI.text(this, px + 88, y + 20, b, 15, '#c8b8a0', { st: 3, wrap: PW - 120 }).setOrigin(0, 0.5));
+    });
+    c.add(UI.button(this, W / 2, py + PH - 52, '알겠어요', () => c.destroy(), { w: 200, h: 52, size: 22 }));
   }
 }
 
