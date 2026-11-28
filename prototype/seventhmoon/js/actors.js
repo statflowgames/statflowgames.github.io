@@ -691,7 +691,7 @@ class Monster extends Actor {
     this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
     if (scene.speedMul && scene.speedMul !== 1) this.def.speed = base.speed * scene.speedMul;
     if (scene.tower && base.boss) { this.def.ko = tf('강화 {0}', base.ko); }
-    this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) : k.hp)); this.hp = this.maxHp;
+    this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) * (k.bossK || 1) : k.hp)); this.hp = this.maxHp;   // ✏️ 2026-11-28 bossK: 난이도 보스 배율 (chapterScale)
     // 🆕 일반 몬스터 강화 (장별 MOB_TUNE): 체력·공격력
     if (!base.boss && typeof MOB_TUNE !== 'undefined' && !scene.tower && !(typeof Q !== 'undefined' && Q.has('oldmob'))) {
       const t = MOB_TUNE[Math.max(1, Math.min(12, Math.round(scene.ch || 1)))];
@@ -715,7 +715,10 @@ class Monster extends Actor {
       const t = BOSS_TUNE[Math.max(1, Math.min(12, Math.round(scene.ch || 1)))] || BOSS_TUNE[6];
       this.maxHp = this.hp = Math.round(this.maxHp * t.hp);
       this.def.dmg = Math.round(this.def.dmg * t.dmg); this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
-      this.bossTune = t;
+      // ✏️ 2026-11-28 영웅·전설 보스: 더 자주 공격하고(쉬는 시간↓), 덜 기절하고(그로기 게이지가 덜 깎이고 짧게), 강공격·필살기를 더 자주
+      const bd = { 2: { cool: 0.85, poiseK: 0.8, stagger: 0.85, emp: 0.08 }, 3: { cool: 0.72, poiseK: 0.65, stagger: 0.7, emp: 0.15 } }[scene.diff];
+      if (bd && !scene.tower) { this.bossTune = { ...t, cool: t.cool * bd.cool, poiseK: t.poiseK * bd.poiseK, stagger: Math.round(t.stagger * bd.stagger) }; this.empAdd = bd.emp; }
+      else this.bossTune = t;
     }
     if (base.boss && typeof BossGimmicks !== 'undefined') BossGimmicks.attach(this);
     if (real && MAN['faces/' + id + '_hurt']) this.def.face = 'faces/' + id;

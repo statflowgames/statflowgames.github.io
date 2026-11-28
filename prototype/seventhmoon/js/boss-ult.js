@@ -16,7 +16,7 @@ const BOSS_ULT_NAME = {
 const BossUlt = {
   on() { return !(typeof Q !== 'undefined' && Q.has('oldboss')); },
   // 내려찍기를 강공격으로 할지
-  rollEmpower(m) { return this.on() && Math.random() < (m.raged ? 0.45 : 0.3); },
+  rollEmpower(m) { return this.on() && Math.random() < (m.raged ? 0.45 : 0.3) + (m.empAdd || 0); },   // ✏️ 2026-11-28 empAdd: 영웅·전설 보스
   // 필살기를 쓸 차례인지 (idle/move에서 부름)
   due(m) {
     if (!this.on() || m.dead) return false;

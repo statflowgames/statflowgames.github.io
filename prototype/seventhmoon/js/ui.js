@@ -391,7 +391,7 @@ class Talk extends Phaser.Scene {
     if (L.shake) this.cameras.main.shake(260 + L.shake * 120, 0.004 * L.shake);
     if (L.flash) { const c = { white: [255, 255, 255], gold: [255, 220, 140], violet: [170, 90, 255], red: [255, 60, 40], black: [0, 0, 0] }[L.flash] || [255, 255, 255]; this.cameras.main.flash(L.flash === 'black' ? 700 : 450, ...c); }
     if (L.cam && this.bg) this.kenBurns(this.bg, L.cam);
-    this.full = tr((L.by && L.by[hk]) || L.t); this.body.setText('');   // ✏️ 2026-11-26 다국어: 번역한 줄을 한 글자씩 (한국어 조각이 보이지 않게) this.typing = true; this.ci = 0;
+    this.full = tr((L.by && L.by[hk]) || L.t); this.body.setText(''); this.typing = true; this.ci = 0;   // ✏️ 2026-11-26 다국어: 번역한 줄을 한 글자씩 (한국어 조각이 보이지 않게)
     if (this.typeEv) this.typeEv.remove();
     this.typeEv = this.time.addEvent({ delay: 28, loop: true, callback: () => {
       if (!this.typing) { this.typeEv.remove(); return; }

@@ -107,9 +107,9 @@ const DIFFS = [
   { ko: '기사', desc: '기본 난이도', loot: 0,
     rows: ['적 체력 ×1', '적 공격력 ×1', '정예: 장 기본 (1장 0% → 12장 20%)', '좋은 등급: 기본', '장비 단계: 기본', '보스 전리품 1개'] },
   { ko: '영웅', tk: '난이도|영웅', desc: '더 단단한 적, 더 좋은 장비', loot: 2,
-    rows: ['적 체력 ×1.5', '적 공격력 ×1.2', '정예: 장 기본 +8% (최소 14%)', '좋은 등급: 한 등급 오를 확률 +12%', '장비 단계 +1 (1부에서)', '보스 전리품 2개', '업적 「영웅의 자격」'] },
+    rows: ['적 체력 ×1.35', '적 공격력 ×1.45', '정예: 장 기본 +8% (최소 14%)', '좋은 등급: 한 등급 오를 확률 +12%', '장비 단계 +1 (1부에서)', '보스 전리품 2개', '업적 「영웅의 자격」'] },
   { ko: '전설', tk: '난이도|전설', desc: '가장 어려움, 보상 최고', loot: 4,
-    rows: ['적 체력 ×2.2', '적 공격력 ×1.48', '정예: 장 기본 +15% (최소 25%)', '좋은 등급: 한 등급 오를 확률 +24%', '장비 단계 +1 (1부에서)', '보스 전리품 3개', '업적 「전설이 되다」'] },
+    rows: ['적 체력 ×1.8', '적 공격력 ×1.8', '정예: 장 기본 +15% (최소 25%)', '좋은 등급: 한 등급 오를 확률 +24%', '장비 단계 +1 (1부에서)', '보스 전리품 3개', '업적 「전설이 되다」'] },
 ];
 function diffName(d) { return I18N.on && d.tk && I18N.has(d.tk) ? tr(d.tk) : d.ko; }
 function diffOpen(s, d) {
@@ -341,6 +341,9 @@ const AFF_KEY = {
   '상태이상 지속시간': 'statusRed', '상태이상 부여 확률': 'procPct', '처치 시 원소 폭발 확률': 'killBoom',
   '[미라엘] 주문 횟수': 'mageExtra', '[오델리아] 신앙 축적': 'faith', '[키르] 출혈 피해': 'bleed', '[세릴] 차지 속도': 'chargeSpd', '[녹타] 체력 소모 기술 비용': 'hpCost',
 };
+// ✏️ 2026-11-28 받는 피해 감소: 방어 상수를 장마다 키운다 (전에는 60 고정 → 5장 보통 장비면 피해 50~60% 감소, 장비만으로 너무 단단해졌다)
+//   1장 60 · 5장 120 · 12장 225. 게임 안에서는 스테이지의 장(탑은 chScale)으로 다시 잰다 (game.js)
+function defRed(def, ch) { const c = Math.max(1, Math.min(12, ch || 1)); return def / (def + 45 + 15 * c); }
 function heroStats(s) {
   const st = { lv: s.lv, atk: 10 + s.lv * 2, def: 0, hp: 340 + s.lv * 20, crit: 8, critDmg: 80 };
   for (const k of Object.values(AFF_KEY)) st[k] = st[k] || 0;
@@ -368,7 +371,7 @@ function heroStats(s) {
   st.hp = Math.round(st.hp * (1 + st.hpPct / 100));
   st.crit += 0; st.sets = sets;
   st.dmgMul = st.atk / 20;
-  st.red = st.def / (st.def + 60);
+  st.red = defRed(st.def, s.ch);
   st.power = Math.round(st.atk * 3 + st.def * 2 + st.hp / 10);
   return st;
 }

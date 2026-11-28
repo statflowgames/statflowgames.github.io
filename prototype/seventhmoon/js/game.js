@@ -127,9 +127,10 @@ class Game extends Phaser.Scene {
     this.ch = this.tower ? this.def.chScale : this.cfg.ch;
     this.theme = THEMES[this.def.theme] || THEMES.forest;
     this.diff = Q.has('hard') ? 2 : (s.diff ?? 1);
+    this.stats.red = defRed(this.stats.def, this.ch);   // ✏️ 2026-11-28 방어 상수는 이 스테이지의 장으로
     this.monScale = chapterScale(this.ch, this.diff);
-    if (this.def.floorMul) { const f = this.def.floorMul; this.monScale = { hp: this.monScale.hp * f * (this.rule.hpMul || 1), dmg: this.monScale.dmg * Math.sqrt(f) * (this.rule.dmgMul || 1) }; }
-    if (!this.def.floorMul && (this.rule.hpMul || this.rule.dmgMul)) this.monScale = { hp: this.monScale.hp * (this.rule.hpMul || 1), dmg: this.monScale.dmg * (this.rule.dmgMul || 1) };
+    if (this.def.floorMul) { const f = this.def.floorMul; this.monScale = { ...this.monScale, hp: this.monScale.hp * f * (this.rule.hpMul || 1), dmg: this.monScale.dmg * Math.sqrt(f) * (this.rule.dmgMul || 1) }; }
+    if (!this.def.floorMul && (this.rule.hpMul || this.rule.dmgMul)) this.monScale = { ...this.monScale, hp: this.monScale.hp * (this.rule.hpMul || 1), dmg: this.monScale.dmg * (this.rule.dmgMul || 1) };
     this.speedMul = this.rule.speedMul || 1;
     this.abilityClock = 0; this.abilityCues = [];
     this.now = 0; this.mw = null; this.smokeUntil = 0;   // ✏️ 2026-11-25 mw: 달 무기 횟수·대기시간은 판마다 새로 (now가 0부터라 남아 있으면 한동안 안 터졌다)
