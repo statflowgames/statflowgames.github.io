@@ -1,5 +1,6 @@
 // AI 동료: 주인공이 아닌 직업 한 명이 함께 싸운다. 명령은 돌격 / 엄호 / 회복 우선.
-// 레벨은 따로 없고 주인공 능력치를 따라간다(공격 70%, 체력 80%). 쓰러지면 잠시 뒤 일어난다.
+// 레벨은 따로 없고 주인공 능력치를 따라간다(공격 70%, 체력 80%).
+// ✏️ 2026-11-28 쓰러지면 그 스테이지가 끝날 때까지 쓰러져 있다 (숨은 길을 오가도 그대로) → 다음 스테이지에서 다시 함께
 const ALLY_CMDS = ['cover', 'charge', 'heal'];
 const ALLY_CMD_KO = { cover: '엄호', charge: '돌격', heal: '회복 우선' };
 // 동료 조합 보너스 (기획서 3-5): 두 직업이 맞으면 주는 피해 +15%
@@ -23,6 +24,13 @@ class Ally extends Actor {
     this.tag = scene.add.text(x, y, DB.heroes[key].name, { fontFamily: 'sans-serif', fontSize: 15, color: '#9ae0ff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1);
   }
   setHead(img) { this.rig.setImg('head', img); }
+  // 🆕 2026-11-28 쓰러뜨린다 (quiet: 숨은 길 오갈 때처럼 알림 없이 쓰러진 채로 둔다)
+  knockOut(quiet) {
+    this.hp = 0; this.state = 'down'; this.st = 0; this.vx = this.vy = 0; this.invuln = 0; this.play('w_down', quiet ? 0 : 60); this.setHead('head_ko');
+    if (quiet) return;
+    this.scene.floatText(this.x, this.y - 260, '쓰러짐! 이번 스테이지에서는 쉬어요', '#ff9a8a', 22);
+    SFX.heroKO(this.px, this.key);
+  }
   get cmd() { return this.scene.allyCmd; }
   toIdle() { this.state = 'idle'; this.st = 0; this.play('idle', 120); this.setHead(null); }
   pickTarget() {
@@ -46,10 +54,7 @@ class Ally extends Actor {
     this.st += dt; this.cool -= dt; this.retarget -= dt;
     if (this.invuln > 0) this.invuln -= dt;
     const st = this.state;
-    if (st === 'down') {
-      if (this.st > 6000 && !sc.lost) { this.hp = Math.round(this.maxHp * 0.5); this.state = 'getup'; this.st = 0; this.play('w_getup', 60); this.setHead(null); this.invuln = 1500; }
-      return;
-    }
+    if (st === 'down') return;   // ✏️ 2026-11-28 예전: 6초 뒤 체력 절반으로 일어남 → 이번 스테이지는 끝까지 쓰러져 있다
     if (st === 'getup') { if (this.st > 420) this.toIdle(); return; }
     if (st === 'hurt') { this.vx *= Math.pow(0.002, s); this.physics(dt); if (this.st > 320) this.toIdle(); return; }
     if (st === 'win') return;
@@ -124,9 +129,7 @@ class Ally extends Actor {
     this.scene.floatText(this.x, this.y - 230, String(dmg), '#ff9a9a', 24);
     this.face = kbDir ? -kbDir : this.face;
     if (this.hp <= 0) {
-      this.state = 'down'; this.st = 0; this.vx = this.vy = 0; this.play('w_down', 60); this.setHead('head_ko');
-      this.scene.floatText(this.x, this.y - 260, '쓰러짐! 6초 뒤 일어나요', '#ff9a8a', 22);
-      SFX.heroKO(this.px, this.key);
+      this.knockOut();
     } else {
       this.state = 'hurt'; this.st = 0; this.vx = kbDir * 150; this.replay('w_hurt', 30); this.setHead('head_hurt');
     }

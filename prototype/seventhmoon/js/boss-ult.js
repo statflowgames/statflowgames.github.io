@@ -47,7 +47,7 @@ const BossUlt = {
     const band = sc.add.container(W + 40, 0).setScrollFactor(0).setDepth(7550);
     const bg = sc.add.graphics(); bg.fillStyle(0x000000, 0.78).fillRect(0, 150, W, 96); bg.fillStyle(0xff3a20, 1).fillRect(0, 146, W, 4).fillRect(0, 246, W, 4);
     band.add(bg);
-    band.add(sc.add.text(W / 2, 170, `${m.def.ko}의 필살기`, { fontFamily: 'sans-serif', fontSize: 20, color: '#ffc8b8' }).setOrigin(0.5, 0));
+    band.add(sc.add.text(W / 2, 170, tf('{0}의 필살기', m.def.ko), { fontFamily: 'sans-serif', fontSize: 20, color: '#ffc8b8' }).setOrigin(0.5, 0));
     band.add(sc.add.text(W / 2, 196, BOSS_ULT_NAME[m.id] || BOSS_ULT_NAME[m.def.like] || '필살기', { fontFamily: 'serif', fontSize: 40, color: '#ffeedd', stroke: '#7a0a00', strokeThickness: 8 }).setOrigin(0.5, 0));
     // 🆕 2026-11-24 보스 컷인 그림이 있으면 띠 오른쪽 위로 얼굴을 내민다
     const bk = 'bosscut/' + m.id;

@@ -35,7 +35,7 @@ function towerFloor(n, runSeed = 7) {
     ? [[group(size)], [TOWER_BOSSES[(n / 10 - 1) % TOWER_BOSSES.length]]]
     : [[group(size), group(size - 1)], [group(size), group(size)]];
   return {
-    name: boss ? `${n}층 · 강화 보스` : `${n}층`, theme: pick(TOWER_THEMES), waves, boss, tower: n, rule,
+    name: boss ? tf('{0}층 · 강화 보스', n) : tf('{0}층', n), theme: pick(TOWER_THEMES), waves, boss, tower: n, rule,
     // 장 배율 대신 층 배율: 5층마다 장이 하나씩 오르고, 층마다 4%씩 더 세진다
     chScale: Math.min(12, 1 + tier), floorMul: 1 + n * 0.04 + (boss ? 0.3 : 0),
   };
@@ -52,7 +52,7 @@ function dailyDef(s) {
   const n = Math.max(3, 5 * (s.ch - 1) + 3);
   const def = towerFloor(n, key % 100000);
   def.rule = TOWER_RULES[Math.floor(r() * TOWER_RULES.length)];
-  def.mode = 'daily'; def.tower = 0; def.name = `오늘의 도전 (${String(key).slice(4, 6)}월 ${String(key).slice(6)}일)`;
+  def.mode = 'daily'; def.tower = 0; def.name = tf('오늘의 도전 ({0}월 {1}일)', String(key).slice(4, 6), String(key).slice(6));
   def.waves = [...def.waves.filter(w => w.length > 1 || w[0].includes(',')), [def.waves[0][0], def.waves[0][0]]];
   def.boss = false;
   return def;
@@ -66,4 +66,4 @@ function rushDef(s) {
     chScale: ch, floorMul: 0.55 + ch * 0.12, rule: null,
   };
 }
-function fmtTime(ms) { const t = Math.round(ms / 1000); return `${Math.floor(t / 60)}분 ${String(t % 60).padStart(2, '0')}초`; }
+function fmtTime(ms) { const t = Math.round(ms / 1000); return tf('{0}분 {1}초', Math.floor(t / 60), String(t % 60).padStart(2, '0')); }

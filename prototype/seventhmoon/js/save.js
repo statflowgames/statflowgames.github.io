@@ -1,5 +1,29 @@
 // 저장, 성장, 장비. 저장은 localStorage(나중에 Capacitor Preferences로 바꾼다).
 const SAVE_KEY = 'seventhmoon.save.v1';
+// 🆕 2026-11-28 처음 산 사람 표시 — 지금은 완전 유료. 나중에 「무료 + 정식판 결제」로 바꾸면
+//   그 날짜보다 먼저 시작한 사람(first)은 정식판을 그대로 열어 준다 (Play는 유료 앱 구매를 따로 확인하기 어렵다).
+//   기기에 한 번만 적고(OWNER_KEY: 새 게임·저장 지우기에도 남음), 저장 데이터(s.owner)에도 복사한다(백업 코드로 옮겨도 따라감).
+//   화면에는 아무것도 안 나온다. 출시 방식이 바뀌면 APP_BUILD.model 을 바꾼다.
+const APP_BUILD = { ver: '1.0.0', model: 'paid' };
+const OWNER_KEY = 'seventhmoon.owner';
+const Owner = {
+  get() { try { return JSON.parse(localStorage.getItem(OWNER_KEY) || 'null'); } catch (e) { return null; } },
+  // 처음 실행할 때 한 번 (부팅에서 앱 저장소를 되살린 뒤에 부른다)
+  ensure() {
+    let o = this.get();
+    if (!o) {
+      const plat = window.Capacitor && Capacitor.getPlatform ? Capacitor.getPlatform() : 'web';
+      o = { first: Date.now(), ver: APP_BUILD.ver, model: APP_BUILD.model, plat };
+      try { const t = JSON.stringify(o); localStorage.setItem(OWNER_KEY, t); NativeStore.mirror(OWNER_KEY, t); } catch (e) { /* 무시 */ }
+    }
+    return o;
+  },
+  // 저장 데이터에 복사 (이미 있으면 더 이른 기록을 남긴다)
+  stamp(d) {
+    const o = this.get(); if (!d || !o) return;
+    if (!d.owner || o.first < d.owner.first) d.owner = { ...o };
+  },
+};
 const SLOTS = ['weapon', 'offhand', 'head', 'body', 'acc1', 'acc2'];
 const SLOT_KO = { weapon: '무기', offhand: '보조', head: '머리', body: '몸', acc1: '장신구', acc2: '장신구' };
 const RARITY = [
@@ -11,23 +35,38 @@ const RARITY = [
   { ko: '세트', col: '#3ae0c8', hex: 0x3ae0c8, aff: 2 },
 ];
 const MATS = { low: '하급 마석', mid: '중급 마석', high: '상급 마석', abyss: '심연 마석' };
+// 🆕 2026-11-28 마석 바꾸기 (대장간): 낮은 마석 n개 → 한 단계 높은 마석 1개
+const MAT_EXCHANGE = [{ from: 'low', to: 'mid', n: 5 }, { from: 'mid', to: 'high', n: 5 }, { from: 'high', to: 'abyss', n: 6 }];
+// 🆕 2026-11-28 무엇이 얼마나 모자란지 (금화 → 마석 차례). 다 있으면 null
+function lackMsg(s, gold, needs = []) {
+  if (gold && s.gold < gold) return tf('금화가 모자라요 ({0}/{1})', s.gold, gold);
+  for (const [m, n] of needs) if (n && (s.mats[m] || 0) < n) return tf('{0}이 모자라요 ({1}/{2})', MATS[m], s.mats[m] || 0, n);
+  return null;
+}
+function exchangeMats(s, i, all) {
+  const X = MAT_EXCHANGE[i], have = s.mats[X.from] || 0, k = all ? Math.floor(have / X.n) : (have >= X.n ? 1 : 0);
+  if (!k) return 0;
+  s.mats[X.from] = have - k * X.n; s.mats[X.to] = (s.mats[X.to] || 0) + k;
+  return k;
+}
 // 아이템 벨트에 넣는 소모품 (DB.consumables 이름과 맞춘다)
+// ✏️ 2026-11-28 소모품 값 2배 (너무 싸서 금화가 남아돌았다) · priceMul도 수입을 더 따라가게
 const BELT = {
-  potion: { ko: '회복약', fx: '체력 40% 회복', price: 40, icon: 'potion' },
-  dagger: { ko: '투척 단검', fx: '일직선 관통', price: 25, icon: 'dagger' },
-  oil: { ko: '기름병', fx: '깨지면 화염 장판', price: 45, icon: 'oil' },
-  scroll: { ko: '화염 두루마리', fx: '전방 화염 폭발', price: 90, icon: 'scroll_fire' },
-  feather: { ko: '부활 깃털', fx: '쓰러지면 자동 부활', price: 150, icon: 'feather' },
+  potion: { ko: '회복약', fx: '체력 40% 회복', price: 80, icon: 'potion' },
+  dagger: { ko: '투척 단검', fx: '일직선 관통', price: 50, icon: 'dagger' },
+  oil: { ko: '기름병', fx: '깨지면 화염 장판', price: 90, icon: 'oil' },
+  scroll: { ko: '화염 두루마리', fx: '전방 화염 폭발', price: 180, icon: 'scroll_fire' },
+  feather: { ko: '부활 깃털', fx: '쓰러지면 자동 부활', price: 300, icon: 'feather' },
   // 🆕 전투 중 쓰는 소모품 (개수 제한, 상황에 맞게 골라 쓴다)
-  hammer: { ko: '투척 망치', fx: '던져서 띄워 날림', price: 40, icon: 'hammer' },
-  bomb: { ko: '마석 폭탄', fx: '넓은 범위 폭발', price: 70, icon: 'bomb' },
-  holy: { ko: '성수', fx: '신성 피해·언데드에 강함', price: 55, icon: 'holy' },
-  antidote: { ko: '해독초', fx: '상태이상 해제·3초 무적', price: 35, icon: 'antidote' },
-  smoke: { ko: '연막탄', fx: '주변 기절·뒤로 빠짐', price: 50, icon: 'smoke' },
-  scroll_ice: { ko: '서리 두루마리', fx: '앞쪽 적을 얼림', price: 90, icon: 'scroll_ice' },
-  scroll_bolt: { ko: '번개 두루마리', fx: '번개 5번 낙뢰', price: 95, icon: 'scroll_bolt' },
-  scroll_heal: { ko: '치유 두루마리', fx: '나와 동료 30% 회복', price: 80, icon: 'scroll_heal' },
-  scroll_guard: { ko: '보호 두루마리', fx: '6초간 피해 60% 감소', price: 85, icon: 'scroll_guard' },
+  hammer: { ko: '투척 망치', fx: '던져서 띄워 날림', price: 80, icon: 'hammer' },
+  bomb: { ko: '마석 폭탄', fx: '넓은 범위 폭발', price: 140, icon: 'bomb' },
+  holy: { ko: '성수', fx: '신성 피해·언데드에 강함', price: 110, icon: 'holy' },
+  antidote: { ko: '해독초', fx: '상태이상 해제·3초 무적', price: 70, icon: 'antidote' },
+  smoke: { ko: '연막탄', fx: '주변 기절·뒤로 빠짐', price: 100, icon: 'smoke' },
+  scroll_ice: { ko: '서리 두루마리', fx: '앞쪽 적을 얼림', price: 180, icon: 'scroll_ice' },
+  scroll_bolt: { ko: '번개 두루마리', fx: '번개 5번 낙뢰', price: 190, icon: 'scroll_bolt' },
+  scroll_heal: { ko: '치유 두루마리', fx: '나와 동료 30% 회복', price: 160, icon: 'scroll_heal' },
+  scroll_guard: { ko: '보호 두루마리', fx: '6초간 피해 60% 감소', price: 170, icon: 'scroll_guard' },
 };
 const BELT_ORDER = ['potion', 'dagger', 'oil', 'scroll'];
 // 🆕 벨트 4칸은 고를 수 있다 (상점에서 바꿈). 저장에 없으면 기본 순서
@@ -38,34 +77,41 @@ const UNLOCK_KEY = 'seventhmoon.unlock';
 function globalUnlocks() { try { return JSON.parse(localStorage.getItem(UNLOCK_KEY) || '{}'); } catch (e) { return {}; } }
 function addGlobalUnlock(k) { try { const u = globalUnlocks(); u[k] = true; const t = JSON.stringify(u); localStorage.setItem(UNLOCK_KEY, t); NativeStore.mirror(UNLOCK_KEY, t); } catch (e) { /* 무시 */ } }
 // 직업 바꾸기: 장비와 스킬은 직업마다 따로 기억한다 (레벨·금화·가방은 함께)
+// 🆕 2026-11-28 어느 직업이든 끼고 있는 장비 id (지금 직업 + 직업마다 기억한 장비). 조합·분해·재료로 못 쓰게 막는다
+//   (전에는 지금 직업만 봐서, 「일반 모두 분해」가 다른 직업의 시작 장비까지 부숴 버렸다)
+function wornIds(s) { const ids = new Set(Object.values(s.eq || {})); for (const e of Object.values(s.eqBy || {})) for (const v of Object.values(e || {})) if (v != null) ids.add(v); return ids; }
 function switchHero(s, key) {
   if (s.hero === key) return;
   s.eqBy = s.eqBy || {}; s.skillsBy = s.skillsBy || {};
   s.eqBy[s.hero] = s.eq; s.skillsBy[s.hero] = { skills: s.skills, active: s.active };
+  const accFrom = s.eq || {};   // ✏️ 2026-11-28 장신구는 방금까지 쓰던 직업의 것을 그대로 가져간다 (전에는 아무 다른 직업 것이나 골랐다)
   s.hero = key;
   if (s.eqBy[key]) s.eq = s.eqBy[key];
   else { s.eq = {}; for (const slot of ['weapon', 'offhand', 'head', 'body']) { const it = makeItem(s, { cls: key, slot, tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar: 0 }); s.eq[slot] = it.id; } }
   // 장신구는 함께 쓴다
-  const prev = s.eqBy[Object.keys(s.eqBy).find(k => k !== key) || key] || {};
-  if (!s.eq.acc1 && prev.acc1) s.eq.acc1 = prev.acc1;
-  if (!s.eq.acc2 && prev.acc2) s.eq.acc2 = prev.acc2;
+  for (const a of ['acc1', 'acc2']) { if (accFrom[a]) s.eq[a] = accFrom[a]; else delete s.eq[a]; }
   const sk = s.skillsBy[key];
   // 스킬 포인트는 레벨에서 나오므로, 처음 쓰는 직업은 전체 포인트를 새로 받는다
   if (sk) { s.skills = sk.skills; s.active = sk.active; s.sp = Math.max(0, spOwned(s, key) - Object.keys(s.skills).length); }
   else { s.skills = {}; s.active = [null, null]; s.sp = spOwned(s, key); }
 }
+// 🆕 2026-11-26 직업 이름(짧게) — 다국어 표에 낱말로 들어가게 따로 둔다 (전에는 DB.heroes[k].ko.split(' ')[0])
+const HERO_CLASS = { warrior: '방패전사', mage: '원소술사', paladin: '성기사', rogue: '그림자도적', ranger: '월광궁수', hexblade: '흑월술사' };
+function heroClass(k) { return HERO_CLASS[k] || (DB.heroes[k] ? DB.heroes[k].ko.split(' ')[0] : k); }
 // 난이도: 0 견습, 1 기사(기본), 2 영웅(엔딩 1개 이상), 3 전설(엔딩 2개 이상)
 // ✏️ 2026-11-26 난이도 창에 보여 줄 차이 (rows). 숫자는 chapterScale(campaign.js)·정예(actors.js)·rollDrop·보스 전리품(game.js)과 맞춘다
+// ✏️ 2026-11-28 tk: 다국어에서 장비 등급(영웅·전설)과 같은 낱말을 따로 옮기는 열쇠 (러시아어 등은 형태가 다르다). 화면에는 diffName(d)
 const DIFFS = [
   { ko: '견습', desc: '처음 해 보는 분께. 적이 약해요', loot: -1,
     rows: ['적 체력 ×0.75', '적 공격력 ×0.9', '정예: 장 기본의 절반', '좋은 등급: 조금 덜 나옴', '장비 단계: 기본', '보스 전리품 1개'] },
   { ko: '기사', desc: '기본 난이도', loot: 0,
     rows: ['적 체력 ×1', '적 공격력 ×1', '정예: 장 기본 (1장 0% → 12장 20%)', '좋은 등급: 기본', '장비 단계: 기본', '보스 전리품 1개'] },
-  { ko: '영웅', desc: '더 단단한 적, 더 좋은 장비', loot: 2,
+  { ko: '영웅', tk: '난이도|영웅', desc: '더 단단한 적, 더 좋은 장비', loot: 2,
     rows: ['적 체력 ×1.5', '적 공격력 ×1.2', '정예: 장 기본 +8% (최소 14%)', '좋은 등급: 한 등급 오를 확률 +12%', '장비 단계 +1 (1부에서)', '보스 전리품 2개', '업적 「영웅의 자격」'] },
-  { ko: '전설', desc: '가장 어려움, 보상 최고', loot: 4,
+  { ko: '전설', tk: '난이도|전설', desc: '가장 어려움, 보상 최고', loot: 4,
     rows: ['적 체력 ×2.2', '적 공격력 ×1.48', '정예: 장 기본 +15% (최소 25%)', '좋은 등급: 한 등급 오를 확률 +24%', '장비 단계 +1 (1부에서)', '보스 전리품 3개', '업적 「전설이 되다」'] },
 ];
+function diffName(d) { return I18N.on && d.tk && I18N.has(d.tk) ? tr(d.tk) : d.ko; }
 function diffOpen(s, d) {
   if (d <= 1) return true;
   const u = globalUnlocks(), ends = Object.keys((s && s.endings) || {}).length;
@@ -127,10 +173,13 @@ const Save = {
     if (d && d.moons && d.moons.yellow && d.flags && !d.flags.seril_joined) d.flags.seril_joined = true;
     // ✏️ 2026-11-24 직업 목록에 섞여 들어간 diff2·엔딩 기록 따위를 걸러 낸다 (heroUnlocks 참고)
     if (d && d.unlocked) d.unlocked = heroUnlocks(d.unlocked);
+    Owner.stamp(d);   // 🆕 2026-11-28
     return this.data;
   },
   // ✏️ 2026-11-26 저장 시각(savedAt)을 남기고, 화면에 「✓ 저장됨」을 잠깐 띄운다 (UI.savedMark). 성공하면 true
+  trial: null,   // 🆕 2026-11-28 직업 체험 중이면 저장하지 않는다 (Trial, js/scenes.js)
   write() {
+    if (this.trial) return true;
     try {
       if (this.data) this.data.savedAt = Date.now();
       const t = JSON.stringify(this.data); localStorage.setItem(SAVE_KEY, t); NativeStore.mirror(SAVE_KEY, t);
@@ -138,7 +187,7 @@ const Save = {
       return localStorage.getItem(SAVE_KEY) === t;
     } catch (e) { return false; /* 저장 실패는 조용히 */ }
   },
-  fresh(hero) { this.data = newSave(hero); this.write(); return this.data; },
+  fresh(hero) { this.data = newSave(hero); Owner.stamp(this.data); this.write(); return this.data; },
   wipe() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 무시 */ } this.data = null; },
   // 백업 코드 (내보내기·불러오기)
   exportCode() { return btoa(unescape(encodeURIComponent(JSON.stringify(this.data)))); },
@@ -269,10 +318,8 @@ function rollDrop(s, ch, bonus = 0, boss = false, min = 0, special = false, o = 
   const tier = Math.min(3, Math.floor((ch - 1) / 2) + (d >= 2 ? 1 : 0));
   const slots = ['weapon', 'offhand', 'head', 'body', 'acc'];
   const slot = o.slot || slots[Math.floor(Math.random() * slots.length)];
-  // 지금 직업 장비 70%, 나머지는 다른 직업(나중에 그 직업으로 할 때 쓴다)
-  const owned = Object.keys(s.unlocked).filter(k => s.unlocked[k] && DB.gear[k]);   // ✏️ 2026-11-24 장비표에 있는 직업만
-  if (!owned.length) owned.push(s.hero);
-  const cls = o.cls || (Math.random() < 0.7 ? s.hero : owned[Math.floor(Math.random() * owned.length)]);
+  // ✏️ 2026-11-28 직업은 새 게임에서 고르면 끝까지 고정 → 지금 직업 장비만 나온다 (전에는 30%가 다른 직업 장비)
+  const cls = o.cls || s.hero;
   let rar = Math.max(min, rollRarity(ch, bonus, boss, special));
   if (rar < 4 && typeof GearFx !== 'undefined' && GearFx.codes(s).has('luck') && Math.random() < (boss ? 0.015 : 0.002)) rar = 4;   // 🆕 은방울 행운 목걸이 (✏️ 드롭표에 맞춰 낮춤)
   const it = makeItem(s, { cls, slot, tier, rar });
@@ -360,23 +407,27 @@ function gainExp(s, n) {
 //   lose: 실패하면 none(없음) / one(두 번째 재료) / both(둘 다, 마석 조금 돌려받음)
 //   cost: 그 장 스테이지 한 판 수입 × 배율 (상점 일반 2개 값 + 조합비 > 상점 고급 값)
 //   pity: 실패할 때마다 다음 확률 +pity%p (최대 pityMax), 성공하면 처음으로
+// 🆕 2026-11-28 boost: 마석을 넣어 성공률을 올린다 — 한 번에 per개 → +add%p, 최대 +max%p. 높은 등급일수록 많이 넣고 조금 오른다
 const FUSE_RULE = [
   { rate: 100, lose: 'none', cost: 1.6 },
-  { rate: 70, lose: 'one', cost: 2.5, pity: 10, pityMax: 30 },
-  { rate: 25, lose: 'both', cost: 5, pity: 3, pityMax: 20 },
-  { rate: 2, lose: 'both', cost: 4, abyss: 3, pity: 0.5, pityMax: 10 },   // 평균 약 15번 (영웅 30개쯤) · ✏️ 2026-11-22 한 번에 15판 값 → 4판 값(합치면 상점 전설값과 비슷)
+  { rate: 70, lose: 'one', cost: 2.5, pity: 10, pityMax: 30, boost: { mat: 'low', per: 2, add: 5, max: 20 } },
+  { rate: 25, lose: 'both', cost: 5, pity: 3, pityMax: 20, boost: { mat: 'mid', per: 3, add: 3, max: 15 } },
+  { rate: 2, lose: 'both', cost: 4, abyss: 3, pity: 0.5, pityMax: 10, boost: { mat: 'high', per: 4, add: 1, max: 5 } },   // 평균 약 15번 (영웅 30개쯤) · ✏️ 2026-11-22 한 번에 15판 값 → 4판 값(합치면 상점 전설값과 비슷)
 ];
 // ✏️ 2026-11-22 경제 맞추기: 가격 기준(한 판 값). 1부는 예전 그대로(장마다 +35%),
 //   2부는 실제 수입(몬스터 금화·상자 10~12개·클리어 보상, 1장 대비 배율)에 맞춘 표. 1장 한 판 ≈ 280금 → 기준 350
 const PART2_UNIT = { 7: 2400, 8: 2700, 9: 3100, 10: 3300, 11: 4200, 12: 4600 };
 function stageIncome(ch) { ch = Math.max(1, Math.min(12, ch || 1)); return PART2_UNIT[ch] || 350 * (1 + (ch - 1) * 0.35); }
-// 소모품 가격 배율: 수입이 오른 만큼의 절반쯤 따라 오른다 (1장 1배 · 6장 약 1.9배 · 12장 약 7배)
-function priceMul(ch) { return 1 + (stageIncome(ch) / 350 - 1) * 0.5; }
+// 소모품 가격 배율: ✏️ 2026-11-28 수입이 오른 만큼의 3/4쯤 따라 오른다 (1장 1배 · 6장 약 2.3배 · 12장 약 10배) — 예전 절반
+function priceMul(ch) { return 1 + (stageIncome(ch) / 350 - 1) * 0.75; }
 function beltPrice(k, s) { const b = BELT[k]; return Math.round(b.price * priceMul(s ? s.ch : 1) / 5) * 5; }
-function canFuse(s, it) { return !!it && it.rar <= 3 && !it.boss && !it.lock && !Object.values(s.eq).includes(it.id); }
-function fuseInfo(s, rar, ad) {
-  const R = FUSE_RULE[rar], pity = Math.min(R.pityMax || 0, ((s.fusePity || {})[rar] || 0) * (R.pity || 0)), adB = ad ? (rar >= 3 ? 1 : 10) : 0;
-  return { rate: Math.min(100, R.rate + pity + adB), base: R.rate, pity, adB, gold: Math.round(stageIncome(s.ch) * R.cost / 10) * 10, abyss: R.abyss || 0, lose: R.lose };
+function canFuse(s, it) { return !!it && it.rar <= 3 && !it.boss && !it.lock && !wornIds(s).has(it.id); }
+function fuseInfo(s, rar, steps = 0) {
+  const R = FUSE_RULE[rar], pity = Math.min(R.pityMax || 0, ((s.fusePity || {})[rar] || 0) * (R.pity || 0));
+  // 🆕 2026-11-28 마석 넣기: 100%를 넘는 만큼은 못 넣는다
+  const B = R.boost, room = Math.max(0, 100 - R.rate - pity), stepsMax = B ? Math.min(Math.floor(B.max / B.add), Math.ceil(room / B.add)) : 0;
+  const st = Math.max(0, Math.min(steps || 0, stepsMax)), boostAdd = B ? st * B.add : 0;
+  return { rate: Math.min(100, R.rate + pity + boostAdd), base: R.rate, pity, boost: B || null, steps: st, stepsMax, boostAdd, boostCnt: B ? st * B.per : 0, gold: Math.round(stageIncome(s.ch) * R.cost / 10) * 10, abyss: R.abyss || 0, lose: R.lose };
 }
 // ✏️ 2026-11-22 고유 장비(이야기 장비)는 조합에서 사라지지 않는다. 실패하면 다른 재료만 사라지고,
 //   희귀→영웅·영웅→전설 도전이었다면 고유 장비가 한 단계 떨어진다 (처음 받은 등급 아래로는 안 떨어진다). 고유 장비끼리는 조합 불가.
@@ -403,12 +454,13 @@ function fuseOutcomes(a, b) {
   for (const it of list) { const ko = fuseSlotKo(it); if (!out.some(o => o.ko === ko)) out.push({ it, ko }); }
   return out;
 }
-function tryFuse(s, a, b, ad) {
+function tryFuse(s, a, b, steps = 0) {
   if (!canFuse(s, a) || !canFuse(s, b) || a === b || a.rar !== b.rar) return { r: 'bad' };
   if (a.story && b.story) return { r: 'twoStory' };
-  const f = fuseInfo(s, a.rar, ad);
-  if (s.gold < f.gold || (s.mats.abyss || 0) < f.abyss) return { r: 'cost' };
+  const f = fuseInfo(s, a.rar, steps);
+  if (s.gold < f.gold || (s.mats.abyss || 0) < f.abyss || (f.boostCnt && (s.mats[f.boost.mat] || 0) < f.boostCnt)) return { r: 'cost' };
   s.gold -= f.gold; if (f.abyss) s.mats.abyss -= f.abyss;
+  if (f.boostCnt) s.mats[f.boost.mat] -= f.boostCnt;   // 🆕 2026-11-28 넣은 마석은 성공·실패와 상관없이 쓴다
   s.fusePity = s.fusePity || {};
   if (Math.random() * 100 < f.rate) {
     // 이야기 장비가 섞이면 그 이름·설명을 이어받는다 (기념 장비가 자란다)
@@ -448,7 +500,7 @@ function tryEnhance(s, it) {
   return 'fail';   // 실패해도 부서지지 않는다
 }
 function dismantle(s, it) {
-  if (Object.values(s.eq).includes(it.id) || it.lock || it.story) return null;   // ✏️ 고유 장비는 분해 불가
+  if (wornIds(s).has(it.id) || it.lock || it.story) return null;   // ✏️ 2026-11-28 다른 직업이 낀 장비도   // ✏️ 고유 장비는 분해 불가
   const m = matOf(it), n = 1 + it.rar + Math.floor(it.plus / 2);
   s.mats[m] = (s.mats[m] || 0) + n;
   s.bag = s.bag.filter(x => x !== it);

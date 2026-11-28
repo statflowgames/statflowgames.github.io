@@ -161,9 +161,9 @@ const HiddenRoute = {
     sc.tweens.add({ targets: p.img, x: p.x + h.face * 4, duration: 40, yoyo: true, repeat: 1 });
     sc.fx('dust_land', p.x + (Math.random() - 0.5) * 60, p.y - 20, { s: 0.3, dur: 350, depth: p.y + 1 });
     SFX.brk(p.x - sc.cameras.main.scrollX, p.kind === 'cave' ? 'wood' : 'stone');
-    if (p.kind === 'cave') { p.hits++; if (p.hits >= 5) this.open(sc, p); else say(`덩굴이 흔들린다 (${p.hits}/5)`); }
+    if (p.kind === 'cave') { p.hits++; if (p.hits >= 5) this.open(sc, p); else say(tf('덩굴이 흔들린다 ({0}/5)', p.hits)); }
     else if (p.kind === 'wall') { if (h.atkName === 'down' || (h.atk && h.atk.slam)) this.open(sc, p); else say('꿈쩍도 안 한다… (↓+공격)'); }
-    else if (p.kind === 'door') { if ((sc.comboN || 0) >= 15) this.open(sc, p); else say(`문양이 희미하게 빛난다 (연속 ${sc.comboN || 0}/15)`); }
+    else if (p.kind === 'door') { if ((sc.comboN || 0) >= 15) this.open(sc, p); else say(tf('문양이 희미하게 빛난다 (연속 {0}/15)', sc.comboN || 0)); }
   },
   open(sc, p, quiet) {
     p.open = true; sc.hiddenOpen = true;
@@ -259,7 +259,7 @@ const HiddenRoute = {
     if (!this.canEnter(sc)) return;
     const h = sc.hero, p = sc.hiddenProp, ch = sc.cfg.ch;
     const ret = { cfg: { ...sc.cfg }, waveIdx: sc.waveIdx, now: sc.now, gold: sc.gold, expGain: sc.expGain, loot: sc.loot,
-      dmgTaken: sc.dmgTaken, maxCombo: sc.maxCombo, featherUsed: sc.featherUsed, reviveUsed: sc.reviveUsed, adRevived: sc.adRevived,
+      dmgTaken: sc.dmgTaken, maxCombo: sc.maxCombo, featherUsed: sc.featherUsed, reviveUsed: sc.reviveUsed,
       hp: h.hp, awk: h.awk, sta: h.sta, allyHp: sc.ally ? sc.ally.hp : null,
       sev: sc.sev ? { state: sc.sev.state, got: sc.sev.got } : null,
       goldGob: sc.goldGob ? (sc.goldGob.done || sc.goldGob.m ? 'done' : sc.goldGob.wave) : null, px: p.x, py: p.y };
@@ -272,12 +272,13 @@ const HiddenRoute = {
   onCreate(sc) {
     const C = sc.cfg;
     if (C.ret && C.awk !== undefined) sc.hero.awk = C.awk;
+    if (C.ret && C.ret.allyHp === 0 && sc.ally) sc.ally.knockOut(true);   // 🆕 2026-11-28 쓰러진 동료는 숨은 길에서도 쓰러진 채
     if (C.back) this.restore(sc, C.back);
   },
   restore(sc, b) {
     const h = sc.hero, p = sc.hiddenProp;
     sc.waveIdx = b.waveIdx; sc.now = b.now; sc.gold = b.gold; sc.expGain = b.expGain; sc.loot = b.loot || [];
-    sc.dmgTaken = b.dmgTaken; sc.maxCombo = b.maxCombo; sc.featherUsed = b.featherUsed; sc.reviveUsed = b.reviveUsed; sc.adRevived = b.adRevived;
+    sc.dmgTaken = b.dmgTaken; sc.maxCombo = b.maxCombo; sc.featherUsed = b.featherUsed; sc.reviveUsed = b.reviveUsed;
     sc.lock = null; sc.bounds = { l: 0, r: STAGE_W }; sc.hiddenUsed = true;
     h.hp = Math.max(1, Math.min(h.maxHp, b.hp)); h.awk = b.awk || 0; if (b.sta !== undefined) h.sta = b.sta;
     if (sc.sev && b.sev) { sc.sev.state = b.sev.state === 'run' ? 'fail' : b.sev.state; sc.sev.got = b.sev.got; }
@@ -290,7 +291,7 @@ const HiddenRoute = {
     if (p && p.sign) p.sign.setText('◆ 숨은 길 정복');
     // 입구에서 걸어 나온다 (들어갈 때의 거꾸로: 그림자 → 밝아지며 앞으로)
     h.x = b.px; h.y = b.py + 6; h.face = 1;
-    if (sc.ally) { sc.ally.x = b.px - 90; sc.ally.y = b.py + 40; if (b.allyHp != null) sc.ally.hp = b.allyHp; }
+    if (sc.ally) { sc.ally.x = b.px - 90; sc.ally.y = b.py + 40; if (b.allyHp != null) sc.ally.hp = b.allyHp; if (b.allyHp === 0) sc.ally.knockOut(true); }
     sc.cameras.main.scrollX = Phaser.Math.Clamp(h.x - W * 0.42, 0, STAGE_W - W);
     const base = h.rig.def.scale, k = { f: 1 };
     h.rig.def.scale = base * 0.84; h.state = 'enterHidden'; h.st = 0; h.play('walk', 0); h.vx = 140;
@@ -319,7 +320,7 @@ const HiddenRoute = {
     const room = { gold: 0, loot: [] };
     this.collect(sc, room);
     const got = [...sc.loot, ...room.loot];
-    const back = { ...ret, gold: ret.gold + sc.gold + room.gold, expGain: ret.expGain + Math.round(sc.expGain * (win ? 1 : 0.5)), loot: [...ret.loot, ...got] };
+    const back = { ...ret, allyHp: sc.ally ? Math.round(sc.ally.hp) : ret.allyHp, gold: ret.gold + sc.gold + room.gold, expGain: ret.expGain + Math.round(sc.expGain * (win ? 1 : 0.5)), loot: [...ret.loot, ...got] };
     let msg;
     if (win) {
       const reward = [];
@@ -337,7 +338,7 @@ const HiddenRoute = {
     c.add(UI.text(sc, W / 2, 240, msg || '', 24, '#f0e4ff', { wrap: 900, align: 'center' }).setOrigin(0.5));
     const show = got.slice(0, 8);
     show.forEach((it, i) => { const sl = UI.itemSlot(sc, W / 2 - (show.length - 1) * 50 + i * 100, 340, it, 84); sl.setScrollFactor(0); c.add(sl); });
-    c.add(UI.text(sc, W / 2, 430, `금화 +${sc.gold + room.gold}   ·   얻은 것은 스테이지를 깨면 함께 받아요`, 20, '#e8dcc8').setOrigin(0.5));
+    c.add(UI.text(sc, W / 2, 430, tf('금화 +{0}   ·   얻은 것은 스테이지를 깨면 함께 받아요', sc.gold + room.gold), 20, '#e8dcc8').setOrigin(0.5));
     c.add(UI.button(sc, W / 2, 540, '원래 길로 돌아가기 ▶', () => {
       sc.cameras.main.fadeOut(300, 10, 4, 20);
       sc.time.delayedCall(320, () => sc.scene.start('game', { ...ret.cfg, back }));
@@ -355,7 +356,7 @@ const HiddenRoute = {
     const gold = first ? 120 * ch + 200 : 40 * ch;
     s.gold += gold;
     if (first) s.mats.abyss = (s.mats.abyss || 0) + 1;
-    return first ? `숨은 길 첫 정복 · 금화 +${gold} · 심연 마석 +1 · 희귀 장비 ${n}개` : `숨은 길 · 금화 +${gold}`;
+    return first ? tf('숨은 길 첫 정복 · 금화 +{0} · 심연 마석 +1 · 희귀 장비 {1}개', gold, n) : tf('숨은 길 · 금화 +{0}', gold);
   },
   // 지도: 그 스테이지 노드에 표시
   mapMark(scene, L, nodes, ch) {
@@ -369,7 +370,7 @@ const HiddenRoute = {
   },
   mapDesc(ch, stage) {
     const s = Save.data, H0 = this.of(ch); if (!H0 || stage !== this.stageOf(ch)) return '';
-    return s.hiddenDone && s.hiddenDone[ch] ? `   ◆ 숨은 길 「${H0[1]}」 정복` : s.hiddenSeen && s.hiddenSeen[ch] ? `   ◇ 숨은 길 「${H0[1]}」` : '   숨은 길 ?';
+    return s.hiddenDone && s.hiddenDone[ch] ? tf('   ◆ 숨은 길 「{0}」 정복', H0[1]) : s.hiddenSeen && s.hiddenSeen[ch] ? tf('   ◇ 숨은 길 「{0}」', H0[1]) : '   숨은 길 ?';
   },
 };
 
@@ -442,7 +443,7 @@ const GoldGob = {
     if (m.hp < G.lastHp) { const n = Math.min(4, 1 + Math.floor((G.lastHp - m.hp) / Math.max(1, m.maxHp * 0.12))); for (let i = 0; i < n; i++) sc.dropPickup(m.x, m.y, 'coin'); G.lastHp = m.hp; }
     if (m.dead) return this.finish(sc, true);
     G.t -= dt;
-    if (G.ui) G.ui.setText(`황금 고블린  ${Math.max(0, G.t / 1000).toFixed(1)}초`);
+    if (G.ui) G.ui.setText(tf('황금 고블린  {0}초', Math.max(0, G.t / 1000).toFixed(1)));
     if (G.t <= 0) this.finish(sc, false);
   },
   finish(sc, caught) {

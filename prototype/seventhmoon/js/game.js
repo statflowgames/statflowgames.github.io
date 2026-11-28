@@ -61,10 +61,10 @@ class Boot extends Phaser.Scene {
   constructor() { super('boot'); }
   preload() {
     const t = this.add.text(W / 2, H / 2, '불러오는 중… 0%', { fontFamily: 'sans-serif', fontSize: 28, color: '#f4e4c0' }).setOrigin(0.5);
-    this.load.on('progress', p => t.setText('불러오는 중… ' + Math.round(p * 100) + '%'));
+    this.load.on('progress', p => t.setText(tf('불러오는 중… {0}%', Math.round(p * 100))));
     this.load.json('man', 'assets/manifest.json' + (BUILD_V ? '?v=' + BUILD_V : ''));
     this.load.image('coin', 'assets/ui/coin.png');
-    { const lg = gameTitle('ko').logo; this.load.image(lg, 'assets/ui/' + lg + '.png'); }   // 🆕 2026-11-22 제목 로고 (없으면 글자로)   // 🆕 2026-11-22 달 문양 금화 (못 불러오면 아래에서 동그라미로 대신)
+    { const lg = gameTitle(I18N.titleLang()).logo; this.load.image(lg, 'assets/ui/' + lg + '.png'); }   // 🆕 2026-11-22 제목 로고 (없으면 글자로)   // 🆕 2026-11-22 달 문양 금화 (못 불러오면 아래에서 동그라미로 대신)
     this.load.once('filecomplete-json-man', (k, ty, data) => {
       const ext = data.__ext || '.png';
       MAN = data; Assets.ext = ext;
@@ -75,6 +75,7 @@ class Boot extends Phaser.Scene {
   }
   async create() {
     await NativeStore.restore();
+    Owner.ensure();   // 🆕 2026-11-28 처음 실행 날짜·버전 (js/save.js Owner)
     Settings.apply();
     const g = this.make.graphics({ x: 0, y: 0, add: false });
     g.fillStyle(0x000000, 1).fillEllipse(60, 18, 120, 36); g.generateTexture('shadow', 120, 36); g.clear();
@@ -150,7 +151,7 @@ class Game extends Phaser.Scene {
     if (this.cfg.hp) this.hero.hp = Math.min(this.hero.maxHp, this.cfg.hp);
     // 🆕 체력 이어가기 (이야기 모드): 스테이지를 깨도 체력이 차지 않는다. 보스(중간·장)를 깨면 다음 스테이지에서 꽉 찬다
     else if (this.mode === 'story' && typeof s.hpPct === 'number' && s.hpPct < 1) this.hero.hp = Math.max(Math.round(this.hero.maxHp * HP_CARRY_MIN), Math.round(this.hero.maxHp * s.hpPct));
-    this.tut = !s.seen.tutorial && this.cfg.stage === 'c1_s1' && !this.def.mode ? { i: 0, x0: 260, ui: null, wait: 1800 } : null;
+    this.tut = !s.seen.tutorial && this.cfg.stage === 'c1_s1' && !this.def.mode ? { i: 0, x0: 260, ui: null, wait: 2800 }   /* ✏️ 2026-11-28 스테이지 제목(2.7초)이 사라진 뒤에 — 긴 언어에서 겹쳤다 */ : null;
     this.heroTip = this.mode === 'story' && typeof HERO_TIP !== 'undefined' && HERO_TIP[s.hero] && !s.seen['tip_' + s.hero] ? { wait: 6500 } : null;   // 🆕 2026-11-22 직업 대표 기술 안내 (한 번)
     if (typeof GoldGob !== 'undefined') GoldGob.roll(this);   // 🆕 2026-11-24 황금 고블린 (아주 가끔)
     // AI 동료
@@ -168,19 +169,20 @@ class Game extends Phaser.Scene {
     if (skip) { this.waveIdx = skip; this.hero.x = this.waves[skip - 1].end - 300; }
     this.cameras.main.scrollX = Phaser.Math.Clamp(this.hero.x - W * 0.4, 0, STAGE_W - W);
     this.cameras.main.fadeIn(400);
-    if (this.mode === 'daily' || this.mode === 'rush') this.stageIntro(this.mode === 'rush' ? '주간 도전' : '매일 바뀌는 도전', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : '보스 6마리를 최대한 빨리!', { accent: 0xffc96a });
-    else if (this.tower) this.stageIntro('심연의 탑', this.def.name, this.rule.ko ? '규칙  ·  ' + this.rule.ko : null, { accent: 0xb89cff });
+    if (this.mode === 'daily' || this.mode === 'rush') this.stageIntro(this.mode === 'rush' ? '주간 도전' : '매일 바뀌는 도전', this.def.name, this.rule.ko ? tf('규칙  ·  {0}', this.rule.ko) : '보스 6마리를 최대한 빨리!', { accent: 0xffc96a });
+    else if (this.tower) this.stageIntro('심연의 탑', this.def.name, this.rule.ko ? tf('규칙  ·  {0}', this.rule.ko) : null, { accent: 0xb89cff });
     else if (this.cfg.back) { /* 🆕 숨은 길에서 돌아옴: 제목 없이 이어 간다 */ }
     else if (this.def.drill) this.stageIntro('캠프 훈련장', '화살비 막기', '20초 동안 날아오는 화살을 가드로 막아라', { accent: 0xffc96a });   // 🆕 2026-11-25
-    else if (this.def.hidden) this.stageIntro(`제${this.ch}장  ·  숨은 길`, this.def.name, '이 길을 아는 이는 많지 않다…', { accent: 0xb89cff });   // 🆕 2026-11-24
+    else if (this.def.hidden) this.stageIntro(tf('제{0}장  ·  숨은 길', this.ch), this.def.name, '이 길을 아는 이는 많지 않다…', { accent: 0xb89cff });   // 🆕 2026-11-24
     else {
       const chap = typeof CHAPTERS !== 'undefined' && CHAPTERS[this.ch - 1];
-      this.stageIntro(`제${this.ch}장` + (chap ? `  ·  ${chap.name}` : ''), this.def.name, this.routeRule ? '길의 규칙  ·  ' + this.routeRule.ko : this.allyBonus ? `동료 조합 「${this.allyBonus}」  피해 +15%` : null);
+      this.stageIntro(chap ? tf('제{0}장  ·  {1}', this.ch, chap.name) : tf('제{0}장', this.ch), this.def.name, this.routeRule ? tf('길의 규칙  ·  {0}', this.routeRule.ko) : this.allyBonus ? tf('동료 조합 「{0}」  피해 +15%', this.allyBonus) : null);
     }
     GearFx.start(this);   // 🆕 장비 효과
     StageEvents.start(this);   // 🆕 스테이지 안 이야기·목표
     if (typeof HiddenRoute !== 'undefined') HiddenRoute.onCreate(this);   // 🆕 2026-11-25 숨은 길 들어갔다 돌아오기
     if (typeof Drill !== 'undefined') Drill.setup(this);   // 🆕 2026-11-25 캠프 훈련장
+    if (typeof Trial !== 'undefined') Trial.setup(this);   // 🆕 2026-11-28 직업 체험
     SFX.ambience(this.theme.amb);
     SFX.music(this.tower ? (this.def.boss ? 'bgm_tower_b' : 'bgm_tower_a') : this.theme.bgm);
     SFX.heartbeat(false);
@@ -258,7 +260,7 @@ class Game extends Phaser.Scene {
     this.floatText(p.x, p.y - 160, first ? '숨은 보물 발견!' : '숨은 보물', '#ffe27a', first ? 38 : 26);
     for (let i = 0; i < (first ? 10 : 4); i++) this.dropPickup(p.x, p.y, 'coin');
     for (let i = 0; i < (first ? 2 : 1); i++) this.dropPickup(p.x, p.y, 'cons');
-    if (first || Math.random() < 0.3) this.dropPickup(p.x, p.y, 'loot', first ? { rar: 2, min: 1, special: true } : { rar: 1 });
+    if (first || Math.random() < 0.2) this.dropPickup(p.x, p.y, 'loot', first ? { rar: 2, min: 1, special: true } : { rar: 1 });   // ✏️ 2026-11-28 30% → 20%
   }
   addProp(x, y, n, chest, secret) {
     const g = this.propGrp || 'props';
@@ -345,7 +347,7 @@ class Game extends Phaser.Scene {
     StageEvents.onClear(this);
     this.won = true;
     if (this.tut) { this.save.seen.tutorial = true; Save.write(); if (this.tut.ui) this.tut.ui.destroy(); this.tut = null; }
-    this.stageIntro(this.tower ? '심연의 탑  ·  ' + this.def.name : this.mode === 'story' ? `제${this.ch}장  ·  ${this.def.name}` : this.def.name, 'STAGE CLEAR', null, { hold: 1300, clear: true });
+    this.stageIntro(this.tower ? tf('심연의 탑  ·  {0}', this.def.name) : this.mode === 'story' ? tf('제{0}장  ·  {1}', this.ch, this.def.name) : this.def.name, 'STAGE CLEAR', null, { hold: 1300, clear: true });
     SFX.heartbeat(false);
     this.lootThenWin(() => { SFX.win(); SFX.heroWin(this.hero.key); }, 1300);
   }
@@ -582,7 +584,7 @@ class Game extends Phaser.Scene {
       g.lineStyle(6,0x1a0f08,.75).strokeCircle(b.x,b.y,r);
       g.lineStyle(6,col,1).beginPath().arc(b.x,b.y,r,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,buffT/AWAKEN_BUFF.ms),false).strokePath();
       b.clearTint(); if(!held)b.setScale(b.restScale).setAlpha(.9);
-      this.awkPct.setPosition(b.x,b.y-r-14).setText(`각성 상태 ${Math.ceil(buffT/1000)}초`);
+      this.awkPct.setPosition(b.x,b.y-r-14).setText(tf('각성 상태 {0}초', Math.ceil(buffT/1000)));
       return;
     }
     if(full){
@@ -599,7 +601,7 @@ class Game extends Phaser.Scene {
       b.setTint(0x6a6a6a);
       if(!held)b.setScale(b.restScale).setAlpha(.5);
       // 모자랄 때 누르면 몇 %인지 알려 준다
-      this.awkPct.setPosition(b.x,b.y-r-14).setText((this.awkDenyEnd||0)>this.now?`게이지 ${Math.floor(v*100)}%`:'');
+      this.awkPct.setPosition(b.x,b.y-r-14).setText((this.awkDenyEnd||0)>this.now?tf('게이지 {0}%', Math.floor(v*100)):'');
     }
   }
   drawTouchButton(b) {
@@ -696,11 +698,11 @@ class Game extends Phaser.Scene {
       c.add(UI.text(this, W / 2, 200, '일시 정지', 54, '#ffe7a8', { serif: true }).setOrigin(0.5));
       c.add(UI.button(this, W / 2, 330, '계속하기', () => this.togglePause(), { w: 320 }));
       c.add(UI.button(this, W / 2, 410, '처음부터 다시', () => this.scene.restart(this.cfg), { w: 320, col: 0x4a2a14 }));
-      c.add(UI.button(this, W / 2, 490, '지도로 나가기', () => { SFX.heartbeat(false); this.scene.start(this.tower ? 'towergate' : 'map'); }, { w: 320, col: 0x3a2a1a }));
+      c.add(UI.button(this, W / 2, 490, this.cfg.trial ? '체험 끝내기' : '지도로 나가기', () => { if (this.cfg.trial) return Trial.end(this); SFX.heartbeat(false); this.scene.start(this.tower ? 'towergate' : 'map'); }, { w: 320, col: 0x3a2a1a }));
       c.add(UI.button(this, W - 120, 60, '설정', () => openSettings(this), { w: 160, h: 50, size: 20, col: 0x2a3a5a }));
       // ✏️ 2026-11-26 저장 안내: 스테이지 도중 진행은 저장되지 않는다
       c.add(UI.text(this, W / 2, 566, '💾 스테이지 도중의 진행은 저장되지 않아요\n나가면 이 스테이지를 처음부터 다시 해요 · 레벨·장비·금화는 깬 스테이지까지 저장돼 있어요', 17, '#c8b8a0', { align: 'center' }).setOrigin(0.5));
-      c.add(UI.button(this, 150, 60, `${DB.heroes[this.hero.key].name} 조작법`, () => MoveList.open(this, this.hero.key, { depth: 9600 }), { w: 220, h: 50, size: 20, col: 0x2a3a5a }));   // 🆕 직업별 기술표
+      c.add(UI.button(this, 150, 60, tf('{0} 조작법', DB.heroes[this.hero.key].name), () => MoveList.open(this, this.hero.key, { depth: 9600 }), { w: 220, h: 50, size: 20, col: 0x2a3a5a }));   // 🆕 직업별 기술표
       c.each(o => o.setScrollFactor && o.setScrollFactor(0));
       this.pauseUi = c;
     } else if (this.pauseUi) this.pauseUi.destroy();
@@ -714,8 +716,11 @@ class Game extends Phaser.Scene {
     panel.fillStyle(0x3a2412).fillCircle(72, 70, 46).lineStyle(4, 0xe0b45a).strokeCircle(72, 70, 46);
     hud.add(panel);
     { const hk = this.textures.exists(s.hero + '/head') ? s.hero + '/head' : 'warrior/head'; const cf = CuteHeroes.face(this, s.hero); const hi = cf ? this.add.image(74, 74, cf[0], cf[1]) : this.add.image(74, 74, hk); hi.setScale(Math.min(80 / hi.width, 80 / hi.height)); hud.add(hi); }
-    hud.add(this.add.text(132, 22, DB.heroes[s.hero].name, { fontFamily: 'sans-serif', fontSize: 22, color: '#ffe7a8', fontStyle: 'bold' }));
-    hud.add(this.add.text(220, 26, `${DB.heroes[s.hero].ko.split(' ')[0]} Lv.${s.lv}`, { fontFamily: 'sans-serif', fontSize: 15, color: '#c8b08a' }));
+    // ✏️ 2026-11-28 다국어: 이름이 길면(ハルヴァン 등) 직업·레벨 글자를 그만큼 민다, 칸(~440) 안에 맞춤
+    const hnT = this.add.text(132, 22, DB.heroes[s.hero].name, { fontFamily: 'sans-serif', fontSize: 22, color: '#ffe7a8', fontStyle: 'bold' });
+    const hcT = this.add.text(Math.max(220, 132 + hnT.width + 10), 26, tf('{0} Lv.{1}', heroClass(s.hero), s.lv), { fontFamily: 'sans-serif', fontSize: 15, color: '#c8b08a' });
+    UI.fit(hcT, 436 - hcT.x);
+    hud.add([hnT, hcT]);
     this.bars = this.add.graphics(); hud.add(this.bars);
     this.goldText = this.add.text(W - 24, 22, '0', { fontFamily: 'sans-serif', fontSize: 26, color: '#ffd34d', stroke: '#3a1606', strokeThickness: 5 }).setOrigin(1, 0);
     hud.add(this.add.image(W - 24 - 70, 37, 'coin').setDisplaySize(30, 30)); hud.add(this.goldText);
@@ -749,7 +754,7 @@ class Game extends Phaser.Scene {
       hud.add(this.add.text(x - 28, y - 30, k === 0 ? 'U' : 'H', { fontFamily: 'sans-serif', fontSize: 14, color: '#9ae0ff', stroke: '#000', strokeThickness: 3 }));
       this.skillUi.push({ g, x, y, k });
     });
-    if (!this.isTouch) hud.add(this.add.text(W / 2, H - 14, '이동 WASD · 공격 J · 점프 K · 구르기 L · 가드 I · 각성 O · 스킬 U H · 아이템 1~4 · 일시정지 P', { fontFamily: 'sans-serif', fontSize: 15, color: '#f3e6cc', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1).setAlpha(0.8));
+    if (!this.isTouch) hud.add(this.keyHint = this.add.text(W / 2, H - 14, '이동 WASD · 공격 J · 점프 K · 구르기 L · 가드 I · 각성 O · 스킬 U H · 아이템 1~4 · 일시정지 P', { fontFamily: 'sans-serif', fontSize: 15, color: '#f3e6cc', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1).setAlpha(0.8));
     if (this.ally) {
       const al = this.ally;
       const ag = this.add.graphics();
@@ -789,7 +794,7 @@ class Game extends Phaser.Scene {
     this.updateSkillButtons();
     this.updateTouchFade();
     // 버프 표시
-    const bt = Object.entries(this.buffs).filter(([, v]) => v > 0).map(([k, v]) => ({ shout: '함성', taunt: '도발', awk: `각성 상태 ${Math.ceil(v / 1000)}초` }[k])).filter(Boolean).join(' ');
+    const bt = Object.entries(this.buffs).filter(([, v]) => v > 0).map(([k, v]) => ({ shout: '함성', taunt: '도발', awk: tf('각성 상태 {0}초', Math.ceil(v / 1000)) }[k])).filter(Boolean).join(' ');
     if (bt) this.awkHint.setText((full ? '각성 준비!  ' : '') + bt);
     for (const b of this.beltUi) { const n = this.save.belt[b.k] || 0; b.t.setText(String(n)); if (b.ic) b.ic.setAlpha(n ? 1 : 0.3); }
     for (const sk of this.skillUi) {
@@ -816,7 +821,7 @@ class Game extends Phaser.Scene {
       if (this.comboT <= 0) this.comboN = 0;
     }
     this.goldText.setText(String(this.gold));
-    if (this.mode === 'rush') { if (!this.rushT) this.rushT = this.add.text(W / 2, 112, '', { fontFamily: 'sans-serif', fontSize: 26, color: '#ffe27a', stroke: '#000', strokeThickness: 5, fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(5002); if (!this.won) this.rushT.setText('기록 ' + fmtTime(this.now)); }
+    if (this.mode === 'rush') { if (!this.rushT) this.rushT = this.add.text(W / 2, 112, '', { fontFamily: 'sans-serif', fontSize: 26, color: '#ffe27a', stroke: '#000', strokeThickness: 5, fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(5002); if (!this.won) this.rushT.setText(tf('기록 {0}', fmtTime(this.now))); }
     if (this.ally) {
       const al = this.ally;
       const ab = this.allyBar; ab.clear();
@@ -1111,8 +1116,7 @@ class Game extends Phaser.Scene {
     if (p.chest) {
       SFX.ui('chest_open');
       for (let i = 0; i < 12; i++) this.dropPickup(p.x, p.y, 'coin');
-      this.dropPickup(p.x, p.y, 'loot', { rar: 2 });
-      this.dropPickup(p.x, p.y, 'loot');
+      this.dropPickup(p.x, p.y, 'loot', { rar: 2 });   // ✏️ 2026-11-28 보물 상자 장비 2개 → 1개 (좋은 쪽만)
       this.dropPickup(p.x, p.y, 'cons'); this.dropPickup(p.x, p.y, 'cons');
       if (GearFx.has(this, 'thiefKing')) this.dropPickup(p.x, p.y, 'loot', { rar: 1 });
       return;
@@ -1121,8 +1125,8 @@ class Game extends Phaser.Scene {
     if (p.secret) return this.secretFound(p);
     if (p.ev) return StageEvents.onProp(this, p);
     if (r < (Q.has('oldmob') ? 0.35 : 0.08) && !this.rule.noHeal && !this.rule.noHeart) this.dropPickup(p.x, p.y, 'heal');   // ✏️ 상자 회복 하트 35% → 16% → 8% (2026-11-23)
-    else if (r < (Q.has('oldmob') ? 0.42 : 0.14)) this.dropPickup(p.x, p.y, 'loot');   // ✏️ 장비 26% → 6% (상자가 스테이지당 10개 안팎)
-    else if (r < (Q.has('oldmob') ? 0.55 : 0.27)) this.dropPickup(p.x, p.y, 'cons');   // 소모품은 예전과 같은 13%
+    else if (r < (Q.has('oldmob') ? 0.42 : 0.11)) this.dropPickup(p.x, p.y, 'loot');   // ✏️ 장비 26% → 6% → 3% (2026-11-28 직업 고정으로 내 장비가 더 많이 나와서)
+    else if (r < (Q.has('oldmob') ? 0.55 : 0.24)) this.dropPickup(p.x, p.y, 'cons');   // 소모품은 예전과 같은 13%
     const n = Phaser.Math.Between(3, 6);
     for (let i = 0; i < n; i++) this.dropPickup(p.x, p.y, 'coin');
   }
@@ -1535,7 +1539,7 @@ class Game extends Phaser.Scene {
       SFX.heal(); SFX.ui('use_scroll');
       const v = Math.round(h.maxHp * 0.3 * (1 + this.stats.healPct / 100)); h.hp = Math.min(h.maxHp, h.hp + v);
       this.floatText(h.x, h.y - 240, '+' + v, '#8f8', 34);
-      if (this.ally && !this.ally.dead) { this.ally.hp = Math.min(this.ally.maxHp, this.ally.hp + Math.round(this.ally.maxHp * 0.3)); this.floatText(this.ally.x, this.ally.y - 220, '+회복', '#8f8', 26); }
+      if (this.ally && !this.ally.dead && this.ally.state !== 'down') { this.ally.hp = Math.min(this.ally.maxHp, this.ally.hp + Math.round(this.ally.maxHp * 0.3)); this.floatText(this.ally.x, this.ally.y - 220, '+회복', '#8f8', 26); }
       this.fx('levelup_burst', h.x, h.y - 100, { s: 0.45, dur: 600, tint: 0x80ff80, depth: h.y + 1001 });
       return true;
     }
@@ -2185,7 +2189,7 @@ class Game extends Phaser.Scene {
       const c = this.add.container(0, 0).setScrollFactor(0).setDepth(7500);
       const g = this.add.graphics(); g.fillStyle(0x000000, 0.7).fillRect(0, 150, W, 150); g.fillStyle(0x9a2fd0).fillRect(0, 148, W, 4);
       c.add(g);
-      c.add(this.add.text(120, 178, this.tower ? `심연의 탑 ${this.tower}층 강화 보스` : d.mid ? '중간 보스' : kind === 'void_shadow' ? '숨은 보스' : `${this.ch}장 보스`, { fontFamily: 'sans-serif', fontSize: 22, color: '#d8b8ff' }));
+      c.add(this.add.text(120, 178, this.tower ? tf('심연의 탑 {0}층 강화 보스', this.tower) : d.mid ? '중간 보스' : kind === 'void_shadow' ? '숨은 보스' : tf('{0}장 보스', this.ch), { fontFamily: 'sans-serif', fontSize: 22, color: '#d8b8ff' }));
       c.add(this.add.text(120, 206, (this.tower ? '강화 ' : '') + d.ko, { fontFamily: 'serif', fontSize: 48, color: '#f6ffd8', stroke: '#1d2a08', strokeThickness: 8 }));
       // 🆕 공략 힌트 한 줄
       const gd = typeof BOSS_GIMMICK_DEF !== 'undefined' && BossGimmicks.on() && BOSS_GIMMICK_DEF[kind];
@@ -2218,9 +2222,9 @@ class Game extends Phaser.Scene {
     if (gd && gd.trophy && this.save) {
       this.save.trophies = this.save.trophies || {};
       // 🆕 영웅 +1, 전설 +2, 사냥꾼의 주머니 +1
-      const tn = 1 + (this.diff >= 2 ? 1 : 0) + (this.diff >= 3 ? 1 : 0) + (this.save.flags.trophyPlus ? 1 : 0);
+      const tn = 1 + (this.diff >= 2 ? 1 : 0) + (this.diff >= 3 ? 1 : 0);
       this.save.trophies[b.id] = (this.save.trophies[b.id] || 0) + tn;
-      this.time.delayedCall(900, () => this.floatText(this.hero.x, this.hero.y - 280, '전리품 · ' + gd.trophy + (tn > 1 ? ' ×' + tn : ''), '#ffb0ff', 30));
+      this.time.delayedCall(900, () => this.floatText(this.hero.x, this.hero.y - 280, tf('전리품 · {0}{1}', gd.trophy, tn > 1 ? ' ×' + tn : ''), '#ffb0ff', 30));
     }
     // 보스 러시: 마지막 보스가 아니면 다음 보스로
     if (this.def.allBoss && this.waveIdx < this.waves.length) {
@@ -2229,7 +2233,7 @@ class Game extends Phaser.Scene {
       this.time.delayedCall(900, () => b.die());
       this.lock = null; this.bounds = { l: 0, r: STAGE_W }; this.boss = null; this.bossBar = null;
       const h = this.hero; h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.2);
-      this.floatText(h.x, h.y - 260, `${this.waveIdx}/${this.waves.length} 처치 · 체력 회복`, '#ffe27a', 28);
+      this.floatText(h.x, h.y - 260, tf('{0}/{1} 처치 · 체력 회복', this.waveIdx, this.waves.length), '#ffe27a', 28);
       SFX.music(null, { fade: 0.6 }); this.time.delayedCall(800, () => this.showGo());
       return;
     }
@@ -2256,7 +2260,7 @@ class Game extends Phaser.Scene {
       c.maxHp = c.hp = Math.round(m.maxHp * 0.3); c.rig.def.scale *= 0.8; c.state = 'air'; c.z = 60; c.vz = 380; c.vx = (i ? 1 : -1) * 200; c.play('m_air');
       this.monsters.push(c);
     }
-    if (m.elite) { this.dropPickup(m.x, m.y, 'loot', { rar: 1, min: 1 }); this.expGain += (d.exp || 6); }
+    if (m.elite) { if (Math.random() < 0.6) this.dropPickup(m.x, m.y, 'loot', { rar: 1, min: 1 }); this.expGain += (d.exp || 6); }   // ✏️ 2026-11-28 정예 장비 100% → 60%
     this.expGain += Math.round((d.exp || 6) * (1 + this.stats.expPct / 100));
     if (this.stats.leech) { const h = this.hero; h.hp = Math.min(h.maxHp, h.hp + Math.round(h.maxHp * this.stats.leech / 100)); }
     if (d.boss) {
@@ -2269,7 +2273,7 @@ class Game extends Phaser.Scene {
     const n = Phaser.Math.Between(a, b);
     for (let i = 0; i < Math.ceil(n / 2); i++) this.dropPickup(m.x, m.y, 'coin');
     if (Math.random() < (Q.has('oldmob') ? 0.1 : 0.04) && !this.rule.noHeal) this.dropPickup(m.x, m.y, 'heal');   // ✏️ 2026-11-23 하트 10% → 4% (물약을 쓸 일이 생기게)
-    if (Math.random() < (d.sc >= 1.3 ? 0.12 : 0.025)) this.dropPickup(m.x, m.y, 'loot');   // ✏️ 4% → 2.5% (큰 몬스터 18% → 12%)
+    if (Math.random() < (d.sc >= 1.3 ? 0.07 : 0.015)) this.dropPickup(m.x, m.y, 'loot');   // ✏️ 4% → 2.5% → 1.5% (큰 몬스터 18% → 12% → 7%) · 2026-11-28
     // 동료가 쓰러지면 남은 졸개가 움찔한다
     for (const o of this.monsters) if (!o.dead && o !== m && o.kind !== 'barkhaul' && (o.state === 'idle' || o.state === 'move') && Math.random() < 0.5) {
       o.showEmote(Math.random() < 0.5 ? 'sweat' : 'shock', 800);
@@ -2307,6 +2311,7 @@ class Game extends Phaser.Scene {
     return sum >= 8 ? 'S' : sum >= 6 ? 'A' : sum >= 4 ? 'B' : 'C';
   }
   result(win) {
+    if (this.cfg.trial) return Trial.end(this);   // 🆕 2026-11-28 직업 체험은 결과 없이 직업 선택으로
     const s = this.save;
     // 바닥에 남은 금화와 장비는 자동으로 줍는다
     for (const p of this.pickups) {
@@ -2316,7 +2321,8 @@ class Game extends Phaser.Scene {
       p.img.destroy();
     }
     this.pickups = [];
-    if (this.hintUi && this.hintUi.scene) { this.hintUi.destroy(); this.hintUi = null; }   // ✏️ 2026-11-24 결과 화면에 첫 안내 상자가 남지 않게
+    if (this.hintUi && this.hintUi.scene) { this.hintUi.destroy(); this.hintUi = null; }
+    if (this.keyHint) this.keyHint.setVisible(false);   // ✏️ 2026-11-26 결과 화면 버튼 사이로 비치던 조작 안내   // ✏️ 2026-11-24 결과 화면에 첫 안내 상자가 남지 않게
     if (this.cfg.ret && typeof HiddenRoute !== 'undefined') return HiddenRoute.roomResult(this, win);   // 🆕 2026-11-25 중간에 들어온 숨은 방
     if (this.tower) return this.towerResult(win);
     if (this.mode === 'daily' || this.mode === 'rush') return this.challengeResult(win);
@@ -2324,18 +2330,20 @@ class Game extends Phaser.Scene {
     c.add(this.add.rectangle(0, 0, W, H, 0x000000, 0.7).setOrigin(0).setInteractive());
     const sec = Math.round(this.now / 1000);
     if (!win) {
-      c.add(UI.text(this, W / 2, 200, '쓰러졌다…', 76, '#ff9a8a', { serif: true, st: 10 }).setOrigin(0.5));
+      // ✏️ 2026-11-26 찢어진 깃발 그림 (uiset/result_defeat) 위에 글자
+      if (this.textures.exists('uiset/result_defeat') && !UI.oldUi()) { const fb = this.add.image(W / 2, 196, 'uiset/result_defeat'); fb.setScale(620 / fb.width); c.add(fb); }
+      c.add(UI.fit(UI.text(this, W / 2, 190, '쓰러졌다…', 64, '#ffb0a0', { serif: true, st: 10 }).setOrigin(0.5), 460));
       c.add(UI.text(this, W / 2, 300, '얻은 금화와 장비는 절반만 챙겨 돌아갔어요', 24, '#e8dcc8').setOrigin(0.5));
       let settled = false;
       const settle = () => { if (settled) return; settled = true; s.gold += Math.floor(this.gold / 2); this.loot.slice(0, Math.floor(this.loot.length / 2)).forEach(it => s.bag.push(it)); gainExp(s, Math.floor(this.expGain / 2)); Save.write(); };
       c.add(UI.button(this, W / 2 - 170, 460, '다시 도전', () => { settle(); this.scene.restart(this.cfg); }, { w: 280 }));
       c.add(UI.button(this, W / 2 + 170, 460, '지도로', () => { settle(); this.scene.start('map'); }, { w: 280, col: 0x3a2a1a }));
-      // 🆕 광고 보고 이어하기 (스테이지당 1번)
-      if (!this.adRevived && typeof Monet !== 'undefined') c.add(UI.button(this, W / 2, 380, '▶ 광고 보고 이어하기', () => Monet.rewardAd(this, 'revive', () => this.adRevive(c)), { w: 400, h: 60, size: 24, col: 0x2a4a3a }));
       c.each(o => o.setScrollFactor && o.setScrollFactor(0));
       this.input.keyboard.once('keydown-ENTER', () => { if (this.lost) { settle(); this.scene.restart(this.cfg); } });
       return;
     }
+    // ✏️ 2026-11-28 완전 유료(광고 없음): 이긴 스테이지의 금화·경험치 +20% (예전 광고 「보상 2배」 대신)
+    this.gold = Math.round(this.gold * 1.2); this.expGain = Math.round(this.expGain * 1.2);
     const g = this.grade();
     const bonus = { S: 3, A: 2, B: 1, C: 0 }[g];
     // ✏️ 2026-11-22 클리어 보상은 금화·마석 위주. 장비는 S면 1개(조금 좋게), A면 50% 확률로 1개
@@ -2353,7 +2361,7 @@ class Game extends Phaser.Scene {
     s.gold += this.gold;
     const lv0 = s.lv;
     const ups = gainExp(s, this.expGain);
-    this.achieve(all, { win: true, grade: g, chBoss: this.def.boss && this.cfg.node === 'boss' });
+    this.achieve(all, { win: true, grade: g, chBoss: this.def.boss && this.cfg.node === 'boss', scroll: this.textures.exists('uiset/result_scroll') && !UI.oldUi() });
     // 마석: 스테이지마다 조금
     s.mats.low += 1 + bonus; if (this.ch >= 3) s.mats.mid += Math.floor(bonus / 2) + 1; if (this.ch >= 5) s.mats.high += 1;
     if (this.cfg.node && this.cfg.node !== 'void' && this.cfg.node !== 'hidden' && !this.tower) clearNode(s, this.ch, this.cfg.node);
@@ -2362,57 +2370,122 @@ class Game extends Phaser.Scene {
     Save.write();
     if (gotBook) this.time.delayedCall(1200, () => { SFX.ui && SFX.ui('chest_open'); UI.toast(this, '📖 스킬의 서를 얻었어요! 마법 천막에서 쓰면 스킬 포인트 +1', '#9ae0ff', 640); });
     // 화면
-    c.add(UI.text(this, W / 2, 86, '스테이지 클리어!', 60, '#ffe27a', { serif: true, st: 10 }).setOrigin(0.5));
-    const gT = UI.text(this, W - 200, 180, g, 150, { S: '#ffd34d', A: '#9ae07a', B: '#8ac8ff', C: '#d8c8b0' }[g], { serif: true, st: 12, bold: true }).setOrigin(0.5).setScale(3).setAlpha(0);
-    c.add(gT);
-    this.tweens.add({ targets: gT, scale: 1, alpha: 1, duration: 300, delay: 500, ease: 'Back.out', onComplete: () => { this.cameras.main.shake(150, 0.006); if (g === 'S') SFX.jingle('jgl_rank_s'); } });
-    c.add(UI.text(this, 120, 160, [
-      `시간 ${Math.floor(sec / 60)}분 ${sec % 60}초`,
-      `받은 피해 ${Math.round(this.dmgTaken)}`,
-      `최대 콤보 ${this.maxCombo}`,
-      `금화 +${this.gold}   경험치 +${this.expGain}`,
-    ].join('\n'), 26, '#fff', { ls: 12 }));
-    c.add(UI.text(this, 120, 352, `클리어 보상 (등급 ${g}) · 금화 +${clearGold}${chests ? ' · 장비 1개' : ''}  ·  주운 장비 ${this.loot.length}개`, 22, '#ffe7a8'));
-    if (hiddenMsg) c.add(UI.text(this, 120, 382, hiddenMsg, 22, '#d8b8ff', { bold: true }));
-    if (moonMsg) c.add(UI.text(this, 660, 300, moonMsg, 24, '#dfe8ff', { bold: true, st: 6 }));
-    all.slice(0, 10).forEach((it, i) => {
-      const slot = UI.itemSlot(this, 160 + i * 96, 420, it, 84);
-      slot.setScrollFactor(0).setAlpha(0).setScale(0.6);
-      c.add(slot);
-      this.tweens.add({ targets: slot, alpha: 1, scale: 1, duration: 200, delay: 900 + i * 140, ease: 'Back.out', onStart: () => SFX.ui(it.rar >= 3 ? 'equip_jewel' : 'chest_open') });
-      c.add(UI.text(this, 160 + i * 96, 470, it.name.slice(0, 6), 14, RARITY[it.rar].col).setOrigin(0.5, 0));
-    });
-    if (ups.length) {
-      const t = UI.text(this, W / 2, 530, `레벨 업!  Lv.${lv0} → Lv.${s.lv}   (스킬 포인트 +${ups.length})`, 32, '#7ad0ff', { bold: true, st: 6 }).setOrigin(0.5).setAlpha(0);
-      c.add(t);
-      this.time.delayedCall(1600, () => { SFX.jingle('jgl_level_up'); this.tweens.add({ targets: t, alpha: 1, y: 520, duration: 300 }); this.fx('levelup_burst', this.hero.x, this.hero.y - 120, { s: 0.7, dur: 900, depth: 9500 }); });
+    // ✏️ 2026-11-26 그림이 있으면 두루마리 결과 화면(clearArt), 없으면(?oldui) 예전 글자 화면
+    const art = this.textures.exists('uiset/result_scroll') && !UI.oldUi();
+    if (art) this.clearArt(c, { g, sec, clearGold, chests, hiddenMsg, moonMsg, all, ups, lv0, s });
+    else {
+      c.add(UI.text(this, W / 2, 86, '스테이지 클리어!', 60, '#ffe27a', { serif: true, st: 10 }).setOrigin(0.5));
+      const gT = UI.text(this, W - 200, 180, g, 150, { S: '#ffd34d', A: '#9ae07a', B: '#8ac8ff', C: '#d8c8b0' }[g], { serif: true, st: 12, bold: true }).setOrigin(0.5).setScale(3).setAlpha(0);
+      c.add(gT);
+      this.tweens.add({ targets: gT, scale: 1, alpha: 1, duration: 300, delay: 500, ease: 'Back.out', onComplete: () => { this.cameras.main.shake(150, 0.006); if (g === 'S') SFX.jingle('jgl_rank_s'); } });
+      c.add(UI.text(this, 120, 160, [
+        tf('시간 {0}분 {1}초', Math.floor(sec / 60), sec % 60),
+        tf('받은 피해 {0}', Math.round(this.dmgTaken)),
+        tf('최대 콤보 {0}', this.maxCombo),
+        tf('금화 +{0}   경험치 +{1}', this.gold, this.expGain),
+      ].join('\n'), 26, '#fff', { ls: 12 }));
+      c.add(UI.fit(UI.text(this, 120, 352, tf('클리어 보상 (등급 {0}) · 금화 +{1}{2}  ·  주운 장비 {3}개', g, clearGold, chests ? ' · 장비 1개' : '', this.loot.length), 22, '#ffe7a8'), 1040));
+      if (hiddenMsg) c.add(UI.text(this, 120, 382, hiddenMsg, 22, '#d8b8ff', { bold: true }));
+      if (moonMsg) c.add(UI.text(this, 660, 300, moonMsg, 24, '#dfe8ff', { bold: true, st: 6 }));
+      all.slice(0, 10).forEach((it, i) => {
+        const slot = UI.itemSlot(this, 160 + i * 96, 420, it, 84);
+        slot.setScrollFactor(0).setAlpha(0).setScale(0.6);
+        c.add(slot);
+        this.tweens.add({ targets: slot, alpha: 1, scale: 1, duration: 200, delay: 900 + i * 140, ease: 'Back.out', onStart: () => SFX.ui(it.rar >= 3 ? 'equip_jewel' : 'chest_open') });
+        c.add(UI.text(this, 160 + i * 96, 470, UI.short(it.name, 6), 14, RARITY[it.rar].col).setOrigin(0.5, 0));
+      });
+      if (ups.length) {
+        const t = UI.text(this, W / 2, 530, tf('레벨 업!  Lv.{0} → Lv.{1}   (스킬 포인트 +{2})', lv0, s.lv, ups.length), 32, '#7ad0ff', { bold: true, st: 6 }).setOrigin(0.5).setAlpha(0);
+        c.add(t);
+        this.time.delayedCall(1600, () => { SFX.jingle('jgl_level_up'); this.tweens.add({ targets: t, alpha: 1, y: 520, duration: 300 }); this.fx('levelup_burst', this.hero.x, this.hero.y - 120, { s: 0.7, dur: 900, depth: 9500 }); });
+      }
     }
     const go = () => this.def.hidden ? this.scene.start('map', { ch: this.ch }) : this.scene.start('map', { after: { ch: this.ch, node: this.cfg.node, win: true }, ch: this.ch });
-    c.add(UI.button(this, W / 2 + 160, 640, '계속 ▶', go, { w: 280 }));
-    c.add(UI.button(this, W / 2 - 160, 640, '다시 하기', () => this.scene.restart(this.cfg), { w: 240, col: 0x3a2a1a }));
+    c.add(UI.button(this, W / 2 + 160, art ? 690 : 640, '계속 ▶', go, { w: 280, h: art ? 54 : 60 }));
+    c.add(UI.button(this, W / 2 - 160, art ? 690 : 640, '다시 하기', () => this.scene.restart(this.cfg), { w: 240, h: art ? 54 : 60, col: 0x3a2a1a }));
     if (typeof HiddenRoute !== 'undefined') HiddenRoute.resultButton(this, c);   // 🆕 숨은 길로 들어가기
-    // 🆕 광고 보고 금화·경험치 2배 (스테이지당 1번)
-    if (typeof Monet !== 'undefined' && (this.gold > 0 || this.expGain > 0)) {
-      const adB = UI.button(this, W - 210, 560, '▶ 광고 보고 보상 2배', () => Monet.rewardAd(this, 'double', () => {
-        s.gold += this.gold; const up2 = gainExp(s, this.expGain); Save.write();
-        UI.toast(this, `금화 +${this.gold} · 경험치 +${this.expGain} 더!` + (up2.length ? `  레벨 업 Lv.${s.lv}` : ''), '#ffe27a');
-        adB.destroy();
-      }), { w: 330, h: 56, size: 21, col: 0x2a4a3a });
-      c.add(adB);
-    }
     c.each(o => o.setScrollFactor && o.setScrollFactor(0));
     this.time.delayedCall(600, () => this.input.keyboard.once('keydown-ENTER', go));
   }
-  // 🆕 광고 이어하기: 결과 화면을 닫고 체력 50%로 일어난다
-  adRevive(c) {
-    const h = this.hero;
-    this.adRevived = true; this.lost = false; c.destroy();
-    h.dead = false; h.hp = Math.round(h.maxHp * 0.5); h.state = 'getup'; h.st = 0; h.replay('w_getup', 60); h.invuln = 2500; h.setHead(null);
-    SFX.ui('revive'); SFX.music(this.boss && !this.boss.dead ? this.bossMusic(this.boss.id) : this.theme.bgm); SFX.ambience(this.theme.amb);
-    this.cameras.main.flash(300, 255, 240, 200);
-    this.fx('levelup_burst', h.x, h.y - 120, { s: 0.6, dur: 800, tint: 0xffd080, depth: h.y + 1001 });
-    this.floatText(h.x, h.y - 280, '이어하기!', '#ffe27a', 44);
-    for (const m of this.monsters) if (!m.dead && Math.abs(m.x - h.x) < 400) { m.invuln = 0; m.takeHit(h, { dmg: 1, kb: 500, type: 'knock', otg: true }, 1); }
+  // 🆕 2026-11-26 스테이지 클리어 (그림): 두루마리가 펼쳐지고 리본이 내려온다 · 양피지 위 잉크색 기록(줄마다 구분선) ·
+  //   금화·경험치는 0부터 올라간다 · 등급 문장 뒤 빛살(S는 반짝이) · 주운 장비 · 레벨 업. 글은 예전 문장 그대로 (번역 재사용)
+  clearArt(c, d) {
+    const { g, sec, clearGold, chests, hiddenMsg, moonMsg, all, ups, lv0, s } = d;
+    const add = o => { c.add(o); return o; };
+    const INK = '#3a2210', INK2 = '#7a3e14', PAPER = '#f6e7c6';
+    const ink = (x, y, t, size, col = INK, o = {}) => UI.text(this, x, y, t, size, col, { stroke: PAPER, st: 3, ...o });
+    add(this.add.ellipse(W / 2, 370, 1180, 640, 0xffd27a, 0.07).setBlendMode(Phaser.BlendModes.ADD));
+    // 두루마리 펼침
+    const sc = add(this.add.image(W / 2, 352, 'uiset/result_scroll')), ss = 900 / sc.width;
+    sc.setScale(ss, ss * 0.15).setAlpha(0);
+    this.tweens.add({ targets: sc, scaleY: ss, alpha: 1, duration: 420, ease: 'Back.out' });
+    // 리본이 위에서 내려온다
+    const rb = add(this.add.image(W / 2, -90, 'uiset/result_ribbon')); rb.setScale(600 / rb.width);
+    const title = add(UI.fit(UI.text(this, W / 2, -100, '스테이지 클리어!', 46, '#ffe27a', { serif: true, st: 9 }).setOrigin(0.5), 430));
+    this.tweens.add({ targets: rb, y: 88, duration: 560, delay: 160, ease: 'Bounce.out' });
+    this.tweens.add({ targets: title, y: 78, duration: 560, delay: 160, ease: 'Bounce.out' });
+    try { if (title.preFX) title.preFX.addShine(0.5, 0.25, 3.5); } catch (e) { /* 캔버스 렌더러 */ }
+    // 기록 (왼쪽 칸) — 줄마다 가는 구분선
+    const L = 290, R = 760, rule = add(this.add.graphics());
+    [tf('시간 {0}분 {1}초', Math.floor(sec / 60), sec % 60), tf('받은 피해 {0}', Math.round(this.dmgTaken)), tf('최대 콤보 {0}', this.maxCombo)].forEach((t, i) => {
+      const y = 196 + i * 46, tx = add(UI.fit(ink(L, y, t, 24).setOrigin(0, 0.5), R - L).setAlpha(0));
+      this.tweens.add({ targets: tx, alpha: 1, x: { from: L - 24, to: L }, duration: 260, delay: 460 + i * 110 });
+      rule.fillStyle(0x7a4a20, 0.22).fillRect(L, y + 21, R - L, 2);
+    });
+    // 금화·경험치: 0부터 올라간다
+    const gy = 196 + 3 * 46 + 4, gt = add(ink(L, gy, tf('금화 +{0}   경험치 +{1}', 0, 0), 27, '#8a4800', { bold: true }).setOrigin(0, 0.5).setAlpha(0));
+    this.tweens.add({ targets: gt, alpha: 1, duration: 200, delay: 800 });
+    this.tweens.addCounter({ from: 0, to: 1, duration: 900, delay: 860, ease: 'Cubic.out', onUpdate: tw => { const k = tw.getValue(); gt.setText(tf('금화 +{0}   경험치 +{1}', Math.round(this.gold * k), Math.round(this.expGain * k))); UI.fit(gt, R - L + 120); } });
+    rule.fillStyle(0x7a4a20, 0.4).fillRect(L, gy + 28, 700, 3);
+    // 클리어 보상 · 숨은 방 · 달의 시련
+    let ry = gy + 58;
+    add(UI.fit(ink(L, ry, tf('클리어 보상 (등급 {0}) · 금화 +{1}{2}  ·  주운 장비 {3}개', g, clearGold, chests ? ' · 장비 1개' : '', this.loot.length), 19, INK2, { bold: true }).setOrigin(0, 0.5), 700));
+    if (hiddenMsg) { ry += 28; add(UI.fit(ink(L, ry, hiddenMsg, 19, '#5a2a8a', { bold: true }).setOrigin(0, 0.5), 760)); }
+    if (moonMsg) { ry += 28; add(UI.fit(ink(L, ry, moonMsg, 19, '#2a3a8a', { bold: true }).setOrigin(0, 0.5), 700)); }
+    // 새 업적 (예전엔 알림으로 떠서 버튼을 가렸다)
+    const ach = this.resultAch || [];
+    if (ach.length) {
+      ry += 28;
+      // ✏️ 2026-11-28 업적이 여러 개면 한 줄에 다 붙이지 않고 하나씩 번갈아 보여 준다 (한 줄이 두루마리 밖으로 나가던 문제)
+      const line = a => '🏆 ' + tf('업적 달성! 「{0}」  금화 +{1}', a.ko, a.gold) + (ach.length > 1 ? `  (${ach.indexOf(a) + 1}/${ach.length})` : '');
+      const at = add(UI.fit(ink(L, ry, line(ach[0]), 19, '#8a5a00', { bold: true }).setOrigin(0, 0.5).setAlpha(0), 700));
+      this.time.delayedCall(1300, () => { SFX.jingle('jgl_rank_s'); this.tweens.add({ targets: at, alpha: 1, duration: 300 }); });
+      if (ach.length > 1) { let k = 0; this.time.addEvent({ delay: 2200, startAt: 0, loop: true, callback: () => { if (!at.active) return; k = (k + 1) % ach.length;
+        this.tweens.add({ targets: at, alpha: 0, duration: 200, onComplete: () => { if (!at.active) return; at.setScale(1).setText(line(ach[k])); UI.fit(at, 700); this.tweens.add({ targets: at, alpha: 1, duration: 200 }); } }); } }); }
+    }
+    // 등급 문장 (오른쪽 위) + 뒤에서 도는 빛살
+    const gx = 905, gyy = 248, gk = 'uiset/grade_' + g;
+    const rays = add(this.add.star(gx, gyy, 14, 50, 150, { S: 0xffd27a, A: 0xffe8a0, B: 0xd8e8ff, C: 0xe8c8a0, D: 0xc8c0b8 }[g] || 0xffe8a0, 0.0).setBlendMode(Phaser.BlendModes.ADD));
+    this.tweens.add({ targets: rays, angle: 360, duration: 14000, repeat: -1 });
+    const gT = add(this.textures.exists(gk) ? this.add.image(gx, gyy, gk).setScale(2.4).setAlpha(0) : UI.text(this, gx, gyy, g, 150, '#ffd34d', { serif: true, st: 12, bold: true }).setOrigin(0.5).setScale(3).setAlpha(0));
+    const gS = gT.type === 'Image' ? 0.82 : 1;
+    this.tweens.add({ targets: gT, scale: gS, alpha: 1, duration: 320, delay: 560, ease: 'Back.out', onComplete: () => {
+      this.cameras.main.shake(150, 0.006);
+      this.tweens.add({ targets: rays, fillAlpha: g === 'S' ? 0.32 : 0.2, duration: 300 });
+      if (g === 'S') {
+        SFX.jingle('jgl_rank_s');
+        for (let i = 0; i < 14; i++) {   // S 반짝이
+          const a = Math.random() * Math.PI * 2, r = 70 + Math.random() * 60;
+          const st = add(this.add.star(gx, gyy, 4, 3, 10, 0xfff2b0, 1).setBlendMode(Phaser.BlendModes.ADD).setScrollFactor(0));
+          this.tweens.add({ targets: st, x: gx + Math.cos(a) * r, y: gyy + Math.sin(a) * r, alpha: 0, angle: 180, duration: 700 + Math.random() * 400, ease: 'Cubic.out', onComplete: () => st.destroy() });
+        }
+      }
+    } });
+    // 주운 장비
+    const iy = Math.min(ry + 66, 490);   // 아래 버튼에 닿지 않게
+    all.slice(0, 8).forEach((it, i) => {
+      const x = 330 + i * 86, slot = UI.itemSlot(this, x, iy, it, 76);
+      slot.setScrollFactor(0).setAlpha(0).setScale(0.6);
+      c.add(slot);
+      this.tweens.add({ targets: slot, alpha: 1, scale: 1, duration: 200, delay: 1000 + i * 130, ease: 'Back.out', onStart: () => SFX.ui(it.rar >= 3 ? 'equip_jewel' : 'chest_open') });
+      add(UI.fit(UI.text(this, x, iy + 42, UI.short(it.name, 6), 13, RARITY[it.rar].col, { stroke: '#3a2210', st: 3, bold: true }).setOrigin(0.5, 0), 86));
+    });
+    if (all.length > 8) add(ink(330 + 7 * 86 + 48, iy, '+' + (all.length - 8), 22, INK2, { bold: true }).setOrigin(0, 0.5));
+    // 레벨 업
+    if (ups.length) {
+      const t = add(UI.fit(ink(W / 2, iy + 82, tf('레벨 업!  Lv.{0} → Lv.{1}   (스킬 포인트 +{2})', lv0, s.lv, ups.length), 26, '#1d5c96', { bold: true }).setOrigin(0.5).setAlpha(0), 700));
+      this.time.delayedCall(1700, () => { SFX.jingle('jgl_level_up'); this.tweens.add({ targets: t, alpha: 1, y: iy + 76, duration: 300 }); this.fx('levelup_burst', this.hero.x, this.hero.y - 120, { s: 0.7, dur: 900, depth: 9500 }); });
+    }
   }
   // ---------------- 심연의 탑 결과 ----------------
   towerResult(win) {
@@ -2425,8 +2498,8 @@ class Game extends Phaser.Scene {
       this.loot.slice(0, Math.ceil(this.loot.length / 2)).forEach(it => s.bag.push(it));
       gainExp(s, Math.floor(this.expGain / 2));
       Save.write();
-      c.add(UI.text(this, W / 2, 190, `${n}층에서 쓰러졌다`, 64, '#ff9a8a', { serif: true, st: 10 }).setOrigin(0.5));
-      c.add(UI.text(this, W / 2, 290, `최고 기록 ${s.tower.best}층 · 얻은 것의 절반을 챙겼어요`, 26, '#e8dcc8').setOrigin(0.5));
+      c.add(UI.text(this, W / 2, 190, tf('{0}층에서 쓰러졌다', n), 64, '#ff9a8a', { serif: true, st: 10 }).setOrigin(0.5));
+      c.add(UI.text(this, W / 2, 290, tf('최고 기록 {0}층 · 얻은 것의 절반을 챙겼어요', s.tower.best), 26, '#e8dcc8').setOrigin(0.5));
       c.add(UI.button(this, W / 2 - 170, 450, '탑 입구로', () => this.scene.start('towergate'), { w: 280 }));
       c.add(UI.button(this, W / 2 + 170, 450, '지도로', () => this.scene.start('map'), { w: 280, col: 0x3a2a1a }));
       c.each(o => o.setScrollFactor && o.setScrollFactor(0));
@@ -2448,16 +2521,16 @@ class Game extends Phaser.Scene {
     if (record) s.tower.best = n;
     this.achieve(all, { win: true });
     Save.write();
-    c.add(UI.text(this, W / 2, 90, `${n}층 돌파!`, 64, '#d8b8ff', { serif: true, st: 10 }).setOrigin(0.5));
-    c.add(UI.text(this, W / 2, 160, record ? `새 기록! 최고 ${s.tower.best}층` : `최고 기록 ${s.tower.best}층`, 26, record ? '#ffe27a' : '#e8dcc8').setOrigin(0.5));
-    c.add(UI.text(this, W / 2, 210, `금화 +${gold}   경험치 +${exp}${rw > 1 ? `   (규칙 보상 ×${rw})` : ''}${ups.length ? `   레벨 업! Lv.${lv0}→${s.lv}` : ''}`, 22, '#fff').setOrigin(0.5));
+    c.add(UI.text(this, W / 2, 90, tf('{0}층 돌파!', n), 64, '#d8b8ff', { serif: true, st: 10 }).setOrigin(0.5));
+    c.add(UI.text(this, W / 2, 160, record ? tf('새 기록! 최고 {0}층', s.tower.best) : tf('최고 기록 {0}층', s.tower.best), 26, record ? '#ffe27a' : '#e8dcc8').setOrigin(0.5));
+    c.add(UI.text(this, W / 2, 210, tf('금화 +{0}   경험치 +{1}{2}{3}', gold, exp, rw > 1 ? tf('   (규칙 보상 ×{0})', rw) : '', ups.length ? tf('   레벨 업! Lv.{0}→{1}', lv0, s.lv) : ''), 22, '#fff').setOrigin(0.5));
     all.slice(0, 10).forEach((it, i) => {
       const slot = UI.itemSlot(this, W / 2 - (Math.min(10, all.length) - 1) * 48 + i * 96, 320, it, 84);
       c.add(slot);
-      c.add(UI.text(this, slot.x, 370, it.name.slice(0, 6), 14, RARITY[it.rar].col).setOrigin(0.5, 0));
+      c.add(UI.text(this, slot.x, 370, UI.short(it.name, 6), 14, RARITY[it.rar].col).setOrigin(0.5, 0));
     });
     const next = towerFloor(n + 1, this.cfg.seed || 7);
-    c.add(UI.text(this, W / 2, 440, `다음: ${next.name}${next.rule ? '  ·  ' + next.rule.ko : ''}`, 22, '#d8c8ff').setOrigin(0.5));
+    c.add(UI.text(this, W / 2, 440, tf('다음: {0}{1}', next.name, next.rule ? '  ·  ' + next.rule.ko : ''), 22, '#d8c8ff').setOrigin(0.5));
     c.add(UI.text(this, W / 2, 476, '체력은 이어지고, 층을 오를 때마다 25% 회복해요', 17, '#c8b8a0').setOrigin(0.5));
     const hp = Math.min(this.hero.maxHp, this.hero.hp + this.hero.maxHp * (s.eq && Object.values(s.eq).filter(id => (itemById(s, id) || {}).set === '순례자의 증표').length >= 2 ? 0.35 : 0.25));
     const up = () => { SFX.music(null, { fade: 0.3 }); this.scene.restart({ stage: 'tower', ch: next.chScale, node: 'tower', def: next, hp, seed: this.cfg.seed }); };
@@ -2495,7 +2568,7 @@ class Game extends Phaser.Scene {
         s.stats.daily = (s.stats.daily || 0) + 1;
         reward.push(makeItem(s, { cls: s.hero, slot: slot(), tier: Math.min(3, Math.floor((s.ch - 1) / 2) + ((s.diff ?? 1) >= 2 ? 1 : 0)), rar: 3 }));
         const g = 250 * s.ch; s.gold += g; s.mats.mid += 2;
-        sub = `오늘의 보상: 금화 +${g}, 영웅 장비, 중급 마석 2 · 연속 ${streak}일`;
+        sub = tf('오늘의 보상: 금화 +{0}, 영웅 장비, 중급 마석 2 · 연속 {1}일', g, streak);
       } else sub = '오늘 보상은 이미 받았어요. 내일 새 도전이 열려요';
     } else {
       const wk = weekKey(), t = Math.round(this.now);
@@ -2504,13 +2577,13 @@ class Game extends Phaser.Scene {
       if (rec) s.rush.best = t;
       s.stats.rush = (s.stats.rush || 0) + 1;
       if (!s.stats.rushBest || t < s.stats.rushBest) s.stats.rushBest = t;
-      title = `보스 러시 완주! ${fmtTime(t)}`;
+      title = tf('보스 러시 완주! {0}', fmtTime(t));
       if (!s.rush.rewarded) {
         s.rush.rewarded = true;
         reward.push(makeItem(s, { cls: s.hero, slot: slot(), tier: Math.min(3, Math.floor((s.ch - 1) / 2) + 1), rar: 4 }));
         s.mats.abyss += 2;
-        sub = `이번 주 첫 완주 보상: 전설 장비, 심연 마석 2${rec ? ' · 이번 주 최고 기록!' : ''}`;
-      } else sub = rec ? `이번 주 최고 기록 갱신! (${fmtTime(s.rush.best)})` : `이번 주 최고 기록 ${fmtTime(s.rush.best)}`;
+        sub = tf('이번 주 첫 완주 보상: 전설 장비, 심연 마석 2{0}', rec ? ' · 이번 주 최고 기록!' : '');
+      } else sub = rec ? tf('이번 주 최고 기록 갱신! ({0})', fmtTime(s.rush.best)) : tf('이번 주 최고 기록 {0}', fmtTime(s.rush.best));
     }
     for (const it of reward) s.bag = s.bag.filter(b => b !== it);
     [...this.loot, ...reward].forEach(it => s.bag.push(it));
@@ -2518,7 +2591,7 @@ class Game extends Phaser.Scene {
     Save.write();
     c.add(UI.text(this, W / 2, 120, title, 56, '#ffe27a', { serif: true, st: 10 }).setOrigin(0.5));
     c.add(UI.text(this, W / 2, 200, sub, 22, '#f4e4c0', { align: 'center', wrap: 1000 }).setOrigin(0.5));
-    [...reward, ...this.loot].slice(0, 8).forEach((it, i, arr) => { const sl = UI.itemSlot(this, W / 2 - (arr.length - 1) * 48 + i * 96, 320, it, 84); c.add(sl); c.add(UI.text(this, sl.x, 370, it.name.slice(0, 6), 14, RARITY[it.rar].col).setOrigin(0.5, 0)); });
+    [...reward, ...this.loot].slice(0, 8).forEach((it, i, arr) => { const sl = UI.itemSlot(this, W / 2 - (arr.length - 1) * 48 + i * 96, 320, it, 84); c.add(sl); c.add(UI.text(this, sl.x, 370, UI.short(it.name, 6), 14, RARITY[it.rar].col).setOrigin(0.5, 0)); });
     c.add(UI.button(this, W / 2 - 170, 520, '다시 하기', () => this.scene.restart(this.cfg), { w: 260, col: 0x3a2a1a }));
     c.add(UI.button(this, W / 2 + 170, 520, '돌아가기 ▶', () => this.scene.start('towergate'), { w: 280 }));
     done();
@@ -2528,8 +2601,9 @@ class Game extends Phaser.Scene {
     const s = this.save;
     Codex.items(s, items || []);
     const got = Codex.stage(s, info.grade, { ...info, combo: this.maxCombo, gold: this.gold, noDmg: info.win && this.dmgTaken < 1, ally: !!this.ally, comboBonus: !!this.allyBonus });
+    if (info.scroll) { this.resultAch = got; return; }   // ✏️ 2026-11-26 결과 두루마리 안에 한 줄로 (알림이 버튼을 가리던 문제)
     got.forEach((a, i) => this.time.delayedCall(1200 + i * 1400, () => {
-      const t = UI.toast(this, `업적 달성! 「${a.ko}」  금화 +${a.gold}`, '#ffe27a', 680);
+      const t = UI.toast(this, tf('업적 달성! 「{0}」  금화 +{1}', a.ko, a.gold), '#ffe27a', 680);
       t.setDepth(9999); SFX.jingle('jgl_rank_s');
     }));
   }
@@ -2544,7 +2618,7 @@ class Game extends Phaser.Scene {
     const t2 = UI.text(this, 0, 34, '모든 기술은 일시 정지 → 조작법', 15, '#c8b8a0').setOrigin(0.5);
     const g = this.add.graphics();
     g.fillStyle(0x1a0f08, 0.88).fillRoundedRect(-t.width / 2 - 24, -28, t.width + 48, 80, 14).lineStyle(3, 0x9ae0ff).strokeRoundedRect(-t.width / 2 - 24, -28, t.width + 48, 80, 14);
-    c.add([g, t, t2, UI.text(this, -t.width / 2 - 14, -26, DB.heroes[s.hero].name + ' 비법', 13, '#9ae0ff').setOrigin(0, 1)]);
+    c.add([g, t, t2, UI.text(this, -t.width / 2 - 14, -26, tf('{0} 비법', DB.heroes[s.hero].name), 13, '#9ae0ff').setOrigin(0, 1)]);
     c.setAlpha(0); this.tweens.add({ targets: c, alpha: 1, y: 195, duration: 250 });
     T.ui = c; T.show = 7000;
   }

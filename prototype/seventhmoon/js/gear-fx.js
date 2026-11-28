@@ -293,7 +293,7 @@ const GearFx = {
     if (c.has('moonShield') && !g.moonShieldUsed && h.hp > 0 && h.hp < h.maxHp * 0.4) {
       g.moonShieldUsed = true;
       const v = Math.round(h.maxHp * 0.25); h.hp = Math.min(h.maxHp, h.hp + v);
-      sc.floatText(h.x, h.y - 290, '백월의 가호 +' + v, '#fff3a0', 30);
+      sc.floatText(h.x, h.y - 290, tf('백월의 가호 +{0}', v), '#fff3a0', 30);
       sc.fx('holy_ring', h.x, h.y, { s: 0.6, dur: 700, depth: h.y - 1, flat: true, tint: 0xfff0a0 });
     }
   },

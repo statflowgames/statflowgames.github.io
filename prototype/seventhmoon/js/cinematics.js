@@ -96,7 +96,7 @@ const Cinema = {
     const glint = sc.add.graphics().setVisible(false);
     const tx = art ? 900 : 820;
     const t1 = sc.add.text(tx, 330, aw, { fontFamily: 'serif', fontSize: 80, color: sig.css, stroke: sig.edge, strokeThickness: 11 }).setOrigin(0.5).setAlpha(0).setScale(2.4);
-    const t2 = sc.add.text(tx, 410, `${DB.heroes[key].name} · 각성기`, { fontFamily: 'sans-serif', fontSize: 26, color: '#fff', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5).setAlpha(0);
+    const t2 = sc.add.text(tx, 410, tf('{0} · 각성기', DB.heroes[key].name), { fontFamily: 'sans-serif', fontSize: 26, color: '#fff', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5).setAlpha(0);
     const flash = sc.add.rectangle(0, 0, W, H, 0xffffff, 0).setOrigin(0);
     c.add([dim, bandC, face, glint, t1, t2, flash]);
     sc.tweens.add({ targets: dim, fillAlpha: 0.5, duration: S(110) });
@@ -158,7 +158,7 @@ const Cinema = {
     cg.fillStyle(0x000000, 0.72).fillPoints([{ x: 0, y: 432 }, { x: 720, y: 432 }, { x: 660, y: 606 }, { x: 0, y: 606 }], true);
     cg.fillStyle(col, 1).fillRect(0, 428, 720, 5);
     card.add(cg);
-    const label = sc.add.text(80, 446, d.mid ? '중간 보스' : kind === 'void_shadow' ? '숨은 보스' : `${sc.ch}장 보스`, { fontFamily: 'sans-serif', fontSize: 22, color: colCss });
+    const label = sc.add.text(80, 446, d.mid ? '중간 보스' : kind === 'void_shadow' ? '숨은 보스' : tf('{0}장 보스', sc.ch), { fontFamily: 'sans-serif', fontSize: 22, color: colCss });
     const name = sc.add.text(80, 508, d.ko, { fontFamily: 'serif', fontSize: 58, color: '#f6ffd8', stroke: '#1d0a2a', strokeThickness: 9 }).setOrigin(0, 0.5);
     const epi = sc.add.text(84, 550, BOSS_EPITHET[kind] || '', { fontFamily: 'sans-serif', fontSize: 22, color: '#e8dcff', stroke: '#000', strokeThickness: 4 });
     card.add([label, name, epi]);

@@ -67,21 +67,21 @@ const ACHIEVEMENTS = (() => {
   const A = [];
   const add = (id, ko, desc, check, gold = 100) => A.push({ id, ko, desc, check, gold });
   const st = s => s.stats;
-  [[100, '첫 사냥'], [500, '몬스터 사냥꾼'], [1000, '천 번의 승리']].forEach(([n, ko], i) => add('kill' + n, ko, `몬스터 ${n}마리 처치`, s => st(s).kills >= n, 100 * (i + 1)));
-  const josa = (w, a, b) => { const c = w.charCodeAt(w.length - 1); return w + ((c - 0xac00) % 28 && c >= 0xac00 ? a : b); };
-  BOSS_IDS.forEach(id => add('boss_' + id, MONDEF[id].ko + ' 격파', `${josa(MONDEF[id].ko, '을', '를')} 쓰러뜨렸다`, s => (st(s).bossKills[id] || 0) > 0, id === 'void_shadow' || id === 'azmal' ? 500 : 200));
-  CHAPTERS.forEach(c => add('ch' + c.n, `${c.n}장 돌파`, `「${c.name}」의 보스를 쓰러뜨렸다`, s => s.ch > c.n || (s.cleared['c' + c.n] || []).includes('boss'), 150));
-  [['end_seal', '봉인 엔딩'], ['end_true', '진 엔딩'], ['end_dark', '다크 엔딩'], ['end_sacrifice', '희생 엔딩']].forEach(([k, ko]) => add(k, ko, `${ko}을 보았다`, s => !!s.endings[k], 300));
+  [[100, '첫 사냥'], [500, '몬스터 사냥꾼'], [1000, '천 번의 승리']].forEach(([n, ko], i) => add('kill' + n, ko, tf('몬스터 {0}마리 처치', n), s => st(s).kills >= n, 100 * (i + 1)));
+  const josa = (w, a, b) => { if (I18N.on) return w; const c = w.charCodeAt(w.length - 1); return w + ((c - 0xac00) % 28 && c >= 0xac00 ? a : b); };
+  BOSS_IDS.forEach(id => add('boss_' + id, tf('{0} 격파', MONDEF[id].ko), tf('{0} 쓰러뜨렸다', josa(MONDEF[id].ko, '을', '를')), s => (st(s).bossKills[id] || 0) > 0, id === 'void_shadow' || id === 'azmal' ? 500 : 200));
+  CHAPTERS.forEach(c => add('ch' + c.n, tf('{0}장 돌파', c.n), tf('「{0}」의 보스를 쓰러뜨렸다', c.name), s => s.ch > c.n || (s.cleared['c' + c.n] || []).includes('boss'), 150));
+  [['end_seal', '봉인 엔딩'], ['end_true', '진 엔딩'], ['end_dark', '다크 엔딩'], ['end_sacrifice', '희생 엔딩']].forEach(([k, ko]) => add(k, ko, tf('{0}을 보았다', ko), s => !!s.endings[k], 300));
   add('moon1', '첫 월석', '월석을 처음 모았다', s => Object.keys(s.moons).length >= 1, 100);
   add('moon6', '여섯 달의 빛', '월석 6개를 모두 모았다', s => Object.keys(s.moons).length >= 6, 500);
-  [10, 20, 30].forEach(n => add('lv' + n, `Lv.${n}`, `레벨 ${n} 달성`, s => s.lv >= n, n * 15));
-  HERO_KEYS.forEach(k => add('cls_' + k, `${DB.heroes[k].name}의 길`, `${DB.heroes[k].name}${(() => { const n = DB.heroes[k].name, c = n.charCodeAt(n.length - 1), j = (c - 0xac00) % 28; return j && j !== 8 ? '으로' : '로'; })()} 스테이지를 깼다`, s => (st(s).classClear[k] || 0) > 0, 150));
-  [10, 20, 30].forEach(n => add('tower' + n, `탑 ${n}층`, `심연의 탑 ${n}층 돌파`, s => (s.tower && s.tower.best || 0) >= n, n * 20));
-  [[1, '오늘도 모험'], [7, '일주일 개근']].forEach(([n, ko]) => add('daily' + n, ko, `오늘의 도전 ${n}번 성공`, s => (st(s).daily || 0) >= n, n === 1 ? 100 : 400));
+  [10, 20, 30].forEach(n => add('lv' + n, `Lv.${n}`, tf('레벨 {0} 달성', n), s => s.lv >= n, n * 15));
+  HERO_KEYS.forEach(k => add('cls_' + k, tf('{0}의 길', DB.heroes[k].name), tf('{0} 스테이지를 깼다', I18N.on ? DB.heroes[k].name : DB.heroes[k].name + (() => { const n = DB.heroes[k].name, c = n.charCodeAt(n.length - 1), j = (c - 0xac00) % 28; return j && j !== 8 ? '으로' : '로'; })()), s => (st(s).classClear[k] || 0) > 0, 150));
+  [10, 20, 30].forEach(n => add('tower' + n, tf('탑 {0}층', n), tf('심연의 탑 {0}층 돌파', n), s => (s.tower && s.tower.best || 0) >= n, n * 20));
+  [[1, '오늘도 모험'], [7, '일주일 개근']].forEach(([n, ko]) => add('daily' + n, ko, tf('오늘의 도전 {0}번 성공', n), s => (st(s).daily || 0) >= n, n === 1 ? 100 : 400));
   add('rush1', '보스 러시 완주', '주간 보스 러시를 끝까지 깼다', s => (st(s).rush || 0) >= 1, 300);
   add('rush5m', '번개 같은 손', '보스 러시를 5분 안에 깼다', s => st(s).rushBest && st(s).rushBest < 300000, 500);
-  [30, 60].forEach(n => add('combo' + n, `${n} 콤보`, `한 번에 ${n}콤보 달성`, s => st(s).maxCombo >= n, n * 5));
-  [[1, 'S 등급'], [10, 'S 등급 열 번']].forEach(([n, ko]) => add('S' + n, ko, `스테이지 S 등급 ${n}번`, s => st(s).S >= n, n === 1 ? 100 : 400));
+  [30, 60].forEach(n => add('combo' + n, tf('{0} 콤보', n), tf('한 번에 {0}콤보 달성', n), s => st(s).maxCombo >= n, n * 5));
+  [[1, 'S 등급'], [10, 'S 등급 열 번']].forEach(([n, ko]) => add('S' + n, ko, tf('스테이지 S 등급 {0}번', n), s => st(s).S >= n, n === 1 ? 100 : 400));
   add('nodmg', '스치지도 못했다', '피해를 받지 않고 스테이지를 깼다', s => st(s).noDmg >= 1, 300);
   add('legend1', '전설의 시작', '전설 장비를 처음 얻었다', s => st(s).legend >= 1, 200);
   add('set1', '맞춤 장비', '세트 장비를 처음 얻었다', s => st(s).set >= 1, 200);
@@ -109,7 +109,7 @@ class CodexMenu extends MenuBase {
   draw() {
     const s = Save.data;
     this.frame('도감 · 업적');
-    const tabs = [['mon', '몬스터'], ['item', '장비'], ['ach', `업적 ${Codex.progress(s)}/${ACHIEVEMENTS.length}`]];
+    const tabs = [['mon', '몬스터'], ['item', '장비'], ['ach', tf('업적 {0}/{1}', Codex.progress(s), ACHIEVEMENTS.length)]];
     tabs.forEach(([k, ko], i) => UI.tab(this, 460 + i * 190, 66, ko, this.tab === k, () => { this.tab = k; this.page = 0; this.draw(); }, { w: 180 }));
     if (this.tab === 'mon') this.drawMon(s);
     else if (this.tab === 'item') this.drawItems(s);
@@ -118,7 +118,7 @@ class CodexMenu extends MenuBase {
   drawMon(s) {
     const list = [...MON_IDS, ...BOSS_IDS];
     const seen = list.filter(id => s.codex.mon[id]).length;
-    UI.text(this, 70, 100, `만난 몬스터 ${seen}/${list.length}`, 20, '#d8c8ff');
+    UI.text(this, 70, 100, tf('만난 몬스터 {0}/{1}', seen, list.length), 20, '#d8c8ff');
     // ✏️ 2026-11-26 2부 몬스터가 늘어 8줄이 화면 아래로 넘쳤다 → 한 쪽에 4줄(40마리)씩 넘겨 보기
     const per = 40, pages = Math.ceil(list.length / per);
     this.page = Math.min(this.page || 0, pages - 1);
@@ -150,7 +150,7 @@ class CodexMenu extends MenuBase {
     }
     DB.accessory.legend.forEach(l => names.push({ name: l.name, rar: 4, icon: { cls: 'acc', kind: l.kind, rar: 4, name: l.name, tier: 0 } }));
     const found = names.filter(n => s.codex.items[n.name] !== undefined).length;
-    UI.text(this, 70, 100, `찾은 장비 ${found}/${names.length} · 전설 ${names.filter(n => n.rar === 4 && s.codex.items[n.name] !== undefined).length}/${names.filter(n => n.rar === 4).length}`, 20, '#d8c8ff');
+    UI.text(this, 70, 100, tf('찾은 장비 {0}/{1} · 전설 {2}/{3}', found, names.length, names.filter(n => n.rar === 4 && s.codex.items[n.name] !== undefined).length, names.filter(n => n.rar === 4).length), 20, '#d8c8ff');
     const per = 40, pages = Math.ceil(names.length / per);
     this.page = Math.min(this.page, pages - 1);
     names.slice(this.page * per, this.page * per + per).forEach((n, i) => {
@@ -158,7 +158,7 @@ class CodexMenu extends MenuBase {
       const got = s.codex.items[n.name] !== undefined;
       const c = UI.itemSlot(this, x, y, n.icon, 80);
       if (!got) c.each(o => o.setTint && o.setTint(0x101010));
-      UI.text(this, x, y + 44, got ? n.name.slice(0, 7) : '???', 12, got ? RARITY[n.rar].col : '#5a4a38').setOrigin(0.5, 0);
+      UI.text(this, x, y + 44, got ? (s => s.length > 9 ? s.slice(0, 8) + '…' : s)(tr(n.name)) : '???', 12, got ? RARITY[n.rar].col : '#5a4a38').setOrigin(0.5, 0);
     });
     UI.button(this, 540, 660, '◀', () => { this.page = (this.page + pages - 1) % pages; this.draw(); }, { w: 70, h: 44, size: 22, col: 0x3a2a1a });
     UI.text(this, 640, 660, `${this.page + 1}/${pages}`, 20, '#fff').setOrigin(0.5);
@@ -171,9 +171,10 @@ class CodexMenu extends MenuBase {
       const x = 70 + (i % 2) * 575, y = 120 + Math.floor(i / 2) * 84;
       const got = !!s.ach[a.id];
       UI.panel(this, x, y, 560, 72, { alpha: 0.7, line: got ? 0xffd34d : 0x5a4a38, inner: false, r: 10 });
-      UI.text(this, x + 16, y + 10, (got ? '★ ' : '☆ ') + a.ko, 21, got ? '#ffe27a' : '#a89a88', { bold: true });
-      UI.text(this, x + 16, y + 40, a.desc, 16, got ? '#f4e4c0' : '#8a7a68');
-      UI.text(this, x + 544, y + 14, `금화 ${a.gold}`, 15, got ? '#9ae07a' : '#c8a060').setOrigin(1, 0);
+      // ✏️ 2026-11-28 다국어: 금화 글자 폭만큼 이름을 줄인다
+      const gt = UI.text(this, x + 544, y + 14, tf('금화 {0}', a.gold), 15, got ? '#9ae07a' : '#c8a060').setOrigin(1, 0);
+      UI.fit(UI.text(this, x + 16, y + 10, (got ? '★ ' : '☆ ') + a.ko, 21, got ? '#ffe27a' : '#a89a88', { bold: true }), 528 - 16 - gt.width - 10, 0.45);
+      UI.fit(UI.text(this, x + 16, y + 40, a.desc, 16, got ? '#f4e4c0' : '#8a7a68'), 528, 0.45);
     });
     UI.button(this, 540, 660, '◀', () => { this.page = (this.page + pages - 1) % pages; this.draw(); }, { w: 70, h: 44, size: 22, col: 0x3a2a1a });
     UI.text(this, 640, 660, `${this.page + 1}/${pages}`, 20, '#fff').setOrigin(0.5);

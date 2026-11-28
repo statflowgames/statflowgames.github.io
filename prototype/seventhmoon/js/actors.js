@@ -690,7 +690,7 @@ class Monster extends Actor {
     this.def = { ...base, dmg: Math.round(base.dmg * k.dmg) };
     this.dmgK = this.def.dmg / MONDEF[base.rig].dmg;
     if (scene.speedMul && scene.speedMul !== 1) this.def.speed = base.speed * scene.speedMul;
-    if (scene.tower && base.boss) { this.def.ko = '강화 ' + base.ko; }
+    if (scene.tower && base.boss) { this.def.ko = tf('강화 {0}', base.ko); }
     this.maxHp = Math.round(base.hp * (base.boss ? Math.sqrt(k.hp) : k.hp)); this.hp = this.maxHp;
     // 🆕 일반 몬스터 강화 (장별 MOB_TUNE): 체력·공격력
     if (!base.boss && typeof MOB_TUNE !== 'undefined' && !scene.tower && !(typeof Q !== 'undefined' && Q.has('oldmob'))) {

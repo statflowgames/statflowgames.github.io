@@ -246,14 +246,14 @@ function skillNumbers(name) {
   const f = SKILL_FX[name] || SKILL_NUM_EXTRA[name]; if (!f) return '';
   const cd = (typeof SKILL_CD !== 'undefined' && SKILL_CD[name]) || f.cd;
   const out = [];
-  if (cd) out.push(`재사용 ${+(cd / 1000).toFixed(1)}초`);
-  if (f.dmg) out.push(`피해 ${f.dmg}${f.pulses ? ` × ${f.pulses}` : f.burst ? ` × ${f.burst}발` : f.t === 'line' ? ' (줄마다)' : ''}${f.back ? ` (등 뒤 ×${f.back})` : ''}${f.extra ? ' ' + f.extra : ''}`);
-  if (f.strike) out.push(`${(f.tick / 1000).toFixed(1)}초마다 피해 ${f.strike}`);
-  if (f.t === 'zone' && f.ms) out.push(`${f.ms / 1000}초 지속`);
-  if (f.t === 'shield') out.push(f.red >= 1 ? `${f.ms / 1000}초 무적` : `받는 피해 -${Math.round(f.red * 100)}% ${f.ms / 1000}초`);
-  if (f.t === 'heal') out.push(`체력 ${Math.round(f.pct * 100)}% 회복`);
-  if (f.t === 'mark') out.push(`받는 피해 +${Math.round(f.val * 100)}% ${f.ms / 1000}초`);
-  if (f.hpCost) out.push(`체력 ${Math.round(f.hpCost * 100)}% 소모`);
+  if (cd) out.push(tf('재사용 {0}초', +(cd / 1000).toFixed(1)));
+  if (f.dmg) out.push(tf('피해 {0}{1}{2}{3}', f.dmg, f.pulses ? ` × ${f.pulses}` : f.burst ? tf(' × {0}발', f.burst) : f.t === 'line' ? ' (줄마다)' : '', f.back ? tf(' (등 뒤 ×{0})', f.back) : '', f.extra ? ' ' + f.extra : ''));
+  if (f.strike) out.push(tf('{0}초마다 피해 {1}', (f.tick / 1000).toFixed(1), f.strike));
+  if (f.t === 'zone' && f.ms) out.push(tf('{0}초 지속', f.ms / 1000));
+  if (f.t === 'shield') out.push(f.red >= 1 ? tf('{0}초 무적', f.ms / 1000) : tf('받는 피해 -{0}% {1}초', Math.round(f.red * 100), f.ms / 1000));
+  if (f.t === 'heal') out.push(tf('체력 {0}% 회복', Math.round(f.pct * 100)));
+  if (f.t === 'mark') out.push(tf('받는 피해 +{0}% {1}초', Math.round(f.val * 100), f.ms / 1000));
+  if (f.hpCost) out.push(tf('체력 {0}% 소모', Math.round(f.hpCost * 100)));
   if (f.txt) out.push(f.txt);
   return out.join(' · ');
 }

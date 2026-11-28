@@ -9,6 +9,12 @@ const UI = {
     });
   },
   oldUi() { return typeof Q !== 'undefined' && (Q.has('oldbtn') || Q.has('oldui')); },
+  // 🆕 2026-11-26 다국어: 글이 칸보다 길면 글자를 줄여 맞춘다 (최소 55%)
+  fit(t, maxW, min = 0.55) { if (t && t.width > maxW) t.setScale(Math.max(min, maxW / t.width)); return t; },
+  // 🆕 2026-11-26 짧게 자른 이름 (번역한 뒤에 자른다 — 한국어 n자, 다른 언어는 글자 수를 2배로 쳐서)
+  short(s, n) { const t = tr(s); const m = I18N.on ? n * 2 : n; return t.length > m ? t.slice(0, m - 1) + '…' : t; },
+  // 여러 줄 글이 높이를 넘으면 통째로 줄인다
+  fitBox(t, maxH, min = 0.6) { if (t && t.height > maxH) t.setScale(Math.max(min, maxH / t.height)); return t; },
   // ✏️ 2026-11-26 그림 창 (tools/import_ui_v2.py): 큰 창 = uiset/frame(나무판·금 모서리), 칸·카드·목록 줄 = uiset/inner(어두운 판)
   //   o.line이 강조 색(선택·등급 등)이면 안쪽에 그 색 테를 한 줄 더 그린다. 어두운 잠김 색이면 판을 어둡게. 아주 작은 칸은 예전 그리기
   panelSkin(w, h, o) {
@@ -73,6 +79,7 @@ const UI = {
       const ic = o.icon && sc.textures.exists(o.icon) ? sc.add.image(-w / 2 + h * 0.55, 0, o.icon) : null;
       if (ic) ic.setScale(h * 0.92 / ic.height);
       const t = UI.text(sc, ic ? h * 0.42 : 0, -1, label, o.size || 26, o.disabled ? '#a8a096' : (o.tcol || '#fff6e0'), { bold: true, align: 'center', st: Math.max(3, Math.round((o.size || 26) / 6)) }).setOrigin(0.5);
+      UI.fit(t, ic ? w - h * 0.95 - 14 : w - 18);
       c.add([shadow, bg, pr, hl, ic, t].filter(Boolean));
       c.setSize(w, h).setInteractive({ useHandCursor: !o.disabled });
       const draw = hov => { hl.setAlpha(hov && !o.disabled ? 0.22 : 0); };
@@ -95,6 +102,7 @@ const UI = {
     };
     draw(false);
     const t = UI.text(sc, 0, 0, label, o.size || 26, o.disabled ? '#9a8a78' : (o.tcol || '#fff4d8'), { bold: true, align: 'center' }).setOrigin(0.5);
+    UI.fit(t, w - 18);
     c.add([g, t]);
     c.setSize(w, h).setInteractive({ useHandCursor: !o.disabled });
     c.on('pointerover', () => draw(true));
@@ -111,7 +119,7 @@ const UI = {
     const c = sc.add.container(x, y), k = h / 56;
     const bg = sc.add.nineslice(0, 0, key, undefined, w / k, 56, 26, 26, 22, 22).setScale(k);
     const hl = sc.add.nineslice(0, 0, key, undefined, w / k, 56, 26, 26, 22, 22).setScale(k).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-    const t = UI.text(sc, 0, on ? -1 : 1, label, o.size || 19, on ? '#fff6e0' : '#d8c0a0', { bold: true, align: 'center', st: 4 }).setOrigin(0.5);
+    const t = UI.fit(UI.text(sc, 0, on ? -1 : 1, label, o.size || 19, on ? '#fff6e0' : '#d8c0a0', { bold: true, align: 'center', st: 4 }).setOrigin(0.5), w - 22, 0.38);   // ✏️ 2026-11-28 다국어: 더 줄일 수 있게
     c.add([bg, hl, t]).setSize(w, h).setInteractive({ useHandCursor: !on });
     c.on('pointerover', () => { if (!on) hl.setAlpha(0.18); });
     c.on('pointerout', () => hl.setAlpha(0));
@@ -126,7 +134,7 @@ const UI = {
     const c = sc.add.container(x, y);
     const sh = sc.add.ellipse(2, size * 0.46, size * 0.9, size * 0.2, 0x000000, 0.35);
     const im = sc.add.image(0, 0, icon); const s0 = size / im.height; im.setScale(s0);
-    const t = UI.text(sc, 0, size / 2 + 12, label, o.font || 18, '#ffe7a8', { bold: true, st: 4 }).setOrigin(0.5);
+    const t = UI.fit(UI.text(sc, 0, size / 2 + 12, label, o.font || 18, '#ffe7a8', { bold: true, st: 4 }).setOrigin(0.5), size + 18);
     c.add([sh, im, t]).setSize(size, size).setInteractive({ useHandCursor: true });
     c.on('pointerover', () => { im.setScale(s0 * 1.08); t.setColor('#ffffff'); });
     c.on('pointerout', () => { im.setScale(s0); t.setColor('#ffe7a8'); });
@@ -153,16 +161,17 @@ const UI = {
   saveNow(sc) {
     const ok = Save.write();
     const d = new Date(), hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-    UI.toast(sc, ok ? `저장했어요 · ${hm}` : '저장하지 못했어요 — 백업 코드를 복사해 두세요', ok ? '#a8f0a0' : '#ff9a8a');
+    UI.toast(sc, ok ? tf('저장했어요 · {0}', hm) : '저장하지 못했어요 — 백업 코드를 복사해 두세요', ok ? '#a8f0a0' : '#ff9a8a');
     return ok;
   },
   savedAgo(s) {
     if (!s || !s.savedAt) return '';
     const m = Math.floor((Date.now() - s.savedAt) / 60000);
-    return m < 1 ? '방금 저장' : m < 60 ? `${m}분 전 저장` : m < 1440 ? `${Math.floor(m / 60)}시간 전 저장` : `${Math.floor(m / 1440)}일 전 저장`;
+    return m < 1 ? '방금 저장' : m < 60 ? tf('{0}분 전 저장', m) : m < 1440 ? tf('{0}시간 전 저장', Math.floor(m / 60)) : tf('{0}일 전 저장', Math.floor(m / 1440));
   },
   toast(sc, msg, color = '#fff4d8', y = 120) {
     const t = UI.text(sc, W / 2, y, msg, 28, color, { bold: true, align: 'center', st: 6 }).setOrigin(0.5).setDepth(9900).setScrollFactor(0).setAlpha(0);
+    t.keep = true;   // 🆕 2026-11-28 메뉴를 다시 그려도(frame) 알림은 남긴다 — 분해·구매 뒤 알림이 바로 지워져 「아무것도 안 나온」 것처럼 보였다
     sc.tweens.add({ targets: t, alpha: 1, y: y - 20, duration: 250, hold: 1500, yoyo: true, onComplete: () => t.destroy() });
     return t;
   },
@@ -196,7 +205,7 @@ const UI = {
       const put = () => { const tn = UI.iconTint && UI.iconTint(it, key); const im = sc.add.image(0, 0, tn && typeof MoonW !== 'undefined' ? MoonW.lum(sc, key) : key); im.setScale((size - 12) / Math.max(im.width, im.height)); if (tn) im.setTint(tn); c.addAt(im, 1); };   // ✏️ 2026-11-25 달 무기 임시 아이콘 색
       if (sc.textures.exists(key)) put();
       else {
-        const ph = UI.text(sc, 0, 0, it.name.slice(0, 2), 22, RARITY[it.rar].col, { bold: true }).setOrigin(0.5); c.add(ph);
+        const ph = UI.text(sc, 0, 0, tr(it.name).slice(0, 2), 22, RARITY[it.rar].col, { bold: true }).setOrigin(0.5); c.add(ph);
         // ✏️ 2026-11-22 전투 결과 화면 등 아이콘을 들고 있지 않은 곳: 그때 불러와서 바꾼다
         if (typeof MAN !== 'undefined' && MAN[key] && typeof Assets !== 'undefined') Assets.ensure(sc, [key], () => { if (c.active && sc.textures.exists(key)) { ph.destroy(); put(); } });
       }
@@ -215,15 +224,16 @@ const UI = {
     const dy = Math.max(0, Math.round(nameT.height) - 36);   // ✏️ 긴 이름이 두 줄이 되면 아래를 민다
     const slotKo = it.cls === 'acc' ? (it.kind === 'ring' ? '반지' : '목걸이') : SLOT_KO[it.slot];
     const owner = it.boss ? '보스 장비' : it.cls === 'acc' ? '공용' : DB.heroes[it.cls].name;
-    out.push(UI.text(sc, x, y + 38 + dy, `${r.ko} ${slotKo} · ${owner} · T${it.tier + 1}`, w < 230 ? 16 : 18, '#c8b8a0', { wrap: w }));
-    let yy = y + 68 + dy;
-    if (it.base) { out.push(UI.text(sc, x, yy, `${it.slot === 'weapon' ? '공격력' : '방어력'} +${itemPower(it)}${it.slot === 'body' ? `  · 체력 +${itemPower(it) * 3}` : ''}`, w < 230 ? 19 : 21, '#fff', { wrap: w })); yy += out[out.length - 1].height > 34 ? Math.round(out[out.length - 1].height) + 6 : 32; }   // ✏️ 2026-11-26 좁으면 줄바꿈
+    const subT = UI.text(sc, x, y + 38 + dy, `${r.ko} ${slotKo} · ${owner} · T${it.tier + 1}`, w < 230 ? 16 : 18, '#c8b8a0', { wrap: w });
+    out.push(subT);
+    let yy = y + 38 + dy + Math.max(30, Math.round(subT.height) + 8);   // ✏️ 2026-11-26 다국어: 둘째 줄이 두 줄이 되면 아래를 민다
+    if (it.base) { out.push(UI.text(sc, x, yy, `${it.slot === 'weapon' ? '공격력' : '방어력'} +${itemPower(it)}${it.slot === 'body' ? tf('  · 체력 +{0}', itemPower(it) * 3) : ''}`, w < 230 ? 19 : 21, '#fff', { wrap: w })); yy += out[out.length - 1].height > 34 ? Math.round(out[out.length - 1].height) + 6 : 32; }   // ✏️ 2026-11-26 좁으면 줄바꿈
     for (const a of it.aff) { const t = UI.text(sc, x, yy, '· ' + affText(a), 19, '#9ae0ff', { wrap: w }); out.push(t); yy += Math.max(27, Math.round(t.height) + 4); }   // ✏️ 긴 옵션은 줄바꿈
     if (it.desc) { const t = UI.text(sc, x, yy, it.desc, 16, '#d8c8a8', { wrap: w }).setFontStyle('italic'); out.push(t); yy += Math.round(t.height) + 10; }   // 🆕 이야기 장비
     if (it.fx) { const t = UI.text(sc, x, yy, '★ ' + GearFx.desc(it), 19, it.boss ? '#ff9ad8' : '#ffb060', { wrap: w }); out.push(t); yy += Math.max(50, Math.round(t.height) + 10); }
     if (it.set) {
       const S = GearFx.setDesc(it.set, it.cls === 'acc' ? DB.accessory.sets.find(x => x.name === it.set) : DB.gear[it.cls].set);
-      out.push(UI.text(sc, x, yy, `세트 「${it.set}」\n2조각: ${S.two}${S.four ? '\n4조각: ' + S.four : ''}`, 17, '#5ae8d0', { wrap: w })); yy += 80;
+      out.push(UI.text(sc, x, yy, tf('세트 「{0}」\n2조각: {1}{2}', it.set, S.two, S.four ? tf('\n4조각: {0}', S.four) : ''), 17, '#5ae8d0', { wrap: w })); yy += 80;
     }
     return { objs: out, y: yy };
   },
@@ -243,8 +253,11 @@ const UI = {
     sc.tweens.add({ targets: ray, angle: 360, duration: 9000, repeat: -1 });
     const slot = add(UI.itemSlot(sc, cx, cy, it, 140));
     slot.setScale(0.3); sc.tweens.add({ targets: slot, scale: 1, duration: 380, ease: 'Back.out' });
-    for (const o of UI.itemDetail(sc, it, x0 + 240, y0 + 90, 390).objs) c.add(o);
-    add(UI.text(sc, W / 2, y0 + h - 96, '가방에 들어갔어요 — 캠프에서 장착할 수 있어요', 17, '#c8b8a0').setOrigin(0.5));
+    // ✏️ 2026-11-26 다국어: 설명이 길면 아래 안내·버튼에 닿지 않게 통째로 줄인다
+    const det = UI.itemDetail(sc, it, x0 + 240, y0 + 90, 390), dlim = y0 + h - 118;
+    if (det.y > dlim) { const k = (dlim - (y0 + 90)) / (det.y - (y0 + 90)); for (const o of det.objs) { o.setScale(k); o.y = y0 + 90 + (o.y - (y0 + 90)) * k; } }
+    for (const o of det.objs) c.add(o);
+    add(UI.fit(UI.text(sc, W / 2, y0 + h - 96, '가방에 들어갔어요 — 캠프에서 장착할 수 있어요', 17, '#c8b8a0').setOrigin(0.5), w - 60));
     let closed = false;
     const close = () => { if (closed) return; closed = true; c.destroy(); if (done) done(); };
     const btn = UI.button(sc, W / 2, y0 + h - 48, '확인', close, { w: 200, h: 56, size: 24 });
@@ -265,14 +278,14 @@ const UI = {
 function applyGive(g) {
   const s = Save.data, out = [];
   if (!s || !g) return out;
-  if (g.gold) { s.gold += g.gold; out.push(`금화 +${g.gold}`); }
-  if (g.exp) { const ups = gainExp(s, g.exp); out.push(`경험치 +${g.exp}`); if (ups.length) out.push(`레벨 업! Lv.${s.lv}`); }
-  if (g.moon && !s.moons[g.moon]) { s.moons[g.moon] = true; out.push(`${MOONS[g.moon].ko}의 월석을 얻었다!`); }
-  if (g.seed && typeof SEEDS !== 'undefined') { s.seeds = s.seeds || {}; if (!s.seeds[g.seed]) { s.seeds[g.seed] = true; out.push(`${SEEDS[g.seed].ko}를 정화했다!`); if (typeof SFX !== 'undefined' && SFX.jingle) SFX.jingle('jgl_seed'); } }
-  if (g.item) { const rar = { uncommon: 1, rare: 2, epic: 3, legend: 4 }[g.item] ?? 2; const it = makeItem(s, { cls: s.hero, slot: ['weapon', 'offhand', 'head', 'body'][Math.floor(Math.random() * 4)], tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar }); out.push(`${RARITY[rar].ko} 장비 「${it.name}」`); }
-  if (g.gear) { const it = makeStoryGear(s, g.gear); if (it) { out.push(`${RARITY[it.rar].ko} 장비 「${it.name}」`); out.items = [...(out.items || []), it]; } }   // ✏️ 2026-11-23 out.items → 획득 카드   // 🆕 이야기 고유 장비
+  if (g.gold) { s.gold += g.gold; out.push(tf('금화 +{0}', g.gold)); }
+  if (g.exp) { const ups = gainExp(s, g.exp); out.push(tf('경험치 +{0}', g.exp)); if (ups.length) out.push(tf('레벨 업! Lv.{0}', s.lv)); }
+  if (g.moon && !s.moons[g.moon]) { s.moons[g.moon] = true; out.push(tf('{0}의 월석을 얻었다!', MOONS[g.moon].ko)); }
+  if (g.seed && typeof SEEDS !== 'undefined') { s.seeds = s.seeds || {}; if (!s.seeds[g.seed]) { s.seeds[g.seed] = true; out.push(tf('{0}를 정화했다!', SEEDS[g.seed].ko)); if (typeof SFX !== 'undefined' && SFX.jingle) SFX.jingle('jgl_seed'); } }
+  if (g.item) { const rar = { uncommon: 1, rare: 2, epic: 3, legend: 4 }[g.item] ?? 2; const it = makeItem(s, { cls: s.hero, slot: ['weapon', 'offhand', 'head', 'body'][Math.floor(Math.random() * 4)], tier: Math.min(3, Math.floor((s.ch - 1) / 2)), rar }); out.push(tf('{0} 장비 「{1}」', RARITY[rar].ko, it.name)); }
+  if (g.gear) { const it = makeStoryGear(s, g.gear); if (it) { out.push(tf('{0} 장비 「{1}」', RARITY[it.rar].ko, it.name)); out.items = [...(out.items || []), it]; } }   // ✏️ 2026-11-23 out.items → 획득 카드   // 🆕 이야기 고유 장비
   if (g.mats) for (const [k, n] of Object.entries(g.mats)) { s.mats[k] = (s.mats[k] || 0) + n; out.push(`${MATS[k]} +${n}`); }
-  if (g.unlock && !s.unlocked[g.unlock]) { s.unlocked[g.unlock] = true; addGlobalUnlock(g.unlock); out.push(`새 직업 해금: ${DB.heroes[g.unlock].ko}`); }
+  if (g.unlock && !s.unlocked[g.unlock]) { s.unlocked[g.unlock] = true; addGlobalUnlock(g.unlock); out.push(tf('새 직업 해금: {0}', DB.heroes[g.unlock].ko), '동료로 데려가거나 새 게임에서 고를 수 있어요'); }   // ✏️ 2026-11-28 직업 고정
   if (g.flag) s.flags[g.flag] = true;
   if (g.lise) s.lise += g.lise;
   Save.write();
@@ -297,8 +310,8 @@ class Talk extends Phaser.Scene {
     this.nameBg = this.add.graphics(); box.add(this.nameBg);
     this.nameT = UI.text(this, 80, 498, '', 26, '#ffe7a8', { bold: true, st: 5 }); box.add(this.nameT);
     this.body = UI.text(this, 80, 552, '', 27, '#fff8ea', { wrap: W - 200, ls: 10, st: 3 }); box.add(this.body);
-    this.more = UI.text(this, W - 80, 676, '▼', 22, '#ffd34d').setOrigin(1, 0.5); box.add(this.more);
-    this.tweens.add({ targets: this.more, y: 684, yoyo: true, repeat: -1, duration: 400 });
+    this.more = UI.text(this, W - 84, 668, '▼', 22, '#ffd34d').setOrigin(1, 0.5); box.add(this.more);   // ✏️ 2026-11-28 그림 창 테두리 안쪽으로
+    this.tweens.add({ targets: this.more, y: 674, yoyo: true, repeat: -1, duration: 400 });
     this.skipB = UI.button(this, W - 90, 40, '건너뛰기', () => this.finish(true), { w: 150, h: 46, size: 20, col: 0x3a2a1a }).setDepth(20);
     this.box = box;
     this.choiceUi = null;
@@ -378,7 +391,7 @@ class Talk extends Phaser.Scene {
     if (L.shake) this.cameras.main.shake(260 + L.shake * 120, 0.004 * L.shake);
     if (L.flash) { const c = { white: [255, 255, 255], gold: [255, 220, 140], violet: [170, 90, 255], red: [255, 60, 40], black: [0, 0, 0] }[L.flash] || [255, 255, 255]; this.cameras.main.flash(L.flash === 'black' ? 700 : 450, ...c); }
     if (L.cam && this.bg) this.kenBurns(this.bg, L.cam);
-    this.full = (L.by && L.by[hk]) || L.t; this.body.setText(''); this.typing = true; this.ci = 0;
+    this.full = tr((L.by && L.by[hk]) || L.t); this.body.setText('');   // ✏️ 2026-11-26 다국어: 번역한 줄을 한 글자씩 (한국어 조각이 보이지 않게) this.typing = true; this.ci = 0;
     if (this.typeEv) this.typeEv.remove();
     this.typeEv = this.time.addEvent({ delay: 28, loop: true, callback: () => {
       if (!this.typing) { this.typeEv.remove(); return; }

@@ -67,7 +67,7 @@ const MoonW = {
     const R = this.ready(s, cls);
     if (!R.ok) return null;
     const mats = this.ORDER.map(m => R.by[m]);
-    for (const it of mats) { for (const k of Object.keys(s.eq)) if (s.eq[k] === it.id) s.eq[k] = null; }
+    for (const it of mats) for (const e of [s.eq, ...Object.values(s.eqBy || {})]) for (const k of Object.keys(e || {})) if (e[k] === it.id) e[k] = null;   // ✏️ 2026-11-28 다른 직업이 낀 것도 풀기
     s.bag = s.bag.filter(x => !mats.includes(x));
     const it = makeItem(s, { cls, slot: 'weapon', tier: 3, rar: 4 });
     it.rar = 6; it.mythic = true; it.plus = 10; delete it.legendOf; this.text(it);
@@ -80,7 +80,7 @@ const MoonW = {
   text(it) {
     if (it.moon) {
       const M = this.INFO[it.moon];
-      it.name = `${M.ko}의 ${this.NOUN[it.cls]}`; it.fx = M.fx;
+      it.name = tf('{0}의 {1}', M.ko, this.NOUN[it.cls]); it.fx = M.fx;
       it.desc = '여섯 자루를 모두 +10까지 키우면 「달의 무기」로.';
     } else if (it.mythic) {
       it.name = this.MYTH[it.cls].name;
@@ -93,8 +93,8 @@ const MoonW = {
   stageFx(cls, st) {
     return [
       '공격 4번마다 여섯 달이 차례로 터진다 (적월→황월→백월→청월→은월→녹월)',
-      st >= 2 ? '공격 8번마다 커다란 달빛 초승달을 날린다' : `2단계: 달의 무기로 보스 ${this.STAGE2_BOSS}마리를 쓰러뜨리면`,
-      st >= 3 ? `각성하면 12초간 「${this.MYTH[cls].skill}」 — 공격 2번마다 달이 터진다` : '3단계: 숨은 최종 보스 「깨어난 일곱 번째 달」을 쓰러뜨리면',
+      st >= 2 ? '공격 8번마다 커다란 달빛 초승달을 날린다' : tf('2단계: 달의 무기로 보스 {0}마리를 쓰러뜨리면', this.STAGE2_BOSS),
+      st >= 3 ? tf('각성하면 12초간 「{0}」 — 공격 2번마다 달이 터진다', this.MYTH[cls].skill) : '3단계: 숨은 최종 보스 「깨어난 일곱 번째 달」을 쓰러뜨리면',
     ];
   },
 
@@ -154,7 +154,7 @@ const MoonW = {
     M.boss = (M.boss || 0) + 1;
     if (M.stage < 2 && M.boss >= this.STAGE2_BOSS) {
       M.stage = 2; Save.write();
-      sc.time.delayedCall(800, () => sc.banner('달의 무기가 깨어난다', '#dfe8ff', `${this.stageKo(2)} — 공격 8번마다 커다란 달빛 초승달`));
+      sc.time.delayedCall(800, () => sc.banner('달의 무기가 깨어난다', '#dfe8ff', tf('{0} — 공격 8번마다 커다란 달빛 초승달', this.stageKo(2))));
     }
   },
   onAwaken(sc) {
@@ -184,7 +184,7 @@ const MoonW = {
     m.maxHp = Math.round(m.maxHp * 1.3 * (sc.def.trialHp || 1)); m.hp = m.maxHp;
     for (const b of m.rig.bones) b.baseTint = mulTint(b.baseTint, M.col);
     m.rig.setTintAll(null);
-    sc.time.delayedCall(900, () => sc.banner(`${M.ko}의 빛을 두른 ${m.def.ko}`, M.css, '달빛으로 강해졌다 — 체력 +30%'));
+    sc.time.delayedCall(900, () => sc.banner(tf('{0}의 빛을 두른 {1}', M.ko, m.def.ko), M.css, '달빛으로 강해졌다 — 체력 +30%'));
   },
   // 결과 화면: 시련을 처음 깼을 때 보상
   trialReward(sc, s, reward) {
@@ -195,7 +195,7 @@ const MoonW = {
     const it = this.make(s, s.hero, moon);
     s.bag = s.bag.filter(b => b !== it); reward.push(it);
     sc.time.delayedCall(1800, () => UI.itemCard(sc, it, () => {}, '여섯 달 무기를 얻었다!'));
-    return `★ ${it.name} 획득!  (여섯 달 무기 ${Object.keys(G).length}/6)`;
+    return tf('★ {0} 획득!  (여섯 달 무기 {1}/6)', it.name, Object.keys(G).length);
   },
   // ✏️ 2026-11-25 임시 그림: 전설 그림을 흑백(밝게)으로 바꾼 사본에 달 색을 입힌다 — 원래 색이 강한 무기(불꽃 칼 등)도 달 색이 또렷하게
   lum(sc, key) {
@@ -227,11 +227,11 @@ const MoonW = {
     const s = Save.data, moon = this.CH[ch];
     if (id === 'moon' && moon) {
       const M = this.INFO[moon], got = this.got(s, s.hero)[moon];
-      return `   · 정예↑ · 적 체력 +25% · 피해 +20% · 하트 없음\n처음 깨면 「${M.ko}의 ${this.NOUN[s.hero]}」 (${DB.heroes[s.hero].name}) — ${got ? '✓ 이미 얻었어요' : '주인공마다 한 번'}`;
+      return tf('   · 정예↑ · 적 체력 +25% · 피해 +20% · 하트 없음\n처음 깨면 「{0}의 {1}」 ({2}) — {3}', M.ko, this.NOUN[s.hero], DB.heroes[s.hero].name, got ? '✓ 이미 얻었어요' : '주인공마다 한 번');
     }
     if (id === 'beyond') {
       const end2 = this.part2Done(s), my = this.heldMythic(s);
-      return `\n숨은 최종 보스 · 조건: 2부 엔딩 ${end2 ? '✓' : '✗'} · 지금 주인공이 달의 무기를 장착 ${my ? '✓' : '✗'}`;
+      return tf('\n숨은 최종 보스 · 조건: 2부 엔딩 {0} · 지금 주인공이 달의 무기를 장착 {1}', end2 ? '✓' : '✗', my ? '✓' : '✗');
     }
     return '';
   },
@@ -247,7 +247,7 @@ const MoonW = {
       L.add(ring);
       if (open) scn.tweens.add({ targets: ring, scale: 1.25, alpha: 0.3, yoyo: true, repeat: -1, duration: 900 });
       const got = id === 'moon' && this.got(s, s.hero)[moon];
-      L.add(UI.text(scn, x, y - 52, id === 'moon' ? `달의 시련 · ${this.INFO[moon].ko}${got ? ' ✓' : ''}` : '달 너머', 17, open ? css : '#7a7088', { bold: true, st: 5 }).setOrigin(0.5));
+      L.add(UI.text(scn, x, y - 52, id === 'moon' ? tf('달의 시련 · {0}{1}', this.INFO[moon].ko, got ? ' ✓' : '') : '달 너머', 17, open ? css : '#7a7088', { bold: true, st: 5 }).setOrigin(0.5));
     }
   },
   // 숨은 최종 보스를 쓰러뜨린 뒤
@@ -260,7 +260,7 @@ const MoonW = {
     Save.write();
     runTalk(scn, 'end_moonx', () => {
       if (first) UI.toast(scn, '숨은 결말 「달을 쥔 자」 · 스킬의 서 +1 · 심연 마석 +5 · 금화 +5000', '#dfe8ff', 150);
-      if (M) scn.time.delayedCall(first ? 2600 : 300, () => UI.toast(scn, `${this.MYTH[s.hero].name} — ${this.stageKo(3)}! 각성하면 12초간 「${this.MYTH[s.hero].skill}」`, '#ffe27a', 210));
+      if (M) scn.time.delayedCall(first ? 2600 : 300, () => UI.toast(scn, tf('{0} — {1}! 각성하면 12초간 「{2}」', this.MYTH[s.hero].name, this.stageKo(3), this.MYTH[s.hero].skill), '#ffe27a', 210));
       scn.time.delayedCall(5200, () => scn.scene.restart({ ch: 12 }));
     });
   },
@@ -271,8 +271,8 @@ const MoonW = {
   // ---------------- 대장간 「달의 무기」 탭 ----------------
   drawForge(scn) {
     const s = Save.data, cls = s.hero, R = this.ready(s, cls), M = this.myth(s, cls);
-    UI.text(scn, 70, 100, `여섯 달 무기 · ${DB.heroes[cls].name}`, 24, '#ffe7a8', { bold: true });
-    UI.text(scn, 70, 132, '2부 장 보스를 쓰러뜨리면 그 장에 「달의 시련」이 열려요. 시련을 처음 깨면 그 달의 무기를 얻어요 (주인공마다 한 번).', 15, '#8f8070', { wrap: 600 });
+    UI.text(scn, 70, 100, tf('여섯 달 무기 · {0}', DB.heroes[cls].name), 24, '#ffe7a8', { bold: true });
+    UI.fitBox(UI.text(scn, 70, 132, '2부 장 보스를 쓰러뜨리면 그 장에 「달의 시련」이 열려요. 시련을 처음 깨면 그 달의 무기를 얻어요 (주인공마다 한 번).', 15, '#8f8070', { wrap: 600 }), 40, 0.5);   // ✏️ 2026-11-28 다국어
     const cx = 360, cy = 410, rad = 175;
     const g = scn.add.graphics();
     g.lineStyle(2, 0x5a4a70, 0.8).strokeCircle(cx, cy, rad);
@@ -282,7 +282,7 @@ const MoonW = {
       g.lineStyle(3, I.col, it ? 0.9 : 0.35).lineBetween(cx + Math.cos(a) * 70, cy + Math.sin(a) * 70, x - Math.cos(a) * 46, y - Math.sin(a) * 46);
       if (it) UI.itemSlot(scn, x, y, it, 84);
       else { const e = scn.add.circle(x, y, 40, 0x0e0805, 0.95).setStrokeStyle(3, I.col, M ? 0.25 : 0.5); UI.text(scn, x, y, M ? '✓' : '?', 30, I.css, { bold: true }).setOrigin(0.5); }
-      UI.text(scn, x, y + 50, `${I.ko} · ${ch}장`, 15, I.css, { bold: true }).setOrigin(0.5, 0);
+      UI.text(scn, x, y + 50, tf('{0} · {1}장', I.ko, ch), 15, I.css, { bold: true }).setOrigin(0.5, 0);
       if (it) UI.text(scn, x, y + 70, it.plus >= 10 ? '+10 완료' : `+${it.plus} / 10`, 14, it.plus >= 10 ? '#9ae07a' : '#c8b8a0').setOrigin(0.5, 0);
     });
     // 가운데: 달의 무기
@@ -297,18 +297,18 @@ const MoonW = {
     // 오른쪽 안내
     UI.panel(scn, 640, 110, 580, 560, { alpha: 0.6, line: 0x6a5a90 });
     UI.text(scn, 668, 132, this.MYTH[cls].name, 28, RARITY[6].col, { bold: true, serif: true, st: 5 });   // ✏️ 2026-11-26 신화 색
-    UI.text(scn, 668, 172, '신화 · 무기 · 여섯 달 무기 능력치 60%를 모두 갖는다', 16, '#b8c0e0');
+    UI.fit(UI.text(scn, 668, 172, '신화 · 무기 · 여섯 달 무기 능력치 60%를 모두 갖는다', 16, '#b8c0e0'), 530);   // ✏️ 2026-11-28 다국어
     if (M) {
       UI.text(scn, 668, 210, this.stageKo(M.stage), 24, '#ffe27a', { bold: true });
       let y = 250;
       this.stageFx(cls, M.stage).forEach((t, i) => { const o = UI.text(scn, 668, y, (i < M.stage ? '✓ ' : '· ') + t, 17, i < M.stage ? '#dfe8ff' : '#8f8aa8', { wrap: 530 }); y += Math.round(o.height) + 12; });
-      if (M.stage < 2) { UI.text(scn, 668, y, `보스 ${M.boss || 0} / ${this.STAGE2_BOSS}`, 18, '#ffe7a8', { bold: true }); y += 36; }
+      if (M.stage < 2) { UI.text(scn, 668, y, tf('보스 {0} / {1}', M.boss || 0, this.STAGE2_BOSS), 18, '#ffe7a8', { bold: true }); y += 36; }
       UI.text(scn, 668, y + 10, '12장 마지막 보스에게 피해 +30%.\n2부 엔딩을 본 뒤 12장 지도의 「달 너머」에서 숨은 최종 보스와 싸울 수 있어요.', 16, '#c8b8ff', { wrap: 530, ls: 4 });
       return;
     }
     const line = (y, ok, t) => UI.text(scn, 668, y, (ok ? '✓ ' : '✗ ') + t, 20, ok ? '#9ae07a' : '#ff9a8a', { bold: true });
-    line(220, R.have === 6, `여섯 달 무기 모으기 ${R.have}/6`);
-    line(256, R.maxed === 6, `모두 +10 강화 ${R.maxed}/6`);
+    line(220, R.have === 6, tf('여섯 달 무기 모으기 {0}/6', R.have));
+    line(256, R.maxed === 6, tf('모두 +10 강화 {0}/6', R.maxed));
     UI.text(scn, 668, 300, '벼리면 여섯 자루는 하나가 되어 사라져요 (+10 그대로, 되돌릴 수 없어요).', 15, '#c8b8a0', { wrap: 530 });
     let y = 340;
     this.stageFx(cls, 1).forEach(t => { const o = UI.text(scn, 668, y, '· ' + t, 16, '#b8c0e0', { wrap: 530 }); y += Math.round(o.height) + 10; });
@@ -336,7 +336,7 @@ for (const [c, pool, , tB, , midB, bossB] of P2_STAGES) {
   // ✏️ 12장은 마지막 보스(오르벡스) 대신 달그림자 아즈말 — 오르벡스는 본편 마지막·숨은 최종 보스에만 (체력은 장 보스만큼 올린다)
   const tb = c === 12 ? midB : bossB;
   STAGES[`c${c}_moon`] = {
-    name: `달의 시련 · ${M.ko}`, theme: c === 12 ? 'moonside' : tB, boss: true, moonTrial: moon, trialHp: c === 12 ? 1.35 : 1,
+    name: tf('달의 시련 · {0}', M.ko), theme: c === 12 ? 'moonside' : tB, boss: true, moonTrial: moon, trialHp: c === 12 ? 1.35 : 1,
     waves: [[`${pool[3]}*2,${pool[0]}*2`], [`${pool[1]}*2,${pool[2]}*2,${pool[3]}`], [tb]],
     rule: { eliteAdd: 0.45, hpMul: 1.25, dmgMul: 1.2, noHeart: true, ko: '달의 시련 — 정예 크게 증가 · 적 체력 +25% · 피해 +20% · 회복 하트 없음' },
   };

@@ -25,7 +25,7 @@ function vibrate(ms = 30) {
 // 앱을 지웠다 깔거나 웹뷰 저장소가 비워져도 Preferences에서 되살린다.
 const NativeStore = {
   get P() { return window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Preferences; },
-  keys: ['seventhmoon.save.v1', 'seventhmoon.unlock', 'seventhmoon.settings'],
+  keys: ['seventhmoon.save.v1', 'seventhmoon.unlock', 'seventhmoon.settings', 'seventhmoon.owner'],   // ✏️ 2026-11-28 owner: 처음 산 사람 표시
   async restore() {
     const P = this.P; if (!P) return;
     for (const key of this.keys) {
@@ -39,6 +39,25 @@ const NativeStore = {
   mirror(key, value) { const P = this.P; if (P) P.set({ key, value }).catch(() => {}); },
 };
 
+// 🆕 2026-11-26 언어 고르기 — 다 된 언어(I18N.READY)만 누를 수 있고, 고르면 저장하고 새로 시작한다
+function langPickOpen() { return typeof I18N !== 'undefined' && (I18N.READY.length > 1 || /[?&]lang=/.test(location.search)); }
+function openLangPicker(scene) {
+  const c = scene.add.container(0, 0).setDepth(9900).setScrollFactor(0);
+  c.add(UI.blocker(scene, 0.8).setScrollFactor(0));
+  c.add(UI.panel(scene, 60, 40, W - 120, H - 80, { alpha: 0.97 }));
+  c.add(UI.text(scene, W / 2, 86, 'Language · 언어', 32, '#ffe7a8', { serif: true, bold: true, st: 6 }).setOrigin(0.5));
+  const L = I18N.LANGS, cols = 4, bw = 250, bh = 50, gx = 14, gy = 12, x0 = W / 2 - (cols * bw + (cols - 1) * gx) / 2 + bw / 2;
+  L.forEach((l, i) => {
+    const ready = I18N.READY.includes(l), cur = l === I18N.lang;
+    const b = UI.button(scene, x0 + (i % cols) * (bw + gx), 150 + Math.floor(i / cols) * (bh + gy), (cur ? '✔ ' : '') + I18N.NAMES[l], () => { if (!cur) I18N.set(l); }, { w: bw, h: bh, size: 19, col: cur ? 0x8a2a10 : ready ? 0x3a2a1a : 0x2a2622, disabled: !ready && !cur });
+    // 표에 원래 이름 그대로 (번역하지 않는다)
+    if (b.label) b.label.setText((cur ? '✔ ' : '') + I18N.NAMES[l]);
+    c.add(b);
+  });
+  c.add(UI.button(scene, W / 2, H - 92, '닫기', () => c.destroy(), { w: 200, h: 52, size: 22 }));
+  c.each(o => o.setScrollFactor && o.setScrollFactor(0));
+}
+
 // 설정 창 (어느 장면에서든 띄울 수 있다)
 function openSettings(scene, onClose) {
   const c = scene.add.container(0, 0).setDepth(9800).setScrollFactor(0);
@@ -47,9 +66,11 @@ function openSettings(scene, onClose) {
     c.add(UI.blocker(scene, 0.75).setScrollFactor(0));
     c.add(UI.panel(scene, W / 2 - 320, 30, 640, 680));
     c.add(UI.text(scene, W / 2, 82, '설정', 38, '#ffe7a8', { serif: true }).setOrigin(0.5));
+    // 🆕 2026-11-26 언어 (두 번째 언어가 다 되면 보인다 · ?lang= 시험 중에도)
+    if (langPickOpen()) c.add(UI.button(scene, W / 2 + 205, 82, '🌐 ' + (I18N.NAMES[I18N.lang] || I18N.lang), () => openLangPicker(scene), { w: 170, h: 42, size: 17, col: 0x2a3a5a }));
     const d = Settings.d;
     const row = (y, label, val, minus, plus) => {
-      c.add(UI.text(scene, W / 2 - 260, y, label, 26, '#f4e4c0').setOrigin(0, 0.5));
+      c.add(UI.fit(UI.text(scene, W / 2 - 260, y, label, 26, '#f4e4c0').setOrigin(0, 0.5), 300));
       c.add(UI.button(scene, W / 2 + 60, y, '－', minus, { w: 64, h: 52, size: 28, col: 0x3a2a1a }));
       c.add(UI.text(scene, W / 2 + 150, y, val, 26, '#fff', { bold: true }).setOrigin(0.5));
       c.add(UI.button(scene, W / 2 + 240, y, '＋', plus, { w: 64, h: 52, size: 28, col: 0x3a2a1a }));
@@ -59,7 +80,7 @@ function openSettings(scene, onClose) {
     row(192, '효과음', Math.round(d.sfx * 100) + '%', () => step('sfx', -0.1), () => step('sfx', 0.1));
     row(252, '기합·괴성', Math.round(d.voice * 100) + '%', () => step('voice', -0.1), () => step('voice', 0.1));
     const tog = (y, label, k, desc) => {
-      c.add(UI.text(scene, W / 2 - 260, y, label, 26, '#f4e4c0').setOrigin(0, 0.5));
+      c.add(UI.fit(UI.text(scene, W / 2 - 260, y, label, 26, '#f4e4c0').setOrigin(0, 0.5), 300));
       c.add(UI.button(scene, W / 2 + 150, y, d[k] ? '켜짐' : '꺼짐', () => { d[k] = !d[k]; Settings.save(); if (k === 'vib' && d.vib) vibrate(40); draw(); }, { w: 190, h: 52, size: 22, col: d[k] ? 0x2a5a3a : 0x3a2a1a }));
       if (desc) c.add(UI.text(scene, W / 2 - 260, y + 30, desc, 15, '#b8a890'));
     };

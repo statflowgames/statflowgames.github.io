@@ -22,6 +22,11 @@ const Assets = {
   // 공통 그룹과 keep에 없는 그림을 비운다
   evict(scene, keep) {
     const K = new Set(keep);
+    // ✏️ 2026-11-28 다른 장면(대화 등)이 아직 화면에 쓰고 있는 그림은 비우지 않는다 (지우면 그리는 순간 멈춤)
+    try {
+      const walk = l => { for (const o of l) { if (o.texture && o.texture.key) K.add(o.texture.key); if (o.list) walk(o.list); } };
+      for (const s of scene.sys.game.scene.getScenes(true)) if (s !== scene && s.children) walk(s.children.list);
+    } catch (e) { /* 무시 */ }
     let n = 0;
     for (const k of Object.keys(MAN)) {
       if (k === '__ext' || K.has(k) || this.CORE.has(k.split('/')[0])) continue;
@@ -36,7 +41,7 @@ const Assets = {
     const n = this.queue(scene, keys);
     if (!n) return;
     const t = scene.add.text(W / 2, H / 2, '불러오는 중…', { fontFamily: 'sans-serif', fontSize: 26, color: '#f4e4c0', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5).setDepth(99999).setScrollFactor(0);
-    const prog = p => { if (t.active) t.setText('불러오는 중… ' + Math.round(p * 100) + '%'); };
+    const prog = p => { if (t.active) t.setText(tf('불러오는 중… {0}%', Math.round(p * 100))); };
     scene.load.on('progress', prog);
     scene.load.once('complete', () => { scene.load.off('progress', prog); t.destroy(); });
   },

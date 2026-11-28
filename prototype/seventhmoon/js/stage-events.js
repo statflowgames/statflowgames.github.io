@@ -183,7 +183,7 @@ const StageEvents = {
       const y = big ? H - 36 : 150, cx = big ? 560 : W / 2;
       const body = UI.text(sc, cx, y, '', big ? 20 : 18, '#efe3cc', { wrap: big ? 640 : W - 260, st: big ? 0 : 4, align: 'center' }).setOrigin(0.5).setFontStyle('italic');
       if (!big) { const bg = sc.add.graphics(); bg.fillStyle(0x0c0806, 0.6).fillRoundedRect(W / 2 - 420, y - 24, 840, 48, 22); c.add(bg); }
-      c.add(body); c.body = body; c.full = b.t;
+      c.add(body); c.body = body; c.full = tr(b.t);   // ✏️ 2026-11-26 다국어: 번역한 줄을 한 글자씩
       return c;
     }
     // 글 크기를 먼저 재서 풍선 크기를 정한다
@@ -225,7 +225,7 @@ const StageEvents = {
     g.lineBetween(tail[0][0], tail[0][1], tail[1][0], tail[1][1]); g.lineBetween(tail[1][0], tail[1][1], tail[2][0], tail[2][1]);
     body.setPosition(bx + pad, by + pad);
     c.add(g); c.add(body); if (name) c.add(name);
-    c.body = body; c.full = b.t; c.at = at; c.bw = bw;
+    c.body = body; c.full = tr(b.t);   // ✏️ 2026-11-26 다국어: 번역한 줄을 한 글자씩 c.at = at; c.bw = bw;
     this.place(sc, c);
     return c;
   },
@@ -394,7 +394,7 @@ const StageEvents = {
     if (p.ev === 'captive') {
       this.freeCaptive(sc, p);
       e.got++;
-      sc.floatText(p.x, p.y - 140, `${e.d.who} 구출! ${e.got}/${e.d.n}`, '#ffe27a', 28);
+      sc.floatText(p.x, p.y - 140, tf('{0} 구출! {1}/{2}', e.d.who, e.got, e.d.n), '#ffe27a', 28);
       SFX.ui('chest_open');
       sc.fx('levelup_burst', p.x, p.y - 60, { s: 0.4, dur: 600, tint: 0xffe080, depth: p.y + 1001 });
       if (e.got >= e.d.n) this.succeed(sc);
@@ -413,7 +413,7 @@ const StageEvents = {
     if (r.lise) s.lise = (s.lise || 0) + r.lise;
     if (r.flag) s.flags[r.flag] = true;
     const h = sc.hero;
-    sc.floatText(h.x, h.y - 300, '목표 달성!' + (r.lise ? '  리세의 신뢰 +' + r.lise : ''), '#9ae07a', 32);
+    sc.floatText(h.x, h.y - 300, tr('목표 달성!') + (r.lise ? tf('  리세의 신뢰 +{0}', r.lise) : ''), '#9ae07a', 32);
     SFX.ui('ui_equip');
     this.drawGoal(sc);
   },
@@ -439,7 +439,7 @@ const StageEvents = {
     if (sc.goalUi) { sc.goalUi.destroy(); sc.goalUi = null; }
     const e = sc.sev; if (!e || e.state !== 'run') return;
     const d = e.d;
-    const txt = d.kind === 'rescue' ? `목표 · ${d.who} 구출 ${e.got}/${d.n}` : '목표 · 흑월 의식 제단 부수기';
+    const txt = d.kind === 'rescue' ? tf('목표 · {0} 구출 {1}/{2}', d.who, e.got, d.n) : '목표 · 흑월 의식 제단 부수기';
     const c = sc.add.container(0, 0).setDepth(5150).setScrollFactor(0);
     const t = UI.text(sc, W / 2, 112, '', 20, '#ffe7a8', { bold: true, st: 5 }).setOrigin(0.5);
     c.add(t);
@@ -456,7 +456,7 @@ const StageEvents = {
     // ✏️ 글자는 숫자가 바뀔 때만 다시 그린다 (매 프레임 다시 그리면 휴대폰에서 무겁다)
     if (sc.goalUi) {
       const sec = Math.max(0, Math.ceil(e.t / 1000)), warn = e.t < 10000;
-      if (sc.goalUi.sec !== sec) { sc.goalUi.sec = sec; sc.goalUi.t.setText(`${sc.goalUi.txt}  ·  ${sec}초`); }
+      if (sc.goalUi.sec !== sec) { sc.goalUi.sec = sec; sc.goalUi.t.setText(tf('{0}  ·  {1}초', sc.goalUi.txt, sec)); }
       if (sc.goalUi.warn !== warn) { sc.goalUi.warn = warn; sc.goalUi.t.setColor(warn ? '#ff9a8a' : '#ffe7a8'); }
     }
     if (e.t <= 0) this.fail(sc);

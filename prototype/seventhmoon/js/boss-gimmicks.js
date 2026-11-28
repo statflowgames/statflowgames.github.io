@@ -51,7 +51,7 @@ const BossGimmicks = {
       const guards = sc.monsters.filter(o => !o.dead && o !== m && !o.def.boss).length;
       if (guards > 0) {
         const holy = m.lastElem === 'holy' || h.key === 'paladin';
-        this.say(m, `호위병 ${guards}명이 지키는 중`, '#e8d8a0', 22);
+        this.say(m, tf('호위병 {0}명이 지키는 중', guards), '#e8d8a0', 22);
         return Math.round(dmg * (holy ? 0.45 : 0.15));
       }
     }

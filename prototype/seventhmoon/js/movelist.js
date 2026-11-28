@@ -73,7 +73,7 @@ const MoveList = {
     const info = MOVES[key] || MOVES.warrior, name = DB.heroes[key].name;
     let pc = o.pc !== undefined ? o.pc : !this.touchDevice();
     c.add(UI.blocker(scene, 0.9).setScrollFactor(0));
-    c.add(UI.text(scene, W / 2, 46, `${name} 조작법`, 38, '#ffe7a8', { serif: true, st: 7 }).setOrigin(0.5));
+    c.add(UI.text(scene, W / 2, 46, tf('{0} 조작법', name), 38, '#ffe7a8', { serif: true, st: 7 }).setOrigin(0.5));
     c.add(UI.text(scene, W / 2, 88, info.trait, 18, '#d8c8b0').setOrigin(0.5));
     // 시연 무대
     const SX = 860, SY = 450;
@@ -130,9 +130,9 @@ const MoveList = {
     // 스킬·각성
     const s = Save.data, L = DB.skills[key].list;
     const act = s && s.hero === key ? (s.active || []).filter(x => x !== null && x !== undefined).map(i => L[i].name) : [];
-    c.add(UI.text(scene, 80, 560, `스킬 2칸 (${pc ? MOVE_INPUT.skill.pc : MOVE_INPUT.skill.touch}): ${act.length ? act.join(' · ') : '마법 천막에서 배워 장착해요'}`, 18, '#d8c8b0', { wrap: 440 }));
-    c.add(UI.text(scene, 80, 612, `각성기 (${pc ? MOVE_INPUT.awaken.pc : MOVE_INPUT.awaken.touch}): 「${L[15].name}」`, 18, '#ffd34d', { wrap: 440 }));
-    c.add(UI.text(scene, 80, 664, `구르기: ${pc ? 'L' : '회피 버튼'} · 점프: ${pc ? 'K' : '점프 버튼'} · 회복약: ${pc ? '1~4' : '화면 위 아이콘'}`, 16, '#a89a88'));
+    c.add(UI.text(scene, 80, 560, tf('스킬 2칸 ({0}): {1}', pc ? MOVE_INPUT.skill.pc : MOVE_INPUT.skill.touch, act.length ? act.join(' · ') : '마법 천막에서 배워 장착해요'), 18, '#d8c8b0', { wrap: 440 }));
+    c.add(UI.text(scene, 80, 612, tf('각성기 ({0}): 「{1}」', pc ? MOVE_INPUT.awaken.pc : MOVE_INPUT.awaken.touch, L[15].name), 18, '#ffd34d', { wrap: 440 }));
+    c.add(UI.text(scene, 80, 664, tf('구르기: {0} · 점프: {1} · 회복약: {2}', pc ? 'L' : '회피 버튼', pc ? 'K' : '점프 버튼', pc ? '1~4' : '화면 위 아이콘'), 16, '#a89a88'));
     // 휴대폰 ↔ PC 표시 바꾸기: 창을 다시 연다
     c.add(UI.button(scene, 1010, 600, pc ? '휴대폰 버튼으로 보기' : 'PC 키로 보기', () => { const cur = S.cur && S.cur.id; close(true); this.build(scene, key, { ...o, pc: !pc, start: cur }); }, { w: 260, h: 46, size: 18, col: 0x2a3a5a }));
     c.add(UI.button(scene, 1010, 662, '닫기', () => close(), { w: 260, h: 50, size: 22, col: 0x3a2a1a }));

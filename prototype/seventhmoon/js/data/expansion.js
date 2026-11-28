@@ -61,21 +61,21 @@ for (const [id, src, ko, tint, sc, hp, dmg, exp, mid, summon] of P2_BOSSES) {
   MONDEF[id] = { ...b, ko, like: src, tint, sc, hp, dmg, exp, mid, summon, gold: [Math.round(b.gold[0] * 2.2), Math.round(b.gold[1] * 2.2)], boss: true, standin: true };
 }
 
-// ---------------- 2부 배경 (✏️ 2026-11-21 진짜 그림 반영: assets/bg/p2_*. 소품은 아직 1부 것) ----------------
+// ---------------- 2부 배경 (✏️ 2026-11-21 진짜 그림 반영: assets/bg/p2_*. ✏️ 2026-11-26 땅 다시(바닥만)·소품도 2부 것 props_<테마>) ----------------
 Object.assign(THEMES, {
   // ✏️ 음악·환경음은 2부 전용 (tools/build_music_p2.py, tools/build_audio_p2.py)
-  glass: { ...THEMES.desert, far: 'bg/p2_glass_far', ground: 'bg/p2_glass_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c7_glass', amb: 'glass' },
-  glass_maze: { ...THEMES.tomb, far: 'bg/p2_glass_maze_far', ground: 'bg/p2_glass_maze_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c7_maze', amb: 'glass' },
-  sunken: { ...THEMES.harbor, far: 'bg/p2_sunken_far', ground: 'bg/p2_sunken_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c8_sunken', amb: 'sunken' },
-  sunken_temple: { ...THEMES.sewer, far: 'bg/p2_sunken_temple_far', ground: 'bg/p2_sunken_temple_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c8_temple', amb: 'sunken' },
-  forge: { ...THEMES.dwarf, far: 'bg/p2_forge_far', ground: 'bg/p2_forge_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c9_forge', amb: 'forge' },
-  lava: { ...THEMES.snow, far: 'bg/p2_lava_far', ground: 'bg/p2_lava_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c9_lava', amb: 'lava' },
-  spore: { ...THEMES.forest, far: 'bg/p2_spore_far', ground: 'bg/p2_spore_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c10_spore', amb: 'spore' },
-  spore_bog: { ...THEMES.swamp, far: 'bg/p2_spore_bog_far', ground: 'bg/p2_spore_bog_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c10_bog', amb: 'spore' },
-  cloud: { ...THEMES.tower, far: 'bg/p2_cloud_far', ground: 'bg/p2_cloud_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c11_cloud', amb: 'cloud' },
-  cloud_garden: { ...THEMES.forest, far: 'bg/p2_cloud_garden_far', ground: 'bg/p2_cloud_garden_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c11_garden', amb: 'cloud' },
-  moonside: { ...THEMES.abyss, far: 'bg/p2_moonside_far', ground: 'bg/p2_moonside_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c12_moon', amb: 'moon' },
-  moon_grave: { ...THEMES.tomb, far: 'bg/p2_moon_grave_far', ground: 'bg/p2_moon_grave_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c12_grave', amb: 'moon' },
+  glass: { ...THEMES.desert, props: 'props_glass', far: 'bg/p2_glass_far', ground: 'bg/p2_glass_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c7_glass', amb: 'glass' },
+  glass_maze: { ...THEMES.tomb, props: 'props_glass_maze', far: 'bg/p2_glass_maze_far', ground: 'bg/p2_glass_maze_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c7_maze', amb: 'glass' },
+  sunken: { ...THEMES.harbor, props: 'props_sunken', far: 'bg/p2_sunken_far', ground: 'bg/p2_sunken_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c8_sunken', amb: 'sunken' },
+  sunken_temple: { ...THEMES.sewer, props: 'props_sunken_temple', far: 'bg/p2_sunken_temple_far', ground: 'bg/p2_sunken_temple_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c8_temple', amb: 'sunken' },
+  forge: { ...THEMES.dwarf, props: 'props_forge', far: 'bg/p2_forge_far', ground: 'bg/p2_forge_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c9_forge', amb: 'forge' },
+  lava: { ...THEMES.snow, props: 'props_lava', far: 'bg/p2_lava_far', ground: 'bg/p2_lava_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c9_lava', amb: 'lava' },
+  spore: { ...THEMES.forest, props: 'props_spore', far: 'bg/p2_spore_far', ground: 'bg/p2_spore_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c10_spore', amb: 'spore' },
+  spore_bog: { ...THEMES.swamp, props: 'props_spore_bog', far: 'bg/p2_spore_bog_far', ground: 'bg/p2_spore_bog_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c10_bog', amb: 'spore' },
+  cloud: { ...THEMES.tower, props: 'props_cloud', far: 'bg/p2_cloud_far', ground: 'bg/p2_cloud_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c11_cloud', amb: 'cloud' },
+  cloud_garden: { ...THEMES.forest, props: 'props_cloud_garden', far: 'bg/p2_cloud_garden_far', ground: 'bg/p2_cloud_garden_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c11_garden', amb: 'cloud' },
+  moonside: { ...THEMES.abyss, props: 'props_moonside', far: 'bg/p2_moonside_far', ground: 'bg/p2_moonside_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c12_moon', amb: 'moon' },
+  moon_grave: { ...THEMES.tomb, props: 'props_moon_grave', far: 'bg/p2_moon_grave_far', ground: 'bg/p2_moon_grave_ground', standin: false, tint: 0xffffff, bgm: 'bgm_c12_grave', amb: 'moon' },
 });
 
 // ---------------- 장 목록 7~12 ----------------
